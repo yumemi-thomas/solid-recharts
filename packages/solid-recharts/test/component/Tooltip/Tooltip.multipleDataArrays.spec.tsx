@@ -9,6 +9,7 @@ import {
 import { mockGetBoundingClientRect } from "../../helper/mockGetBoundingClientRect";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 import { expectLastCalledWithScale } from "../../helper/expectScale";
+import { expectLines } from "../../helper/expectLine";
 import { assertNotNull } from "../../helper/assertNotNull";
 
 /*
@@ -49,11 +50,19 @@ describe("Tooltip in chart with multiple data arrays", () => {
         <YAxis />
         <Tooltip />
         <Legend />
-        <Line dataKey="y1" data={data1} />
-        <Line dataKey="y2" data={data2} />
+        <Line dataKey="y1" data={data1} isAnimationActive={false} />
+        <Line dataKey="y2" data={data2} isAnimationActive={false} />
         {props.children}
       </ComposedChart>
     ));
+
+    it("should render two lines", () => {
+      const { container } = renderTestCase();
+      expectLines(container, [
+        { d: "M172.5,111.667L280,31.667L387.5,85L495,58.333" },
+        { d: "M118.75,45L194,71.667L204.75,58.333L258.5,5L333.75,5L387.5,5" },
+      ]);
+    });
 
     it("should select individual items data", () => {
       const { spy } = renderTestCase((state) =>
