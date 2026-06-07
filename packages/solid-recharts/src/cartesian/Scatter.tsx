@@ -284,7 +284,11 @@ const scatterErrorBarFormatter: ErrorBarDataPointFormatter = (
   const cy = getValueByDataKey(entry, "cy");
   const node = getValueByDataKey(entry, "node");
   const nodeValue = getValueByDataKey(node, direction === "x" ? "x" : "y");
-  const errorVal = getValueByDataKey(entry, dataKey);
+  // recharts' ScatterPointItem spreads the original row (`...entry`), so it reads
+  // the error dataKey straight off the point; our point keeps the row under
+  // `.payload`, so read from there (mirrors Bar's barErrorBarFormatter).
+  const payload = getValueByDataKey(entry, "payload");
+  const errorVal = getValueByDataKey(payload, dataKey);
   return {
     x: typeof cx === "number" ? cx : undefined,
     y: typeof cy === "number" ? cy : undefined,

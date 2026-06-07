@@ -47,6 +47,8 @@ export interface ErrorBarProps {
   stroke?: string;
   /** The stroke width. @defaultValue 1.5 */
   strokeWidth?: number | string;
+  /** Extra offset rendered as an `offset` attribute on the whisker group. @defaultValue 0 */
+  offset?: number;
   /** Animation props (DEFERRED — kept for prop parity). */
   isAnimationActive?: boolean;
   animationBegin?: number;
@@ -59,6 +61,7 @@ const errorBarDefaultProps = {
   stroke: "black",
   "stroke-width": 1.5,
   width: 5,
+  offset: 0,
   isAnimationActive: true,
   animationBegin: 0,
   animationDuration: 400,
@@ -87,6 +90,7 @@ function ErrorBarImpl(props: {
   direction: ErrorBarDirection;
   stroke: string;
   strokeWidth: number | string;
+  offset: number;
   class?: string;
 }): JSX.Element {
   const ctx = useErrorBarContext();
@@ -99,6 +103,15 @@ function ErrorBarImpl(props: {
   const yAxisAcc = useAppSelector((s) =>
     selectAxisWithScale(s, "yAxis", ctx().yAxisId, isPanorama),
   );
+
+  // recharts spreads {stroke, strokeWidth, offset} onto the whisker GROUP (the
+  // lines inherit). `offset` is not a typed `<g>` attribute, so build the set as
+  // a Record and spread it (mirrors how Layer forwards svgPropertiesAndEvents).
+  const groupAttrs = createMemo<Record<string, unknown>>(() => ({
+    stroke: props.stroke,
+    "stroke-width": props.strokeWidth,
+    offset: props.offset,
+  }));
 
   const lineGroups = createMemo<ReadonlyArray<ReadonlyArray<RectangleCoordinate>> | null>(() => {
     const { data, dataPointFormatter, errorBarOffset: offset } = ctx();
@@ -169,20 +182,11 @@ function ErrorBarImpl(props: {
           <For each={groups()}>
             {(lines) => (
               <Show when={lines.length > 0}>
-                <Layer class="recharts-errorBar">
-                  <For each={lines}>
-                    {(c) => (
-                      <line
-                        x1={c.x1}
-                        y1={c.y1}
-                        x2={c.x2}
-                        y2={c.y2}
-                        stroke={props.stroke}
-                        stroke-width={props.strokeWidth}
-                      />
-                    )}
-                  </For>
-                </Layer>
+                {/* Raw <g> (mirrors Layer's `recharts-layer` class) so the Record
+                    spread can carry the non-typed `offset` attribute. */}
+                <g class={["recharts-layer", "recharts-errorBar"]} {...groupAttrs()}>
+                  <For each={lines}>{(c) => <line x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} />}</For>
+                </g>
               </Show>
             )}
           </For>
@@ -210,6 +214,7 @@ export function ErrorBar(props: ErrorBarProps): JSX.Element {
         direction={direction()}
         stroke={merged.stroke}
         strokeWidth={merged["stroke-width"]}
+        offset={merged.offset}
         class={merged.class}
       />
     </>
