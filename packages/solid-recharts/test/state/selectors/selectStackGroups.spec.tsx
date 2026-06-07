@@ -4,10 +4,15 @@
 // stability in the Solid store). Stacked-data golden uses the toBeRechartsStackedData
 // matcher registered by expectStackGroups (side-effect import). React render-count
 // (toHaveBeenCalledTimes) assertions dropped.
-// Deferred: the "keep the order ... after hiding one item and displaying it again"
-// case — a Legend-click interaction (React useState + act/fireEvent legend toggle)
-// requiring a hide-toggle wrapper port; tracked in TESTS.md.
+// The "keep the order ... after hiding one item and displaying it again" case uses a
+// Solid signal (in place of React useState) for the hidden-items set, toggled via the
+// Legend onClick + a fireEvent.click on the legend item. (Parity fix shipped alongside:
+// <Legend> now forwards onClick/onMouseEnter/onMouseLeave to <DefaultLegendContent>,
+// which already wires them onto each .recharts-legend-item.)
+import { createSignal, flush } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { describe, expect, it } from "vitest";
+import { fireEvent } from "../../helper/render";
 import type { RechartsRootState } from "../../../src/state/store";
 import { selectStackGroups } from "../../../src/state/selectors/axisSelectors";
 import {
@@ -16,7 +21,8 @@ import {
 } from "../../helper/selectorTestHelpers";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
-import { Area, AreaChart, Bar, BarChart } from "../../../src";
+import { assertNotNull } from "../../helper/assertNotNull";
+import { Area, AreaChart, Bar, BarChart, Legend, type LegendPayload } from "../../../src";
 import { PageData } from "../../_data";
 import "../../helper/expectStackGroups"; // registers toBeRechartsStackedData (expect.extend)
 
@@ -165,6 +171,84 @@ describe("selectStackGroups", () => {
           ],
         ]),
       },
+    });
+  });
+
+  describe("when items in chart get hidden and then displayed again", () => {
+    function MyTestCase(props: { children: JSX.Element }) {
+      const [hiddenItems, setHiddenItems] = createSignal<ReadonlyArray<string>>([]);
+
+      const handleClick = (data: LegendPayload) => {
+        const dataKey = data.dataKey;
+        if (typeof dataKey !== "string") {
+          return;
+        }
+        setHiddenItems((prev) =>
+          prev.includes(dataKey) ? prev.filter((key) => key !== dataKey) : [...prev, dataKey],
+        );
+      };
+
+      return (
+        <AreaChart width={100} height={100} data={PageData}>
+          <Legend onClick={handleClick} />
+          <Area dataKey="uv" stackId="a" hide={hiddenItems().includes("uv")} />
+          <Area dataKey="pv" stackId="a" hide={hiddenItems().includes("pv")} />
+          {props.children}
+        </AreaChart>
+      );
+    }
+
+    const renderTestCase = createSelectorTestCase(MyTestCase);
+
+    describe("after hiding one item and displaying it again", () => {
+      // https://github.com/recharts/recharts/issues/5992
+      it("should keep the order of graphical items in stack group", () => {
+        const { container, spy } = renderTestCase((state: RechartsRootState) =>
+          selectStackGroups(state, "xAxis", 0, false),
+        );
+
+        expectLastCalledWith(spy, {
+          a: expect.objectContaining({
+            graphicalItems: [
+              expect.objectContaining({ dataKey: "uv", hide: false }),
+              expect.objectContaining({ dataKey: "pv", hide: false }),
+            ],
+          }),
+        });
+
+        // Re-query the legend item before each click: Solid's <For> recreates the
+        // legend-item DOM node when the payload re-renders (React would reuse it), so a
+        // node captured before a toggle is stale by the next click.
+        const clickUvLegendItem = (): void => {
+          const items = container.querySelectorAll(".recharts-legend-item");
+          expect(items).toHaveLength(2);
+          const uvItem = items[1];
+          assertNotNull(uvItem);
+          expect(uvItem.textContent).toBe("uv");
+          fireEvent.click(uvItem);
+          flush();
+        };
+
+        clickUvLegendItem();
+
+        expectLastCalledWith(spy, {
+          a: expect.objectContaining({
+            graphicalItems: [expect.objectContaining({ dataKey: "pv", hide: false })],
+          }),
+        });
+
+        clickUvLegendItem();
+
+        expectLastCalledWith(spy, {
+          a: expect.objectContaining({
+            graphicalItems: [
+              // This should be in the same order as before hiding
+              expect.objectContaining({ dataKey: "uv", hide: false }),
+              expect.objectContaining({ dataKey: "pv", hide: false }),
+            ],
+          }),
+        });
+      });
     });
   });
 

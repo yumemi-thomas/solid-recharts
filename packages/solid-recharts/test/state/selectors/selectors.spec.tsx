@@ -11,21 +11,44 @@ import { useTooltipEventType } from "../../../src/state/selectors/selectTooltipE
 import {
   selectActiveCoordinate,
   selectActiveIndex,
+  selectActivePropsFromChartPointer,
   selectIsTooltipActive,
   selectTooltipPayload,
   selectTooltipPayloadConfigurations,
 } from "../../../src/state/selectors/tooltipSelectors";
+import { selectTooltipState } from "../../../src/state/selectors/selectTooltipState";
 import { combineTooltipPayload } from "../../../src/state/selectors/combiners/combineTooltipPayload";
 import { useAppSelector } from "../../../src/state/hooks";
 import type {
+  TooltipIndex,
   TooltipPayload,
   TooltipPayloadConfiguration,
   TooltipPayloadEntry,
 } from "../../../src/state/tooltipSlice";
 import { ChartDataState, initialChartDataState } from "../../../src/state/chartDataSlice";
 import { noop } from "../../../src/util/DataUtils";
-import type { Coordinate, TooltipEventType } from "../../../src/util/types";
+import type {
+  Coordinate,
+  PolarCoordinate,
+  RelativePointer,
+  TooltipEventType,
+} from "../../../src/util/types";
 import type { TooltipTrigger } from "../../../src/chart/types";
+import { produceState } from "../../helper/produceState";
+import {
+  Area,
+  BarChart,
+  ComposedChart,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  Scatter,
+} from "../../../src";
+import { PageData, pageData } from "../../_data";
+import { mockGetBoundingClientRect } from "../../helper/mockGetBoundingClientRect";
+import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
+import { useAppSelectorWithStableTest } from "../../helper/selectorTestHelpers";
 
 // preloadedState used by selectTooltipPayload cases (mirrors recharts).
 const preloadedTooltipState: Partial<RechartsRootState> = {
@@ -37,6 +60,9 @@ const preloadedTooltipState: Partial<RechartsRootState> = {
   },
 };
 const tooltipActiveCoordinate: Coordinate = { x: 100, y: 200 };
+const activeCoordinate: Coordinate = { x: 100, y: 200 };
+
+const allTooltipEventTypes: ReadonlyArray<TooltipEventType> = ["axis", "item"];
 
 const exampleTooltipPayloadConfiguration1: TooltipPayloadConfiguration = {
   settings: {
@@ -234,6 +260,113 @@ describe("selectActiveCoordinate", () => {
     const actual = selectActiveCoordinate(store.state, "axis", "hover", undefined);
     expect(actual).toEqual({ x: 5, y: 6 });
   });
+
+  it("should return coordinates when mouseOverAxisIndex is fired and stop returning them after mouseLeaveChart", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+
+    const initialState = createRechartsStore().state;
+    const expected: Coordinate | PolarCoordinate | undefined = { x: 100, y: 150 };
+    expect(selectActiveCoordinate(initialState, "axis", "hover", undefined)).toBe(undefined);
+
+    store.actions.tooltip.setMouseOverAxisIndex({
+      activeIndex: "1",
+      activeCoordinate: expected,
+      activeDataKey: undefined,
+    });
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "axis", "hover", undefined)).toEqual(expected);
+
+    store.actions.tooltip.mouseLeaveChart();
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "axis", "hover", undefined)).toEqual({
+      x: 100,
+      y: 150,
+    });
+    // the selector stops returning the coordinates but they should still be present in store for the next animation
+    expect(store.state.tooltip.axisInteraction.hover.coordinate).toEqual(expected);
+  });
+
+  it("should return coordinates when mouseClickAxisIndex is fired and keep them after mouseLeaveChart", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+
+    const initialState = createRechartsStore().state;
+    const expected: Coordinate | PolarCoordinate | undefined = { x: 100, y: 150 };
+    expect(selectActiveCoordinate(initialState, "axis", "click", undefined)).toBe(undefined);
+
+    store.actions.tooltip.setMouseClickAxisIndex({
+      activeIndex: "1",
+      activeCoordinate: expected,
+      activeDataKey: undefined,
+    });
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "axis", "click", undefined)).toEqual(expected);
+
+    store.actions.tooltip.mouseLeaveChart();
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "axis", "click", undefined)).toEqual(expected);
+  });
+
+  it("should return coordinates when mouseOverItemIndex is fired and keep them after mouseLeaveItem", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+
+    const initialState = createRechartsStore().state;
+    const expected: Coordinate | PolarCoordinate | undefined = { x: 100, y: 150 };
+    expect(selectActiveCoordinate(initialState, "item", "hover", undefined)).toBe(undefined);
+
+    store.actions.tooltip.setActiveMouseOverItemIndex({
+      activeIndex: "1",
+      activeCoordinate: expected,
+      activeDataKey: undefined,
+      activeGraphicalItemId: "id-1",
+    });
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "item", "hover", undefined)).toEqual(expected);
+
+    // neither of these reset the coordinates and the selector does NOT stop returning them
+    store.actions.tooltip.mouseLeaveItem();
+    store.actions.tooltip.mouseLeaveChart();
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "item", "hover", undefined)).toEqual({
+      x: 100,
+      y: 150,
+    });
+    // the selector stops returning the coordinates but they should still be present in store for the next animation
+    expect(store.state.tooltip.itemInteraction.hover.coordinate).toEqual(expected);
+  });
+
+  it("should return coordinates when mouseClickItemIndex is fired and keep them after mouseLeaveItem", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+
+    const initialState = createRechartsStore().state;
+    const expected: Coordinate | PolarCoordinate | undefined = {
+      x: 100,
+      y: 150,
+    };
+    expect(selectActiveCoordinate(initialState, "item", "click", undefined)).toBe(undefined);
+
+    store.actions.tooltip.setActiveClickItemIndex({
+      activeIndex: "1",
+      activeCoordinate: expected,
+      activeDataKey: undefined,
+      activeGraphicalItemId: "id-1",
+    });
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "item", "click", undefined)).toEqual(expected);
+
+    // neither of these should reset coordinate
+    store.actions.tooltip.mouseLeaveItem();
+    store.actions.tooltip.mouseLeaveChart();
+    flush();
+
+    expect(selectActiveCoordinate(store.state, "item", "click", undefined)).toEqual(expected);
+  });
 });
 
 describe("selectIsTooltipActive", () => {
@@ -282,6 +415,655 @@ describe("selectIsTooltipActive", () => {
       isActive: true,
     });
   });
+
+  describe.each(allTooltipCombinations)(
+    "tooltipEventType: $tooltipEventType tooltipTrigger: $trigger",
+    ({ tooltipEventType, trigger }) => {
+      it("should return true if a defaultIndex has been set", () => {
+        const store = createRechartsStore();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, "1")).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+      });
+    },
+  );
+
+  describe("trigger: hover", () => {
+    const trigger = "hover";
+
+    describe.each(allTooltipEventTypes)("tooltipEventType: %s", (tooltipEventType) => {
+      it("should return false if user is clicking on a graphical item", () => {
+        // in browser, this is difficult to reproduce - one usually has to mouse over first before clicking
+        const store = createRechartsStore();
+        store.actions.tooltip.setActiveClickItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "foo",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+
+      it("should return false if user is clicking on an axis", () => {
+        // in browser, this is difficult to reproduce - one usually has to mouse over first before clicking
+        const store = createRechartsStore();
+        store.actions.tooltip.setMouseClickAxisIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+    });
+
+    describe("tooltipEventType: item", () => {
+      const tooltipEventType = "item";
+      it("should return true if user is hovering over a graphical item but not axis", () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setMouseOverAxisIndex({
+          activeIndex: "1",
+          activeDataKey: undefined,
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+        store.actions.tooltip.setActiveMouseOverItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "foo",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+        store.actions.tooltip.mouseLeaveItem();
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+
+      it("should return false after mouse leaves the chart element", () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setActiveMouseOverItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "id-1",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+        store.actions.tooltip.mouseLeaveChart();
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+    });
+
+    describe("tooltipEventType: axis", () => {
+      const tooltipEventType = "axis";
+      it(`should return true if user is hovering over an axis,
+          and then continue returning true when user hovers over and then leaves a graphical item`, () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setActiveMouseOverItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "foo",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+        store.actions.tooltip.setMouseOverAxisIndex({
+          activeIndex: "1",
+          activeDataKey: undefined,
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+        store.actions.tooltip.setActiveMouseOverItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "foo",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+        store.actions.tooltip.mouseLeaveItem();
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+      });
+
+      it.todo("should return false after mouse leaves the chart element");
+    });
+  });
+
+  describe("trigger: click", () => {
+    const trigger = "click";
+
+    describe.each(allTooltipEventTypes)("tooltipEventType: %s", (tooltipEventType) => {
+      it("should return false if user is hovering over a graphical item", () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setActiveMouseOverItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "foo",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+
+      it("should return false if user is hovering over an axis", () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setMouseOverAxisIndex({
+          activeIndex: null,
+          activeDataKey: undefined,
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+    });
+
+    describe("tooltipEventType: item", () => {
+      const tooltipEventType = "item";
+      it(`should return true if user is clicking a graphical item and continue returning true forever,
+          because recharts does not allow ever turning off a tooltip that was triggered by a click`, () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setActiveClickItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "foo",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+        store.actions.tooltip.setActiveClickItemIndex({
+          activeIndex: "2",
+          activeDataKey: undefined,
+          activeCoordinate,
+          activeGraphicalItemId: "bar",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "2",
+        });
+        store.actions.tooltip.mouseLeaveItem();
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "2",
+        });
+        store.actions.tooltip.setMouseClickAxisIndex({
+          activeIndex: "1",
+          activeDataKey: undefined,
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "2",
+        });
+      });
+
+      it("should return false if user is clicking on an axis", () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setMouseClickAxisIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: false,
+          activeIndex: null,
+        });
+      });
+    });
+
+    describe("tooltipEventType: axis", () => {
+      const tooltipEventType = "axis";
+      it("should return true if user is clicking on an axis, and continue returning true forever", () => {
+        const store = createRechartsStore();
+        store.actions.tooltip.setMouseClickAxisIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "1",
+        });
+        store.actions.tooltip.setMouseClickAxisIndex({
+          activeIndex: "2",
+          activeDataKey: undefined,
+          activeCoordinate,
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "2",
+        });
+        store.actions.tooltip.mouseLeaveItem();
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "2",
+        });
+        store.actions.tooltip.setActiveClickItemIndex({
+          activeIndex: "1",
+          activeDataKey: "dataKey1",
+          activeCoordinate,
+          activeGraphicalItemId: "id-1",
+        });
+        flush();
+        expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
+          isActive: true,
+          activeIndex: "2",
+        });
+      });
+    });
+  });
+});
+
+describe("selectActiveIndexFromChartPointer", () => {
+  const exampleChartPointer: RelativePointer = {
+    relativeX: 10,
+    relativeY: 10,
+  };
+
+  it("should return active props after mouse hover", () => {
+    const tooltipActiveSpy = vi.fn();
+    mockGetBoundingClientRect({ width: 100, height: 100 });
+    const Comp = (): null => {
+      const props = useAppSelectorWithStableTest((state) =>
+        selectActivePropsFromChartPointer(state, exampleChartPointer),
+      );
+      createEffect(
+        () => props(),
+        (value) => tooltipActiveSpy(value),
+      );
+      return null;
+    };
+    render(() => (
+      <LineChart data={pageData} width={100} height={100}>
+        <Line dataKey="pv" />
+        <Comp />
+      </LineChart>
+    ));
+    flush();
+
+    expect(tooltipActiveSpy).toHaveBeenLastCalledWith({
+      activeCoordinate: {
+        x: 5,
+        y: 10,
+      },
+      activeIndex: "0",
+    });
+  });
+});
+
+describe("selectTooltipState.tooltipItemPayloads", () => {
+  it("should return undefined when called outside of store context", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const payload = useAppSelectorWithStableTest(selectTooltipState);
+      createEffect(
+        () => payload(),
+        (value) => spy(value),
+      );
+      return null;
+    };
+    render(() => <Comp />);
+    flush();
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it("should return empty array for initial state", () => {
+    const store = createRechartsStore();
+    expect(selectTooltipState(store.state).tooltipItemPayloads).toEqual([]);
+  });
+
+  it("should return empty array in an empty chart", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const tooltipState = useAppSelectorWithStableTest(selectTooltipState);
+      createEffect(
+        () => tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem),
+        (value) => spy(value),
+      );
+      return null;
+    };
+    render(() => (
+      <BarChart data={PageData} width={100} height={100}>
+        <Comp />
+      </BarChart>
+    ));
+    flush();
+    expectLastCalledWith(spy, []);
+  });
+
+  it("should return all tooltip payloads defined on graphical items in ComposedChart", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const tooltipState = useAppSelectorWithStableTest(selectTooltipState);
+      createEffect(
+        () => tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem),
+        (value) => spy(value),
+      );
+      return null;
+    };
+    const data1 = [{ x: 1 }, { x: 2 }, { x: 3 }];
+    const data2 = [{ x: 10 }, { x: 20 }, { x: 30 }];
+    render(() => (
+      <ComposedChart data={PageData} width={100} height={100}>
+        <Area dataKey="x" data={data1} />
+        <Area dataKey="x" data={data2} />
+        <Line data={[4, 5, 6]} />
+        <Line data={[40, 50, 60]} />
+        <Scatter data={[{ x: 7 }, { x: 8 }, { x: 9 }]} dataKey="x" />
+        <Scatter data={[{ y: 70 }, { y: 80 }, { y: 90 }]} dataKey="y" />
+        <Comp />
+      </ComposedChart>
+    ));
+    flush();
+    // two of these elements will send the data as defined; Scatter decides to pre-chew it
+    expectLastCalledWith(spy, [
+      data1,
+      data2,
+      [4, 5, 6],
+      [40, 50, 60],
+      [
+        [
+          {
+            dataKey: "x",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              x: 7,
+            },
+            type: undefined,
+            unit: "",
+            value: 7,
+          },
+          {
+            dataKey: "x",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              x: 7,
+            },
+            type: undefined,
+            unit: "",
+            value: 7,
+          },
+        ],
+        [
+          {
+            dataKey: "x",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              x: 8,
+            },
+            type: undefined,
+            unit: "",
+            value: 8,
+          },
+          {
+            dataKey: "x",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              x: 8,
+            },
+            type: undefined,
+            unit: "",
+            value: 8,
+          },
+        ],
+        [
+          {
+            dataKey: "x",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              x: 9,
+            },
+            type: undefined,
+            unit: "",
+            value: 9,
+          },
+          {
+            dataKey: "x",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              x: 9,
+            },
+            type: undefined,
+            unit: "",
+            value: 9,
+          },
+        ],
+      ],
+      [
+        [
+          {
+            dataKey: "y",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              y: 70,
+            },
+            type: undefined,
+            unit: "",
+            value: 70,
+          },
+          {
+            dataKey: "y",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              y: 70,
+            },
+            type: undefined,
+            unit: "",
+            value: 70,
+          },
+        ],
+        [
+          {
+            dataKey: "y",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              y: 80,
+            },
+            type: undefined,
+            unit: "",
+            value: 80,
+          },
+          {
+            dataKey: "y",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              y: 80,
+            },
+            type: undefined,
+            unit: "",
+            value: 80,
+          },
+        ],
+        [
+          {
+            dataKey: "y",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              y: 90,
+            },
+            type: undefined,
+            unit: "",
+            value: 90,
+          },
+          {
+            dataKey: "y",
+            graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            name: undefined,
+            payload: {
+              y: 90,
+            },
+            type: undefined,
+            unit: "",
+            value: 90,
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it("should return all payloads in PieChart", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const tooltipState = useAppSelectorWithStableTest(selectTooltipState);
+      createEffect(
+        () => tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem),
+        (value) => spy(value),
+      );
+      return null;
+    };
+    render(() => (
+      <PieChart width={100} height={100}>
+        <Comp />
+        <Pie data={[{ x: 1 }, { x: 2 }, { x: 3 }]} dataKey="x" id="pie-1" />
+        <Pie data={[{ y: 10 }, { y: 20 }, { y: 30 }]} dataKey="y" id="pie-2" />
+      </PieChart>
+    ));
+    flush();
+    expectLastCalledWith(spy, [
+      [
+        [
+          {
+            color: "#808080",
+            dataKey: "x",
+            fill: "#808080",
+            name: 0,
+            payload: { x: 1 },
+            type: undefined,
+            value: 1,
+            graphicalItemId: "pie-1",
+          },
+        ],
+        [
+          {
+            color: "#808080",
+            dataKey: "x",
+            fill: "#808080",
+            name: 1,
+            payload: { x: 2 },
+            type: undefined,
+            value: 2,
+            graphicalItemId: "pie-1",
+          },
+        ],
+        [
+          {
+            color: "#808080",
+            dataKey: "x",
+            fill: "#808080",
+            name: 2,
+            payload: { x: 3 },
+            type: undefined,
+            value: 3,
+            graphicalItemId: "pie-1",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            color: "#808080",
+            dataKey: "y",
+            fill: "#808080",
+            name: 0,
+            payload: { y: 10 },
+            type: undefined,
+            value: 10,
+            graphicalItemId: "pie-2",
+          },
+        ],
+        [
+          {
+            color: "#808080",
+            dataKey: "y",
+            fill: "#808080",
+            name: 1,
+            payload: { y: 20 },
+            type: undefined,
+            value: 20,
+            graphicalItemId: "pie-2",
+          },
+        ],
+        [
+          {
+            color: "#808080",
+            dataKey: "y",
+            fill: "#808080",
+            name: 2,
+            payload: { y: 30 },
+            type: undefined,
+            value: 30,
+            graphicalItemId: "pie-2",
+          },
+        ],
+      ],
+    ]);
+  });
 });
 
 describe("selectActiveIndex", () => {
@@ -320,6 +1102,71 @@ describe("selectActiveIndex", () => {
     flush();
     const actual = selectActiveIndex(store.state, "axis", "hover", undefined);
     expect(actual).toEqual("2");
+  });
+
+  it("should return null for initial state", () => {
+    const initialState = createRechartsStore().state;
+    const expected: TooltipIndex = null;
+    expect(selectActiveIndex(initialState, "axis", "hover", undefined)).toBe(expected);
+    expect(selectActiveIndex(initialState, "axis", "click", undefined)).toBe(expected);
+    expect(selectActiveIndex(initialState, "item", "hover", undefined)).toBe(expected);
+    expect(selectActiveIndex(initialState, "item", "click", undefined)).toBe(expected);
+  });
+
+  it("should return defaultIndex if it is defined", () => {
+    const initialState = createRechartsStore().state;
+    const expected: TooltipIndex = "7";
+    expect(selectActiveIndex(initialState, "axis", "hover", "7")).toBe(expected);
+    expect(selectActiveIndex(initialState, "axis", "click", "7")).toBe(expected);
+    expect(selectActiveIndex(initialState, "item", "hover", "7")).toBe(expected);
+    expect(selectActiveIndex(initialState, "item", "click", "7")).toBe(expected);
+  });
+
+  it("should ignore defaultIndex if item hover index is set and active", () => {
+    const state = produceState((draft) => {
+      draft.tooltip.itemInteraction.hover.active = true;
+      draft.tooltip.itemInteraction.hover.index = "7";
+    });
+    expect(selectActiveIndex(state, "axis", "hover", "8")).toBe("8" satisfies TooltipIndex);
+    expect(selectActiveIndex(state, "axis", "click", "8")).toBe("8" satisfies TooltipIndex);
+    expect(selectActiveIndex(state, "item", "hover", "8")).toBe("7" satisfies TooltipIndex);
+    expect(selectActiveIndex(state, "item", "click", "8")).toBe("8" satisfies TooltipIndex);
+  });
+
+  it("should return item hover index", () => {
+    const state = produceState((draft) => {
+      draft.tooltip.itemInteraction.hover.active = true;
+      draft.tooltip.itemInteraction.hover.index = "7";
+    });
+    const expected: TooltipIndex = "7";
+    expect(selectActiveIndex(state, "item", "hover", "9")).toBe(expected);
+  });
+
+  it("should return item click index", () => {
+    const state = produceState((draft) => {
+      draft.tooltip.itemInteraction.click.active = true;
+      draft.tooltip.itemInteraction.click.index = "7";
+    });
+    const expected: TooltipIndex = "7";
+    expect(selectActiveIndex(state, "item", "click", "11")).toBe(expected);
+  });
+
+  it("should return axis hover index", () => {
+    const state = produceState((draft) => {
+      draft.tooltip.axisInteraction.hover.active = true;
+      draft.tooltip.axisInteraction.hover.index = "7";
+    });
+    const expected: TooltipIndex = "7";
+    expect(selectActiveIndex(state, "axis", "hover", "13")).toBe(expected);
+  });
+
+  it("should return axis click index", () => {
+    const state = produceState((draft) => {
+      draft.tooltip.axisInteraction.click.active = true;
+      draft.tooltip.axisInteraction.click.index = "7";
+    });
+    const expected: TooltipIndex = "7";
+    expect(selectActiveIndex(state, "axis", "click", "17")).toBe(expected);
   });
 });
 

@@ -2,10 +2,13 @@
 // Tier-B selector values, golden-anchored to recharts. Harness deltas: render+Comp+spy
 // → createSelectorTestCase; the `scale` field is asserted via the Solid `expectScale`
 // helper (the Solid port has no `toBeRechartsScale` asymmetric matcher) with the rest of
-// the axis object via objectContaining. Deferred: the "should return new data after
-// interaction" case (React useState + reselect reference-stability — N/A in the Solid
-// store; store proxies break ref equality).
-import { describe, expect, it } from "vitest";
+// the axis object via objectContaining. The "should return new data after interaction"
+// case uses a Solid signal (in place of React useState) to flip the Radar dataKey and
+// asserts the selector VALUE before/after the click (render-count assertions dropped).
+import { createEffect, createSignal, flush } from "solid-js";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render } from "../../helper/render";
+import { useAppSelectorWithStableTest } from "../../helper/selectorTestHelpers";
 import { RechartsRootState } from "../../../src/state/store";
 import {
   selectAngleAxisForBandSize,
@@ -139,6 +142,241 @@ describe("selectRadarPoints", () => {
         },
       ],
     });
+  });
+
+  it("should return new data after interaction", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const points = useAppSelectorWithStableTest((state) =>
+        selectRadarPoints(state, 0, 0, false, "radar-value"),
+      );
+      createEffect(
+        () => points(),
+        (value) => spy(value),
+      );
+      return null;
+    };
+    const TestCase = () => {
+      const [dataKey, setDataKey] = createSignal<"value" | "half">("value");
+      return (
+        <>
+          {dataKey() === "value" ? (
+            <button type="button" onClick={() => setDataKey("half")}>
+              Change DataKey to half
+            </button>
+          ) : (
+            <button type="button" onClick={() => setDataKey("value")}>
+              Change DataKey to value
+            </button>
+          )}
+          <RadarChart data={exampleRadarData} width={400} height={400}>
+            <Radar dataKey={dataKey()} id="radar-value" />
+            <Comp />
+          </RadarChart>
+        </>
+      );
+    };
+    const { container } = render(() => <TestCase />);
+    flush();
+
+    const expectedResultBefore: ReturnType<typeof selectRadarPoints> = {
+      baseLinePoints: [],
+      isRange: false,
+      points: [
+        {
+          angle: 90,
+          cx: 200,
+          cy: 200,
+          name: 0,
+          payload: { half: 210, name: "iPhone 3GS", value: 420 },
+          radius: 65.52,
+          value: 420,
+          x: 200,
+          y: 134.48000000000002,
+        },
+        {
+          angle: 45,
+          cx: 200,
+          cy: 200,
+          name: 1,
+          payload: { half: 230, name: "iPhone 4", value: 460 },
+          radius: 71.76,
+          value: 460,
+          x: 250.74198261794666,
+          y: 149.25801738205337,
+        },
+        {
+          angle: 0,
+          cx: 200,
+          cy: 200,
+          name: 2,
+          payload: { half: 500, name: "iPhone 4s", value: 999 },
+          radius: 155.844,
+          value: 999,
+          x: 355.844,
+          y: 200,
+        },
+        {
+          angle: -45,
+          cx: 200,
+          cy: 200,
+          name: 3,
+          payload: { half: 250, name: "iPhone 5", value: 500 },
+          radius: 78,
+          value: 500,
+          x: 255.1543289325507,
+          y: 255.1543289325507,
+        },
+        {
+          angle: -90,
+          cx: 200,
+          cy: 200,
+          name: 4,
+          payload: { half: 432, name: "iPhone 5s", value: 864 },
+          radius: 134.784,
+          value: 864,
+          x: 200,
+          y: 334.784,
+        },
+        {
+          angle: -135,
+          cx: 200,
+          cy: 200,
+          name: 5,
+          payload: { half: 325, name: "iPhone 6", value: 650 },
+          radius: 101.4,
+          value: 650,
+          x: 128.2993723876841,
+          y: 271.70062761231594,
+        },
+        {
+          angle: -180,
+          cx: 200,
+          cy: 200,
+          name: 6,
+          payload: { half: 383, name: "iPhone 6s", value: 765 },
+          radius: 119.34,
+          value: 765,
+          x: 80.66,
+          y: 200.00000000000003,
+        },
+        {
+          angle: -225,
+          cx: 200,
+          cy: 200,
+          name: 7,
+          payload: { half: 183, name: "iPhone 5se", value: 365 },
+          radius: 56.94,
+          value: 365,
+          x: 159.737339879238,
+          y: 159.737339879238,
+        },
+      ],
+    };
+
+    expectLastCalledWith(spy, expectedResultBefore);
+
+    const button = container.querySelector("button");
+    expect(button).not.toBeNull();
+    fireEvent.click(button!);
+    flush();
+
+    const expectedResultAfter: ReturnType<typeof selectRadarPoints> = {
+      baseLinePoints: [],
+      isRange: false,
+      points: [
+        {
+          angle: 90,
+          cx: 200,
+          cy: 200,
+          name: 0,
+          payload: { half: 210, name: "iPhone 3GS", value: 420 },
+          radius: 54.599999999999994,
+          value: 210,
+          x: 200,
+          y: 145.4,
+        },
+        {
+          angle: 45,
+          cx: 200,
+          cy: 200,
+          name: 1,
+          payload: { half: 230, name: "iPhone 4", value: 460 },
+          radius: 59.800000000000004,
+          value: 230,
+          x: 242.28498551495557,
+          y: 157.71501448504446,
+        },
+        {
+          angle: 0,
+          cx: 200,
+          cy: 200,
+          name: 2,
+          payload: { half: 500, name: "iPhone 4s", value: 999 },
+          radius: 130,
+          value: 500,
+          x: 330,
+          y: 200,
+        },
+        {
+          angle: -45,
+          cx: 200,
+          cy: 200,
+          name: 3,
+          payload: { half: 250, name: "iPhone 5", value: 500 },
+          radius: 65,
+          value: 250,
+          x: 245.9619407771256,
+          y: 245.9619407771256,
+        },
+        {
+          angle: -90,
+          cx: 200,
+          cy: 200,
+          name: 4,
+          payload: { half: 432, name: "iPhone 5s", value: 864 },
+          radius: 112.32,
+          value: 432,
+          x: 200,
+          y: 312.32,
+        },
+        {
+          angle: -135,
+          cx: 200,
+          cy: 200,
+          name: 5,
+          payload: { half: 325, name: "iPhone 6", value: 650 },
+          radius: 84.5,
+          value: 325,
+          x: 140.24947698973673,
+          y: 259.7505230102633,
+        },
+        {
+          angle: -180,
+          cx: 200,
+          cy: 200,
+          name: 6,
+          payload: { half: 383, name: "iPhone 6s", value: 765 },
+          radius: 99.58,
+          value: 383,
+          x: 100.42,
+          y: 200,
+        },
+        {
+          angle: -225,
+          cx: 200,
+          cy: 200,
+          name: 7,
+          payload: { half: 183, name: "iPhone 5se", value: 365 },
+          radius: 47.58,
+          value: 183,
+          x: 166.35585935114406,
+          y: 166.3558593511441,
+        },
+      ],
+    };
+
+    expectLastCalledWith(spy, expectedResultAfter);
   });
 });
 

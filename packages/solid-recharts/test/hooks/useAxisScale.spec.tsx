@@ -1,11 +1,10 @@
 // Ported from recharts 3.8.1 test/hooks/useAxisScale.spec.tsx (commit 7a23854).
 // Solid deviations: hooks from src/hooks (return Accessors; createSelectorTestCase
 // spies the accessor value); wrappers read `props.children` (lazy → Spy mounts in
-// the chart store). The "with brush filtering data" describe is OMITTED until the
-// Brush component lands (partial port).
+// the chart store).
 import { describe, expect, it } from "vitest";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { Line, LineChart, XAxis } from "../../src";
+import { Brush, Line, LineChart, XAxis, YAxis } from "../../src";
 import {
   useCartesianScale,
   useXAxisInverseScale,
@@ -51,6 +50,24 @@ describe("axis scale hooks", () => {
         const { spy } = renderTestCase(useXAxisScale);
         const scaleFunction = spy.mock.calls.at(-1)?.[0];
         expect(typeof scaleFunction?.(5000)).toBe("number");
+      });
+    });
+
+    describe("with explicit axis ID", () => {
+      const renderTestCase = createSelectorTestCase((props) => (
+        <LineChart width={500} height={300} data={PageData}>
+          <Line dataKey="uv" xAxisId="xAxis1" yAxisId="yAxis1" />
+          <XAxis dataKey="name" xAxisId="xAxis1" />
+          <YAxis dataKey="pv" yAxisId="yAxis1" />
+          {props.children}
+        </LineChart>
+      ));
+
+      it("should return a scale function even when called with default ID (uses fallback)", () => {
+        const { spy } = renderTestCase(useXAxisScale);
+        const scaleFunction = spy.mock.calls.at(-1)?.[0];
+        // Recharts provides fallback behavior for missing axis IDs
+        expect(typeof scaleFunction).toBe("function");
       });
     });
   });
@@ -146,6 +163,56 @@ describe("axis scale hooks", () => {
       const coords2 = spy2.mock.calls.at(-1)?.[0];
       expect(coords1?.x).not.toBe(coords2?.x);
       expect(coords1?.y).not.toBe(coords2?.y);
+    });
+
+    describe("in chart with numerical x-axis", () => {
+      const renderNumericalTestCase = createSelectorTestCase((props) => (
+        <LineChart width={500} height={300} data={PageData}>
+          <Line dataKey="uv" />
+          <XAxis type="number" dataKey="pv" />
+          {props.children}
+        </LineChart>
+      ));
+
+      function useCartesianScaleNumerical() {
+        return useCartesianScale({ x: 5000, y: 200 });
+      }
+
+      it("should convert numerical x value to pixel coordinates", () => {
+        const { spy } = renderNumericalTestCase(useCartesianScaleNumerical);
+        const coords = spy.mock.calls.at(-1)?.[0];
+        expect(coords).toBeDefined();
+        expect(typeof coords?.x).toBe("number");
+        expect(typeof coords?.y).toBe("number");
+      });
+    });
+
+    describe("with brush filtering data", () => {
+      const renderBrushTestCase = createSelectorTestCase((props) => (
+        <LineChart width={500} height={300} data={PageData}>
+          <Line dataKey="uv" />
+          <XAxis dataKey="name" />
+          <Brush startIndex={1} endIndex={2}>
+            <LineChart>
+              <Line dataKey="uv" />
+            </LineChart>
+          </Brush>
+          {props.children}
+        </LineChart>
+      ));
+
+      function useCartesianScalePageB() {
+        return useCartesianScale({ x: "Page B", y: 200 });
+      }
+
+      it("should work with filtered data from brush", () => {
+        const { spy } = renderBrushTestCase(useCartesianScalePageB);
+        const coords = spy.mock.calls.at(-1)?.[0];
+        // Even with brush, scale should exist and return coordinates
+        expect(coords).toBeDefined();
+        expect(typeof coords?.x).toBe("number");
+        expect(typeof coords?.y).toBe("number");
+      });
     });
   });
 });

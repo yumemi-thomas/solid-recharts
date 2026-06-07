@@ -178,6 +178,9 @@ export const Legend = (props: LegendProps): JSX.Element => {
                   inactiveColor={merged.inactiveColor}
                   formatter={merged.formatter}
                   labelStyle={merged.labelStyle}
+                  onClick={merged.onClick}
+                  onMouseEnter={merged.onMouseEnter}
+                  onMouseLeave={merged.onMouseLeave}
                 />
               }
             >
