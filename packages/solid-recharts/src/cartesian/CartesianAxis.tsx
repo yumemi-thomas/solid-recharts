@@ -13,6 +13,7 @@ import { Layer } from "../container/Layer";
 import { Text, TextAnchor, TextVerticalAnchor } from "../component/Text";
 import { isNullish, isNumber } from "../util/DataUtils";
 import { CartesianTickItem, Coordinate, RectangleCoordinate } from "../util/types";
+import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { XAxisOrientation, YAxisOrientation } from "../state/cartesianAxisSlice";
 
 export type Orientation = XAxisOrientation | YAxisOrientation;
@@ -153,6 +154,10 @@ const AxisLine = (props: {
       y2={coords().y2}
       stroke={props.stroke}
       fill="none"
+      // recharts forwards the axis's own svg props (incl. `width`) onto the line via
+      // `otherSvgProps`; mirror that with the canonical svg-prop spread (`width` is the
+      // attribute consumers read off the line element).
+      {...svgPropertiesNoEvents({ width: props.width })}
     />
   );
 };
@@ -204,7 +209,8 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
 
   return (
     <Show when={!merged.hide}>
-      <Layer class={`recharts-cartesian-axis recharts-${merged.axisType}`}>
+      {/* recharts emits both the namespaced and the bare axis class (`recharts-yAxis yAxis`). */}
+      <Layer class={`recharts-cartesian-axis recharts-${merged.axisType} ${merged.axisType}`}>
         <Show when={merged.axisLine}>
           <AxisLine
             x={merged.x}
