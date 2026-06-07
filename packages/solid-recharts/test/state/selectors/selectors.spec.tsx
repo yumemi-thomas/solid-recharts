@@ -12,9 +12,30 @@ import {
   selectActiveCoordinate,
   selectActiveIndex,
   selectIsTooltipActive,
+  selectTooltipPayload,
 } from "../../../src/state/selectors/tooltipSelectors";
-import type { TooltipEventType } from "../../../src/util/types";
+import { combineTooltipPayload } from "../../../src/state/selectors/combiners/combineTooltipPayload";
+import { useAppSelector } from "../../../src/state/hooks";
+import type {
+  TooltipPayload,
+  TooltipPayloadConfiguration,
+  TooltipPayloadEntry,
+} from "../../../src/state/tooltipSlice";
+import { ChartDataState, initialChartDataState } from "../../../src/state/chartDataSlice";
+import { noop } from "../../../src/util/DataUtils";
+import type { Coordinate, TooltipEventType } from "../../../src/util/types";
 import type { TooltipTrigger } from "../../../src/chart/types";
+
+// preloadedState used by selectTooltipPayload cases (mirrors recharts).
+const preloadedTooltipState: Partial<RechartsRootState> = {
+  options: {
+    tooltipPayloadSearcher: arrayTooltipSearcher,
+    chartName: "",
+    eventEmitter: undefined,
+    defaultTooltipEventType: "axis",
+  },
+};
+const tooltipActiveCoordinate: Coordinate = { x: 100, y: 200 };
 
 type TestCaseTooltipCombination = {
   tooltipEventType: TooltipEventType;
@@ -257,5 +278,322 @@ describe("selectActiveIndex", () => {
     flush();
     const actual = selectActiveIndex(store.state, "axis", "hover", undefined);
     expect(actual).toEqual("2");
+  });
+});
+
+describe("selectTooltipPayload", () => {
+  it.each(allTooltipCombinations)(
+    "should return undefined when outside of store context for $tooltipEventType $trigger",
+    ({ tooltipEventType, trigger }) => {
+      const spy = vi.fn();
+      const Comp = (): null => {
+        const payload = useAppSelector((state) =>
+          selectTooltipPayload(state, tooltipEventType, trigger, undefined),
+        );
+        createEffect(
+          () => payload(),
+          (value) => spy(value),
+        );
+        return null;
+      };
+      render(() => <Comp />);
+      flush();
+      expect(spy).toHaveBeenCalledWith(undefined);
+    },
+  );
+
+  it.each(allTooltipCombinations)(
+    "initial state should return undefined for $tooltipEventType $trigger",
+    ({ tooltipEventType, trigger }) => {
+      const store = createRechartsStore();
+      expect(selectTooltipPayload(store.state, tooltipEventType, trigger, undefined)).toEqual(
+        undefined,
+      );
+    },
+  );
+
+  it("should return settings and data from axis hover, if activeIndex is set for the item", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+    const tooltipSettings1: TooltipPayloadConfiguration = {
+      getPosition: noop,
+      settings: { nameKey: "y", graphicalItemId: "graphicalItemId1" },
+      dataDefinedOnItem: undefined,
+    };
+    const expectedEntry1: TooltipPayloadEntry = {
+      payload: undefined,
+      dataKey: undefined,
+      name: undefined,
+      nameKey: "y",
+      value: undefined,
+      graphicalItemId: "graphicalItemId1",
+    };
+    const tooltipSettings2: TooltipPayloadConfiguration = {
+      getPosition: noop,
+      settings: {
+        stroke: "red",
+        fill: "green",
+        dataKey: "x",
+        nameKey: "y",
+        name: "foo",
+        unit: "bar",
+        graphicalItemId: "graphicalItemId2",
+      },
+      dataDefinedOnItem: [
+        { x: 8, y: 9 },
+        { x: 10, y: 11 },
+      ],
+    };
+    const expectedEntry2: TooltipPayloadEntry = {
+      name: 11,
+      dataKey: "x",
+      nameKey: "y",
+      stroke: "red",
+      fill: "green",
+      payload: { x: 10, y: 11 },
+      value: 10,
+      unit: "bar",
+      graphicalItemId: "graphicalItemId2",
+    };
+    store.actions.tooltip.addTooltipEntrySettings(tooltipSettings1);
+    store.actions.tooltip.addTooltipEntrySettings(tooltipSettings2);
+    flush();
+    expect(selectTooltipPayload(store.state, "axis", "hover", undefined)).toEqual(undefined);
+    store.actions.tooltip.setMouseOverAxisIndex({
+      activeIndex: "1",
+      activeDataKey: undefined,
+      activeCoordinate: tooltipActiveCoordinate,
+    });
+    flush();
+    expect(selectTooltipPayload(store.state, "axis", "hover", undefined)).toEqual([
+      expectedEntry1,
+      expectedEntry2,
+    ]);
+  });
+
+  it("should return settings and data if defaultIndex is provided", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+    const tooltipSettings1: TooltipPayloadConfiguration = {
+      getPosition: noop,
+      settings: { nameKey: "y", graphicalItemId: "graphicalItemId1" },
+      dataDefinedOnItem: undefined,
+    };
+    const expectedEntry1: TooltipPayloadEntry = {
+      payload: undefined,
+      dataKey: undefined,
+      name: undefined,
+      nameKey: "y",
+      value: undefined,
+      graphicalItemId: "graphicalItemId1",
+    };
+    const tooltipSettings2: TooltipPayloadConfiguration = {
+      getPosition: noop,
+      settings: {
+        stroke: "red",
+        fill: "green",
+        dataKey: "x",
+        nameKey: "y",
+        name: "foo",
+        unit: "bar",
+        graphicalItemId: "graphicalItemId2",
+      },
+      dataDefinedOnItem: [
+        { x: 8, y: 9 },
+        { x: 10, y: 11 },
+      ],
+    };
+    const expectedEntry2: TooltipPayloadEntry = {
+      name: 11,
+      dataKey: "x",
+      nameKey: "y",
+      stroke: "red",
+      fill: "green",
+      payload: { x: 10, y: 11 },
+      value: 10,
+      unit: "bar",
+      graphicalItemId: "graphicalItemId2",
+    };
+    store.actions.tooltip.addTooltipEntrySettings(tooltipSettings1);
+    store.actions.tooltip.addTooltipEntrySettings(tooltipSettings2);
+    flush();
+    expect(selectTooltipPayload(store.state, "axis", "hover", "1")).toEqual([
+      expectedEntry1,
+      expectedEntry2,
+    ]);
+  });
+
+  it("should fill in chartData, if it is not defined on the item for item hover", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+    const tooltipSettings: TooltipPayloadConfiguration = {
+      getPosition: noop,
+      settings: {
+        stroke: "red",
+        fill: "green",
+        dataKey: "y",
+        nameKey: "x",
+        name: "foo",
+        unit: "bar",
+        graphicalItemId: "graphicalItemId1",
+      },
+      dataDefinedOnItem: undefined,
+    };
+    store.actions.tooltip.addTooltipEntrySettings(tooltipSettings);
+    store.actions.chartData.setChartData([
+      { x: 1, y: 2 },
+      { x: 3, y: 4 },
+    ]);
+    store.actions.tooltip.setActiveMouseOverItemIndex({
+      activeIndex: "0",
+      activeDataKey: "y",
+      activeCoordinate: tooltipActiveCoordinate,
+      activeGraphicalItemId: tooltipSettings.settings.graphicalItemId,
+    });
+    flush();
+    const expectedEntry: TooltipPayloadEntry = {
+      name: 1,
+      dataKey: "y",
+      nameKey: "x",
+      stroke: "red",
+      fill: "green",
+      payload: { x: 1, y: 2 },
+      value: 2,
+      unit: "bar",
+      graphicalItemId: "graphicalItemId1",
+    };
+    expect(selectTooltipPayload(store.state, "item", "hover", undefined)).toEqual([expectedEntry]);
+  });
+
+  it("should return sliced data if set by Brush for item hover", () => {
+    const store = createRechartsStore(preloadedTooltipState);
+    const tooltipSettings: TooltipPayloadConfiguration = {
+      getPosition: noop,
+      settings: {
+        stroke: "red",
+        fill: "green",
+        dataKey: "y",
+        nameKey: "x",
+        name: "foo",
+        graphicalItemId: "graphicalItemId3",
+      },
+      dataDefinedOnItem: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+      ],
+    };
+    store.actions.tooltip.addTooltipEntrySettings(tooltipSettings);
+    store.actions.chartData.setChartData([
+      { x: 1, y: 2 },
+      { x: 3, y: 4 },
+    ]);
+    flush();
+    expect(selectTooltipPayload(store.state, "item", "hover", undefined)).toEqual(undefined);
+    store.actions.tooltip.setActiveMouseOverItemIndex({
+      activeIndex: "0",
+      activeDataKey: "y",
+      activeCoordinate: tooltipActiveCoordinate,
+      activeGraphicalItemId: tooltipSettings.settings.graphicalItemId,
+    });
+    store.actions.chartData.setDataStartEndIndexes({ startIndex: 1, endIndex: 10 });
+    flush();
+    const expectedEntry: TooltipPayloadEntry = {
+      name: 3,
+      dataKey: "y",
+      nameKey: "x",
+      stroke: "red",
+      fill: "green",
+      payload: { x: 3, y: 4 },
+      value: 4,
+      graphicalItemId: "graphicalItemId3",
+    };
+    expect(selectTooltipPayload(store.state, "item", "hover", undefined)).toEqual([expectedEntry]);
+  });
+
+  it("should return array of payloads for Scatter because Scatter naturally does its own special thing", () => {
+    const exampleTooltipPayloadConfiguration1: TooltipPayloadConfiguration = {
+      settings: {
+        fill: "fill",
+        name: "name is ignored in Scatter in recharts 2.x",
+        color: "color",
+        dataKey: "dataKey1",
+        nameKey: "nameKey1",
+        graphicalItemId: "graphicalItemId1",
+      },
+      dataDefinedOnItem: [
+        [
+          {
+            name: "stature",
+            unit: "cm",
+            value: 100,
+            payload: { x: 100, y: 200, z: 200 },
+            dataKey: "x",
+          },
+          {
+            name: "weight",
+            unit: "kg",
+            value: 200,
+            payload: { x: 100, y: 200, z: 200 },
+            dataKey: "y",
+          },
+        ],
+      ],
+      getPosition: noop,
+    };
+    const chartDataState: ChartDataState = initialChartDataState;
+    const actual: TooltipPayload | undefined = combineTooltipPayload(
+      [exampleTooltipPayloadConfiguration1],
+      "0",
+      chartDataState,
+      undefined,
+      undefined,
+      arrayTooltipSearcher,
+      "item",
+    );
+    const expectedEntry1: TooltipPayloadEntry = {
+      name: "stature",
+      color: "color",
+      fill: "fill",
+      unit: "cm",
+      value: 100,
+      payload: { x: 100, y: 200, z: 200 },
+      dataKey: "x",
+      nameKey: "nameKey1",
+      graphicalItemId: "graphicalItemId1",
+    };
+    const expectedEntry2: TooltipPayloadEntry = {
+      name: "weight",
+      color: "color",
+      fill: "fill",
+      unit: "kg",
+      value: 200,
+      payload: { x: 100, y: 200, z: 200 },
+      dataKey: "y",
+      nameKey: "nameKey1",
+      graphicalItemId: "graphicalItemId1",
+    };
+    expect(actual).toEqual([expectedEntry1, expectedEntry2]);
+  });
+
+  it("should use dataKey from tooltipAxis, if item dataKey is undefined", () => {
+    const tooltipPayloadConfiguration: TooltipPayloadConfiguration = {
+      settings: { nameKey: undefined, graphicalItemId: "graphicalItemId1" },
+      dataDefinedOnItem: [],
+      getPosition: noop,
+    };
+    const chartDataState: ChartDataState = initialChartDataState;
+    const actual: TooltipPayload | undefined = combineTooltipPayload(
+      [tooltipPayloadConfiguration],
+      "0",
+      chartDataState,
+      "dataKeyOnAxis",
+      undefined,
+      arrayTooltipSearcher,
+      "axis",
+    );
+    const expected: TooltipPayloadEntry = {
+      dataKey: "dataKeyOnAxis",
+      payload: undefined,
+      value: undefined,
+      graphicalItemId: "graphicalItemId1",
+    };
+    expect(actual).toEqual([expected]);
   });
 });

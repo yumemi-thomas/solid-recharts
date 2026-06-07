@@ -58,8 +58,9 @@ function tooltipEntryValue(value: unknown): ValueType | null | undefined {
   return coerceValueType(value);
 }
 
-function toName(value: unknown): string | undefined {
-  return isNumOrStr(value) ? String(value) : undefined;
+function toName(value: unknown): string | number | undefined {
+  // recharts keeps the raw nameKey value (number or string), not a stringified copy.
+  return isNumOrStr(value) ? value : undefined;
 }
 
 function parseName(value: unknown): TooltipEntrySettings["name"] {
@@ -180,7 +181,7 @@ export const combineTooltipPayload = (
               dataKey: itemDataKey,
               payload: itemPayload,
               value: tooltipEntryValue(getValueByDataKey(itemPayload, itemDataKey)),
-              name: itemName == null ? undefined : String(itemName),
+              name: itemName,
             }),
           );
         });

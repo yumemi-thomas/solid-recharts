@@ -444,7 +444,9 @@ export function getTooltipEntry({
   dataKey: DataKey<unknown> | undefined;
   payload: unknown;
   value: ValueType | null | undefined;
-  name: string | undefined;
+  // recharts' tooltip entry name is the raw nameKey value (NameType = string | number),
+  // not stringified — keep numeric names numeric.
+  name: string | number | undefined;
 }): TooltipPayloadEntry {
   return {
     ...tooltipEntrySettings,
