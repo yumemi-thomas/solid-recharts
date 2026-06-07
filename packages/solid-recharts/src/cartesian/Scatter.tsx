@@ -27,6 +27,9 @@ import {
   LabelListFromLabelProp,
 } from "../component/LabelList";
 import { selectScatterPoints } from "../state/selectors/scatterSelectors";
+import { RegisterGraphicalItemId } from "../context/RegisterGraphicalItemId";
+import { SetErrorBarContext } from "../context/ErrorBarContext";
+import type { ErrorBarDataItem, ErrorBarDataPointFormatter, ErrorBarDirection } from "./ErrorBar";
 import { ScatterSettings } from "../state/types/ScatterSettings";
 import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
 import {
@@ -269,6 +272,31 @@ export const scatterDefaultProps = {
   animationEasing: "linear",
 } as const satisfies Partial<ScatterProps>;
 
+// Ported from recharts Scatter `errorBarDataPointFormatter`: maps a computed
+// scatter point + the ErrorBar's dataKey/direction to the {x, y, value, errorVal}
+// the ErrorBar needs to draw and to extend the axis domain.
+const scatterErrorBarFormatter: ErrorBarDataPointFormatter = (
+  entry: unknown,
+  dataKey: DataKey<unknown>,
+  direction: ErrorBarDirection,
+): ErrorBarDataItem => {
+  const cx = getValueByDataKey(entry, "cx");
+  const cy = getValueByDataKey(entry, "cy");
+  const node = getValueByDataKey(entry, "node");
+  const nodeValue = getValueByDataKey(node, direction === "x" ? "x" : "y");
+  const errorVal = getValueByDataKey(entry, dataKey);
+  return {
+    x: typeof cx === "number" ? cx : undefined,
+    y: typeof cy === "number" ? cy : undefined,
+    value: Number(nodeValue),
+    errorVal: Array.isArray(errorVal)
+      ? errorVal.filter((v): v is number => typeof v === "number")
+      : typeof errorVal === "number"
+        ? errorVal
+        : undefined,
+  };
+};
+
 export const Scatter = (props: ScatterProps): JSX.Element => {
   const store = useAppStore();
   const merged = merge(scatterDefaultProps, props);
@@ -428,7 +456,6 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
         )}
       </For>
       <CartesianLabelListContextProvider value={labelContextEntries}>
-        {props.children}
         <LabelListFromLabelProp label={merged.label} />
       </CartesianLabelListContextProvider>
     </>
@@ -479,6 +506,27 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
           </Show>
         )}
       </Show>
+      {/* Children (e.g. <ErrorBar>) mount ONCE here at the stable top-level — NOT
+          inside the points/animation-dependent <Show>, which would re-mount them
+          on every recompute (ErrorBar would churn add/removeErrorBar → re-extend the
+          domain → recompute → loop, and throw ContextNotFound when remounted bare).
+          Mirrors recharts' ScatterWithId: RegisterGraphicalItemId + SetErrorBarContext
+          provide the item id + error-bar wiring; children draw against the live points. */}
+      <RegisterGraphicalItemId type="scatter" id={id}>
+        {() => (
+          <SetErrorBarContext
+            xAxisId={merged.xAxisId}
+            yAxisId={merged.yAxisId}
+            data={points() ?? []}
+            dataPointFormatter={scatterErrorBarFormatter}
+            errorBarOffset={0}
+          >
+            <CartesianLabelListContextProvider value={labelContextEntries}>
+              {props.children}
+            </CartesianLabelListContextProvider>
+          </SetErrorBarContext>
+        )}
+      </RegisterGraphicalItemId>
     </>
   );
 };

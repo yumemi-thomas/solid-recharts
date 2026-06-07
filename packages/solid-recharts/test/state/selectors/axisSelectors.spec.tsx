@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   ComposedChart,
+  ErrorBar,
   Line,
   LineChart,
   Pie,
@@ -12,12 +13,14 @@ import {
   RadialBar,
   RadialBarChart,
   Scatter,
+  ScatterChart,
   XAxis,
   YAxis,
 } from "../../../src";
 import { defaultAxisId } from "../../../src/state/cartesianAxisSlice";
 import {
   mergeDomains,
+  selectAllErrorBarSettings,
   selectAxisDomain,
   selectAxisDomainIncludingNiceTicks,
   selectAxisScale,
@@ -25,6 +28,7 @@ import {
   selectAllAppliedValues,
   selectCalculatedXAxisPadding,
   selectCartesianGraphicalItemsData,
+  selectErrorBarsSettings,
   selectHasBar,
   selectNiceTicks,
   selectNumericalDomain,
@@ -38,7 +42,11 @@ import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { expectLastCalledWithScale } from "../../helper/expectScale";
 import { render } from "../../helper/render";
 import { useAppStore } from "../../../src/state/hooks";
-import { useAppSelectorWithStableTest } from "../../helper/selectorTestHelpers";
+import {
+  shouldReturnFromInitialState,
+  shouldReturnUndefinedOutOfContext,
+  useAppSelectorWithStableTest,
+} from "../../helper/selectorTestHelpers";
 
 const data1 = [
   { label: "Iter: 0", x: 211, y: 481, z: 1798 },
@@ -1105,6 +1113,305 @@ describe("selectAxisWithScale", () => {
         selectAxisDomain(state, "yAxis", defaultAxisId, false),
       );
       expect(spy).toHaveBeenLastCalledWith([0, 9800]);
+    });
+  });
+});
+
+/*
+ * Ported from recharts 3.8.1 axisSelectors.spec.tsx `selectErrorBarsSettings`.
+ * Unblocked by the Bar+ErrorBar stable-mount fix (Bar previously crashed/hung
+ * with an ErrorBar child). Harness changes only: React Comp+spy → createSelectorTestCase
+ * (spies the accessor via an effect). `toHaveBeenCalledTimes(N)` render-count assertions
+ * are dropped (Solid's fine-grained reactivity produces a different, non-meaningful count
+ * — see big-win-port-map). The two trailing reselect `toBe` reference-stability cases are
+ * N/A in this no-reselect Solid rewrite (see selectorTestHelpers header) and omitted.
+ */
+describe("selectErrorBarsSettings", () => {
+  const selector = (state: RechartsRootState) =>
+    selectErrorBarsSettings(state, "xAxis", defaultAxisId);
+
+  shouldReturnUndefinedOutOfContext(selector);
+  shouldReturnFromInitialState(selector, []);
+
+  it("should return empty array in a chart with no ErrorBars", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <BarChart width={100} height={100}>
+        <Bar isAnimationActive={false} />
+        {props.children}
+      </BarChart>
+    ));
+    const { spy } = renderTestCase((state: RechartsRootState) =>
+      selectErrorBarsSettings(state, "xAxis", defaultAxisId),
+    );
+    expect(spy).toHaveBeenLastCalledWith([]);
+  });
+
+  it("should return empty array if there is no axis with matching ID", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <LineChart width={100} height={100} data={PageData}>
+        <Line isAnimationActive={false}>
+          <ErrorBar dataKey="data-x" direction="x" />
+          <ErrorBar dataKey="data-y" direction="y" />
+        </Line>
+        <XAxis type="number" />
+        {props.children}
+      </LineChart>
+    ));
+    // There are ErrorBars but they are specified for another XAxis
+    const { spy: xAxisSpy, unmount } = renderTestCase((state: RechartsRootState) =>
+      selectErrorBarsSettings(state, "xAxis", "foo"),
+    );
+    expect(xAxisSpy).toHaveBeenLastCalledWith([]);
+    unmount();
+    const { spy: yAxisSpy } = renderTestCase((state: RechartsRootState) =>
+      selectErrorBarsSettings(state, "yAxis", "bar"),
+    );
+    expect(yAxisSpy).toHaveBeenLastCalledWith([]);
+  });
+
+  describe("error bars settings", () => {
+    describe("in BarChart", () => {
+      const renderTestCase = createSelectorTestCase((props) => (
+        <BarChart data={[{ x: 1 }, { x: 2 }, { x: 3 }]} width={100} height={100}>
+          <Bar dataKey="x" isAnimationActive={false} id="bar-without-error-bars" />
+          <Bar dataKey="x" isAnimationActive={false} id="my-bar-id">
+            <ErrorBar dataKey="data-x" direction="x" />
+            <ErrorBar dataKey="data-y" direction="y" />
+          </Bar>
+          <XAxis type="number" />
+          {props.children}
+        </BarChart>
+      ));
+
+      it("should select error bar state", () => {
+        const { spy } = renderTestCase(selectAllErrorBarSettings);
+        expect(spy).toHaveBeenLastCalledWith({
+          "my-bar-id": [
+            { dataKey: "data-x", direction: "x" },
+            { dataKey: "data-y", direction: "y" },
+          ],
+        });
+      });
+
+      it("should return XAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "xAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "data-x", direction: "x" }]);
+      });
+
+      it("should return YAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "yAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "data-y", direction: "y" }]);
+      });
+    });
+
+    describe("in LineChart", () => {
+      const renderTestCase = createSelectorTestCase((props) => (
+        <LineChart width={100} height={100}>
+          <Line data={PageData} isAnimationActive={false} dataKey="uv" id="line1" />
+          <Line data={PageData} isAnimationActive={false} dataKey="pv" id="line2">
+            <ErrorBar dataKey="pv" direction="x" />
+            <ErrorBar dataKey="amt" direction="y" />
+          </Line>
+          <XAxis />
+          <YAxis dataKey="uv" />
+          {props.children}
+        </LineChart>
+      ));
+
+      it("should select error bar state", () => {
+        const { spy } = renderTestCase(selectAllErrorBarSettings);
+        expect(spy).toHaveBeenLastCalledWith({
+          line2: [
+            { dataKey: "pv", direction: "x" },
+            { dataKey: "amt", direction: "y" },
+          ],
+        });
+      });
+
+      it("should return XAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "xAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "pv", direction: "x" }]);
+      });
+
+      it("should return YAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "yAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "amt", direction: "y" }]);
+      });
+    });
+
+    describe("in Vertical LineChart", () => {
+      const renderTestCase = createSelectorTestCase((props) => (
+        <LineChart width={100} height={100} layout="vertical">
+          <Line
+            data={[{ x: 1 }, { x: 2 }, { x: 3 }]}
+            isAnimationActive={false}
+            id="line-without-bars"
+          />
+          <Line
+            data={[{ x: 10 }, { x: 20 }, { x: 30 }]}
+            isAnimationActive={false}
+            dataKey="x"
+            id="line-with-error-bars"
+          >
+            <ErrorBar dataKey="data-x" direction="x" />
+            <ErrorBar dataKey="data-y" direction="y" />
+          </Line>
+          <XAxis />
+          <YAxis dataKey="x" />
+          {props.children}
+        </LineChart>
+      ));
+
+      it("should select error bar state", () => {
+        const { spy } = renderTestCase(selectAllErrorBarSettings);
+        expect(spy).toHaveBeenLastCalledWith({
+          "line-with-error-bars": [
+            { dataKey: "data-x", direction: "x" },
+            { dataKey: "data-y", direction: "y" },
+          ],
+        });
+      });
+
+      it("should return XAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "xAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "data-x", direction: "x" }]);
+      });
+
+      it("should return YAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "yAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "data-y", direction: "y" }]);
+      });
+    });
+
+    describe("in ScatterChart", () => {
+      const renderTestCase = createSelectorTestCase((props) => (
+        <ScatterChart width={100} height={100}>
+          <Scatter
+            data={[{ x: 1 }, { x: 2 }, { x: 3 }]}
+            dataKey="x"
+            isAnimationActive={false}
+            id="scatter-without-bars"
+          />
+          <Scatter
+            data={[{ x: 10 }, { x: 20 }, { x: 30 }]}
+            isAnimationActive={false}
+            id="scatter-with-error-bars"
+          >
+            <ErrorBar dataKey="data-x" direction="x" />
+            <ErrorBar dataKey="data-y" direction="y" />
+          </Scatter>
+          <XAxis />
+          <YAxis dataKey="x" />
+          {props.children}
+        </ScatterChart>
+      ));
+
+      it("should select error bar state", () => {
+        const { spy } = renderTestCase(selectAllErrorBarSettings);
+        expect(spy).toHaveBeenLastCalledWith({
+          "scatter-with-error-bars": [
+            { dataKey: "data-x", direction: "x" },
+            { dataKey: "data-y", direction: "y" },
+          ],
+        });
+      });
+
+      it("should return XAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "xAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "data-x", direction: "x" }]);
+      });
+
+      it("should return YAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "yAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([{ dataKey: "data-y", direction: "y" }]);
+      });
+    });
+
+    describe("in ComposedChart", () => {
+      const renderTestCase = createSelectorTestCase((props) => (
+        <ComposedChart data={[{ x: 1 }, { x: 2 }, { x: 3 }]} width={100} height={100}>
+          <Bar dataKey="x" isAnimationActive={false} id="bar-without-error-bars" />
+          <Bar dataKey="x" isAnimationActive={false} id="my-bar-id">
+            <ErrorBar dataKey="data-x" direction="x" />
+            <ErrorBar dataKey="data-y" direction="y" />
+          </Bar>
+          <Line
+            data={[{ x: 10 }, { x: 20 }, { x: 30 }]}
+            isAnimationActive={false}
+            id="line-with-error-bars"
+          >
+            <ErrorBar dataKey="data-x" direction="x" />
+            <ErrorBar dataKey="data-y" direction="y" />
+          </Line>
+          <Scatter
+            data={[{ x: 100 }, { x: 200 }, { x: 300 }]}
+            isAnimationActive={false}
+            id="scatter-with-error-bars"
+          >
+            <ErrorBar dataKey="data-x" direction="x" />
+            <ErrorBar dataKey="data-y" direction="y" />
+          </Scatter>
+          <XAxis type="number" />
+          <YAxis dataKey="x" />
+          {props.children}
+        </ComposedChart>
+      ));
+
+      it("should select error bar state", () => {
+        const { spy } = renderTestCase(selectAllErrorBarSettings);
+        expect(spy).toHaveBeenLastCalledWith({
+          "my-bar-id": [
+            { dataKey: "data-x", direction: "x" },
+            { dataKey: "data-y", direction: "y" },
+          ],
+          "line-with-error-bars": [
+            { dataKey: "data-x", direction: "x" },
+            { dataKey: "data-y", direction: "y" },
+          ],
+          "scatter-with-error-bars": [
+            { dataKey: "data-x", direction: "x" },
+            { dataKey: "data-y", direction: "y" },
+          ],
+        });
+      });
+
+      it("should return XAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "xAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([
+          { dataKey: "data-x", direction: "x" },
+          { dataKey: "data-x", direction: "x" },
+          { dataKey: "data-x", direction: "x" },
+        ]);
+      });
+
+      it("should return YAxis error bars", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectErrorBarsSettings(state, "yAxis", defaultAxisId),
+        );
+        expect(spy).toHaveBeenLastCalledWith([
+          { dataKey: "data-y", direction: "y" },
+          { dataKey: "data-y", direction: "y" },
+          { dataKey: "data-y", direction: "y" },
+        ]);
+      });
     });
   });
 });
