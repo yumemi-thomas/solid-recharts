@@ -1,0 +1,31 @@
+// Ported from recharts 3.8.1 src/container/Layer.tsx (commit 7a23854).
+// Solid deviations: `className` → `class` (Omit the wide SVG `class`); `clsx` →
+// `class={[...]}`; `forwardRef` → `ref` prop; no destructuring (omit + props).
+import { omit } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
+
+interface LayerOwnProps {
+  class?: string;
+  children?: JSX.Element;
+  ref?: SVGGElement | ((el: SVGGElement) => void);
+}
+
+export type LayerProps = Omit<JSX.GSVGAttributes<SVGGElement>, "class"> & LayerOwnProps;
+
+/**
+ * Creates an SVG group element to group other SVG elements.
+ *
+ * @link https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/g
+ */
+export const Layer = (props: LayerProps): JSX.Element => {
+  return (
+    <g
+      class={["recharts-layer", props.class]}
+      {...svgPropertiesAndEvents({ ...omit(props, "class", "children", "ref") })}
+      ref={props.ref}
+    >
+      {props.children}
+    </g>
+  );
+};

@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // recharts specs rely on vitest globals (we run with `globals: true`) and a
+    // few sources read `process.env`; match the reference tsconfig's ambient
+    // types. Scoped to this package so app/dev and the testing-library package
+    // keep the lean base `types`.
+    "types": ["@testing-library/jest-dom", "node", "vitest/globals"]
+  },
+  "include": ["src", "test"]
+}

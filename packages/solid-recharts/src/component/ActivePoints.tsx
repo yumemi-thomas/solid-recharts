@@ -1,0 +1,124 @@
+// Ported from recharts 3.8.1 src/component/ActivePoints.tsx (commit 7a23854).
+// Solid deviations: state is computed in a parent createMemo (plain data only);
+// JSX is built in the parent's JSX scope via `renderActivePointsLayerFromState`.
+// Mounting a child component that subscribes to tooltip selectors trips STRICT_READ.
+// ZIndexLayer deferred.
+import type { JSX } from "solid-js";
+import { isNullish } from "../util/DataUtils";
+import type { ActiveDotProps, ActiveDotType, DataKey } from "../util/types";
+import { svgPropertiesNoEventsFromUnknown } from "../util/svgPropertiesNoEvents";
+import type { TooltipIndex } from "../state/tooltipSlice";
+
+export interface PointType {
+  readonly x: number | null;
+  readonly y: number | null;
+  readonly value?: unknown;
+  readonly payload?: unknown;
+}
+
+export interface ActivePointsProps {
+  points: ReadonlyArray<PointType>;
+  mainColor: string | undefined;
+  itemDataKey: DataKey<unknown> | undefined;
+  activeDot: ActiveDotType;
+  clipPath?: string;
+  zIndex?: number;
+}
+
+export interface ActivePointsLayerArgs extends ActivePointsProps {
+  activeTooltipIndex: TooltipIndex | null | undefined;
+  activeDataPoints: ReadonlyArray<unknown> | undefined;
+}
+
+export interface ActivePointState {
+  point: PointType;
+  childIndex: number;
+}
+
+export function findActivePointByIndex(
+  points: ReadonlyArray<PointType>,
+  activeDot: ActiveDotType,
+  activeIndex: TooltipIndex | null | undefined,
+): PointType | undefined {
+  if (activeDot === false || activeIndex == null) {
+    return undefined;
+  }
+  const indexNum = Number(activeIndex);
+  if (!Number.isFinite(indexNum)) {
+    return undefined;
+  }
+  return points[indexNum];
+}
+
+/** Resolve the active point from plain inputs (safe inside a parent createMemo). */
+export function computeActivePointState(args: ActivePointsLayerArgs): ActivePointState | null {
+  if (args.points == null || args.activeDataPoints == null || args.activeDot === false) {
+    return null;
+  }
+
+  const activePoint = args.points.find((p) => args.activeDataPoints!.includes(p.payload));
+  if (isNullish(activePoint) || activePoint.x == null || activePoint.y == null) {
+    return null;
+  }
+
+  return {
+    point: activePoint,
+    childIndex: Number(args.activeTooltipIndex ?? 0),
+  };
+}
+
+function renderActiveDot(activeDot: ActiveDotType, dotProps: ActiveDotProps): JSX.Element {
+  if (typeof activeDot === "function") {
+    return activeDot(dotProps);
+  }
+  if (typeof activeDot === "object" && activeDot != null && "type" in activeDot) {
+    return activeDot;
+  }
+  // Default <Dot> uses <Show> internally, which trips STRICT_READ when this
+  // layer mounts during tooltip effect-apply — render the circle directly instead.
+  return (
+    <circle
+      class="recharts-dot"
+      cx={dotProps.cx}
+      cy={dotProps.cy}
+      r={dotProps.r}
+      fill={dotProps.fill}
+      stroke={dotProps.stroke}
+      stroke-width={dotProps.strokeWidth}
+    />
+  );
+}
+
+/** Render the active-dot layer from pre-resolved state (call in parent JSX). */
+export function renderActivePointsLayerFromState(
+  state: ActivePointState,
+  args: ActivePointsProps,
+): JSX.Element {
+  const dotProps: ActiveDotProps = {
+    index: state.childIndex,
+    dataKey: args.itemDataKey,
+    cx: state.point.x!,
+    cy: state.point.y!,
+    r: 4,
+    fill: args.mainColor ?? "none",
+    strokeWidth: 2,
+    stroke: "#fff",
+    payload: state.point.payload,
+    value: state.point.value,
+    ...svgPropertiesNoEventsFromUnknown(args.activeDot),
+  };
+  return (
+    <g class={["recharts-layer", "recharts-active-dot"]} clip-path={args.clipPath}>
+      {renderActiveDot(args.activeDot, dotProps)}
+    </g>
+  );
+}
+
+/** @deprecated Use computeActivePointState + renderActivePointsLayerFromState */
+export function renderActivePointsLayer(args: ActivePointsLayerArgs): JSX.Element | null {
+  const state = computeActivePointState(args);
+  if (state == null) {
+    return null;
+  }
+  return renderActivePointsLayerFromState(state, args);
+}

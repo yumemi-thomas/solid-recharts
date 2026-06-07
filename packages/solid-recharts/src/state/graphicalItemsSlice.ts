@@ -1,0 +1,162 @@
+// Ported from recharts 3.8.1 src/state/graphicalItemsSlice.ts (commit 7a23854).
+//
+// FULL SOLID-NATIVE REWRITE (no Redux/immer — see the state-architecture
+// decision). `createSlice` → a factory returning `{ state, actions }` (a Solid
+// store + draft-first setters).
+//
+// Key deviation: recharts matches items for replace/remove by OBJECT REFERENCE
+// (`current(state).cartesianItems.indexOf(payload)` + immer `castDraft`). Solid
+// stores wrap stored objects in proxies, so a read no longer `===` the raw object
+// the caller passed — reference matching can't work. We match by the required
+// unique `id` instead, which is the items' real identity and gives identical
+// ordering/replacement semantics.
+import { createStore } from "solid-js";
+import { ChartData } from "./chartDataSlice";
+import { AxisId } from "./cartesianAxisSlice";
+import { DataKey } from "../util/types";
+import { LineSettings } from "./types/LineSettings";
+import { AreaSettings } from "./types/AreaSettings";
+import { BarSettings } from "./types/BarSettings";
+import { ScatterSettings } from "./types/ScatterSettings";
+import { PieSettings } from "./types/PieSettings";
+import { RadarSettings } from "./types/RadarSettings";
+import { RadialBarSettings } from "./types/RadialBarSettings";
+
+/**
+ * Unique ID of a graphical item — provided by the user or generated. Used to
+ * identify the item in state.
+ */
+export type GraphicalItemId = string;
+
+export interface GraphicalItemSettings {
+  id: GraphicalItemId;
+  /**
+   * If the item has its own data array it appears here; otherwise data is taken
+   * from the chart root `data` prop.
+   */
+  data: ChartData | undefined;
+  dataKey: DataKey<unknown> | undefined;
+  /**
+   * Hidden items stay in state because some components (e.g. Legend) still show
+   * a record for them, and stacks ignore them.
+   */
+  hide: boolean;
+}
+
+export interface BaseCartesianGraphicalItemSettings extends GraphicalItemSettings {
+  xAxisId: AxisId;
+  yAxisId: AxisId;
+  zAxisId: AxisId;
+  /**
+   * Items inside a Brush panorama must not interact with the main items.
+   */
+  isPanorama: boolean;
+}
+
+// Scatter/RadialBar/Pie/Radar settings are deferred to their verticals; this
+// union grows as those land.
+export type CartesianGraphicalItemSettings =
+  | AreaSettings
+  | BarSettings
+  | LineSettings
+  | ScatterSettings;
+
+export interface BasePolarGraphicalItemSettings extends GraphicalItemSettings {
+  angleAxisId: AxisId;
+  radiusAxisId: AxisId;
+}
+
+export type PolarGraphicalItemSettings = PieSettings | RadarSettings | RadialBarSettings;
+
+export type GraphicalItemsState = {
+  /**
+   * All cartesian graphical items and their settings. Order is arbitrary; do not
+   * assume indexes here match indexes elsewhere.
+   */
+  cartesianItems: ReadonlyArray<CartesianGraphicalItemSettings>;
+  /**
+   * All polar graphical items and their settings.
+   */
+  polarItems: ReadonlyArray<PolarGraphicalItemSettings>;
+};
+
+export const initialGraphicalItemsState: GraphicalItemsState = {
+  cartesianItems: [],
+  polarItems: [],
+};
+
+interface ReplacePayload<T> {
+  prev: T;
+  next: T;
+}
+
+export interface GraphicalItemsActions {
+  addCartesianGraphicalItem(item: CartesianGraphicalItemSettings): void;
+  replaceCartesianGraphicalItem(payload: ReplacePayload<CartesianGraphicalItemSettings>): void;
+  removeCartesianGraphicalItem(item: CartesianGraphicalItemSettings): void;
+  addPolarGraphicalItem(item: PolarGraphicalItemSettings): void;
+  replacePolarGraphicalItem(payload: ReplacePayload<PolarGraphicalItemSettings>): void;
+  removePolarGraphicalItem(item: PolarGraphicalItemSettings): void;
+}
+
+export interface GraphicalItemsSlice {
+  readonly state: GraphicalItemsState;
+  readonly actions: GraphicalItemsActions;
+}
+
+export function createGraphicalItemsSlice(
+  initialState: GraphicalItemsState = initialGraphicalItemsState,
+): GraphicalItemsSlice {
+  const [state, setState] = createStore<GraphicalItemsState>({
+    cartesianItems: [...initialState.cartesianItems],
+    polarItems: [...initialState.polarItems],
+  });
+
+  const actions: GraphicalItemsActions = {
+    // State arrays are typed ReadonlyArray (immutable external API), so actions
+    // REASSIGN the whole array rather than mutate in place — Solid's fine-grained
+    // store still tracks the change, and the readonly type stays honest.
+    addCartesianGraphicalItem(item) {
+      setState((s) => {
+        s.cartesianItems = [...s.cartesianItems, item];
+      });
+    },
+    replaceCartesianGraphicalItem({ prev, next }) {
+      setState((s) => {
+        const index = s.cartesianItems.findIndex((it) => it.id === prev.id);
+        if (index > -1) {
+          const nextItems = s.cartesianItems.slice();
+          nextItems[index] = next;
+          s.cartesianItems = nextItems;
+        }
+      });
+    },
+    removeCartesianGraphicalItem(item) {
+      setState((s) => {
+        s.cartesianItems = s.cartesianItems.filter((it) => it.id !== item.id);
+      });
+    },
+    addPolarGraphicalItem(item) {
+      setState((s) => {
+        s.polarItems = [...s.polarItems, item];
+      });
+    },
+    replacePolarGraphicalItem({ prev, next }) {
+      setState((s) => {
+        const index = s.polarItems.findIndex((it) => it.id === prev.id);
+        if (index > -1) {
+          const nextItems = s.polarItems.slice();
+          nextItems[index] = next;
+          s.polarItems = nextItems;
+        }
+      });
+    },
+    removePolarGraphicalItem(item) {
+      setState((s) => {
+        s.polarItems = s.polarItems.filter((it) => it.id !== item.id);
+      });
+    },
+  };
+
+  return { state, actions };
+}

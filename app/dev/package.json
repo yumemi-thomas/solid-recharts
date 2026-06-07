@@ -1,0 +1,15 @@
+{
+  "name": "@solid-recharts/dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solidjs/web": "2.0.0-beta.14",
+    "solid-js": "2.0.0-beta.14",
+    "solid-recharts": "workspace:*"
+  }
+}

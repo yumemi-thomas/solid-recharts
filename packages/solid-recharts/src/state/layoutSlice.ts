@@ -1,0 +1,71 @@
+// Ported from recharts 3.8.1 src/state/layoutSlice.ts (commit 7a23854).
+// Solid-native slice (no Redux): createStore + draft-first action setters.
+import { createStore } from "solid-js";
+import { LayoutType, Margin, Size } from "../util/types";
+
+export type ChartLayoutState = {
+  layoutType: LayoutType;
+  width: number;
+  height: number;
+  margin: Margin;
+  /** How much the chart is zoomed in; used to scale mouse coordinates. */
+  scale: number;
+};
+
+export const initialChartLayoutState: ChartLayoutState = {
+  layoutType: "horizontal",
+  width: 0,
+  height: 0,
+  margin: { top: 5, right: 5, bottom: 5, left: 5 },
+  scale: 1,
+};
+
+export interface ChartLayoutActions {
+  setLayout(layoutType: LayoutType): void;
+  setChartSize(size: Size): void;
+  setMargin(margin: Partial<Margin>): void;
+  setScale(scale: number): void;
+}
+
+export interface ChartLayoutSlice {
+  readonly state: ChartLayoutState;
+  readonly actions: ChartLayoutActions;
+}
+
+export function createChartLayoutSlice(
+  initialState: ChartLayoutState = initialChartLayoutState,
+): ChartLayoutSlice {
+  const [state, setState] = createStore<ChartLayoutState>({
+    ...initialState,
+    margin: { ...initialState.margin },
+  });
+
+  const actions: ChartLayoutActions = {
+    setLayout(layoutType) {
+      setState((s) => {
+        s.layoutType = layoutType;
+      });
+    },
+    setChartSize(size) {
+      setState((s) => {
+        s.width = size.width;
+        s.height = size.height;
+      });
+    },
+    setMargin(margin) {
+      setState((s) => {
+        s.margin.top = margin.top ?? 0;
+        s.margin.right = margin.right ?? 0;
+        s.margin.bottom = margin.bottom ?? 0;
+        s.margin.left = margin.left ?? 0;
+      });
+    },
+    setScale(scale) {
+      setState((s) => {
+        s.scale = scale;
+      });
+    },
+  };
+
+  return { state, actions };
+}

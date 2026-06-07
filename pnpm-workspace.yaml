@@ -1,0 +1,15 @@
+packages:
+  - "packages/*"
+  - "app/*"
+
+# Pre/post scripts must run so the library's `pretest` reference gate fires.
+enablePrePostScripts: true
+
+# Beta/preview toolchain (Solid 2.0, Vite+, vite-plugin-solid@next): hoisted layout so plugin
+# peer resolution and the `vp` bin behave like the npm-flat setup proven green.
+nodeLinker: hoisted
+
+# Remap vite/vitest to the Vite+ engines for every specifier, including plugin peer ranges.
+overrides:
+  vite: "npm:@voidzero-dev/vite-plus-core@^0.1.24"
+  vitest: "npm:@voidzero-dev/vite-plus-test@^0.1.24"

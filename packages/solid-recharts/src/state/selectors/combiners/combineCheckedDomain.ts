@@ -1,0 +1,49 @@
+// Ported from recharts 3.8.1 src/state/selectors/combiners/combineCheckedDomain.ts
+// (commit 7a23854).
+import { CategoricalDomain, NumberDomain } from "../../../util/types";
+import { isWellFormedNumberDomain } from "../../../util/isDomainSpecifiedByUser";
+import { isWellBehavedNumber } from "../../../util/isWellBehavedNumber";
+
+/**
+ * Validates and transforms the axis domain so that it is safe to use in the
+ * provided scale.
+ */
+export const combineCheckedDomain = (
+  realScaleType: string | undefined,
+  axisDomain: NumberDomain | CategoricalDomain | undefined,
+): NumberDomain | CategoricalDomain | undefined => {
+  if (axisDomain == null) {
+    return undefined;
+  }
+  switch (realScaleType) {
+    case "linear": {
+      /*
+       * A linear scale only reads the first two numbers in the domain and
+       * ignores the rest. If somehow we were given a bigger domain, pick the min
+       * and max from it.
+       */
+      if (!isWellFormedNumberDomain(axisDomain)) {
+        let min: number | undefined, max: number | undefined;
+        for (let i = 0; i < axisDomain.length; i++) {
+          const value = axisDomain[i];
+          if (!isWellBehavedNumber(value)) {
+            continue;
+          }
+          if (min === undefined || value < min) {
+            min = value;
+          }
+          if (max === undefined || value > max) {
+            max = value;
+          }
+        }
+        if (min !== undefined && max !== undefined) {
+          return [min, max];
+        }
+        return undefined;
+      }
+      return axisDomain;
+    }
+    default:
+      return axisDomain;
+  }
+};

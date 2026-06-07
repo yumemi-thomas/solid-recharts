@@ -1,0 +1,27 @@
+{
+  "name": "solid-recharts",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "pretest": "node ../../scripts/verify-reference.mjs",
+    "test": "vp test run",
+    "test:watch": "vp test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "decimal.js-light": "^2.5.1",
+    "es-toolkit": "^1.39.3",
+    "tiny-invariant": "^1.3.3"
+  },
+  "devDependencies": {
+    "@solid-recharts/testing-library": "workspace:*",
+    "victory-vendor": "^37.0.2"
+  },
+  "peerDependencies": {
+    "@solidjs/web": "^2.0.0-beta.14",
+    "solid-js": "^2.0.0-beta.14"
+  }
+}
