@@ -27,6 +27,9 @@ import { useAnimationId } from "../util/useAnimationId";
 import { JavascriptAnimate } from "../animation/JavascriptAnimate";
 import type { EasingInput } from "../animation/easing";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
+import { RegisterGraphicalItemId } from "../context/RegisterGraphicalItemId";
+import { SetErrorBarContext } from "../context/ErrorBarContext";
+import type { ErrorBarDataItem, ErrorBarDataPointFormatter } from "./ErrorBar";
 import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
 import { TooltipPayloadConfiguration } from "../state/tooltipSlice";
 import { SetLegendPayload } from "../state/SetLegendPayload";
@@ -670,6 +673,36 @@ export const barDefaultProps = {
   yAxisId: 0,
 } as const;
 
+// Coerces an error value (read via dataKey) to the number / [low, high] shape an
+// ErrorBar needs; anything else yields undefined (no whisker). Mirrors Line.
+const coerceErrorVal = (value: unknown): number[] | number | undefined => {
+  if (typeof value === "number") {
+    return value;
+  }
+  if (value != null && Array.isArray(value)) {
+    const nums = value.filter((v): v is number => typeof v === "number");
+    return nums.length === value.length ? nums : undefined;
+  }
+  return undefined;
+};
+
+// Maps a BarRectangleItem (erased to `unknown` through the ErrorBar context) to the
+// {x, y, value, errorVal} an ErrorBar draws from. Stacked bars carry a [start, end]
+// value array → use the end value (recharts' errorBarDataPointFormatter).
+const barErrorBarFormatter: ErrorBarDataPointFormatter = (entry, dataKey): ErrorBarDataItem => {
+  const x = getValueByDataKey(entry, "x");
+  const y = getValueByDataKey(entry, "y");
+  const rawValue = getValueByDataKey(entry, "value");
+  const value = Array.isArray(rawValue) ? rawValue[rawValue.length - 1] : rawValue;
+  const payload = getValueByDataKey(entry, "payload");
+  return {
+    x: typeof x === "number" ? x : undefined,
+    y: typeof y === "number" ? y : undefined,
+    value: typeof value === "number" ? value : 0,
+    errorVal: coerceErrorVal(getValueByDataKey(payload, dataKey)),
+  };
+};
+
 export const Bar = (props: BarProps): JSX.Element => {
   const store = useAppStore();
   const merged = merge(barDefaultProps, props);
@@ -810,6 +843,15 @@ export const Bar = (props: BarProps): JSX.Element => {
   });
 
   const layout = useCartesianChartLayout();
+  // ErrorBar whiskers are centered on each bar: offset by half the bar's cross size
+  // (recharts: vertical → height/2, else width/2). 0 when there are no rectangles.
+  const errorBarOffset = (): number => {
+    const r0 = rectangles()?.[0];
+    if (r0 == null) {
+      return 0;
+    }
+    return layout() === "vertical" ? r0.height / 2 : r0.width / 2;
+  };
   const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
   const animationId = useAnimationId(() => rectangles(), "recharts-bar-");
   let prevRects: ReadonlyArray<BarRectangleItem> | null = null;
@@ -925,7 +967,6 @@ export const Bar = (props: BarProps): JSX.Element => {
               )}
             </Show>
             <LabelListFromLabelProp label={merged.label} />
-            {props.children}
           </CartesianLabelListContextProvider>
         </Layer>
       </Layer>
@@ -937,6 +978,28 @@ export const Bar = (props: BarProps): JSX.Element => {
       <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
       <SetLegendPayload id={id} legendPayload={legendPayload()} />
       <ZIndexLayer zIndex={merged.zIndex}>{barLayer()}</ZIndexLayer>
+      {/* Children (e.g. <ErrorBar>, <LabelList>) mount ONCE here at the stable
+          top-level return — NOT inside the rectangles-dependent `barLayer` memo,
+          which would re-mount them on every rect recompute (ErrorBar would then
+          churn add/removeErrorBar → re-extend the domain → recompute → loop).
+          recharts wraps the bar body in RegisterGraphicalItemId + SetErrorBarContext;
+          we provide them (plus the label-list context) here so children register and
+          draw against the live rectangles while staying mounted. */}
+      <RegisterGraphicalItemId type="bar" id={id}>
+        {() => (
+          <SetErrorBarContext
+            xAxisId={merged.xAxisId}
+            yAxisId={merged.yAxisId}
+            data={rectangles() ?? []}
+            dataPointFormatter={barErrorBarFormatter}
+            errorBarOffset={errorBarOffset()}
+          >
+            <CartesianLabelListContextProvider value={labelContextEntries}>
+              {props.children}
+            </CartesianLabelListContextProvider>
+          </SetErrorBarContext>
+        )}
+      </RegisterGraphicalItemId>
     </>
   );
 };
