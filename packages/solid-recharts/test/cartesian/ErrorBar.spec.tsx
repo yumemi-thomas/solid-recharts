@@ -4,7 +4,8 @@
 // Solid createSelectorTestCase. Deferred to a follow-up: the 5 animation cases
 // (ErrorBar animation is DEFERRED in the port + no animationManager in our helper)
 // and the "ErrorBar and axis domain interaction" describe (20 cases, rerender→signal).
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
+import { createSignal, flush, Show } from "solid-js";
 import {
   Bar,
   BarChart,
@@ -18,6 +19,16 @@ import {
 } from "../../src";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
+import { expectXAxisTicks, expectYAxisTicks } from "../helper/expectAxisTicks";
+import { expectBars } from "../helper/expectBars";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import {
+  getErrorDomainByDataKey,
+  selectAxisDomainIncludingNiceTicks,
+  selectNumericalDomain,
+} from "../../src/state/selectors/axisSelectors";
+import { useIsPanorama } from "../../src/context/PanoramaContext";
+import type { RechartsRootState } from "../../src/state/store";
 
 type ExpectedErrorBarLine = {
   x1: string | null;
@@ -1192,4 +1203,1032 @@ describe("<ErrorBar />", () => {
       expectErrorBars(container, []);
     },
   );
+
+  describe("ErrorBar and axis domain interaction", () => {
+    describe("extending domain when data is declared on chart container", () => {
+      // Two static renders (without/with ErrorBar) + unmount between — avoids the dynamic-mount NO_OWNER artifact.
+      const renderWithoutError = createSelectorTestCase((props) => (
+        <BarChart data={dataWithError} width={500} height={500}>
+          <YAxis dataKey="uv" />
+          <Bar isAnimationActive={false} dataKey="uv" />
+          {props.children}
+        </BarChart>
+      ));
+      const renderWithError = createSelectorTestCase((props) => (
+        <BarChart data={dataWithError} width={500} height={500}>
+          <YAxis dataKey="uv" />
+          <Bar isAnimationActive={false} dataKey="uv">
+            <ErrorBar dataKey="uvError" />
+          </Bar>
+          {props.children}
+        </BarChart>
+      ));
+
+      test("selectAxisDomainIncludingNiceTicks", () => {
+        const { spy, unmount } = renderWithoutError((state: RechartsRootState) =>
+          selectAxisDomainIncludingNiceTicks(state, "yAxis", 0, useIsPanorama()),
+        );
+        expect(spy).toHaveBeenCalledWith([0, 3400]);
+
+        unmount();
+        const { spy: spyWith } = renderWithError((state: RechartsRootState) =>
+          selectAxisDomainIncludingNiceTicks(state, "yAxis", 0, useIsPanorama()),
+        );
+        expect(spyWith).toHaveBeenLastCalledWith([0, 3600]);
+      });
+
+      test("YAxis ticks", () => {
+        const { container, unmount } = renderWithoutError();
+        expectYAxisTicks(container, [
+          {
+            textContent: "0",
+            x: "57",
+            y: "495",
+          },
+          {
+            textContent: "850",
+            x: "57",
+            y: "372.5",
+          },
+          {
+            textContent: "1700",
+            x: "57",
+            y: "250",
+          },
+          {
+            textContent: "2550",
+            x: "57",
+            y: "127.5",
+          },
+          {
+            textContent: "3400",
+            x: "57",
+            y: "5",
+          },
+        ]);
+
+        unmount();
+        const { container: containerWith } = renderWithError();
+
+        // these ticks are in the same position but going higher because the ErrorBar pushed YAxis domain
+        expectYAxisTicks(containerWith, [
+          {
+            textContent: "0",
+            x: "57",
+            y: "495",
+          },
+          {
+            textContent: "900",
+            x: "57",
+            y: "372.5",
+          },
+          {
+            textContent: "1800",
+            x: "57",
+            y: "250",
+          },
+          {
+            textContent: "2700",
+            x: "57",
+            y: "127.5",
+          },
+          {
+            textContent: "3600",
+            x: "57",
+            y: "5",
+          },
+        ]);
+      });
+
+      it("should render ErrorBars", () => {
+        const { container, unmount } = renderWithoutError();
+        expectErrorBars(container, []);
+        unmount();
+        const { container: containerWith } = renderWithError();
+        expectErrorBars(containerWith, [
+          {
+            x1: "113.75",
+            x2: "123.75",
+            y1: "215.97222222222223",
+            y2: "215.97222222222223",
+          },
+          {
+            x1: "118.75",
+            x2: "118.75",
+            y1: "236.38888888888889",
+            y2: "215.97222222222223",
+          },
+          {
+            x1: "113.75",
+            x2: "123.75",
+            y1: "236.38888888888889",
+            y2: "236.38888888888889",
+          },
+          {
+            x1: "221.25",
+            x2: "231.25",
+            y1: "26.777777777777754",
+            y2: "26.777777777777754",
+          },
+          {
+            x1: "226.25",
+            x2: "226.25",
+            y1: "62.16666666666668",
+            y2: "26.777777777777754",
+          },
+          {
+            x1: "221.25",
+            x2: "231.25",
+            y1: "62.16666666666668",
+            y2: "62.16666666666668",
+          },
+          {
+            x1: "328.75",
+            x2: "338.75",
+            y1: "48.555555555555564",
+            y2: "48.555555555555564",
+          },
+          {
+            x1: "333.75",
+            x2: "333.75",
+            y1: "75.77777777777779",
+            y2: "48.555555555555564",
+          },
+          {
+            x1: "328.75",
+            x2: "338.75",
+            y1: "75.77777777777779",
+            y2: "75.77777777777779",
+          },
+          {
+            x1: "436.25",
+            x2: "446.25",
+            y1: "86.66666666666666",
+            y2: "86.66666666666666",
+          },
+          {
+            x1: "441.25",
+            x2: "441.25",
+            y1: "127.5",
+            y2: "86.66666666666666",
+          },
+          {
+            x1: "436.25",
+            x2: "446.25",
+            y1: "127.5",
+            y2: "127.5",
+          },
+        ]);
+      });
+    });
+
+    describe("extending YAxis domain when data is defined on the graphical item", () => {
+      const [withError, setWithError] = createSignal(false);
+      const renderTestCase = createSelectorTestCase((props) => (
+        <LineChart width={500} height={500}>
+          <YAxis dataKey="uv" />
+          <Line isAnimationActive={false} dataKey="uv" data={dataWithError}>
+            <Show when={withError()}>
+              <ErrorBar dataKey="uvError" />
+            </Show>
+          </Line>
+          {props.children}
+        </LineChart>
+      ));
+
+      test("selectAxisDomainIncludingNiceTicks", () => {
+        setWithError(false);
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectAxisDomainIncludingNiceTicks(state, "yAxis", 0, useIsPanorama()),
+        );
+        expect(spy).toHaveBeenCalledWith([0, 3400]);
+
+        setWithError(true);
+        flush();
+
+        expect(spy).toHaveBeenLastCalledWith([0, 3600]);
+      });
+
+      test("YAxis ticks", () => {
+        setWithError(false);
+        const { container } = renderTestCase();
+
+        expectYAxisTicks(container, [
+          {
+            textContent: "0",
+            x: "57",
+            y: "495",
+          },
+          {
+            textContent: "850",
+            x: "57",
+            y: "372.5",
+          },
+          {
+            textContent: "1700",
+            x: "57",
+            y: "250",
+          },
+          {
+            textContent: "2550",
+            x: "57",
+            y: "127.5",
+          },
+          {
+            textContent: "3400",
+            x: "57",
+            y: "5",
+          },
+        ]);
+
+        setWithError(true);
+        flush();
+
+        expectYAxisTicks(container, [
+          {
+            textContent: "0",
+            x: "57",
+            y: "495",
+          },
+          {
+            textContent: "900",
+            x: "57",
+            y: "372.5",
+          },
+          {
+            textContent: "1800",
+            x: "57",
+            y: "250",
+          },
+          {
+            textContent: "2700",
+            x: "57",
+            y: "127.5",
+          },
+          {
+            textContent: "3600",
+            x: "57",
+            y: "5",
+          },
+        ]);
+      });
+
+      test("should render ErrorBars", () => {
+        setWithError(false);
+        const { container } = renderTestCase();
+
+        expectErrorBars(container, []);
+
+        setWithError(true);
+        flush();
+
+        expectErrorBars(container, [
+          {
+            x1: "60",
+            x2: "70",
+            y1: "215.97222222222223",
+            y2: "215.97222222222223",
+          },
+          {
+            x1: "65",
+            x2: "65",
+            y1: "236.38888888888889",
+            y2: "215.97222222222223",
+          },
+          {
+            x1: "60",
+            x2: "70",
+            y1: "236.38888888888889",
+            y2: "236.38888888888889",
+          },
+          {
+            x1: "203.33333333333334",
+            x2: "213.33333333333334",
+            y1: "26.777777777777754",
+            y2: "26.777777777777754",
+          },
+          {
+            x1: "208.33333333333334",
+            x2: "208.33333333333334",
+            y1: "62.16666666666668",
+            y2: "26.777777777777754",
+          },
+          {
+            x1: "203.33333333333334",
+            x2: "213.33333333333334",
+            y1: "62.16666666666668",
+            y2: "62.16666666666668",
+          },
+          {
+            x1: "346.6666666666667",
+            x2: "356.6666666666667",
+            y1: "48.555555555555564",
+            y2: "48.555555555555564",
+          },
+          {
+            x1: "351.6666666666667",
+            x2: "351.6666666666667",
+            y1: "75.77777777777779",
+            y2: "48.555555555555564",
+          },
+          {
+            x1: "346.6666666666667",
+            x2: "356.6666666666667",
+            y1: "75.77777777777779",
+            y2: "75.77777777777779",
+          },
+          {
+            x1: "490",
+            x2: "500",
+            y1: "86.66666666666666",
+            y2: "86.66666666666666",
+          },
+          {
+            x1: "495",
+            x2: "495",
+            y1: "127.5",
+            y2: "86.66666666666666",
+          },
+          {
+            x1: "490",
+            x2: "500",
+            y1: "127.5",
+            y2: "127.5",
+          },
+        ]);
+      });
+    });
+
+    describe("extending YAxis domain for ranged Bar values", () => {
+      type BoxPlotDatum = {
+        category: string;
+        min: number;
+        q1: number;
+        q3: number;
+        max: number;
+      };
+
+      const boxPlotData: ReadonlyArray<BoxPlotDatum> = [
+        { category: "A", min: 16, q1: 20, q3: 29, max: 35 },
+        { category: "B", min: 12, q1: 15, q3: 21, max: 27 },
+        { category: "C", min: 22, q1: 26, q3: 34, max: 39 },
+        { category: "D", min: 9, q1: 13, q3: 20, max: 26 },
+      ];
+
+      const boxDataKey = (entry: BoxPlotDatum): [number, number] => [entry.q1, entry.q3];
+      const whiskerDataKey = (entry: BoxPlotDatum): [number, number] => [
+        entry.q3 - entry.min,
+        entry.max - entry.q3,
+      ];
+
+      // Two static renders (without/with ErrorBar) + unmount between — avoids the dynamic-mount NO_OWNER artifact.
+      const renderWithoutError = createSelectorTestCase((props) => (
+        <BarChart data={boxPlotData} width={500} height={500}>
+          <YAxis />
+          <Bar isAnimationActive={false} dataKey={boxDataKey} />
+          {props.children}
+        </BarChart>
+      ));
+      const renderWithError = createSelectorTestCase((props) => (
+        <BarChart data={boxPlotData} width={500} height={500}>
+          <YAxis />
+          <Bar isAnimationActive={false} dataKey={boxDataKey}>
+            <ErrorBar dataKey={whiskerDataKey} />
+          </Bar>
+          {props.children}
+        </BarChart>
+      ));
+
+      test("getErrorDomainByDataKey should support ranged bar values", () => {
+        const errorDomain = getErrorDomainByDataKey(boxPlotData[0]!, boxDataKey(boxPlotData[0]!), [
+          { direction: "y", dataKey: whiskerDataKey },
+        ]);
+        expect(errorDomain).toEqual([16, 35]);
+      });
+
+      test("selectNumericalDomain should include error bars for ranged bars", () => {
+        const { spy, unmount } = renderWithoutError((state: RechartsRootState) =>
+          selectNumericalDomain(state, "yAxis", 0, false),
+        );
+
+        expectLastCalledWith(spy, [0, 34]);
+
+        unmount();
+        const { spy: spyWith } = renderWithError((state: RechartsRootState) =>
+          selectNumericalDomain(state, "yAxis", 0, false),
+        );
+
+        expectLastCalledWith(spyWith, [0, 39]);
+      });
+    });
+
+    describe("extending YAxis domain when Scatter has its own data (boxplot example)", () => {
+      type BoxPlotDatum = {
+        category: string;
+        min: number;
+        q1: number;
+        q3: number;
+        max: number;
+      };
+
+      const boxPlotData: ReadonlyArray<BoxPlotDatum> = [
+        { category: "A", min: 16, q1: 20, q3: 29, max: 35 },
+        { category: "B", min: 12, q1: 15, q3: 21, max: 27 },
+        { category: "C", min: 22, q1: 26, q3: 34, max: 39 },
+        { category: "D", min: 9, q1: 13, q3: 20, max: 26 },
+      ];
+
+      type OutlierDatum = {
+        category: string;
+        value: number;
+      };
+
+      // All outlier values are within the box plot + ErrorBar range (max=39),
+      // so the YAxis domain should remain [0, 39] driven by the Bar+ErrorBar.
+      // The bug: when Scatter has its own data, selectDisplayedData returns ONLY the
+      // Scatter outliers, ignoring Bar chart data entirely. The domain then becomes
+      // [0, 25] (max of outliers) instead of the correct [0, 39].
+      const outliers: ReadonlyArray<OutlierDatum> = [
+        { category: "A", value: 10 },
+        { category: "B", value: 5 },
+        { category: "D", value: 25 },
+      ];
+
+      const boxDataKey = (entry: BoxPlotDatum): [number, number] => [entry.q1, entry.q3];
+      const whiskerDataKey = (entry: BoxPlotDatum): [number, number] => [
+        entry.q3 - entry.min,
+        entry.max - entry.q3,
+      ];
+
+      const renderWithScatter = createSelectorTestCase((props) => (
+        <BarChart data={boxPlotData} width={500} height={500}>
+          <YAxis />
+          <Bar isAnimationActive={false} dataKey={boxDataKey}>
+            <ErrorBar dataKey={whiskerDataKey} />
+          </Bar>
+          <Scatter data={outliers} dataKey="value" />
+          {props.children}
+        </BarChart>
+      ));
+
+      test("selectNumericalDomain should cover Bar+ErrorBar range even when Scatter has its own data", () => {
+        const { spy } = renderWithScatter((state: RechartsRootState) =>
+          selectNumericalDomain(state, "yAxis", 0, false),
+        );
+
+        // Bar q1/q3 range + ErrorBar extending to min/max: C.max=39 is the highest value.
+        // Scatter outliers are all within that range (max=25 < 39).
+        // Therefore the domain should be [0, 39], not [0, 25].
+        expectLastCalledWith(spy, [0, 39]);
+      });
+    });
+
+    describe("extending XAxis domain", () => {
+      // Two static renders (without/with ErrorBar) + unmount between — avoids the dynamic-mount NO_OWNER artifact.
+      const renderWithoutError = createSelectorTestCase((props) => (
+        <BarChart data={dataWithError} width={500} height={500} layout="vertical">
+          <XAxis dataKey="uv" type="number" />
+          <Bar isAnimationActive={false} dataKey="uv" />
+          <YAxis type="category" />
+          {props.children}
+        </BarChart>
+      ));
+      const renderWithError = createSelectorTestCase((props) => (
+        <BarChart data={dataWithError} width={500} height={500} layout="vertical">
+          <XAxis dataKey="uv" type="number" />
+          <Bar isAnimationActive={false} dataKey="uv">
+            <ErrorBar isAnimationActive animationEasing="linear" dataKey="uvError" />
+          </Bar>
+          <YAxis type="category" />
+          {props.children}
+        </BarChart>
+      ));
+
+      test("selectAxisDomainIncludingNiceTicks", () => {
+        const { spy, unmount } = renderWithoutError((state: RechartsRootState) =>
+          selectAxisDomainIncludingNiceTicks(state, "xAxis", 0, useIsPanorama()),
+        );
+        expect(spy).toHaveBeenCalledWith([0, 3400]);
+
+        unmount();
+        const { spy: spyWith } = renderWithError((state: RechartsRootState) =>
+          selectAxisDomainIncludingNiceTicks(state, "xAxis", 0, useIsPanorama()),
+        );
+
+        expect(spyWith).toHaveBeenLastCalledWith([0, 3600]);
+      });
+
+      test("XAxis ticks", () => {
+        const { container, unmount } = renderWithoutError();
+
+        expectXAxisTicks(container, [
+          {
+            textContent: "0",
+            x: "65",
+            y: "473",
+          },
+          {
+            textContent: "850",
+            x: "172.5",
+            y: "473",
+          },
+          {
+            textContent: "1700",
+            x: "280",
+            y: "473",
+          },
+          {
+            textContent: "2550",
+            x: "387.5",
+            y: "473",
+          },
+          {
+            textContent: "3400",
+            x: "495",
+            y: "473",
+          },
+        ]);
+
+        unmount();
+        const { container: containerWith } = renderWithError();
+
+        expectXAxisTicks(containerWith, [
+          {
+            textContent: "0",
+            x: "65",
+            y: "473",
+          },
+          {
+            textContent: "900",
+            x: "172.5",
+            y: "473",
+          },
+          {
+            textContent: "1800",
+            x: "280",
+            y: "473",
+          },
+          {
+            textContent: "2700",
+            x: "387.5",
+            y: "473",
+          },
+          {
+            textContent: "3600",
+            x: "495",
+            y: "473",
+          },
+        ]);
+      });
+
+      test("should render bars", () => {
+        const { container, unmount } = renderWithoutError();
+
+        expectBars(container, [
+          {
+            d: "M 65,16.5 h 252.9412 v 92 h -252.9412 Z",
+            height: "92",
+            radius: "0",
+            width: "252.9412",
+            x: "65",
+            y: "16.5",
+          },
+          {
+            d: "M 65,131.5 h 417.3529 v 92 h -417.3529 Z",
+            height: "92",
+            radius: "0",
+            width: "417.3529",
+            x: "65",
+            y: "131.5",
+          },
+          {
+            d: "M 65,246.5 h 404.7059 v 92 h -404.7059 Z",
+            height: "92",
+            radius: "0",
+            width: "404.7059",
+            x: "65",
+            y: "246.5",
+          },
+          {
+            d: "M 65,361.5 h 354.1176 v 92 h -354.1176 Z",
+            height: "92",
+            radius: "0",
+            width: "354.1176",
+            x: "65",
+            y: "361.5",
+          },
+        ]);
+
+        unmount();
+        const { container: containerWith } = renderWithError();
+
+        expectBars(containerWith, [
+          {
+            d: "M 65,16.5 h 238.8889 v 92 h -238.8889 Z",
+            height: "92",
+            radius: "0",
+            width: "238.8889",
+            x: "65",
+            y: "16.5",
+          },
+          {
+            d: "M 65,131.5 h 394.1667 v 92 h -394.1667 Z",
+            height: "92",
+            radius: "0",
+            width: "394.1667",
+            x: "65",
+            y: "131.5",
+          },
+          {
+            d: "M 65,246.5 h 382.2222 v 92 h -382.2222 Z",
+            height: "92",
+            radius: "0",
+            width: "382.2222",
+            x: "65",
+            y: "246.5",
+          },
+          {
+            d: "M 65,361.5 h 334.4444 v 92 h -334.4444 Z",
+            height: "92",
+            radius: "0",
+            width: "334.4444",
+            x: "65",
+            y: "361.5",
+          },
+        ]);
+      });
+
+      test("should render ErrorBars", () => {
+        const { container, unmount } = renderWithoutError();
+
+        expectErrorBars(container, []);
+
+        unmount();
+        const { container: containerWith } = renderWithError();
+
+        expectErrorBars(containerWith, [
+          {
+            x1: "309.8611111111111",
+            x2: "309.8611111111111",
+            y1: "67.5",
+            y2: "57.5",
+          },
+          {
+            x1: "291.94444444444446",
+            x2: "309.8611111111111",
+            y1: "62.5",
+            y2: "62.5",
+          },
+          {
+            x1: "291.94444444444446",
+            x2: "291.94444444444446",
+            y1: "67.5",
+            y2: "57.5",
+          },
+          {
+            x1: "475.8888888888889",
+            x2: "475.8888888888889",
+            y1: "182.5",
+            y2: "172.5",
+          },
+          {
+            x1: "444.8333333333333",
+            x2: "475.8888888888889",
+            y1: "177.5",
+            y2: "177.5",
+          },
+          {
+            x1: "444.8333333333333",
+            x2: "444.8333333333333",
+            y1: "182.5",
+            y2: "172.5",
+          },
+          {
+            x1: "456.77777777777777",
+            x2: "456.77777777777777",
+            y1: "297.5",
+            y2: "287.5",
+          },
+          {
+            x1: "432.8888888888889",
+            x2: "456.77777777777777",
+            y1: "292.5",
+            y2: "292.5",
+          },
+          {
+            x1: "432.8888888888889",
+            x2: "432.8888888888889",
+            y1: "297.5",
+            y2: "287.5",
+          },
+          {
+            x1: "423.3333333333333",
+            x2: "423.3333333333333",
+            y1: "412.5",
+            y2: "402.5",
+          },
+          {
+            x1: "387.5",
+            x2: "423.3333333333333",
+            y1: "407.5",
+            y2: "407.5",
+          },
+          {
+            x1: "387.5",
+            x2: "387.5",
+            y1: "412.5",
+            y2: "402.5",
+          },
+        ]);
+      });
+    });
+
+    describe("extending XAxis domain when data is defined on the graphical item", () => {
+      const [withError, setWithError] = createSignal(false);
+      const renderTestCase = createSelectorTestCase((props) => (
+        <LineChart width={500} height={500}>
+          <XAxis dataKey="uv" type="number" />
+          <Line isAnimationActive={false} dataKey="uv" data={dataWithError}>
+            <Show when={withError()}>
+              <ErrorBar dataKey="uvError" direction="x" />
+            </Show>
+          </Line>
+          {props.children}
+        </LineChart>
+      ));
+
+      test("selectAxisDomainIncludingNiceTicks", () => {
+        setWithError(false);
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectAxisDomainIncludingNiceTicks(state, "xAxis", 0, useIsPanorama()),
+        );
+        expect(spy).toHaveBeenCalledWith([0, 3400]);
+
+        setWithError(true);
+        flush();
+
+        expect(spy).toHaveBeenLastCalledWith([0, 3600]);
+      });
+
+      test("XAxis ticks", () => {
+        setWithError(false);
+        const { container } = renderTestCase();
+
+        expectXAxisTicks(container, [
+          {
+            textContent: "0",
+            x: "5",
+            y: "473",
+          },
+          {
+            textContent: "850",
+            x: "127.5",
+            y: "473",
+          },
+          {
+            textContent: "1700",
+            x: "250",
+            y: "473",
+          },
+          {
+            textContent: "2550",
+            x: "372.5",
+            y: "473",
+          },
+          {
+            textContent: "3400",
+            x: "495",
+            y: "473",
+          },
+        ]);
+
+        setWithError(true);
+        flush();
+
+        expectXAxisTicks(container, [
+          {
+            textContent: "0",
+            x: "5",
+            y: "473",
+          },
+          {
+            textContent: "900",
+            x: "127.5",
+            y: "473",
+          },
+          {
+            textContent: "1800",
+            x: "250",
+            y: "473",
+          },
+          {
+            textContent: "2700",
+            x: "372.5",
+            y: "473",
+          },
+          {
+            textContent: "3600",
+            x: "495",
+            y: "473",
+          },
+        ]);
+      });
+
+      test("should render ErrorBars", () => {
+        setWithError(false);
+        const { container } = renderTestCase();
+
+        expectErrorBars(container, []);
+
+        setWithError(true);
+        flush();
+
+        expectErrorBars(container, [
+          {
+            x1: "284.02777777777777",
+            x2: "284.02777777777777",
+            y1: "199.41176470588235",
+            y2: "189.41176470588235",
+          },
+          {
+            x1: "263.6111111111111",
+            x2: "284.02777777777777",
+            y1: "194.41176470588235",
+            y2: "194.41176470588235",
+          },
+          {
+            x1: "263.6111111111111",
+            x2: "263.6111111111111",
+            y1: "199.41176470588235",
+            y2: "189.41176470588235",
+          },
+          {
+            x1: "473.22222222222223",
+            x2: "473.22222222222223",
+            y1: "23.529411764705884",
+            y2: "13.529411764705884",
+          },
+          {
+            x1: "437.8333333333333",
+            x2: "473.22222222222223",
+            y1: "18.529411764705884",
+            y2: "18.529411764705884",
+          },
+          {
+            x1: "437.8333333333333",
+            x2: "437.8333333333333",
+            y1: "23.529411764705884",
+            y2: "13.529411764705884",
+          },
+          {
+            x1: "451.44444444444446",
+            x2: "451.44444444444446",
+            y1: "37.05882352941177",
+            y2: "27.058823529411768",
+          },
+          {
+            x1: "424.22222222222223",
+            x2: "451.44444444444446",
+            y1: "32.05882352941177",
+            y2: "32.05882352941177",
+          },
+          {
+            x1: "424.22222222222223",
+            x2: "424.22222222222223",
+            y1: "37.05882352941177",
+            y2: "27.058823529411768",
+          },
+          {
+            x1: "413.3333333333333",
+            x2: "413.3333333333333",
+            y1: "91.1764705882353",
+            y2: "81.1764705882353",
+          },
+          {
+            x1: "372.5",
+            x2: "413.3333333333333",
+            y1: "86.1764705882353",
+            y2: "86.1764705882353",
+          },
+          {
+            x1: "372.5",
+            x2: "372.5",
+            y1: "91.1764705882353",
+            y2: "81.1764705882353",
+          },
+        ]);
+      });
+    });
+
+    describe("should extend domains to negative values", () => {
+      const data = [
+        { x: 100, y: 200, errorY: 30, errorX: 30 },
+        { x: 120, y: 100, errorY: [500, 30], errorX: [200, 30] },
+        { x: 170, y: 300, errorY: [10, 20], errorX: 20 },
+        { x: 140, y: 250, errorY: 30, errorX: 20 },
+        { x: 150, y: 400, errorY: [20, 300], errorX: 30 },
+        { x: 110, y: 280, errorY: 40, errorX: 40 },
+      ];
+      const renderTestCase = createSelectorTestCase((props) => (
+        <ScatterChart
+          width={400}
+          height={400}
+          margin={{
+            top: 20,
+            right: 20,
+            bottom: 20,
+            left: 20,
+          }}
+        >
+          <XAxis type="number" dataKey="x" />
+          <YAxis type="number" dataKey="y" />
+          <Scatter data={data}>
+            <ErrorBar dataKey="errorX" direction="x" />
+            <ErrorBar dataKey="errorY" direction="y" />
+          </Scatter>
+          {props.children}
+        </ScatterChart>
+      ));
+
+      it("should select XAxis domain", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectNumericalDomain(state, "xAxis", 0, false),
+        );
+        // lowest X is 120, with 200 error on the left, so -80
+        // highest X is 170, with 20 error on the right, so 190
+        expectLastCalledWith(spy, [-80, 190]);
+      });
+
+      it("should select YAxis domain", () => {
+        const { spy } = renderTestCase((state: RechartsRootState) =>
+          selectNumericalDomain(state, "yAxis", 0, false),
+        );
+        // lowest Y is 100, with 500 error on the bottom, so -400
+        // highest Y is 400, with 300 error on the top, so 700
+        expectLastCalledWith(spy, [-400, 700]);
+      });
+
+      it("should render XAxis ticks", () => {
+        const { container } = renderTestCase();
+        expectXAxisTicks(container, [
+          {
+            textContent: "-80",
+            x: "80",
+            y: "358",
+          },
+          {
+            textContent: "0",
+            x: "155",
+            y: "358",
+          },
+          {
+            textContent: "80",
+            x: "230",
+            y: "358",
+          },
+          {
+            textContent: "160",
+            x: "305",
+            y: "358",
+          },
+          {
+            textContent: "240",
+            x: "380",
+            y: "358",
+          },
+        ]);
+      });
+
+      it("should render YAxis ticks", () => {
+        const { container } = renderTestCase();
+        expectYAxisTicks(container, [
+          {
+            textContent: "-700",
+            x: "72",
+            y: "350",
+          },
+          {
+            textContent: "-350",
+            x: "72",
+            y: "267.5",
+          },
+          {
+            textContent: "0",
+            x: "72",
+            y: "185",
+          },
+          {
+            textContent: "350",
+            x: "72",
+            y: "102.5",
+          },
+          {
+            textContent: "700",
+            x: "72",
+            y: "20",
+          },
+        ]);
+      });
+    });
+  });
 });
