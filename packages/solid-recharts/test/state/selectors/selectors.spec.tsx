@@ -13,6 +13,7 @@ import {
   selectActiveIndex,
   selectIsTooltipActive,
   selectTooltipPayload,
+  selectTooltipPayloadConfigurations,
 } from "../../../src/state/selectors/tooltipSelectors";
 import { combineTooltipPayload } from "../../../src/state/selectors/combiners/combineTooltipPayload";
 import { useAppSelector } from "../../../src/state/hooks";
@@ -36,6 +37,47 @@ const preloadedTooltipState: Partial<RechartsRootState> = {
   },
 };
 const tooltipActiveCoordinate: Coordinate = { x: 100, y: 200 };
+
+const exampleTooltipPayloadConfiguration1: TooltipPayloadConfiguration = {
+  settings: {
+    fill: "fill",
+    name: "name is ignored in Scatter in recharts 2.x",
+    color: "color",
+    dataKey: "dataKey1",
+    nameKey: "nameKey1",
+    graphicalItemId: "graphicalItemId1",
+  },
+  dataDefinedOnItem: [
+    [
+      {
+        name: "stature",
+        unit: "cm",
+        value: 100,
+        payload: { x: 100, y: 200, z: 200 },
+        dataKey: "x",
+      },
+      { name: "weight", unit: "kg", value: 200, payload: { x: 100, y: 200, z: 200 }, dataKey: "y" },
+    ],
+  ],
+  getPosition: noop,
+};
+const exampleTooltipPayloadConfiguration2: TooltipPayloadConfiguration = {
+  settings: {
+    fill: "fill 2",
+    name: "name 2",
+    color: "color 2",
+    dataKey: "dataKey2",
+    nameKey: "nameKey2",
+    graphicalItemId: "graphicalItemId2",
+  },
+  dataDefinedOnItem: [
+    [
+      { name: "height", unit: "cm", value: 100, payload: { x: 100, y: 200, z: 200 }, dataKey: "x" },
+      { name: "width", unit: "m", value: 4, payload: { x: 10, y: 20, z: 20 }, dataKey: "y" },
+    ],
+  ],
+  getPosition: noop,
+};
 
 type TestCaseTooltipCombination = {
   tooltipEventType: TooltipEventType;
@@ -508,35 +550,6 @@ describe("selectTooltipPayload", () => {
   });
 
   it("should return array of payloads for Scatter because Scatter naturally does its own special thing", () => {
-    const exampleTooltipPayloadConfiguration1: TooltipPayloadConfiguration = {
-      settings: {
-        fill: "fill",
-        name: "name is ignored in Scatter in recharts 2.x",
-        color: "color",
-        dataKey: "dataKey1",
-        nameKey: "nameKey1",
-        graphicalItemId: "graphicalItemId1",
-      },
-      dataDefinedOnItem: [
-        [
-          {
-            name: "stature",
-            unit: "cm",
-            value: 100,
-            payload: { x: 100, y: 200, z: 200 },
-            dataKey: "x",
-          },
-          {
-            name: "weight",
-            unit: "kg",
-            value: 200,
-            payload: { x: 100, y: 200, z: 200 },
-            dataKey: "y",
-          },
-        ],
-      ],
-      getPosition: noop,
-    };
     const chartDataState: ChartDataState = initialChartDataState;
     const actual: TooltipPayload | undefined = combineTooltipPayload(
       [exampleTooltipPayloadConfiguration1],
@@ -595,5 +608,159 @@ describe("selectTooltipPayload", () => {
       graphicalItemId: "graphicalItemId1",
     };
     expect(actual).toEqual([expected]);
+  });
+});
+
+describe("selectTooltipPayloadConfigurations", () => {
+  let exampleStore: ReturnType<typeof createRechartsStore>;
+
+  beforeEach(() => {
+    exampleStore = createRechartsStore();
+    exampleStore.actions.tooltip.addTooltipEntrySettings(exampleTooltipPayloadConfiguration1);
+    exampleStore.actions.tooltip.addTooltipEntrySettings(exampleTooltipPayloadConfiguration2);
+    flush();
+  });
+
+  describe.each(allTooltipCombinations)(
+    "tooltipEventType: $tooltipEventType tooltipTrigger: $trigger",
+    ({ tooltipEventType, trigger }) => {
+      it("should return undefined when outside of store context", () => {
+        const spy = vi.fn();
+        const Comp = (): null => {
+          const result = useAppSelector((state) =>
+            selectTooltipPayloadConfigurations(state, tooltipEventType, trigger, undefined),
+          );
+          createEffect(
+            () => result(),
+            (value) => spy(value),
+          );
+          return null;
+        };
+        render(() => <Comp />);
+        flush();
+        expect(spy).toHaveBeenCalledWith(undefined);
+      });
+
+      it("should return empty array from empty state", () => {
+        const store = createRechartsStore();
+        expect(
+          selectTooltipPayloadConfigurations(store.state, tooltipEventType, trigger, undefined),
+        ).toEqual([]);
+      });
+    },
+  );
+
+  describe.each<TooltipTrigger>(["hover", "click"])(
+    'tooltipEventType: "axis" tooltipTrigger: %s',
+    (trigger) => {
+      it("should return unfiltered configurations with tooltipEventType: axis", () => {
+        const expected: ReadonlyArray<TooltipPayloadConfiguration> = [
+          exampleTooltipPayloadConfiguration1,
+          exampleTooltipPayloadConfiguration2,
+        ];
+        expect(
+          selectTooltipPayloadConfigurations(exampleStore.state, "axis", trigger, undefined),
+        ).toEqual(expected);
+      });
+    },
+  );
+
+  it("should filter by dataKey with tooltipEventType: item and trigger: hover", () => {
+    exampleStore.actions.tooltip.setActiveMouseOverItemIndex({
+      activeIndex: "1",
+      activeDataKey: "dataKey1",
+      activeCoordinate: undefined,
+      activeGraphicalItemId: exampleTooltipPayloadConfiguration1.settings.graphicalItemId,
+    });
+    flush();
+    expect(
+      selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
+    ).toEqual([exampleTooltipPayloadConfiguration1]);
+    exampleStore.actions.tooltip.setActiveMouseOverItemIndex({
+      activeIndex: "1",
+      activeDataKey: "dataKey2",
+      activeCoordinate: undefined,
+      activeGraphicalItemId: exampleTooltipPayloadConfiguration2.settings.graphicalItemId,
+    });
+    flush();
+    expect(
+      selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
+    ).toEqual([exampleTooltipPayloadConfiguration2]);
+  });
+
+  it("should return nothing if the tooltipEventType is hover but the only interactions are clicks", () => {
+    exampleStore.actions.tooltip.setActiveClickItemIndex({
+      activeIndex: "1",
+      activeDataKey: "dataKey1",
+      activeGraphicalItemId: "foo",
+      activeCoordinate: undefined,
+    });
+    flush();
+    expect(
+      selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
+    ).toEqual([]);
+    exampleStore.actions.tooltip.setMouseClickAxisIndex({
+      activeIndex: "1",
+      activeDataKey: "dataKey2",
+    });
+    flush();
+    expect(
+      selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
+    ).toEqual([]);
+  });
+
+  it("should return nothing if the tooltipEventType is click but the only interactions are hovers", () => {
+    exampleStore.actions.tooltip.setActiveMouseOverItemIndex({
+      activeIndex: "1",
+      activeDataKey: "dataKey1",
+      activeCoordinate: undefined,
+      activeGraphicalItemId: "foo",
+    });
+    flush();
+    expect(
+      selectTooltipPayloadConfigurations(exampleStore.state, "item", "click", undefined),
+    ).toEqual([]);
+    exampleStore.actions.tooltip.setMouseOverAxisIndex({
+      activeIndex: "1",
+      activeDataKey: "dataKey2",
+    });
+    flush();
+    expect(
+      selectTooltipPayloadConfigurations(exampleStore.state, "item", "click", undefined),
+    ).toEqual([]);
+  });
+
+  describe("with defaultIndex", () => {
+    it("should return the first configuration if the tooltipEventType is item and the defaultIndex is set, before user started interacting with the chart", () => {
+      expect(selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", "1")).toEqual([
+        exampleTooltipPayloadConfiguration1,
+      ]);
+    });
+
+    it("should return configuration that matches the dataKey after user has started interacting", () => {
+      exampleStore.actions.tooltip.setActiveMouseOverItemIndex({
+        activeIndex: "1",
+        activeDataKey: "dataKey2",
+        activeCoordinate: undefined,
+        activeGraphicalItemId: exampleTooltipPayloadConfiguration2.settings.graphicalItemId,
+      });
+      flush();
+      expect(selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", "1")).toEqual([
+        exampleTooltipPayloadConfiguration2,
+      ]);
+    });
+
+    it("should return empty array if user interacted with a an item that is not represented in the tooltip payloads", () => {
+      exampleStore.actions.tooltip.setActiveMouseOverItemIndex({
+        activeIndex: "1",
+        activeGraphicalItemId: "id-notPresentInPayloads",
+        activeCoordinate: undefined,
+        activeDataKey: "dataKey-notPresentInPayloads",
+      });
+      flush();
+      expect(selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", "1")).toEqual(
+        [],
+      );
+    });
   });
 });
