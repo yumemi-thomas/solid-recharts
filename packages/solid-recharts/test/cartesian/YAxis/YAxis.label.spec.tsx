@@ -42,14 +42,10 @@ describe("<YAxis /> Label", () => {
       ));
       expectYAxisLabel(container, []);
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering is not implemented in the Solid port
-    // (CartesianAxis documents the axis label/Label-child as deferred; YAxis has no `label` prop).
-    it.skip("should render label if label prop is a string", () => {
+    it("should render label if label prop is a string", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error axis `label` prop is a deferred parity gap (not in YAxisProps) */}
           <YAxis label="Test Label" />
         </AreaChart>
       ));
@@ -62,13 +58,10 @@ describe("<YAxis /> Label", () => {
         },
       ]);
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render label if label prop is a number", () => {
+    it("should render label if label prop is a number", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error axis `label` prop is a deferred parity gap (not in YAxisProps) */}
           <YAxis label={123} />
         </AreaChart>
       ));
@@ -81,53 +74,45 @@ describe("<YAxis /> Label", () => {
         },
       ]);
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render label if label prop is a function", () => {
+    it("should render label if label prop is a function", () => {
       render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error axis `label` prop is a deferred parity gap (not in YAxisProps) */}
           <YAxis label={() => "Test Label from Function"} />
         </AreaChart>
       ));
       const customLabel = screen.getByText("Test Label from Function");
       expect(customLabel).toBeInTheDocument();
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render label if label prop is a React component", () => {
+    it("should render label if label prop is a React component", () => {
       const Component = () => <span>Test Label</span>;
       render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error axis `label` prop is a deferred parity gap (not in YAxisProps) */}
           <YAxis label={Component} />
         </AreaChart>
       ));
       const customLabel = screen.getByText("Test Label");
       expect(customLabel).toBeInTheDocument();
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
+    // SKIP: element-form label — Solid elements are DOM nodes, not introspectable
+    // ({ props }), so parseLabel can't read a passed JSX element (recharts uses
+    // React.isValidElement/cloneElement). Documented deferral.
     it.skip("should render label if label prop is a React element", () => {
       render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error axis `label` prop is a deferred parity gap (not in YAxisProps) */}
+          {/* @ts-expect-error element-form label: a JSX element is not ImplicitLabelType (element-introspection deferral) */}
           <YAxis label={<span>Test Label</span>} />
         </AreaChart>
       ));
       const customLabel = screen.getByText("Test Label");
       expect(customLabel).toBeInTheDocument();
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render label if label props is an object, and it should pass the object as props to the label component", () => {
+    it("should render label if label props is an object, and it should pass the object as props to the label component", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error axis `label` prop is a deferred parity gap (not in YAxisProps) */}
           <YAxis label={{ value: "Test Label", angle: -90, position: "insideLeft" }} />
         </AreaChart>
       ));
@@ -143,12 +128,10 @@ describe("<YAxis /> Label", () => {
   });
 
   describe("<Label /> as a child", () => {
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render label if <Label /> is used as a child of <YAxis>", () => {
+    it("should render label if <Label /> is used as a child of <YAxis>", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error YAxis children (Label) is a deferred parity gap */}
           <YAxis>
             <Label value="Test Label" angle={-90} position="insideLeft" />
           </YAxis>
@@ -163,13 +146,11 @@ describe("<YAxis /> Label", () => {
         },
       ]);
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
+    // SKIP: same element-introspection limitation — <Label> with element children.
     it.skip("renders nonsense if <Label /> itself has element children", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error YAxis children (Label) is a deferred parity gap */}
           <YAxis>
             <Label value="Test Label" angle={-80} position="insideEnd">
               {/* @ts-expect-error the type here says it doesn't accept span, and it is correct! the Label doesn't render it properly */}
@@ -187,13 +168,10 @@ describe("<YAxis /> Label", () => {
         },
       ]);
     });
-
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render child content if <Label /> itself has string children - and ignore the value prop", () => {
+    it("should render child content if <Label /> itself has string children - and ignore the value prop", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error YAxis children (Label) is a deferred parity gap */}
           <YAxis>
             <Label value="Test Label" angle={-90} position="insideLeft">
               Additional Content
@@ -213,12 +191,10 @@ describe("<YAxis /> Label", () => {
   });
 
   describe("mix of label prop and <Label /> as a child", () => {
-    // SKIP: parity gap — axis `label` (title) rendering not implemented (see above).
-    it.skip("should render both labels!", () => {
+    it("should render both labels!", () => {
       const { container } = render(() => (
         <AreaChart width={500} height={500} data={PageData}>
           <Area dataKey="uv" />
-          {/* @ts-expect-error YAxis `label` prop + children (Label) is a deferred parity gap */}
           <YAxis label="Ignored Label">
             <Label value="Child Label" />
           </YAxis>

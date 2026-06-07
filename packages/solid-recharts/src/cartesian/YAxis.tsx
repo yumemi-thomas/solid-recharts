@@ -20,6 +20,7 @@ import {
   selectYAxisSize,
 } from "../state/selectors/axisSelectors";
 import { CartesianAxis } from "./CartesianAxis";
+import type { ImplicitLabelType } from "../component/Label";
 import { RenderedTicksReporter } from "./RenderedTicksReporter";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
@@ -67,6 +68,9 @@ export interface YAxisProps<DataPointType = unknown, DataValueType = unknown> {
   name?: string;
   unit?: string;
   niceTicks?: NiceTicksAlgorithm;
+  /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
+  label?: ImplicitLabelType;
+  children?: JSX.Element;
 }
 
 export const yAxisDefaultProps = {
@@ -213,7 +217,10 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
             interval={withDefault(props.interval, yAxisDefaultProps.interval)}
             unit={unit()}
             mirror={mirror()}
-          />
+            label={props.label}
+          >
+            {props.children}
+          </CartesianAxis>
         </>
       )}
     </Show>

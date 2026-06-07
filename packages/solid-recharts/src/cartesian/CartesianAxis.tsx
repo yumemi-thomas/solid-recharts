@@ -1,15 +1,21 @@
 // Ported from recharts 3.8.1 src/cartesian/CartesianAxis.tsx (commit 7a23854).
 //
-// MINIMAL PORT — draws the axis line + tick lines + tick labels. The pure tick
+// MINIMAL PORT — draws the axis line + tick lines + tick labels + the axis `label`
+// (title) via CartesianLabelFromLabelProp + a `<Label>` child. The pure tick
 // geometry helpers (getTickLineCoord/getTickTextAnchor/getTickVerticalAnchor) are
-// ported verbatim. Deferred (documented): the axis `label` (title) via Label, the
-// getTicks interval/minTickGap thinning (all selected ticks render — the ticks
-// the selector already produces), custom tick render functions / elements,
-// ZIndexLayer, RenderedTicksReporter, Y-axis auto-width. Solid deviations:
+// ported verbatim. Deferred (documented): the getTicks interval/minTickGap thinning
+// (all selected ticks render — the ticks the selector already produces), custom tick
+// render functions / elements, ZIndexLayer, RenderedTicksReporter, Y-axis auto-width,
+// element-form `label` (Solid elements aren't introspectable). Solid deviations:
 // forwardRef dropped; React CSSProperties n/a; `className`→`class`.
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
+import {
+  CartesianLabelContextProvider,
+  CartesianLabelFromLabelProp,
+  type ImplicitLabelType,
+} from "../component/Label";
 import { Text, TextAnchor, TextVerticalAnchor } from "../component/Text";
 import { isNullish, isNumber } from "../util/DataUtils";
 import { CartesianTickItem, Coordinate, RectangleCoordinate } from "../util/types";
@@ -111,6 +117,9 @@ export interface CartesianAxisProps {
   unit?: string | number;
   hide?: boolean;
   class?: string;
+  /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
+  label?: ImplicitLabelType;
+  children?: JSX.Element;
 }
 
 const cartesianAxisDefaults = {
@@ -254,6 +263,19 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
             )}
           </For>
         </g>
+        {/* Axis title: the `label` prop (string/number/object/fn) and any `<Label>`
+            child both position against the axis viewBox via CartesianLabelContext. */}
+        <CartesianLabelContextProvider
+          x={merged.x}
+          y={merged.y}
+          width={merged.width}
+          height={merged.height}
+          lowerWidth={merged.width}
+          upperWidth={merged.width}
+        >
+          <CartesianLabelFromLabelProp label={merged.label} />
+          {merged.children}
+        </CartesianLabelContextProvider>
       </Layer>
     </Show>
   );
