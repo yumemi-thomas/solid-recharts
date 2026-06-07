@@ -596,23 +596,27 @@ describe("BarStack Selectors", () => {
       </BarChart>
     ));
 
-    // DEFERRED: this case calls `renderTestCase` three times in one test (three
-    // chart mounts) to cross-reference three selectors; the extra mounts trip the
-    // global NO_OWNER_EFFECT diagnostic guard (a createSelectorTestCase multi-render
-    // limitation, not a product bug — the selector VALUES are correct). The single
-    // selectStackRects/selectBarRectangles value cases above already cover the math.
-    test.skip("selectStackRects should preserve original data indices when combining filtered bars", () => {
-      const { spy: stackSpy } = renderTestCase((state) => selectStackRects(state, "sparse", false));
-      const { spy: firstBarSpy } = renderTestCase((state) =>
+    // This case cross-references three selectors across three chart configs. Each
+    // chart is unmounted before the next renders: leaving multiple charts mounted in
+    // one test and then calling flush() (outside any reactive owner) creates the
+    // later charts' registration effects unowned → NO_OWNER_EFFECT. Capturing each
+    // spy's recorded value before unmounting keeps the assertions intact.
+    test("selectStackRects should preserve original data indices when combining filtered bars", () => {
+      const stack = renderTestCase((state) => selectStackRects(state, "sparse", false));
+      const stackRects = stack.spy.mock.lastCall?.[0];
+      stack.unmount();
+
+      const firstBar = renderTestCase((state) =>
         selectBarRectangles(state, "bar-one", false, undefined),
       );
-      const { spy: secondBarSpy } = renderTestCase((state) =>
+      const firstRects = firstBar.spy.mock.lastCall?.[0] ?? [];
+      firstBar.unmount();
+
+      const secondBar = renderTestCase((state) =>
         selectBarRectangles(state, "bar-two", false, undefined),
       );
-
-      const stackRects = stackSpy.mock.lastCall?.[0];
-      const firstRects = firstBarSpy.mock.lastCall?.[0] ?? [];
-      const secondRects = secondBarSpy.mock.lastCall?.[0] ?? [];
+      const secondRects = secondBar.spy.mock.lastCall?.[0] ?? [];
+      secondBar.unmount();
 
       expect(firstRects).toHaveLength(1);
       expect(secondRects).toHaveLength(1);
