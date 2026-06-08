@@ -123,7 +123,7 @@ export { useChartHeight, useChartWidth } from "./context/chartLayoutContext";
 export { DefaultLegendContent } from "./component/DefaultLegendContent";
 export type { LegendPayload } from "./component/DefaultLegendContent";
 export type { TooltipItemSorter } from "./component/DefaultTooltipContent";
-export type { LegendType } from "./util/types";
+export type { LegendType, CartesianTickContentProps } from "./util/types";
 export type { IfOverflow } from "./util/IfOverflow";
 export { XAxis } from "./cartesian/XAxis";
 export type { XAxisProps } from "./cartesian/XAxis";

@@ -32,6 +32,7 @@ import {
   AxisTick,
   DataKey,
   ScaleType,
+  type CartesianTickContentProps,
   TickFormatter,
   TickProp,
 } from "../util/types";
@@ -49,7 +50,7 @@ export interface YAxisProps<DataPointType = unknown, DataValueType = unknown> {
     | CustomScaleDefinition<number>
     | CustomScaleDefinition<Date>;
   ticks?: ReadonlyArray<AxisTick>;
-  tick?: TickProp<unknown>;
+  tick?: TickProp<CartesianTickContentProps>;
   tickCount?: number;
   tickFormatter?: TickFormatter;
   padding?: YAxisPadding;
@@ -107,10 +108,6 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
   const yAxisId = createMemo(() => withDefault(props.yAxisId, yAxisDefaultProps.yAxisId));
   const hide = createMemo(() => withDefault(props.hide, yAxisDefaultProps.hide));
   const tick = createMemo(() => withDefault(props.tick, yAxisDefaultProps.tick));
-  const shouldRenderTick = createMemo(() => {
-    const value = tick();
-    return typeof value === "boolean" ? value : true;
-  });
   const tickFormatter = createMemo(() => props.tickFormatter);
   const orientation = createMemo(() =>
     withDefault(props.orientation, yAxisDefaultProps.orientation),
@@ -212,12 +209,15 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
             height={ar().size.height}
             orientation={orientation()}
             ticks={ar().ticks}
-            tick={shouldRenderTick()}
             tickFormatter={tickFormatter()}
             interval={withDefault(props.interval, yAxisDefaultProps.interval)}
             unit={unit()}
             mirror={mirror()}
             label={props.label}
+            tick={tick()}
+            name={props.name}
+            angle={props.angle}
+            padding={props.padding}
           >
             {props.children}
           </CartesianAxis>

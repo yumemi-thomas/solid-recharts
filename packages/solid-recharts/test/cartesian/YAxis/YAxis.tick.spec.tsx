@@ -2,15 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
 import type { JSX } from "@solidjs/web";
 import { Bar, BarChart, ComposedChart, Line, LineChart, XAxis, YAxis } from "../../../src";
+import type { CartesianTickContentProps } from "../../../src";
 import { render, fireEvent } from "../../helper/render";
 import { expectYAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import { expectLastCalledWith, expectNthCalledWith } from "../../helper/expectLastCalledWith";
 import { dateWithValueData } from "../../_data";
 
-// `YAxisTickContentProps` is not exported by the Solid port (custom-tick rendering is
-// a deferred parity gap); the custom-tick tests below are skipped and use a local alias.
-type YAxisTickContentProps = Record<string, unknown>;
+type YAxisTickContentProps = CartesianTickContentProps;
 
 const data = [
   { x: 90, y: 90, z: 90 },
@@ -166,8 +165,7 @@ describe("YAxis tick", () => {
       ));
     });
 
-    // SKIP: parity gap — custom tick render functions/elements deferred (see above).
-    it.skip("should pass padding to function-based custom tick", () => {
+    it("should pass padding to function-based custom tick", () => {
       const expectedPadding = { top: 15, bottom: 25 };
       expect.assertions(5);
 
@@ -178,7 +176,6 @@ describe("YAxis tick", () => {
 
       render(() => (
         <LineChart width={400} height={400} data={lineData}>
-          {/* @ts-expect-error custom-tick render function is a deferred parity gap */}
           <YAxis padding={expectedPadding} tick={customTickFunction} />
           <Line type="monotone" dataKey="uv" stroke="#ff7300" />
         </LineChart>
@@ -202,10 +199,7 @@ describe("YAxis tick", () => {
       ));
     });
 
-    // SKIP: parity gap — custom tick render functions/elements deferred (see above);
-    // the per-tick prop shape (className `recharts-yAxis yAxis ...`, payload, etc.) is
-    // also not produced by this port.
-    it.skip("should pass all TextProps and index and payload to custom tick component", () => {
+    it("should pass all TextProps and index and payload to custom tick component", () => {
       const myCustomTick: Mock = vi.fn<(props: YAxisTickContentProps) => JSX.Element>();
 
       render(() => (

@@ -38,6 +38,7 @@ import {
   AxisTick,
   DataKey,
   ScaleType,
+  type CartesianTickContentProps,
   TickFormatter,
   TickProp,
 } from "../util/types";
@@ -55,7 +56,7 @@ export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
     | CustomScaleDefinition<number>
     | CustomScaleDefinition<Date>;
   ticks?: ReadonlyArray<AxisTick>;
-  tick?: TickProp<unknown>;
+  tick?: TickProp<CartesianTickContentProps>;
   tickCount?: number;
   tickFormatter?: TickFormatter;
   padding?: XAxisPadding;
@@ -113,10 +114,6 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
   const xAxisId = createMemo(() => withDefault(props.xAxisId, xAxisDefaultProps.xAxisId));
   const hide = createMemo(() => withDefault(props.hide, xAxisDefaultProps.hide));
   const tick = createMemo(() => withDefault(props.tick, xAxisDefaultProps.tick));
-  const shouldRenderTick = createMemo(() => {
-    const value = tick();
-    return typeof value === "boolean" ? value : true;
-  });
   const tickFormatter = createMemo(() => props.tickFormatter);
   const orientation = createMemo(() =>
     withDefault(props.orientation, xAxisDefaultProps.orientation),
@@ -219,12 +216,15 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
             height={ar().size.height}
             orientation={orientation()}
             ticks={ar().ticks}
-            tick={shouldRenderTick()}
+            tick={tick()}
             tickFormatter={tickFormatter()}
             interval={withDefault(props.interval, xAxisDefaultProps.interval)}
             unit={unit()}
             mirror={mirror()}
             label={props.label}
+            name={props.name}
+            angle={props.angle}
+            padding={props.padding}
           >
             {props.children}
           </CartesianAxis>

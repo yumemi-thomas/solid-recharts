@@ -1,13 +1,14 @@
 // Ported from recharts 3.8.1 src/cartesian/CartesianAxis.tsx (commit 7a23854).
 //
 // MINIMAL PORT — draws the axis line + tick lines + tick labels + the axis `label`
-// (title) via CartesianLabelFromLabelProp + a `<Label>` child. The pure tick
-// geometry helpers (getTickLineCoord/getTickTextAnchor/getTickVerticalAnchor) are
+// (title) via CartesianLabelFromLabelProp + a `<Label>` child, and supports a
+// function-form `tick` renderer (invoked with recharts' tick-content props). The pure
+// tick geometry helpers (getTickLineCoord/getTickTextAnchor/getTickVerticalAnchor) are
 // ported verbatim. Deferred (documented): the getTicks interval/minTickGap thinning
-// (all selected ticks render — the ticks the selector already produces), custom tick
-// render functions / elements, ZIndexLayer, RenderedTicksReporter, Y-axis auto-width,
-// element-form `label` (Solid elements aren't introspectable). Solid deviations:
-// forwardRef dropped; React CSSProperties n/a; `className`→`class`.
+// (all selected ticks render — the ticks the selector already produces), ELEMENT-form
+// `tick`/`label` (Solid elements aren't introspectable), ZIndexLayer,
+// RenderedTicksReporter, Y-axis auto-width. Solid deviations: forwardRef dropped;
+// React CSSProperties n/a; `className`→`class`.
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
@@ -18,11 +19,19 @@ import {
 } from "../component/Label";
 import { Text, TextAnchor, TextVerticalAnchor } from "../component/Text";
 import { isNullish, isNumber } from "../util/DataUtils";
-import { CartesianTickItem, Coordinate, RectangleCoordinate } from "../util/types";
+import {
+  type CartesianTickContentProps,
+  CartesianTickItem,
+  Coordinate,
+  RectangleCoordinate,
+  type TickProp,
+} from "../util/types";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { XAxisOrientation, YAxisOrientation } from "../state/cartesianAxisSlice";
 
 export type Orientation = XAxisOrientation | YAxisOrientation;
+
+type AxisLabelPadding = { top?: number; bottom?: number; left?: number; right?: number } | string;
 
 function getTickLineCoord(
   data: CartesianTickItem,
@@ -111,9 +120,15 @@ export interface CartesianAxisProps {
   stroke?: string;
   axisLine?: boolean;
   tickLine?: boolean;
-  tick?: boolean;
+  tick?: TickProp<CartesianTickContentProps>;
   tickFormatter?: (value: unknown, index: number) => string;
   interval?: number | string;
+  /** Axis name, forwarded to a function-form tick's props (default undefined). */
+  name?: string;
+  /** Tick label rotation, forwarded to a function-form tick's props. @defaultValue 0 */
+  angle?: number;
+  /** Axis padding, forwarded verbatim to a function-form tick's props. */
+  padding?: AxisLabelPadding;
   unit?: string | number;
   hide?: boolean;
   class?: string;
@@ -216,6 +231,49 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
     return `${formatted}${merged.unit ?? ""}`;
   };
 
+  // Default tick `padding` forwarded to a function-form tick (recharts forwards the
+  // axis's own padding prop; the implicit default is zero on both edges).
+  const defaultPadding = (): AxisLabelPadding =>
+    merged.axisType === "yAxis" ? { top: 0, bottom: 0 } : { left: 0, right: 0 };
+
+  // The props recharts passes to a function-form `tick` renderer, built to match its
+  // shape exactly (className = axis class + tick-value class; payload = the tick item).
+  const tickContentProps = (item: {
+    entry: CartesianTickItem;
+    index: number;
+    tick: Coordinate;
+  }): CartesianTickContentProps => {
+    const e = item.entry;
+    return {
+      x: item.tick.x,
+      y: item.tick.y,
+      payload: {
+        coordinate: e.coordinate,
+        value: e.value,
+        index: e.index,
+        offset: e.offset,
+        // recharts' getTicks sets tickCoord (= coordinate when un-thinned) and isShow
+        // on each rendered tick item; this port doesn't thin, so every tick is shown.
+        tickCoord: e.tickCoord ?? e.coordinate,
+        isShow: e.isShow ?? true,
+      },
+      index: item.index,
+      visibleTicksCount: visibleTicks().length,
+      className: `recharts-${merged.axisType} ${merged.axisType} recharts-cartesian-axis-tick-value`,
+      fill: merged.stroke,
+      stroke: "none",
+      textAnchor: textAnchor(),
+      verticalAnchor: verticalAnchor(),
+      orientation: merged.orientation,
+      height: merged.height,
+      width: merged.width,
+      padding: merged.padding ?? defaultPadding(),
+      name: merged.name,
+      tickFormatter: merged.tickFormatter,
+      angle: merged.angle ?? 0,
+    };
+  };
+
   return (
     <Show when={!merged.hide}>
       {/* recharts emits both the namespaced and the bare axis class (`recharts-yAxis yAxis`). */}
@@ -247,17 +305,23 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                   />
                 </Show>
                 <Show when={merged.tick}>
-                  <Text
-                    class="recharts-cartesian-axis-tick-value"
-                    x={item.tick.x}
-                    y={item.tick.y}
-                    text-anchor={textAnchor()}
-                    verticalAnchor={verticalAnchor()}
-                    stroke="none"
-                    fill={merged.stroke}
-                  >
-                    {labelOf(item.entry, item.index)}
-                  </Text>
+                  {/* Function-form tick: invoke with recharts' tick-content props.
+                      Ternary (not <Show>) so the constant branch doesn't trip STRICT_READ. */}
+                  {typeof merged.tick === "function" ? (
+                    merged.tick(tickContentProps(item))
+                  ) : (
+                    <Text
+                      class="recharts-cartesian-axis-tick-value"
+                      x={item.tick.x}
+                      y={item.tick.y}
+                      text-anchor={textAnchor()}
+                      verticalAnchor={verticalAnchor()}
+                      stroke="none"
+                      fill={merged.stroke}
+                    >
+                      {labelOf(item.entry, item.index)}
+                    </Text>
+                  )}
                 </Show>
               </Layer>
             )}

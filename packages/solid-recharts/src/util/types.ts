@@ -547,6 +547,39 @@ export type D3ScaleType = Extract<keyof typeof d3Scales, `scale${string}`>;
 export type TickProp<T> = JSX.Element | ((props: T) => Element);
 
 /**
+ * The props a CartesianAxis passes to a function-form `tick` renderer
+ * (`tick={(props) => <text .../>}`). Mirrors recharts' XAxis/YAxisTickContentProps.
+ * Anchor/orientation literals are inlined to keep this in the low-level types module
+ * (no import cycle with component/Text or cartesianAxisSlice).
+ */
+export interface CartesianTickContentProps {
+  x: number;
+  y: number;
+  payload: {
+    coordinate: number;
+    value: unknown;
+    index: number;
+    offset?: number;
+    tickCoord?: number;
+    isShow?: boolean;
+  };
+  index: number;
+  visibleTicksCount: number;
+  className: string;
+  fill: string;
+  stroke: string;
+  textAnchor: "start" | "middle" | "end" | "inherit";
+  verticalAnchor: "start" | "middle" | "end";
+  orientation: "top" | "bottom" | "left" | "right";
+  height: number;
+  width: number;
+  padding: { top?: number; bottom?: number; left?: number; right?: number } | string;
+  name: string | undefined;
+  tickFormatter: ((value: unknown, index: number) => string) | undefined;
+  angle: number;
+}
+
+/**
  * Formats a tick value for display. Deviation: recharts homes this in
  * `cartesian/CartesianAxis`; that component is deferred, so the type lives here
  * (its natural util home) and CartesianAxis can re-export it when ported.

@@ -14,6 +14,7 @@ import type {
   AxisDomain,
   AxisInterval,
   AxisTick,
+  CartesianTickContentProps,
   DataKey,
   EvaluatedAxisDomainType,
   ScaleType,
@@ -99,7 +100,7 @@ export type TicksSettings = {
    * Ticks can be any type on a category axis; must be numbers on a number axis.
    */
   ticks: ReadonlyArray<AxisTick> | undefined;
-  tick: TickProp<unknown>;
+  tick: TickProp<CartesianTickContentProps>;
   /**
    * Controls how Recharts calculates "nice" tick values for this axis.
    * @defaultValue 'auto'
