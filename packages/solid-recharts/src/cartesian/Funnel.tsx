@@ -15,10 +15,13 @@
 // legend (recharts registers none for Funnel either), ZIndexLayer, and the
 // per-trapezoid `name` SVG attribute (blocked on the svgPropertiesAndEvents
 // camelCase/kebab allowlist TODO — `name` isn't forwarded yet).
-import { createMemo, For, merge, Show } from "solid-js";
+import { createMemo, For, merge, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
+import { useAnimationId } from "../util/useAnimationId";
+import { JavascriptAnimate } from "../animation/JavascriptAnimate";
+import type { EasingInput } from "../animation/easing";
 import { Layer } from "../container/Layer";
 import { Trapezoid } from "../shape/Trapezoid";
 import { collectCells } from "../component/Cell";
@@ -45,7 +48,7 @@ import {
   TooltipType,
   TrapezoidViewBox,
 } from "../util/types";
-import { getPercentValue } from "../util/DataUtils";
+import { getPercentValue, interpolate } from "../util/DataUtils";
 import { getValueByDataKey } from "../util/ChartUtils";
 import { ChartData } from "../state/chartDataSlice";
 import {
@@ -219,6 +222,11 @@ export interface FunnelProps<DataPointType = Record<string, unknown>, DataValueT
   reversed?: boolean;
   hide?: boolean;
   isAnimationActive?: boolean | "auto";
+  animationBegin?: number;
+  animationDuration?: number;
+  animationEasing?: EasingInput;
+  onAnimationStart?: () => void;
+  onAnimationEnd?: () => void;
   /** Custom trapezoid renderer (function form); replaces the default <Trapezoid>. */
   shape?: (item: FunnelTrapezoidItem) => JSX.Element;
   /** Custom renderer (function form) for the active (hovered) trapezoid. */
@@ -236,11 +244,47 @@ export const funnelDefaultProps = {
   stroke: "#fff",
   hide: false,
   isAnimationActive: "auto",
+  animationBegin: 400,
+  animationDuration: 1500,
+  animationEasing: "ease",
   lastShapeType: "triangle",
   legendType: "rect",
   nameKey: "name",
   reversed: false,
 } as const satisfies Partial<FunnelProps>;
+
+// Interpolate each trapezoid's geometry from the previous frame (or, on first mount,
+// from a collapsed center point) to its final position. Mirrors recharts' Funnel anim.
+function toAnimatedTrapezoids(
+  trapezoids: ReadonlyArray<FunnelTrapezoidItem>,
+  prev: ReadonlyArray<FunnelTrapezoidItem> | null,
+  t: number,
+): ReadonlyArray<FunnelTrapezoidItem> {
+  if (t === 1) {
+    return trapezoids;
+  }
+  return trapezoids.map((entry, index): FunnelTrapezoidItem => {
+    const prevEntry = prev?.[index];
+    if (prevEntry) {
+      return {
+        ...entry,
+        x: interpolate(prevEntry.x, entry.x, t),
+        y: interpolate(prevEntry.y, entry.y, t),
+        upperWidth: interpolate(prevEntry.upperWidth, entry.upperWidth, t),
+        lowerWidth: interpolate(prevEntry.lowerWidth, entry.lowerWidth, t),
+        height: interpolate(prevEntry.height, entry.height, t),
+      };
+    }
+    return {
+      ...entry,
+      x: interpolate(entry.x + entry.upperWidth / 2, entry.x, t),
+      y: interpolate(entry.y + entry.height / 2, entry.y, t),
+      upperWidth: interpolate(0, entry.upperWidth, t),
+      lowerWidth: interpolate(0, entry.lowerWidth, t),
+      height: interpolate(0, entry.height, t),
+    };
+  });
+}
 
 export function Funnel<DataPointType = Record<string, unknown>, DataValueType = unknown>(
   props: FunnelProps<DataPointType, DataValueType>,
@@ -322,6 +366,9 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
   const shape = merged.shape;
   const activeShape = merged.activeShape;
 
+  const animationId = useAnimationId(() => trapezoids(), "recharts-funnel-");
+  let prevTrapezoids: ReadonlyArray<FunnelTrapezoidItem> | null = null;
+
   const layerClass = (): string =>
     ["recharts-trapezoids", merged.class].filter((c): c is string => Boolean(c)).join(" ");
 
@@ -332,58 +379,84 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
         <Show when={!merged.hide && trapezoids()}>
           {(items) => (
             <Show when={items().length > 0}>
-              <Layer class={layerClass()}>
-                <For each={items()}>
-                  {(entry, i) => {
-                    // recharts: render `activeShape` for the hovered trapezoid, else
-                    // the user `shape`, else the default <Trapezoid>.
-                    const isActive = (): boolean =>
-                      Boolean(activeShape) && activeItemIndex() === String(i());
-                    return (
-                      <Layer
-                        class="recharts-funnel-trapezoid"
-                        onMouseEnter={onItemEnter(
-                          {
-                            tooltipPosition: entry.tooltipPosition,
-                            tooltipPayload: entry.tooltipPayload,
-                          },
-                          i(),
-                        )}
-                        onMouseLeave={onItemLeave(
-                          {
-                            tooltipPosition: entry.tooltipPosition,
-                            tooltipPayload: entry.tooltipPayload,
-                          },
-                          i(),
-                        )}
-                        onClick={onItemClick(
-                          {
-                            tooltipPosition: entry.tooltipPosition,
-                            tooltipPayload: entry.tooltipPayload,
-                          },
-                          i(),
-                        )}
-                      >
-                        {isActive() && activeShape ? (
-                          activeShape(entry)
-                        ) : shape ? (
-                          shape(entry)
-                        ) : (
-                          <Trapezoid
-                            x={entry.x}
-                            y={entry.y}
-                            upperWidth={entry.upperWidth}
-                            lowerWidth={entry.lowerWidth}
-                            height={entry.height}
-                            fill={typeof entry.fill === "string" ? entry.fill : merged.fill}
-                            stroke={typeof entry.stroke === "string" ? entry.stroke : merged.stroke}
-                          />
-                        )}
-                      </Layer>
-                    );
-                  }}
-                </For>
-              </Layer>
+              <Show when={animationId()} keyed>
+                {(animId) => (
+                  <JavascriptAnimate
+                    animationId={animId}
+                    begin={merged.animationBegin}
+                    duration={merged.animationDuration}
+                    easing={merged.animationEasing}
+                    isActive={merged.isAnimationActive}
+                    onAnimationStart={merged.onAnimationStart}
+                    onAnimationEnd={merged.onAnimationEnd}
+                  >
+                    {(t) => {
+                      const frame = toAnimatedTrapezoids(untrack(items), prevTrapezoids, t);
+                      prevTrapezoids = frame;
+                      return (
+                        <Layer class={layerClass()}>
+                          <For each={frame}>
+                            {(entry, i) => {
+                              // recharts: render `activeShape` for the hovered trapezoid, else
+                              // the user `shape`, else the default <Trapezoid>.
+                              const isActive = (): boolean =>
+                                Boolean(activeShape) && activeItemIndex() === String(i());
+                              return (
+                                <Layer
+                                  class="recharts-funnel-trapezoid"
+                                  onMouseEnter={onItemEnter(
+                                    {
+                                      tooltipPosition: entry.tooltipPosition,
+                                      tooltipPayload: entry.tooltipPayload,
+                                    },
+                                    i(),
+                                  )}
+                                  onMouseLeave={onItemLeave(
+                                    {
+                                      tooltipPosition: entry.tooltipPosition,
+                                      tooltipPayload: entry.tooltipPayload,
+                                    },
+                                    i(),
+                                  )}
+                                  onClick={onItemClick(
+                                    {
+                                      tooltipPosition: entry.tooltipPosition,
+                                      tooltipPayload: entry.tooltipPayload,
+                                    },
+                                    i(),
+                                  )}
+                                >
+                                  {isActive() && activeShape ? (
+                                    activeShape(entry)
+                                  ) : shape ? (
+                                    shape(entry)
+                                  ) : (
+                                    <Trapezoid
+                                      x={entry.x}
+                                      y={entry.y}
+                                      upperWidth={entry.upperWidth}
+                                      lowerWidth={entry.lowerWidth}
+                                      height={entry.height}
+                                      fill={
+                                        typeof entry.fill === "string" ? entry.fill : merged.fill
+                                      }
+                                      stroke={
+                                        typeof entry.stroke === "string"
+                                          ? entry.stroke
+                                          : merged.stroke
+                                      }
+                                    />
+                                  )}
+                                </Layer>
+                              );
+                            }}
+                          </For>
+                        </Layer>
+                      );
+                    }}
+                  </JavascriptAnimate>
+                )}
+              </Show>
             </Show>
           )}
         </Show>
