@@ -2,6 +2,7 @@
 // Harness deltas: dropped the `vi.mock('.../ReactUtils')` (Solid ChartUtils does not
 // import ReactUtils); `OffsetVertical & OffsetHorizontal` → the local `OffsetSides` shape
 // (ChartUtils' offset type; not exported).
+import { describe, it, expect } from "vitest";
 import { appendOffsetOfLegend } from "../../../src/util/ChartUtils";
 import { Size } from "../../../src/util/types";
 import { LegendSettings } from "../../../src/state/legendSlice";
