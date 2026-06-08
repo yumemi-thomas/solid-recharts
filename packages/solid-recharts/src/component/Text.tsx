@@ -7,7 +7,7 @@
 // `class`; React CSSProperties → csstype Properties (matches getStringSize); the
 // SVG passthrough props go through svgPropertiesAndEvents like the shape ports;
 // `React.ReactNode` children → `RenderableText`.
-import { createMemo, merge, omit } from "solid-js";
+import { createMemo, For, merge, omit, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import type { Properties as CSSProperties } from "csstype";
 import { isNullish, isNumber, isNumOrStr } from "../util/DataUtils";
@@ -405,32 +405,31 @@ export const Text = (props: Props): JSX.Element => {
     };
   });
 
-  const textElement = createMemo(() => {
-    const g = geometry();
-    if (g == null) {
-      return null;
-    }
-    return (
-      <text
-        {...svgPropertiesAndEvents(g.textProps)}
-        x={g.x}
-        y={g.y}
-        transform={g.transform}
-        class={["recharts-text", g.class]}
-        text-anchor={g.textAnchor}
-        fill={g.fill}
-      >
-        {wordsByLines().map((line, index) => {
-          const words = line.words.join(g.breakAll ? "" : " ");
-          return (
-            <tspan x={g.x} dy={index === 0 ? g.startDy : g.lineHeight}>
-              {words}
-            </tspan>
-          );
-        })}
-      </text>
-    );
-  });
-
-  return <>{textElement()}</>;
+  // Render inline under <Show> rather than returning the <text> tree from a memo:
+  // a memo that returns JSX re-creates the element subtree on every geometry change
+  // via its `{memo()}` insert. The <Show> keeps the <text> stable and updates its
+  // attributes / line <tspan>s in place.
+  return (
+    <Show when={geometry()}>
+      {(g) => (
+        <text
+          {...svgPropertiesAndEvents(g().textProps)}
+          x={g().x}
+          y={g().y}
+          transform={g().transform}
+          class={["recharts-text", g().class]}
+          text-anchor={g().textAnchor}
+          fill={g().fill}
+        >
+          <For each={wordsByLines()}>
+            {(line, index) => (
+              <tspan x={g().x} dy={index() === 0 ? g().startDy : g().lineHeight}>
+                {line.words.join(g().breakAll ? "" : " ")}
+              </tspan>
+            )}
+          </For>
+        </text>
+      )}
+    </Show>
+  );
 };

@@ -10,7 +10,7 @@
 //    provide-time; the accessor keeps the per-render entries reactive).
 //  - element `content` (React.cloneElement) DROPPED; function `content` kept.
 //  - ZIndexLayer / `fill`-passthrough deferred (Label forwards no per-label fill).
-import { createContext, createMemo, For, omit, useContext } from "solid-js";
+import { createContext, createMemo, For, omit, Show, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
@@ -135,41 +135,37 @@ export function LabelList(props: Props): JSX.Element {
     return (props.valueAccessor ?? defaultAccessor)(entry, index);
   };
 
-  const listLayer = createMemo(() => {
-    const list = entries();
-    if (list == null) {
-      return null;
-    }
-    return (
-      <Layer class="recharts-label-list">
-        <For each={list}>
-          {(entry, index) => (
-            <Label
-              {...svgPropertiesAndEvents({ ...entry })}
-              {...others}
-              id={isNullish(props.id) ? undefined : `${props.id}-${index()}`}
-              {...(props.fill != null || entry.fill != null
-                ? { fill: props.fill ?? entry.fill }
-                : {})}
-              parentViewBox={entry.parentViewBox}
-              value={valueOf(entry, index())}
-              {...(isNullish(props.position) ? {} : { position: props.position })}
-              {...(isNullish(props.offset) ? {} : { offset: props.offset })}
-              {...(isNullish(props.angle) ? {} : { angle: props.angle })}
-              {...(isNullish(props.formatter) ? {} : { formatter: props.formatter })}
-              {...(isNullish(props.content) ? {} : { content: props.content })}
-              {...(isNullish(props.textBreakAll) ? {} : { textBreakAll: props.textBreakAll })}
-              viewBox={entry.viewBox}
-              index={index()}
-              zIndex={0}
-            />
-          )}
-        </For>
-      </Layer>
-    );
-  });
-
-  return <>{listLayer()}</>;
+  return (
+    <Show when={entries()}>
+      {(list) => (
+        <Layer class="recharts-label-list">
+          <For each={list()}>
+            {(entry, index) => (
+              <Label
+                {...svgPropertiesAndEvents({ ...entry })}
+                {...others}
+                id={isNullish(props.id) ? undefined : `${props.id}-${index()}`}
+                {...(props.fill != null || entry.fill != null
+                  ? { fill: props.fill ?? entry.fill }
+                  : {})}
+                parentViewBox={entry.parentViewBox}
+                value={valueOf(entry, index())}
+                {...(isNullish(props.position) ? {} : { position: props.position })}
+                {...(isNullish(props.offset) ? {} : { offset: props.offset })}
+                {...(isNullish(props.angle) ? {} : { angle: props.angle })}
+                {...(isNullish(props.formatter) ? {} : { formatter: props.formatter })}
+                {...(isNullish(props.content) ? {} : { content: props.content })}
+                {...(isNullish(props.textBreakAll) ? {} : { textBreakAll: props.textBreakAll })}
+                viewBox={entry.viewBox}
+                index={index()}
+                zIndex={0}
+              />
+            )}
+          </For>
+        </Layer>
+      )}
+    </Show>
+  );
 }
 
 LabelList.displayName = "LabelList";
@@ -195,24 +191,25 @@ function isLabelPropsObject(
  * Renders a LabelList from the implicit `label` prop of a graphical item.
  */
 export function LabelListFromLabelProp(props: { label?: ImplicitLabelListType }): JSX.Element {
-  const implicitList = createMemo(() => {
+  // Resolve the implicit `label` prop to the LabelList props it implies (DATA, not
+  // JSX): `true` → no extra props; a render function → `content`; a props object →
+  // itself. Anything else → undefined (render nothing). The <Show> below renders it.
+  const labelListProps = createMemo<Props | undefined>(() => {
     const labelValue = props.label;
     if (!labelValue) {
-      return null;
+      return undefined;
     }
     if (labelValue === true) {
-      return <LabelList />;
+      return {};
     }
     if (isLabelContentAFunction(labelValue)) {
-      return <LabelList content={labelValue} />;
+      return { content: labelValue };
     }
-    if (typeof labelValue === "object" && labelValue !== null) {
-      if (isLabelPropsObject(labelValue)) {
-        return <LabelList {...labelValue} />;
-      }
+    if (typeof labelValue === "object" && labelValue !== null && isLabelPropsObject(labelValue)) {
+      return labelValue;
     }
-    return null;
+    return undefined;
   });
 
-  return <>{implicitList()}</>;
+  return <Show when={labelListProps()}>{(p) => <LabelList {...p()} />}</Show>;
 }

@@ -15,7 +15,7 @@
 //    Text's string props; Label forwards position + anchors + angle + class only.
 //  - context value carries an `Accessor<TrapezoidViewBox>` (Solid context is fixed
 //    at provide-time; the accessor keeps the box reactive).
-import { createContext, createMemo, merge, omit, useContext } from "solid-js";
+import { createContext, createMemo, merge, omit, Show, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { type RenderableText, Text } from "./Text";
@@ -367,91 +367,77 @@ export function Label(outerProps: Props): JSX.Element {
     };
   });
 
-  // Custom content: render-prop (invoked) or pre-created JSX template (merged via
-  // Dynamic, matching recharts cloneElement for isValidElement(content)).
+  // Custom content render-prop. Compute its args as DATA (the function + the props it
+  // receives); the <Show> below invokes it inline so this memo never returns JSX.
+  // (Element-form `content` is deferred — Solid has no cloneElement.)
   const customLabel = createMemo(() => {
     const vb = polarViewBox() ?? viewBox();
     const content = props.content;
     if (vb == null || typeof content !== "function") {
-      return null;
+      return undefined;
     }
-    return content(omit({ ...props, viewBox: vb }, "content"));
+    return { content, args: omit({ ...props, viewBox: vb }, "content") };
   });
 
-  // Memos return JSX instead of <Show when={memo()}> — reactive reads in Show's
-  // `when` are untracked and warn (STRICT_READ_UNTRACKED) in dev.
-  const textLabel = createMemo(() => {
-    const d = textRender();
-    if (d == null) {
-      return null;
-    }
-    return (
-      <ZIndexLayer zIndex={props.zIndex}>
-        <Text
-          {...d.svgProps}
-          class={d.class}
-          x={d.pos.x}
-          y={d.pos.y}
-          textAnchor={d.pos.horizontalAnchor}
-          verticalAnchor={d.pos.verticalAnchor}
-          angle={d.angle}
-          breakAll={d.breakAll}
-        >
-          {d.label}
-        </Text>
-      </ZIndexLayer>
-    );
-  });
-
-  const polarTextLabel = createMemo(() => {
-    const d = polarTextRender();
-    if (d == null) {
-      return null;
-    }
-    return (
-      <ZIndexLayer zIndex={props.zIndex}>
-        <Text
-          class={d.class}
-          x={d.attrs.x}
-          y={d.attrs.y}
-          textAnchor={d.attrs.textAnchor}
-          verticalAnchor={d.attrs.verticalAnchor}
-          angle={d.angle}
-          breakAll={d.breakAll}
-        >
-          {d.label}
-        </Text>
-      </ZIndexLayer>
-    );
-  });
-
-  const radialTextLabel = createMemo(() => {
-    const d = radialTextRender();
-    if (d == null) {
-      return null;
-    }
-    return (
-      <ZIndexLayer zIndex={props.zIndex}>
-        <text
-          {...textSvgProps()}
-          dominant-baseline="central"
-          class={["recharts-radial-bar-label", props.class]}
-        >
-          <defs>
-            <path id={radialPathId()} d={d.path} />
-          </defs>
-          <textPath href={`#${radialPathId()}`}>{d.label}</textPath>
-        </text>
-      </ZIndexLayer>
-    );
-  });
-
+  // Render the default/polar/radial text labels inline under <Show> (their render
+  // data is computed by the *Render memos above; these branches only project it to
+  // JSX). Returning JSX from a memo and feeding it into <ZIndexLayer> (a Portal)
+  // leaks ownerless render-effects on recompute — see Bar.tsx. A non-keyed <Show>
+  // keeps each subtree stable and reads the narrowed accessor inside JSX (tracked).
   return (
     <>
-      {textLabel()}
-      {polarTextLabel()}
-      {radialTextLabel()}
-      {customLabel()}
+      <Show when={textRender()}>
+        {(d) => (
+          <ZIndexLayer zIndex={props.zIndex}>
+            <Text
+              {...d().svgProps}
+              class={d().class}
+              x={d().pos.x}
+              y={d().pos.y}
+              textAnchor={d().pos.horizontalAnchor}
+              verticalAnchor={d().pos.verticalAnchor}
+              angle={d().angle}
+              breakAll={d().breakAll}
+            >
+              {d().label}
+            </Text>
+          </ZIndexLayer>
+        )}
+      </Show>
+      <Show when={polarTextRender()}>
+        {(d) => (
+          <ZIndexLayer zIndex={props.zIndex}>
+            <Text
+              class={d().class}
+              x={d().attrs.x}
+              y={d().attrs.y}
+              textAnchor={d().attrs.textAnchor}
+              verticalAnchor={d().attrs.verticalAnchor}
+              angle={d().angle}
+              breakAll={d().breakAll}
+            >
+              {d().label}
+            </Text>
+          </ZIndexLayer>
+        )}
+      </Show>
+      <Show when={radialTextRender()}>
+        {(d) => (
+          <ZIndexLayer zIndex={props.zIndex}>
+            <text
+              {...textSvgProps()}
+              dominant-baseline="central"
+              class={["recharts-radial-bar-label", props.class]}
+            >
+              <defs>
+                <path id={radialPathId()} d={d().path} />
+              </defs>
+              <textPath href={`#${radialPathId()}`}>{d().label}</textPath>
+            </text>
+          </ZIndexLayer>
+        )}
+      </Show>
+      <Show when={customLabel()}>{(c) => <>{c().content(c().args)}</>}</Show>
     </>
   );
 }

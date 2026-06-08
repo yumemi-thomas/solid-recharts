@@ -375,10 +375,15 @@ function BarBackground(props: {
   const onMouseLeave = useMouseLeaveItemDispatch(props.onMouseLeave);
   const onClick = useMouseClickItemDispatch(props.onClick, props.dataKey, props.graphicalItemId);
 
-  const backgroundLayer = createMemo(() => {
+  // Per-background-rectangle BarRectangle props (DATA, not JSX). Recomputes on data /
+  // active-index change; the `<Show>`/`<For>` below render it. Returning JSX from a
+  // memo and feeding it into <ZIndexLayer> (a Portal) leaked ownerless effects on
+  // recompute — see the Bar main-layer note. The <Show> wraps <ZIndexLayer> so the
+  // Portal subtree stays stable and only the <For> rows update.
+  const backgroundRects = createMemo<ReadonlyArray<BarRectangleProps> | undefined>(() => {
     const backgroundFromProps = props.background;
     if (!backgroundFromProps) {
-      return null;
+      return undefined;
     }
     const active = activeIndex();
     const dataKey = props.dataKey;
@@ -390,40 +395,46 @@ function BarBackground(props: {
       onTouchEnd: props.onTouchEnd,
     });
 
-    const rectangles = props.data.flatMap((entry, i) => {
+    const rects = props.data.flatMap((entry, i): BarRectangleProps[] => {
       const bg = entry.background;
       if (bg == null) {
         return [];
       }
       const { value: _value, background: _bg, tooltipPosition: _tp, ...rest } = entry;
-      const barRectangleProps: BarRectangleProps = {
-        option: backgroundFromProps,
-        isActive: String(entry.originalDataIndex) === active,
-        ...rest,
-        fill: "#eee",
-        ...bg,
-        ...(backgroundProps ?? {}),
-        ...(backgroundEventProps ?? {}),
-        onMouseEnter: onMouseEnter(entry, entry.originalDataIndex),
-        onMouseLeave: onMouseLeave(entry, entry.originalDataIndex),
-        onClick: onClick(entry, entry.originalDataIndex),
-        dataKey,
-        index: i,
-        class: "recharts-bar-background-rectangle",
-      };
-      return [<BarRectangle {...barRectangleProps} />];
+      return [
+        {
+          option: backgroundFromProps,
+          isActive: String(entry.originalDataIndex) === active,
+          ...rest,
+          fill: "#eee",
+          ...bg,
+          ...(backgroundProps ?? {}),
+          ...(backgroundEventProps ?? {}),
+          onMouseEnter: onMouseEnter(entry, entry.originalDataIndex),
+          onMouseLeave: onMouseLeave(entry, entry.originalDataIndex),
+          onClick: onClick(entry, entry.originalDataIndex),
+          dataKey,
+          index: i,
+          class: "recharts-bar-background-rectangle",
+        },
+      ];
     });
-
-    return (
-      <ZIndexLayer
-        zIndex={getZIndexFromUnknown(backgroundFromProps, DefaultZIndexes.barBackground)}
-      >
-        <Layer>{rectangles}</Layer>
-      </ZIndexLayer>
-    );
+    return rects.length > 0 ? rects : undefined;
   });
 
-  return <>{backgroundLayer()}</>;
+  return (
+    <Show when={backgroundRects()}>
+      {(rects) => (
+        <ZIndexLayer zIndex={getZIndexFromUnknown(props.background, DefaultZIndexes.barBackground)}>
+          <Layer>
+            <For each={rects()}>
+              {(barRectangleProps) => <BarRectangle {...barRectangleProps} />}
+            </For>
+          </Layer>
+        </ZIndexLayer>
+      )}
+    </Show>
+  );
 }
 
 function barEntryShapeProps(
