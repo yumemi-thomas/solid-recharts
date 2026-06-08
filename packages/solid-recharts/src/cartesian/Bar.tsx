@@ -868,6 +868,7 @@ export const Bar = (props: BarProps): JSX.Element => {
     return layout() === "vertical" ? r0.height / 2 : r0.width / 2;
   };
   const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
+  const barClipPath = createMemo(() => (needClip() ? `url(#clipPath-${id})` : undefined));
   const animationId = useAnimationId(() => rectangles(), "recharts-bar-");
   let prevRects: ReadonlyArray<BarRectangleItem> | null = null;
   const [showLabels, setShowLabels] = createSignal(true);
@@ -881,118 +882,144 @@ export const Bar = (props: BarProps): JSX.Element => {
     setShowLabels(true);
   };
 
-  const barLayer = createMemo(() => {
+  // Gate: render only in a cartesian layout AND when there are rectangles to draw.
+  // Mirrors <Line>/<Area>'s inline `<Show when={!hide && points()}>` template: the
+  // animated subtree is created ONCE under this Show and its inner reactive reads
+  // update in place.
+  //
+  // Two NO_OWNER_EFFECT leaks shaped this structure (the `<Show>` wraps `<ZIndexLayer>`,
+  // NOT the other way around):
+  //   1. The previous `barLayer = createMemo(() => <JSX>)` returned a JSX subtree from
+  //      a memo; on a data change the memo recomputed and the `{barLayer()}` insert
+  //      re-created the whole subtree during the flush queue, leaking ownerless
+  //      render-effects. A non-keyed `<Show>` keeps the subtree stable across data
+  //      changes (only inner reads update), so that leak is gone.
+  //   2. Unlike <Line>/<Area>, Bar wraps its content in <ZIndexLayer>, which renders
+  //      its children through a <Portal> (bar zIndex is non-zero). A <Portal> whose
+  //      children are a reactive `<Show>` makes the Portal's internal `insert`
+  //      re-create an ownerless render-effect when the portal target settles (e.g. a
+  //      no-data chart with a sibling chart mounting). Keeping <ZIndexLayer> OUTSIDE
+  //      the Show would put a live `<Show>` into the Portal even with no rects; nesting
+  //      it INSIDE the Show means an empty Bar mounts no Portal at all (nothing to
+  //      leak), and a populated Bar mounts a stable subtree into the Portal.
+  // (`[]` is truthy, matching the old memo which rendered an empty `<For>` for an
+  // empty rects array.)
+  const renderableRects = createMemo<ReadonlyArray<BarRectangleItem> | undefined>(() => {
     const chartLayout = layout();
     if (chartLayout !== "horizontal" && chartLayout !== "vertical") {
-      return null;
+      return undefined;
     }
-    const rects = shouldRenderBars();
-    if (!rects) {
-      return null;
-    }
-    const animId = animationId();
-    const clip = needClip() ? `url(#clipPath-${id})` : undefined;
-    const barClass = merged.class ? `recharts-bar ${merged.class}` : "recharts-bar";
-    return (
-      <Layer id={id} class={barClass}>
-        <Show when={needClip()}>
-          <defs>
-            <GraphicalItemClipPath
-              clipPathId={id}
-              xAxisId={merged.xAxisId}
-              yAxisId={merged.yAxisId}
-            />
-          </defs>
-        </Show>
-        <Layer class="recharts-bar-rectangles" {...(clip != null ? { "clip-path": clip } : {})}>
-          <BarBackground
-            background={merged.background}
-            data={rects}
-            dataKey={merged.dataKey}
-            graphicalItemId={id}
-            onClick={props.onClick}
-            onMouseEnter={props.onMouseEnter}
-            onMouseLeave={props.onMouseLeave}
-            onMouseOver={props.onMouseOver}
-            onMouseOut={props.onMouseOut}
-            onTouchMove={props.onTouchMove}
-            onTouchEnd={props.onTouchEnd}
-          />
-          <CartesianLabelListContextProvider value={labelContextEntries}>
-            <Show when={animId} keyed>
-              {(keyedAnimationId) => (
-                <JavascriptAnimate
-                  animationId={keyedAnimationId}
-                  duration={merged.animationDuration}
-                  easing={merged.animationEasing}
-                  isActive={merged.isAnimationActive}
-                  begin={merged.animationBegin}
-                  onAnimationStart={handleAnimationStart}
-                  onAnimationEnd={handleAnimationEnd}
-                >
-                  {(t) => {
-                    const frame = toAnimatedBarRectangles(rects, prevRects, t, untrack(layout));
-                    prevRects = frame;
-                    return (
-                      <Layer>
-                        <For each={frame}>
-                          {(r, i) =>
-                            hasCustomShape || (r.width !== 0 && r.height !== 0) ? (
-                              <BarRectangleLayer
-                                entry={r}
-                                displayIndex={i()}
-                                dataKey={merged.dataKey}
-                                activeBar={activeBar}
-                                fill={r.fill ?? r.cell?.fill ?? merged.fill}
-                                stroke={r.stroke ?? r.cell?.stroke ?? merged.stroke}
-                                shape={shape}
-                                isEntryActive={isEntryActive}
-                                cellClass={typeof r.class === "string" ? r.class : undefined}
-                                onMouseEnter={onItemEnter(r, r.originalDataIndex)}
-                                onMouseLeave={onItemLeave(r, r.originalDataIndex)}
-                                onClick={onItemClick(r, r.originalDataIndex)}
-                                onMouseOver={
-                                  onMouseOverHandler != null
-                                    ? (event) => onMouseOverHandler(r, r.originalDataIndex, event)
-                                    : undefined
-                                }
-                                onMouseOut={
-                                  onMouseOutHandler != null
-                                    ? (event) => onMouseOutHandler(r, r.originalDataIndex, event)
-                                    : undefined
-                                }
-                                onTouchMove={
-                                  onTouchMoveHandler != null
-                                    ? (event) => onTouchMoveHandler(r, i(), event)
-                                    : undefined
-                                }
-                                onTouchEnd={
-                                  onTouchEndHandler != null
-                                    ? (event) => onTouchEndHandler(r, i(), event)
-                                    : undefined
-                                }
-                              />
-                            ) : null
-                          }
-                        </For>
-                      </Layer>
-                    );
-                  }}
-                </JavascriptAnimate>
-              )}
-            </Show>
-            <LabelListFromLabelProp label={merged.label} />
-          </CartesianLabelListContextProvider>
-        </Layer>
-      </Layer>
-    );
+    return shouldRenderBars() || undefined;
   });
 
   return (
     <>
       <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
       <SetLegendPayload id={id} legendPayload={legendPayload()} />
-      <ZIndexLayer zIndex={merged.zIndex}>{barLayer()}</ZIndexLayer>
+      <Show when={renderableRects()}>
+        {(rects) => (
+          <ZIndexLayer zIndex={merged.zIndex}>
+            <Layer id={id} class={merged.class ? `recharts-bar ${merged.class}` : "recharts-bar"}>
+              <Show when={needClip()}>
+                <defs>
+                  <GraphicalItemClipPath
+                    clipPathId={id}
+                    xAxisId={merged.xAxisId}
+                    yAxisId={merged.yAxisId}
+                  />
+                </defs>
+              </Show>
+              <Layer class="recharts-bar-rectangles" clip-path={barClipPath()}>
+                <BarBackground
+                  background={merged.background}
+                  data={rects()}
+                  dataKey={merged.dataKey}
+                  graphicalItemId={id}
+                  onClick={props.onClick}
+                  onMouseEnter={props.onMouseEnter}
+                  onMouseLeave={props.onMouseLeave}
+                  onMouseOver={props.onMouseOver}
+                  onMouseOut={props.onMouseOut}
+                  onTouchMove={props.onTouchMove}
+                  onTouchEnd={props.onTouchEnd}
+                />
+                <CartesianLabelListContextProvider value={labelContextEntries}>
+                  <Show when={animationId()} keyed>
+                    {(keyedAnimationId) => (
+                      <JavascriptAnimate
+                        animationId={keyedAnimationId}
+                        duration={merged.animationDuration}
+                        easing={merged.animationEasing}
+                        isActive={merged.isAnimationActive}
+                        begin={merged.animationBegin}
+                        onAnimationStart={handleAnimationStart}
+                        onAnimationEnd={handleAnimationEnd}
+                      >
+                        {(t) => {
+                          const frame = toAnimatedBarRectangles(
+                            rects(),
+                            prevRects,
+                            t,
+                            untrack(layout),
+                          );
+                          prevRects = frame;
+                          return (
+                            <Layer>
+                              <For each={frame}>
+                                {(r, i) =>
+                                  hasCustomShape || (r.width !== 0 && r.height !== 0) ? (
+                                    <BarRectangleLayer
+                                      entry={r}
+                                      displayIndex={i()}
+                                      dataKey={merged.dataKey}
+                                      activeBar={activeBar}
+                                      fill={r.fill ?? r.cell?.fill ?? merged.fill}
+                                      stroke={r.stroke ?? r.cell?.stroke ?? merged.stroke}
+                                      shape={shape}
+                                      isEntryActive={isEntryActive}
+                                      cellClass={typeof r.class === "string" ? r.class : undefined}
+                                      onMouseEnter={onItemEnter(r, r.originalDataIndex)}
+                                      onMouseLeave={onItemLeave(r, r.originalDataIndex)}
+                                      onClick={onItemClick(r, r.originalDataIndex)}
+                                      onMouseOver={
+                                        onMouseOverHandler != null
+                                          ? (event) =>
+                                              onMouseOverHandler(r, r.originalDataIndex, event)
+                                          : undefined
+                                      }
+                                      onMouseOut={
+                                        onMouseOutHandler != null
+                                          ? (event) =>
+                                              onMouseOutHandler(r, r.originalDataIndex, event)
+                                          : undefined
+                                      }
+                                      onTouchMove={
+                                        onTouchMoveHandler != null
+                                          ? (event) => onTouchMoveHandler(r, i(), event)
+                                          : undefined
+                                      }
+                                      onTouchEnd={
+                                        onTouchEndHandler != null
+                                          ? (event) => onTouchEndHandler(r, i(), event)
+                                          : undefined
+                                      }
+                                    />
+                                  ) : null
+                                }
+                              </For>
+                            </Layer>
+                          );
+                        }}
+                      </JavascriptAnimate>
+                    )}
+                  </Show>
+                  <LabelListFromLabelProp label={merged.label} />
+                </CartesianLabelListContextProvider>
+              </Layer>
+            </Layer>
+          </ZIndexLayer>
+        )}
+      </Show>
       {/* Children (e.g. <ErrorBar>, <LabelList>) mount ONCE here at the stable
           top-level return — NOT inside the rectangles-dependent `barLayer` memo,
           which would re-mount them on every rect recompute (ErrorBar would then

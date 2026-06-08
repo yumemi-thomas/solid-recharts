@@ -18,23 +18,23 @@
 //     JavascriptAnimate, so there is no per-frame dot interpolation to assert.
 //   - Funnel (2 cases): cartesian/Funnel.tsx renders statically; not wrapped in
 //     JavascriptAnimate, so trapezoids do not grow/shrink across a data change.
-//   - Bar grows + Bar shrinks (2 cases): Bar wires onAnimationEnd → setShowLabels,
-//     which fires a signal write when the SECOND (post-data-swap) animation is
-//     completed from the mock manager in test scope → NO_OWNER_EFFECT diagnostic.
-//     (Bar's single-animation enter — Bar.animation.spec — is unaffected and green.)
-//   - Scatter / Pie / RadialBar SHRINKS (3 cases): on a data-length DECREASE the
-//     reference asserts SURVIVING items re-grow from zero (size/angle ≈ 0 at the
-//     first frame). The Solid impl's per-element `prev*` interpolation keeps the
-//     previous (full) geometry for index-matched survivors, so survivors start at
-//     their prior size/angle rather than zero — the geometry diverges from recharts.
-//     The GROWS counterparts (which only assert the newly-APPENDED item, prev=null →
-//     grows from zero) match recharts exactly and ARE ported below.
+//   - Scatter / Pie / RadialBar / Bar SHRINKS (4 cases): on a data-length DECREASE
+//     the reference asserts SURVIVING items re-grow from zero (size/angle/height ≈ 0
+//     at the first frame). The Solid impl's per-element `prev*` interpolation keeps
+//     the previous (full) geometry for index-matched survivors, so survivors start at
+//     their prior size/angle/height rather than zero — the geometry diverges from
+//     recharts. The GROWS counterparts (which only assert the newly-APPENDED item,
+//     prev=null → grows from zero) match recharts exactly and ARE ported below
+//     (including Bar grows — the prior NO_OWNER_EFFECT on a Bar re-animation is fixed;
+//     see Bar.tsx, the ZIndexLayer-inside-Show change).
 import { beforeEach, describe, expect, it } from "vitest";
 import { createSignal, flush, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   Line,
   LineChart,
   Pie,
@@ -68,6 +68,19 @@ type PolarData = ReadonlyArray<(typeof pageDataWithFillColor)[number]>;
 
 type ScatterCaptureProps = { cx?: number; cy?: number; size?: number };
 type SectorCaptureProps = { startAngle?: number; endAngle?: number };
+type BarCaptureProps = { x?: number; y?: number; width?: number; height?: number };
+
+function CaptureBar(props: BarCaptureProps): JSX.Element {
+  return (
+    <path
+      class="capture-bar"
+      data-x={props.x}
+      data-y={props.y}
+      data-width={props.width}
+      data-height={props.height}
+    />
+  );
+}
 
 function CaptureScatter(props: ScatterCaptureProps): JSX.Element {
   return (
@@ -131,6 +144,17 @@ function getCapturedScatterPoints(
       size: parseNumber(point.getAttribute("data-size"), "data-size"),
     }),
   );
+}
+
+function getCapturedBars(
+  container: Element,
+): ReadonlyArray<{ x: number; y: number; width: number; height: number }> {
+  return Array.from(container.querySelectorAll<SVGPathElement>(".capture-bar")).map((bar) => ({
+    x: parseNumber(bar.getAttribute("data-x"), "data-x"),
+    y: parseNumber(bar.getAttribute("data-y"), "data-y"),
+    width: parseNumber(bar.getAttribute("data-width"), "data-width"),
+    height: parseNumber(bar.getAttribute("data-height"), "data-height"),
+  }));
 }
 
 function getCapturedSectors(
@@ -355,6 +379,34 @@ describe("legacy animation behavior when data length changes", () => {
     expect(midPoint.cx).toBeCloseTo(finalPoint.cx, 4);
     expect(midPoint.cy).toBeCloseTo(finalPoint.cy, 4);
     expect(midPoint.size).toBeCloseTo(finalPoint.size / 2, 4);
+  });
+
+  it("Bar grows newly appended items from zero size", async () => {
+    const r = renderLengthChangeChart(smallData, (data) => (
+      <BarChart width={100} height={100} data={data()}>
+        <Bar dataKey="uv" shape={CaptureBar} {...linearAnimationProps} />
+      </BarChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(largeData);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midBars = getCapturedBars(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalBars = getCapturedBars(r.container);
+
+    expect(midBars).toHaveLength(3);
+    expect(finalBars).toHaveLength(3);
+    const midBar = midBars[2];
+    const finalBar = finalBars[2];
+    assertNotNull(midBar);
+    assertNotNull(finalBar);
+
+    expect(midBar.x).toBeCloseTo(finalBar.x, 4);
+    expect(midBar.width).toBeCloseTo(finalBar.width, 4);
+    expect(midBar.height).toBeCloseTo(finalBar.height / 2, 4);
   });
 
   it("Pie grows newly appended sectors from zero angle span", async () => {
