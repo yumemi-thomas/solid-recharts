@@ -14,11 +14,13 @@ import { useOffsetInternal } from "../context/chartLayoutContext";
 import { selectTicksOfAxis } from "../state/selectors/axisSelectors";
 import { AxisId } from "../state/cartesianAxisSlice";
 import { isPositiveNumber } from "../util/isWellBehavedNumber";
+import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 
 export interface CartesianGridProps {
   horizontal?: boolean;
   vertical?: boolean;
   stroke?: string;
+  strokeOpacity?: number | string;
   strokeDasharray?: string | number;
   horizontalPoints?: ReadonlyArray<number>;
   verticalPoints?: ReadonlyArray<number>;
@@ -77,10 +79,14 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                   stroke={merged.stroke}
                   stroke-dasharray={dash()}
                   fill="none"
-                  x={geom().x}
-                  y={geom().y}
-                  width={geom().width}
-                  height={geom().height}
+                  // recharts emits the grid box x/y/width/height on each line (non-line
+                  // SVG attrs) — spread via the canonical helper to keep parity + types.
+                  {...svgPropertiesNoEvents({
+                    x: geom().x,
+                    y: geom().y,
+                    width: geom().width,
+                    height: geom().height,
+                  })}
                   x1={geom().x}
                   y1={yPoint}
                   x2={geom().x + geom().width}
@@ -98,10 +104,12 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                   stroke={merged.stroke}
                   stroke-dasharray={dash()}
                   fill="none"
-                  x={geom().x}
-                  y={geom().y}
-                  width={geom().width}
-                  height={geom().height}
+                  {...svgPropertiesNoEvents({
+                    x: geom().x,
+                    y: geom().y,
+                    width: geom().width,
+                    height: geom().height,
+                  })}
                   x1={xPoint}
                   y1={geom().y}
                   x2={xPoint}
