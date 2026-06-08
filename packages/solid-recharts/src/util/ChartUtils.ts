@@ -452,7 +452,7 @@ export function getTooltipEntry({
     ...tooltipEntrySettings,
     dataKey,
     payload,
-    value,
+    value: value ?? undefined,
     name,
   };
 }

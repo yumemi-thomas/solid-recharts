@@ -139,6 +139,8 @@ export interface BarRectangleItem {
 export type BarShapeProps = BarRectangleItem & {
   isActive: boolean;
   index: number;
+  /** Fired when the bar's CSS enter/exit transition ends (set during animation). */
+  onTransitionEnd?: () => void;
 };
 
 type BarPointerEvent = MouseEvent | TouchEvent;
