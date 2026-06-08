@@ -68,6 +68,8 @@ export interface YAxisProps<DataPointType = unknown, DataValueType = unknown> {
   allowDuplicatedCategory?: boolean;
   name?: string;
   unit?: string;
+  /** Axis line / tick color (forwarded to CartesianAxis). */
+  stroke?: string;
   niceTicks?: NiceTicksAlgorithm;
   /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
   label?: ImplicitLabelType;
@@ -216,6 +218,7 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
             label={props.label}
             tick={tick()}
             name={props.name}
+            stroke={props.stroke}
             angle={props.angle}
             padding={props.padding}
           >

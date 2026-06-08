@@ -909,3 +909,206 @@ describe("Tooltip integration", () => {
     });
   });
 });
+
+describe("ScatterChart with multiple Y axes", () => {
+  it("should render points", () => {
+    const data01 = [
+      { x: 100, y: 200, z: 200 },
+      { x: 120, y: 100, z: 260 },
+      { x: 170, y: 300, z: 400 },
+      { x: 140, y: 250, z: 280 },
+      { x: 150, y: 400, z: 500 },
+      { x: 110, y: 280, z: 200 },
+    ];
+    const data02 = [
+      { x: 300, y: 300, z: 200 },
+      { x: 400, y: 500, z: 260 },
+      { x: 200, y: 700, z: 400 },
+      { x: 340, y: 350, z: 280 },
+      { x: 560, y: 500, z: 500 },
+      { x: 230, y: 780, z: 200 },
+      { x: 500, y: 400, z: 200 },
+      { x: 300, y: 500, z: 260 },
+      { x: 240, y: 300, z: 400 },
+      { x: 320, y: 550, z: 280 },
+      { x: 500, y: 400, z: 500 },
+      { x: 420, y: 280, z: 200 },
+    ];
+
+    const { container } = render(() => (
+      <ScatterChart
+        width={800}
+        height={400}
+        margin={{
+          top: 20,
+          right: 20,
+          bottom: 20,
+          left: 20,
+        }}
+      >
+        <CartesianGrid yAxisId="left" />
+        <XAxis type="number" dataKey="x" name="stature" unit="cm" />
+        <YAxis yAxisId="left" type="number" dataKey="y" name="weight" unit="kg" stroke="#8884d8" />
+        <YAxis
+          yAxisId="right"
+          type="number"
+          dataKey="y"
+          name="weight"
+          unit="kg"
+          orientation="right"
+          stroke="#82ca9d"
+        />
+        <Scatter yAxisId="left" name="A school" data={data01} fill="#8884d8" />
+        <Scatter yAxisId="right" name="A school" data={data02} fill="#82ca9d" />
+        <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+      </ScatterChart>
+    ));
+
+    expectScatterPoints(container, [
+      {
+        cx: "186.66666666666669",
+        cy: "185",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(186.66666666666669, 185)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "208",
+        cy: "267.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(208, 267.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "261.3333333333333",
+        cy: "102.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(261.3333333333333, 102.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "229.33333333333331",
+        cy: "143.75",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(229.33333333333331, 143.75)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "240",
+        cy: "20",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(240, 20)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "197.33333333333331",
+        cy: "119.00000000000001",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(197.33333333333331, 119.00000000000001)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "400",
+        cy: "226.25",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(400, 226.25)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "506.6666666666667",
+        cy: "143.75",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(506.6666666666667, 143.75)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "293.33333333333337",
+        cy: "61.25",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(293.33333333333337, 61.25)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "442.6666666666667",
+        cy: "205.625",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(442.6666666666667, 205.625)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "677.3333333333334",
+        cy: "143.75",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(677.3333333333334, 143.75)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "325.3333333333333",
+        cy: "28.250000000000007",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(325.3333333333333, 28.250000000000007)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "613.3333333333334",
+        cy: "185",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(613.3333333333334, 185)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "400",
+        cy: "143.75",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(400, 143.75)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "336",
+        cy: "226.25",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(336, 226.25)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "421.3333333333333",
+        cy: "123.125",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(421.3333333333333, 123.125)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "613.3333333333334",
+        cy: "185",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(613.3333333333334, 185)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "528",
+        cy: "234.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(528, 234.5)",
+        width: "9.0270333367641",
+      },
+    ]);
+  });
+});

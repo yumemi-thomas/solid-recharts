@@ -189,6 +189,10 @@ const AxisLine = (props: {
 export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
   const merged = merge(cartesianAxisDefaults, props);
 
+  // merge() keeps an explicit `stroke={undefined}` (e.g. forwarded from a
+  // strokeless <YAxis/>) as undefined; resolve the default at use sites.
+  const strokeColor = (): string => merged.stroke ?? cartesianAxisDefaults.stroke;
+
   const textAnchor = (): TextAnchor => getTickTextAnchor(merged.orientation, merged.mirror);
   const verticalAnchor = (): TextVerticalAnchor =>
     getTickVerticalAnchor(merged.orientation, merged.mirror);
@@ -260,7 +264,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
       index: item.index,
       visibleTicksCount: visibleTicks().length,
       className: `recharts-${merged.axisType} ${merged.axisType} recharts-cartesian-axis-tick-value`,
-      fill: merged.stroke,
+      fill: strokeColor(),
       stroke: "none",
       textAnchor: textAnchor(),
       verticalAnchor: verticalAnchor(),
@@ -286,7 +290,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
             height={merged.height}
             orientation={merged.orientation}
             mirror={merged.mirror}
-            stroke={merged.stroke}
+            stroke={strokeColor()}
           />
         </Show>
         <g class={`recharts-cartesian-axis-ticks recharts-${merged.axisType}-ticks`}>
@@ -300,7 +304,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                     y1={item.line.y1}
                     x2={item.line.x2}
                     y2={item.line.y2}
-                    stroke={merged.stroke}
+                    stroke={strokeColor()}
                     fill="none"
                   />
                 </Show>
@@ -317,7 +321,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                       text-anchor={textAnchor()}
                       verticalAnchor={verticalAnchor()}
                       stroke="none"
-                      fill={merged.stroke}
+                      fill={strokeColor()}
                     >
                       {labelOf(item.entry, item.index)}
                     </Text>
