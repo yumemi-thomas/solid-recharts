@@ -7,11 +7,16 @@
 // part of the shared ported fixtures/helpers and this spec may only edit itself.
 //
 // The recharts "calls mouse handler events" / "calls touch handler events" cases
-// are NOT ported: the ported RadialBar does not forward user-supplied
-// onMouseEnter/onMouseLeave/onClick/onTouchMove/onTouchEnd props — it only
-// dispatches tooltip-item events to the store (handler arg is undefined), and the
-// sector has no touch wiring. Porting them would require src edits.
+// ARE ported: the ported RadialBar forwards user-supplied
+// onMouseEnter/onMouseLeave/onClick/onTouchMove/onTouchEnd to each sector's
+// wrapping <Layer> g. mouseenter does NOT bubble, so (per the repo pattern) the
+// ported cases fireEvent on that wrapping g (the parent of the sector path),
+// not on the inner path; the handler-arg assertions are unchanged except for the
+// extra `clockWise: false` field the Solid sector shape carries (see the selector
+// cases above).
 import { createEffect, createSignal, flush, Show } from "solid-js";
+import type { Mock } from "vitest";
+import type { RadialBarDataItem } from "../../../src/polar/RadialBar";
 import { describe, expect, it, vi } from "vitest";
 import {
   PolarAngleAxis,
@@ -20,7 +25,7 @@ import {
   RadialBar,
   RadialBarChart,
 } from "../../../src";
-import { render } from "../../helper/render";
+import { fireEvent, render } from "../../helper/render";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectPolarItemsSettings } from "../../../src/state/selectors/polarSelectors";
 import { PageData } from "../../_data";
@@ -1030,6 +1035,129 @@ describe("<RadialBar />", () => {
     flush();
 
     expectRadialBars(container, []);
+  });
+
+  it("calls mouse handler events", () => {
+    const onMouseEnter: Mock<(data: RadialBarDataItem, index: number, e: MouseEvent) => void> =
+      vi.fn();
+    const onMouseLeave: Mock<(data: RadialBarDataItem, index: number, e: MouseEvent) => void> =
+      vi.fn();
+    const onClick: Mock<(data: RadialBarDataItem, index: number, e: MouseEvent) => void> = vi.fn();
+
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar
+          isAnimationActive={false}
+          dataKey="amt"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          onClick={onClick}
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    // Handlers sit on the sector path itself (matching recharts), so fire on
+    // `.recharts-sector` — the same element the reference targets.
+    const sector = container.querySelectorAll(".recharts-sector")[0];
+    assertNotNull(sector);
+
+    const expectedData = {
+      name: "Page A",
+      uv: 400,
+      pv: 2400,
+      amt: 2400,
+      background: {
+        cx: 250,
+        cy: 250,
+        innerRadius: 3.266666666666666,
+        outerRadius: 29.266666666666666,
+        startAngle: 0,
+        endAngle: 360,
+      },
+      clockWise: false,
+      payload: {
+        name: "Page A",
+        uv: 400,
+        pv: 2400,
+        amt: 2400,
+      },
+      value: 2400,
+      cx: 250,
+      cy: 250,
+      innerRadius: 3.266666666666666,
+      outerRadius: 29.266666666666666,
+      startAngle: 0,
+      endAngle: 360,
+    };
+
+    fireEvent.mouseEnter(sector);
+    expect(onMouseEnter).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(onMouseEnter, expectedData, 0, expect.any(Object));
+
+    fireEvent.mouseLeave(sector);
+    expect(onMouseLeave).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(onMouseLeave, expectedData, 0, expect.any(Object));
+
+    fireEvent.click(sector);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(onClick, expectedData, 0, expect.any(Object));
+  });
+
+  it("calls touch handler events", () => {
+    const onTouchMove = vi.fn();
+    const onTouchEnd = vi.fn();
+
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar
+          isAnimationActive={false}
+          dataKey="amt"
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const sector = container.querySelectorAll(".recharts-sector")[0];
+    assertNotNull(sector);
+
+    fireEvent.touchMove(sector, { touches: [{ clientX: 200, clientY: 200 }] });
+    expect(onTouchMove).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(
+      onTouchMove,
+      {
+        name: "Page A",
+        uv: 400,
+        pv: 2400,
+        amt: 2400,
+        background: {
+          cx: 250,
+          cy: 250,
+          innerRadius: 3.266666666666666,
+          outerRadius: 29.266666666666666,
+          startAngle: 0,
+          endAngle: 360,
+        },
+        clockWise: false,
+        payload: {
+          name: "Page A",
+          uv: 400,
+          pv: 2400,
+          amt: 2400,
+        },
+        value: 2400,
+        cx: 250,
+        cy: 250,
+        innerRadius: 3.266666666666666,
+        outerRadius: 29.266666666666666,
+        startAngle: 0,
+        endAngle: 360,
+      },
+      0,
+      expect.any(Object),
+    );
   });
 
   describe("state integration", () => {

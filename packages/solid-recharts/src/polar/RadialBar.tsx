@@ -100,6 +100,12 @@ export interface RadialBarProps<DataPointType = Record<string, unknown>, DataVal
   animationEasing?: EasingInput;
   id?: string;
   class?: string;
+  /** User pointer handlers, forwarded to each sector's wrapping <Layer>. */
+  onMouseEnter?: (data: RadialBarDataItem, index: number, event: MouseEvent) => void;
+  onMouseLeave?: (data: RadialBarDataItem, index: number, event: MouseEvent) => void;
+  onClick?: (data: RadialBarDataItem, index: number, event: MouseEvent) => void;
+  onTouchMove?: (data: RadialBarDataItem, index: number, event: TouchEvent) => void;
+  onTouchEnd?: (data: RadialBarDataItem, index: number, event: TouchEvent) => void;
   /** <Cell> children supplying per-sector fill/stroke/class overrides. */
   children?: JSX.Element;
 }
@@ -379,9 +385,37 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
   const animationId = useAnimationId(() => sectors(), "recharts-radialbar-");
   let prevSectors: ReadonlyArray<RadialBarDataItem> | null = null;
 
-  const onItemEnter = useMouseEnterItemDispatch(undefined, merged.dataKey, id);
-  const onItemLeave = useMouseLeaveItemDispatch(undefined);
-  const onItemClick = useMouseClickItemDispatch(undefined, merged.dataKey, id);
+  // User pointer handlers are forwarded to each sector's wrapping <Layer>: the
+  // mouse handlers wrap into the tooltip-item dispatch (called props-first), and
+  // the touch handlers are plain per-sector callbacks. mouseenter does NOT bubble,
+  // so the handler must sit on the same element the pointer enters — here the g.
+  const onItemEnter = useMouseEnterItemDispatch(
+    (data: RadialBarDataItem, index: number, event: MouseEvent) =>
+      props.onMouseEnter?.(data, index, event),
+    merged.dataKey,
+    id,
+  );
+  const onItemLeave = useMouseLeaveItemDispatch(
+    (data: RadialBarDataItem, index: number, event: MouseEvent) =>
+      props.onMouseLeave?.(data, index, event),
+  );
+  const onItemClick = useMouseClickItemDispatch(
+    (data: RadialBarDataItem, index: number, event: MouseEvent) =>
+      props.onClick?.(data, index, event),
+    merged.dataKey,
+    id,
+  );
+
+  const onItemTouchMove =
+    (entry: RadialBarDataItem, index: number) =>
+    (event: TouchEvent): void => {
+      props.onTouchMove?.(entry, index, event);
+    };
+  const onItemTouchEnd =
+    (entry: RadialBarDataItem, index: number) =>
+    (event: TouchEvent): void => {
+      props.onTouchEnd?.(entry, index, event);
+    };
 
   return (
     <>
@@ -420,6 +454,8 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
                               onMouseEnter={onItemEnter(entry, i())}
                               onMouseLeave={onItemLeave(entry, i())}
                               onClick={onItemClick(entry, i())}
+                              onTouchMove={onItemTouchMove(entry, i())}
+                              onTouchEnd={onItemTouchEnd(entry, i())}
                             />
                           )}
                         </For>
