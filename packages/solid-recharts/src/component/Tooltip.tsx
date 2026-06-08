@@ -156,12 +156,17 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
   const defaultIndexAsString = (): TooltipIndex | undefined =>
     typeof merged.defaultIndex === "number" ? String(merged.defaultIndex) : merged.defaultIndex;
 
+  // merge() keeps an explicit `trigger={undefined}` as undefined (unlike React's
+  // resolveDefaultProps, which would apply the default). The interaction selectors
+  // gate on `trigger === "hover"`, so resolve the default explicitly.
+  const resolvedTrigger = (): TooltipTrigger => merged.trigger ?? defaultTooltipProps.trigger;
+
   // Push the Tooltip's settings into the store so the interaction selectors can
   // read shared/trigger/axisId/active/defaultIndex.
   createEffect(
     () => ({
       shared: merged.shared,
-      trigger: merged.trigger,
+      trigger: resolvedTrigger(),
       axisId: merged.axisId,
       active: merged.active,
       defaultIndex: defaultIndexAsString(),
@@ -173,16 +178,16 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
 
   const tooltipEventType = useAppSelector((state) => selectTooltipEventType(state, merged.shared));
   const activeState = useAppSelector((state) =>
-    selectIsTooltipActive(state, tooltipEventType(), merged.trigger, defaultIndexAsString()),
+    selectIsTooltipActive(state, tooltipEventType(), resolvedTrigger(), defaultIndexAsString()),
   );
   const payloadFromState = useAppSelector((state) =>
-    selectTooltipPayload(state, tooltipEventType(), merged.trigger, defaultIndexAsString()),
+    selectTooltipPayload(state, tooltipEventType(), resolvedTrigger(), defaultIndexAsString()),
   );
   const labelFromState = useAppSelector((state) =>
-    selectActiveLabel(state, tooltipEventType(), merged.trigger, defaultIndexAsString()),
+    selectActiveLabel(state, tooltipEventType(), resolvedTrigger(), defaultIndexAsString()),
   );
   const coordinate = useAppSelector((state) =>
-    selectActiveCoordinate(state, tooltipEventType(), merged.trigger, defaultIndexAsString()),
+    selectActiveCoordinate(state, tooltipEventType(), resolvedTrigger(), defaultIndexAsString()),
   );
 
   const finalIsActive = (): boolean => merged.active ?? activeState()?.isActive ?? false;
