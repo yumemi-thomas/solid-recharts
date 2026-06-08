@@ -1,10 +1,11 @@
 // Ported from recharts 3.8.1 src/cartesian/Scatter.tsx (commit 7a23854).
 //
 // MINIMAL PORT — a point cloud: one <Symbols> per data point at (cx, cy), sized
-// from the (optional) Z axis. Deferred (documented): ScatterLine, activeShape /
-// element-form shape, ErrorBar, labels, ZIndexLayer, clip. (Animation, Cells —
-// per-point fill/stroke/class via <Cell> children — and the function-form custom
-// `shape` render prop are wired.) Solid deviations:
+// from the (optional) Z axis. Deferred (documented): activeShape / element-form
+// shape, ZIndexLayer, and mirroring into the Brush panorama. (Animation, Cells —
+// per-point fill/stroke/class via <Cell> children — the function-form custom
+// `shape` render prop, ErrorBar, labels, clip, and ScatterLine (the connecting
+// joint/fitting line) are wired.) Solid deviations:
 // resolveDefaultProps→merge; effect-dispatch registration → createEffect/onCleanup;
 // the `@ts-expect-error`-laden value plumbing is replaced with typed coercion.
 import { createEffect, createMemo, For, merge, onCleanup, Show, untrack } from "solid-js";
