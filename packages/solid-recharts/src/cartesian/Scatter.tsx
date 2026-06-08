@@ -53,6 +53,7 @@ import {
   AnimationDuration,
   Coordinate,
   DataKey,
+  ActiveShape,
   LegendType,
   NullableCoordinate,
   SymbolType,
@@ -255,6 +256,8 @@ export interface ScatterProps {
    * element form is deferred, see header.)
    */
   shape?: SymbolType | ((item: ScatterPointItem) => JSX.Element);
+  /** Highlighted shape for the active point. Accepted for API parity; rendering is deferred. */
+  activeShape?: ActiveShape<ScatterPointItem, SVGElement>;
   legendType?: LegendType;
   tooltipType?: TooltipType;
   hide?: boolean;
