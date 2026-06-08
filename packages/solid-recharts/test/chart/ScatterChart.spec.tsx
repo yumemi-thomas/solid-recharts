@@ -21,6 +21,11 @@ import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { selectTooltipPayload } from "../../src/state/selectors/tooltipSelectors";
+import {
+  selectNumericalDomain,
+  selectZAxisWithScale,
+} from "../../src/state/selectors/axisSelectors";
+import { expectScale } from "../helper/expectScale";
 import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
 import { useClipPathId } from "../../src/container/ClipPathProvider";
 import {
@@ -237,6 +242,158 @@ describe("ScatterChart of three dimension data", () => {
     fireEvent.mouseEnter(symbol);
 
     expect(onMouseEnter).toHaveBeenCalled();
+  });
+});
+
+describe("ScatterChart with joint line", () => {
+  const data01 = [
+    { x: 10, y: 30, z: 120 },
+    { x: 30, y: 200, z: 190 },
+    { x: 45, y: 100, z: 32 },
+    { x: 50, y: 400, z: 67 },
+    { x: 70, y: 150, z: 109 },
+    { x: 100, y: 250, z: 120 },
+  ];
+  const data02 = [
+    { x: 30, y: 20, z: 190 },
+    { x: 50, y: 180, z: 32 },
+    { x: 75, y: 240, z: 67 },
+    { x: 100, y: 100, z: 109 },
+    { x: 120, y: 190, z: 120 },
+  ];
+
+  const renderTestCase = createSelectorTestCase((props) => (
+    <ScatterChart width={600} height={400}>
+      <CartesianGrid />
+      <XAxis type="number" dataKey="x" name="stature" unit="cm" />
+      <YAxis type="number" dataKey="y" name="weight" unit="kg" />
+      <ZAxis type="number" dataKey="z" range={[100, 200]} />
+      <Legend />
+      <Scatter name="A school" data={data01} fill="#8884d8" line shape="cross" />
+      <Scatter name="B school" data={data02} fill="#82ca9d" line shape="diamond" />
+      <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+      {props.children}
+    </ScatterChart>
+  ));
+
+  it("should select ZAxis domain", () => {
+    const { spy } = renderTestCase((state) => selectNumericalDomain(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [0, 190]);
+  });
+
+  it("should select zAxis axis settings", () => {
+    const { spy } = renderTestCase((state) => selectZAxisWithScale(state, "zAxis", 0, false));
+    const settings = spy.mock.lastCall?.[0];
+    assertNotNull(settings);
+    // The port has no `toBeRechartsScale` matcher; assert the scale separately.
+    expect(settings).toMatchObject({
+      domain: undefined,
+      allowDataOverflow: false,
+      allowDuplicatedCategory: false,
+      dataKey: "z",
+      id: 0,
+      includeHidden: false,
+      name: undefined,
+      range: [100, 200],
+      reversed: false,
+      type: "number",
+      unit: undefined,
+    });
+    expectScale(settings.scale, { domain: [0, 190], range: [100, 200] });
+  });
+
+  it("should render scatter points", () => {
+    const { container } = renderTestCase();
+    expectScatterPoints(container, [
+      {
+        cx: "109.16666666666666",
+        cy: "338",
+        d: "M0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0Z",
+        height: "14.413156615213909",
+        transform: "translate(109.16666666666666, 338)",
+        width: "14.413156615213909",
+      },
+      {
+        cx: "197.5",
+        cy: "185",
+        d: "M0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0Z",
+        height: "15.957691216057308",
+        transform: "translate(197.5, 185)",
+        width: "15.957691216057308",
+      },
+      {
+        cx: "263.75",
+        cy: "275",
+        d: "M0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0Z",
+        height: "12.197048368812888",
+        transform: "translate(263.75, 275)",
+        width: "12.197048368812888",
+      },
+      {
+        cx: "285.83333333333337",
+        cy: "5",
+        d: "M0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0Z",
+        height: "13.12335329012121",
+        transform: "translate(285.83333333333337, 5)",
+        width: "13.12335329012121",
+      },
+      {
+        cx: "374.1666666666667",
+        cy: "230",
+        d: "M0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0Z",
+        height: "14.155129698337069",
+        transform: "translate(374.1666666666667, 230)",
+        width: "14.155129698337069",
+      },
+      {
+        cx: "506.6666666666667",
+        cy: "140",
+        d: "M0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0L0,0Z",
+        height: "14.413156615213909",
+        transform: "translate(506.6666666666667, 140)",
+        width: "14.413156615213909",
+      },
+      {
+        cx: "197.5",
+        cy: "347",
+        d: "M0,0L0,0L0,0L0,0Z",
+        height: "15.957691216057308",
+        transform: "translate(197.5, 347)",
+        width: "15.957691216057308",
+      },
+      {
+        cx: "285.83333333333337",
+        cy: "203.00000000000003",
+        d: "M0,0L0,0L0,0L0,0Z",
+        height: "12.197048368812888",
+        transform: "translate(285.83333333333337, 203.00000000000003)",
+        width: "12.197048368812888",
+      },
+      {
+        cx: "396.25",
+        cy: "149",
+        d: "M0,0L0,0L0,0L0,0Z",
+        height: "13.12335329012121",
+        transform: "translate(396.25, 149)",
+        width: "13.12335329012121",
+      },
+      {
+        cx: "506.6666666666667",
+        cy: "275",
+        d: "M0,0L0,0L0,0L0,0Z",
+        height: "14.155129698337069",
+        transform: "translate(506.6666666666667, 275)",
+        width: "14.155129698337069",
+      },
+      {
+        cx: "595",
+        cy: "194",
+        d: "M0,0L0,0L0,0L0,0Z",
+        height: "14.413156615213909",
+        transform: "translate(595, 194)",
+        width: "14.413156615213909",
+      },
+    ]);
   });
 });
 

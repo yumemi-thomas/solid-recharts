@@ -46,8 +46,10 @@ export function ZAxis<DataPointType = unknown, DataValueType = unknown>(
       range: merged.range,
       domain: merged.domain,
       scale: merged.scale,
-      name: merged.name ?? implicitZAxis.name,
-      unit: merged.unit ?? implicitZAxis.unit,
+      // recharts registers the raw prop name/unit (undefined when unset); the
+      // implicit "" is only the fallback when NO ZAxis exists (selectZAxisSettings).
+      name: merged.name,
+      unit: merged.unit,
       allowDataOverflow: implicitZAxis.allowDataOverflow,
       allowDuplicatedCategory: implicitZAxis.allowDuplicatedCategory,
       includeHidden: implicitZAxis.includeHidden,
