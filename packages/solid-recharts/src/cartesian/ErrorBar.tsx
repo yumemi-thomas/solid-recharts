@@ -5,11 +5,16 @@
 //
 // Solid deviations / DEFERRALS (documented):
 //  - resolveDefaultProps → merge; React `useXAxis/useYAxis` → selectAxisWithScale.
-//  - animation (CSSTransitionAnimate) DEFERRED — whiskers render as static <line>s.
+//  - animation: each whisker <line> is wrapped in CSSTransitionAnimate (a CSS
+//    `transform` scaleX/scaleY 0→1); isAnimationActive=false renders the final
+//    transform immediately with no transition.
 //  - ZIndexLayer DEFERRED (plain Layer). svgPropertiesNoEvents passthrough kept.
+//  - arbitrary SVG-prop passthrough to the whisker group (recharts `Props = SVGProps
+//    & ErrorBarProps`, e.g. a bare `begin` attribute) is DEFERRED.
 import { type Accessor, createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
+import { CSSTransitionAnimate } from "../animation/CSSTransitionAnimate";
 import { EasingInput, RectangleCoordinate, DataKey } from "../util/types";
 import { ReportErrorBarSettings, useErrorBarContext } from "../context/ErrorBarContext";
 import { useAppSelector } from "../state/hooks";
@@ -84,6 +89,12 @@ function useErrorBarDirection(
   };
 }
 
+/** Per-data-point whisker lines + the CSS transform-origin for the scale animation. */
+interface ErrorBarLineGroup {
+  lines: ReadonlyArray<RectangleCoordinate>;
+  transformOrigin: string;
+}
+
 function ErrorBarImpl(props: {
   dataKey: DataKey<unknown>;
   width: number;
@@ -91,8 +102,13 @@ function ErrorBarImpl(props: {
   stroke: string;
   strokeWidth: number | string;
   offset: number;
+  isAnimationActive: boolean;
+  animationBegin: number;
+  animationDuration: number;
+  animationEasing: EasingInput;
   class?: string;
 }): JSX.Element {
+  const scaleDirection = (): string => (props.direction === "x" ? "scaleX" : "scaleY");
   const ctx = useErrorBarContext();
   const isPanorama = useIsPanorama();
   // Hooks at setup (not inside the memo); the axis id is read reactively inside
@@ -113,7 +129,7 @@ function ErrorBarImpl(props: {
     offset: props.offset,
   }));
 
-  const lineGroups = createMemo<ReadonlyArray<ReadonlyArray<RectangleCoordinate>> | null>(() => {
+  const lineGroups = createMemo<ReadonlyArray<ErrorBarLineGroup> | null>(() => {
     const { data, dataPointFormatter, errorBarOffset: offset } = ctx();
     const xAxis = xAxisAcc();
     const yAxis = yAxisAcc();
@@ -125,10 +141,10 @@ function ErrorBarImpl(props: {
       return null;
     }
 
-    return data.map((entry): ReadonlyArray<RectangleCoordinate> => {
+    return data.map((entry): ErrorBarLineGroup => {
       const { x, y, value, errorVal } = dataPointFormatter(entry, props.dataKey, props.direction);
       if (!errorVal || x == null || y == null) {
-        return [];
+        return { lines: [], transformOrigin: "" };
       }
       let lowBound: number;
       let highBound: number;
@@ -136,7 +152,7 @@ function ErrorBarImpl(props: {
         const lo: unknown = errorVal[0];
         const hi: unknown = errorVal[1];
         if (typeof lo !== "number" || typeof hi !== "number") {
-          return [];
+          return { lines: [], transformOrigin: "" };
         }
         lowBound = lo;
         highBound = hi;
@@ -171,7 +187,8 @@ function ErrorBarImpl(props: {
           lines.push({ x1: xMin, y1: yMin, x2: xMax, y2: yMin });
         }
       }
-      return lines;
+      const transformOrigin = `${x + offset}px ${y + offset}px`;
+      return { lines, transformOrigin };
     });
   });
 
@@ -180,12 +197,48 @@ function ErrorBarImpl(props: {
       {(groups) => (
         <Layer class="recharts-errorBars">
           <For each={groups()}>
-            {(lines) => (
-              <Show when={lines.length > 0}>
+            {(group) => (
+              <Show when={group.lines.length > 0}>
                 {/* Raw <g> (mirrors Layer's `recharts-layer` class) so the Record
                     spread can carry the non-typed `offset` attribute. */}
                 <g class={["recharts-layer", "recharts-errorBar"]} {...groupAttrs()}>
-                  <For each={lines}>{(c) => <line x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} />}</For>
+                  <For each={group.lines}>
+                    {(c) => {
+                      const lineStyle: JSX.CSSProperties | undefined = props.isAnimationActive
+                        ? { "transform-origin": group.transformOrigin }
+                        : undefined;
+                      return (
+                        <CSSTransitionAnimate
+                          animationId={`error-bar-${props.direction}_${c.x1}-${c.x2}-${c.y1}-${c.y2}`}
+                          from={`${scaleDirection()}(0)`}
+                          to={`${scaleDirection()}(1)`}
+                          attributeName="transform"
+                          begin={props.animationBegin}
+                          easing={
+                            typeof props.animationEasing === "string"
+                              ? props.animationEasing
+                              : undefined
+                          }
+                          isActive={props.isAnimationActive}
+                          duration={props.animationDuration}
+                        >
+                          {(style) => (
+                            <line
+                              x1={c.x1}
+                              y1={c.y1}
+                              x2={c.x2}
+                              y2={c.y2}
+                              style={{
+                                ...lineStyle,
+                                transform: style.transform,
+                                transition: style.transition,
+                              }}
+                            />
+                          )}
+                        </CSSTransitionAnimate>
+                      );
+                    }}
+                  </For>
                 </g>
               </Show>
             )}
@@ -215,6 +268,10 @@ export function ErrorBar(props: ErrorBarProps): JSX.Element {
         stroke={merged.stroke}
         strokeWidth={merged["stroke-width"]}
         offset={merged.offset}
+        isAnimationActive={merged.isAnimationActive}
+        animationBegin={merged.animationBegin}
+        animationDuration={merged.animationDuration}
+        animationEasing={merged.animationEasing}
         class={merged.class}
       />
     </>

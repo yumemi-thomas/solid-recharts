@@ -17,6 +17,9 @@ import {
   XAxis,
   YAxis,
 } from "../../src";
+import { render } from "../helper/render";
+import { AnimationManagerContext } from "../../src/animation/useAnimationManager";
+import { MockProgressAnimationManager } from "../animation/MockProgressAnimationManager";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectXAxisTicks, expectYAxisTicks } from "../helper/expectAxisTicks";
@@ -54,6 +57,62 @@ const expectErrorBars = (
 
   expect(linesActual).toEqual(linesExpected);
 };
+
+// Port of the reference's assertAnimationStyles: every whisker line carries the
+// expected CSS, and `transition` is present iff animation is active.
+function assertAnimationStyles(
+  container: HTMLElement,
+  animation: boolean,
+  expectedStyles: Record<string, string>,
+): void {
+  container.querySelectorAll(".recharts-errorBar").forEach((bar) => {
+    bar.querySelectorAll("line").forEach((line) => {
+      const style = line.getAttribute("style");
+      Object.entries(expectedStyles).forEach(([key, value]) => {
+        expect(style).toContain(`${key}: ${value}`);
+      });
+      if (animation) {
+        expect(style).toContain("transition");
+      } else {
+        expect(style).not.toContain("transition");
+      }
+    });
+  });
+}
+
+// ErrorBar renders one CSSTransitionAnimate per whisker line, each keyed by a unique
+// animationId; AnimationManager.subscribe is last-wins, so each line needs its OWN
+// manager. This registry hands out a manager per id and completes them all.
+function createManagerRegistry(): {
+  get: (id: string) => MockProgressAnimationManager;
+  completeAll: () => Promise<void>;
+} {
+  const managers = new Map<string, MockProgressAnimationManager>();
+  return {
+    get: (id) => {
+      const existing = managers.get(id);
+      if (existing) {
+        return existing;
+      }
+      const created = new MockProgressAnimationManager(id);
+      managers.set(id, created);
+      return created;
+    },
+    completeAll: async () => {
+      // Some consumers in the tree (e.g. a Bar with isAnimationActive=false) get a
+      // manager but never enqueue an animation; ignore their "Queue is empty".
+      await Promise.all(
+        Array.from(managers.values()).map((m) =>
+          m.completeAnimation().catch((e: unknown) => {
+            if (!(e instanceof Error) || !e.message.includes("Queue is empty")) {
+              throw e;
+            }
+          }),
+        ),
+      );
+    },
+  };
+}
 
 describe("<ErrorBar />", () => {
   const dataWithError = [
@@ -2229,6 +2288,94 @@ describe("<ErrorBar />", () => {
           },
         ]);
       });
+    });
+  });
+
+  // Ported from recharts: ErrorBar whisker animation (CSS transform scale 0→1).
+  // The `begin`-as-an-SVG-attribute case is deferred (needs arbitrary SVG-prop
+  // passthrough onto the whisker group, separate from animationBegin).
+  it("Renders Error Bars with animation", async () => {
+    const registry = createManagerRegistry();
+    const { container } = render(() => (
+      <AnimationManagerContext value={registry.get}>
+        <BarChart data={dataWithError} width={500} height={500}>
+          <Bar isAnimationActive={false} dataKey="uv">
+            <ErrorBar isAnimationActive dataKey="uvError" />
+          </Bar>
+        </BarChart>
+      </AnimationManagerContext>
+    ));
+    flush();
+
+    await registry.completeAll();
+    flush();
+
+    expectErrorBars(container, expectedErrorBars);
+    assertAnimationStyles(container, true, {
+      transition: "transform 400ms ease-in-out",
+      transform: "scaleY(1)",
+    });
+  });
+
+  it("Renders Error Bars without animation", () => {
+    const { container } = render(() => (
+      <BarChart data={dataWithError} width={500} height={500}>
+        <Bar isAnimationActive={false} dataKey="uv">
+          <ErrorBar isAnimationActive={false} dataKey="uvError" />
+        </Bar>
+      </BarChart>
+    ));
+    flush();
+
+    expectErrorBars(container, expectedErrorBars);
+    assertAnimationStyles(container, false, {
+      transform: "scaleY(1)",
+    });
+  });
+
+  it("Renders Error Bars with animation duration", async () => {
+    const registry = createManagerRegistry();
+    const { container } = render(() => (
+      <AnimationManagerContext value={registry.get}>
+        <BarChart data={dataWithError} width={500} height={500}>
+          <Bar isAnimationActive={false} dataKey="uv">
+            <ErrorBar isAnimationActive animationDuration={400} dataKey="uvError" />
+          </Bar>
+        </BarChart>
+      </AnimationManagerContext>
+    ));
+    flush();
+
+    await registry.completeAll();
+    flush();
+
+    expectErrorBars(container, expectedErrorBars);
+    assertAnimationStyles(container, true, {
+      transition: "transform 400ms ease-in-out",
+      transform: "scaleY(1)",
+    });
+  });
+
+  it("Renders Error Bars with animation easing", async () => {
+    const registry = createManagerRegistry();
+    const { container } = render(() => (
+      <AnimationManagerContext value={registry.get}>
+        <BarChart data={dataWithError} width={500} height={500}>
+          <Bar isAnimationActive={false} dataKey="uv">
+            <ErrorBar isAnimationActive animationEasing="linear" dataKey="uvError" />
+          </Bar>
+        </BarChart>
+      </AnimationManagerContext>
+    ));
+    flush();
+
+    await registry.completeAll();
+    flush();
+
+    expectErrorBars(container, expectedErrorBars);
+    assertAnimationStyles(container, true, {
+      transition: "transform 400ms linear",
+      transform: "scaleY(1)",
     });
   });
 });
