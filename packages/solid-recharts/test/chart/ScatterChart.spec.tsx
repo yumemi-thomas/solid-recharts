@@ -21,7 +21,13 @@ import { PageData } from "../_data";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
-import { selectTooltipPayload } from "../../src/state/selectors/tooltipSelectors";
+import {
+  selectActiveCoordinate,
+  selectTooltipPayload,
+  selectTooltipPayloadConfigurations,
+} from "../../src/state/selectors/tooltipSelectors";
+import { selectTooltipState } from "../../src/state/selectors/selectTooltipState";
+import type { TooltipPayloadConfiguration, TooltipState } from "../../src/state/tooltipSlice";
 import {
   selectNumericalDomain,
   selectZAxisWithScale,
@@ -1110,5 +1116,735 @@ describe("ScatterChart with multiple Y axes", () => {
         width: "9.0270333367641",
       },
     ]);
+  });
+});
+
+describe("with Tooltip and defaultIndex=number", () => {
+  const renderTestCase = createSelectorTestCase((props) => (
+    <ScatterChart width={100} height={100} data={PageData}>
+      <Scatter isAnimationActive={false} id="my-scatter" />
+      <XAxis dataKey="uv" />
+      <YAxis dataKey="pv" />
+      <Tooltip defaultIndex={1} />
+      {props.children}
+    </ScatterChart>
+  ));
+
+  it("should render tooltip before user interaction", () => {
+    mockGetBoundingClientRect({
+      width: 10,
+      height: 10,
+    });
+    const { container } = renderTestCase();
+    expectTooltipPayload(container, "", ["pv : 4567", "uv : 300"]);
+    expectTooltipCoordinate(container, {
+      x: 82.5,
+      y: 47.598,
+    });
+  });
+
+  it("should select tooltip state", () => {
+    const { spy } = renderTestCase(selectTooltipState);
+    const expected: TooltipState = {
+      axisInteraction: {
+        click: {
+          active: false,
+          dataKey: undefined,
+          index: null,
+          coordinate: undefined,
+          graphicalItemId: undefined,
+        },
+        hover: {
+          active: false,
+          dataKey: undefined,
+          index: null,
+          coordinate: undefined,
+          graphicalItemId: undefined,
+        },
+      },
+      itemInteraction: {
+        click: {
+          active: false,
+          index: null,
+          dataKey: undefined,
+          coordinate: undefined,
+          graphicalItemId: undefined,
+        },
+        hover: {
+          active: false,
+          index: null,
+          dataKey: undefined,
+          coordinate: undefined,
+          graphicalItemId: undefined,
+        },
+      },
+      keyboardInteraction: {
+        active: false,
+        dataKey: undefined,
+        index: null,
+        coordinate: undefined,
+        graphicalItemId: undefined,
+      },
+      settings: {
+        active: undefined,
+        axisId: 0,
+        shared: undefined,
+        trigger: "hover",
+        defaultIndex: "1",
+      },
+      syncInteraction: {
+        active: false,
+        dataKey: undefined,
+        index: null,
+        coordinate: undefined,
+        label: undefined,
+        sourceViewBox: undefined,
+        graphicalItemId: undefined,
+      },
+      tooltipItemPayloads: [
+        {
+          dataDefinedOnItem: [
+            [
+              {
+                dataKey: "uv",
+                name: "uv",
+                payload: {
+                  amt: 2400,
+                  name: "Page A",
+                  pv: 2400,
+                  uv: 400,
+                },
+                type: undefined,
+                unit: "",
+                value: 400,
+                graphicalItemId: "my-scatter",
+              },
+              {
+                dataKey: "pv",
+                name: "pv",
+                payload: {
+                  amt: 2400,
+                  name: "Page A",
+                  pv: 2400,
+                  uv: 400,
+                },
+                type: undefined,
+                unit: "",
+                value: 2400,
+                graphicalItemId: "my-scatter",
+              },
+            ],
+            [
+              {
+                dataKey: "uv",
+                name: "uv",
+                payload: {
+                  amt: 2400,
+                  name: "Page B",
+                  pv: 4567,
+                  uv: 300,
+                },
+                type: undefined,
+                unit: "",
+                value: 300,
+                graphicalItemId: "my-scatter",
+              },
+              {
+                dataKey: "pv",
+                name: "pv",
+                payload: {
+                  amt: 2400,
+                  name: "Page B",
+                  pv: 4567,
+                  uv: 300,
+                },
+                type: undefined,
+                unit: "",
+                value: 4567,
+                graphicalItemId: "my-scatter",
+              },
+            ],
+            [
+              {
+                dataKey: "uv",
+                name: "uv",
+                payload: {
+                  amt: 2400,
+                  name: "Page C",
+                  pv: 1398,
+                  uv: 300,
+                },
+                type: undefined,
+                unit: "",
+                value: 300,
+                graphicalItemId: "my-scatter",
+              },
+              {
+                dataKey: "pv",
+                name: "pv",
+                payload: {
+                  amt: 2400,
+                  name: "Page C",
+                  pv: 1398,
+                  uv: 300,
+                },
+                type: undefined,
+                unit: "",
+                value: 1398,
+                graphicalItemId: "my-scatter",
+              },
+            ],
+            [
+              {
+                dataKey: "uv",
+                name: "uv",
+                payload: {
+                  amt: 2400,
+                  name: "Page D",
+                  pv: 9800,
+                  uv: 200,
+                },
+                type: undefined,
+                unit: "",
+                value: 200,
+                graphicalItemId: "my-scatter",
+              },
+              {
+                dataKey: "pv",
+                name: "pv",
+                payload: {
+                  amt: 2400,
+                  name: "Page D",
+                  pv: 9800,
+                  uv: 200,
+                },
+                type: undefined,
+                unit: "",
+                value: 9800,
+                graphicalItemId: "my-scatter",
+              },
+            ],
+            [
+              {
+                dataKey: "uv",
+                name: "uv",
+                payload: {
+                  amt: 2400,
+                  name: "Page E",
+                  pv: 3908,
+                  uv: 278,
+                },
+                type: undefined,
+                unit: "",
+                value: 278,
+                graphicalItemId: "my-scatter",
+              },
+              {
+                dataKey: "pv",
+                name: "pv",
+                payload: {
+                  amt: 2400,
+                  name: "Page E",
+                  pv: 3908,
+                  uv: 278,
+                },
+                type: undefined,
+                unit: "",
+                value: 3908,
+                graphicalItemId: "my-scatter",
+              },
+            ],
+            [
+              {
+                dataKey: "uv",
+                name: "uv",
+                payload: {
+                  amt: 2400,
+                  name: "Page F",
+                  pv: 4800,
+                  uv: 189,
+                },
+                type: undefined,
+                unit: "",
+                value: 189,
+                graphicalItemId: "my-scatter",
+              },
+              {
+                dataKey: "pv",
+                name: "pv",
+                payload: {
+                  amt: 2400,
+                  name: "Page F",
+                  pv: 4800,
+                  uv: 189,
+                },
+                type: undefined,
+                unit: "",
+                value: 4800,
+                graphicalItemId: "my-scatter",
+              },
+            ],
+          ],
+          getPosition: expect.functionReturning([
+            ["0", { x: 67.5, y: 50.6 }],
+            ["1", { x: 72.5, y: 37.598 }],
+            ["2", { x: 77.5, y: 56.611999999999995 }],
+            ["3", { x: 82.5, y: 6.200000000000001 }],
+            ["4", { x: 87.5, y: 41.552 }],
+            ["5", { x: 92.5, y: 36.2 }],
+          ]),
+          settings: {
+            color: undefined,
+            dataKey: undefined,
+            fill: undefined,
+            graphicalItemId: "my-scatter",
+            hide: false,
+            name: undefined,
+            nameKey: undefined,
+            stroke: undefined,
+            strokeWidth: undefined,
+            type: undefined,
+            unit: "",
+          },
+        },
+      ],
+    };
+    expectLastCalledWith(spy, expected);
+  });
+
+  it("should select tooltip payload configurations", () => {
+    const { spy } = renderTestCase((state) =>
+      selectTooltipPayloadConfigurations(state, "axis", "hover", "0"),
+    );
+    // toHaveBeenCalledTimes dropped — Solid's fine-grained reactivity differs.
+    expectLastCalledWith(spy, [
+      {
+        dataDefinedOnItem: [
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page A",
+                pv: 2400,
+                uv: 400,
+              },
+              type: undefined,
+              unit: "",
+              value: 400,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page A",
+                pv: 2400,
+                uv: 400,
+              },
+              type: undefined,
+              unit: "",
+              value: 2400,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page B",
+                pv: 4567,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 300,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page B",
+                pv: 4567,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 4567,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page C",
+                pv: 1398,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 300,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page C",
+                pv: 1398,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 1398,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page D",
+                pv: 9800,
+                uv: 200,
+              },
+              type: undefined,
+              unit: "",
+              value: 200,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page D",
+                pv: 9800,
+                uv: 200,
+              },
+              type: undefined,
+              unit: "",
+              value: 9800,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page E",
+                pv: 3908,
+                uv: 278,
+              },
+              type: undefined,
+              unit: "",
+              value: 278,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page E",
+                pv: 3908,
+                uv: 278,
+              },
+              type: undefined,
+              unit: "",
+              value: 3908,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page F",
+                pv: 4800,
+                uv: 189,
+              },
+              type: undefined,
+              unit: "",
+              value: 189,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page F",
+                pv: 4800,
+                uv: 189,
+              },
+              type: undefined,
+              unit: "",
+              value: 4800,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+        ],
+        getPosition: expect.functionReturning([
+          ["0", { x: 67.5, y: 50.6 }],
+          ["1", { x: 72.5, y: 37.598 }],
+          ["2", { x: 77.5, y: 56.611999999999995 }],
+          ["3", { x: 82.5, y: 6.200000000000001 }],
+          ["4", { x: 87.5, y: 41.552 }],
+          ["5", { x: 92.5, y: 36.2 }],
+        ]),
+        settings: {
+          color: undefined,
+          dataKey: undefined,
+          fill: undefined,
+          graphicalItemId: "my-scatter",
+          hide: false,
+          name: undefined,
+          nameKey: undefined,
+          stroke: undefined,
+          strokeWidth: undefined,
+          type: undefined,
+          unit: "",
+        },
+      },
+    ]);
+  });
+
+  it("should select active coordinate", () => {
+    const { spy } = renderTestCase((state) => selectActiveCoordinate(state, "item", "hover", "0"));
+    expectLastCalledWith(spy, {
+      x: 67.5,
+      y: 50.6,
+    });
+  });
+
+  it("should select tooltip data", () => {
+    const { spy } = renderTestCase((state) =>
+      selectTooltipPayloadConfigurations(state, "item", "hover", "0"),
+    );
+    const expected: ReadonlyArray<TooltipPayloadConfiguration> = [
+      {
+        getPosition: expect.functionReturning([
+          ["0", { x: 67.5, y: 50.6 }],
+          ["1", { x: 72.5, y: 37.598 }],
+          ["2", { x: 77.5, y: 56.611999999999995 }],
+          ["3", { x: 82.5, y: 6.200000000000001 }],
+          ["4", { x: 87.5, y: 41.552 }],
+          ["5", { x: 92.5, y: 36.2 }],
+        ]),
+        dataDefinedOnItem: [
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page A",
+                pv: 2400,
+                uv: 400,
+              },
+              type: undefined,
+              unit: "",
+              value: 400,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page A",
+                pv: 2400,
+                uv: 400,
+              },
+              type: undefined,
+              unit: "",
+              value: 2400,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page B",
+                pv: 4567,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 300,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page B",
+                pv: 4567,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 4567,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page C",
+                pv: 1398,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 300,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page C",
+                pv: 1398,
+                uv: 300,
+              },
+              type: undefined,
+              unit: "",
+              value: 1398,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page D",
+                pv: 9800,
+                uv: 200,
+              },
+              type: undefined,
+              unit: "",
+              value: 200,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page D",
+                pv: 9800,
+                uv: 200,
+              },
+              type: undefined,
+              unit: "",
+              value: 9800,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page E",
+                pv: 3908,
+                uv: 278,
+              },
+              type: undefined,
+              unit: "",
+              value: 278,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page E",
+                pv: 3908,
+                uv: 278,
+              },
+              type: undefined,
+              unit: "",
+              value: 3908,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+          [
+            {
+              dataKey: "uv",
+              name: "uv",
+              payload: {
+                amt: 2400,
+                name: "Page F",
+                pv: 4800,
+                uv: 189,
+              },
+              type: undefined,
+              unit: "",
+              value: 189,
+              graphicalItemId: "my-scatter",
+            },
+            {
+              dataKey: "pv",
+              name: "pv",
+              payload: {
+                amt: 2400,
+                name: "Page F",
+                pv: 4800,
+                uv: 189,
+              },
+              type: undefined,
+              unit: "",
+              value: 4800,
+              graphicalItemId: "my-scatter",
+            },
+          ],
+        ],
+        settings: {
+          color: undefined,
+          dataKey: undefined,
+          fill: undefined,
+          graphicalItemId: "my-scatter",
+          hide: false,
+          name: undefined,
+          nameKey: undefined,
+          stroke: undefined,
+          strokeWidth: undefined,
+          type: undefined,
+          unit: "",
+        },
+      },
+    ];
+    expectLastCalledWith(spy, expected);
   });
 });
