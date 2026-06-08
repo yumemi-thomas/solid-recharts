@@ -1,10 +1,13 @@
 // Ported from recharts 3.8.1 src/cartesian/CartesianGrid.tsx (commit 7a23854).
 //
-// MINIMAL PORT — draws the horizontal + vertical grid lines. The line positions
-// come from the rendered axis ticks (selectTicksOfAxis), which match the drawn
-// axis. Deferred (documented): the getCoordinatesOfGrid tick generator + its
-// `syncWithTicks`/offset nuances, stripe fills (horizontalFill/verticalFill),
-// background fill rect, custom line render functions / elements, ZIndexLayer.
+// Draws the horizontal + vertical grid lines plus the background fill rect.
+// When neither explicit points nor a coordinate generator is supplied the grid
+// SELF-GENERATES its line positions: it reads the rendered axis ticks
+// (selectTicksOfAxis) and runs them through getCoordinatesOfGrid, which adds the
+// plot-area min/max edges when `syncWithTicks` is false — matching the reference
+// default*CoordinatesGenerator + getCoordinatesOfGrid math.
+// Deferred (documented): stripe fills (horizontalFill/verticalFill), custom line
+// render functions / elements, ZIndexLayer.
 // Solid deviations: hooks return accessors; `className`→`class`.
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
@@ -14,7 +17,9 @@ import { useOffsetInternal } from "../context/chartLayoutContext";
 import { selectTicksOfAxis } from "../state/selectors/axisSelectors";
 import { AxisId } from "../state/cartesianAxisSlice";
 import { isPositiveNumber } from "../util/isWellBehavedNumber";
+import { isNumber } from "../util/DataUtils";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
+import type { TickItem } from "../util/types";
 
 export interface CartesianGridProps {
   horizontal?: boolean;
@@ -30,6 +35,18 @@ export interface CartesianGridProps {
   y?: number;
   width?: number;
   height?: number;
+  /**
+   * If true, only the lines that correspond to the axes ticks values will be drawn.
+   * If false, extra lines could be added at the min and max coordinates of each axis.
+   * @defaultValue false
+   */
+  syncWithTicks?: boolean;
+  /** The background color used to fill the space between grid lines. @defaultValue none */
+  fill?: string;
+  /** The opacity of the background fill. */
+  fillOpacity?: number | string;
+  /** Border-radius of the background rect. */
+  ry?: number | string;
   class?: string;
 }
 
@@ -37,9 +54,49 @@ const cartesianGridDefaults = {
   horizontal: true,
   vertical: true,
   stroke: "#ccc",
+  fill: "none",
+  syncWithTicks: false,
   xAxisId: 0,
   yAxisId: 0,
 } as const satisfies Partial<CartesianGridProps>;
+
+/**
+ * Ported locally from ChartUtils.getCoordinatesOfGrid. When syncWithTicks is
+ * false this appends the plot-area min/max edge coordinates if the ticks don't
+ * already land on them.
+ */
+const getCoordinatesOfGrid = (
+  ticks: ReadonlyArray<TickItem>,
+  minValue: number,
+  maxValue: number,
+  syncWithTicks: boolean,
+): number[] => {
+  if (syncWithTicks) {
+    return ticks.map((entry) => entry.coordinate);
+  }
+
+  let hasMin = false;
+  let hasMax = false;
+
+  const values = ticks.map((entry) => {
+    if (entry.coordinate === minValue) {
+      hasMin = true;
+    }
+    if (entry.coordinate === maxValue) {
+      hasMax = true;
+    }
+    return entry.coordinate;
+  });
+
+  if (!hasMin) {
+    values.push(minValue);
+  }
+  if (!hasMax) {
+    values.push(maxValue);
+  }
+
+  return values;
+};
 
 export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
   const merged = merge(cartesianGridDefaults, props);
@@ -54,13 +111,22 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
 
   const geom = createMemo(() => {
     const o = offset();
-    const x = merged.x ?? o.left;
-    const y = merged.y ?? o.top;
-    const width = merged.width ?? o.width;
-    const height = merged.height ?? o.height;
-    const verticalPoints = merged.verticalPoints ?? (xTicks() ?? []).map((tick) => tick.coordinate);
+    // NaN width/height fall through to offset just like undefined: reference uses
+    // `isNumber(props.x) ? props.x : offset.x`, and isNumber(NaN) is false.
+    const x = isNumber(merged.x) ? merged.x : o.left;
+    const y = isNumber(merged.y) ? merged.y : o.top;
+    const width = isNumber(merged.width) ? merged.width : o.width;
+    const height = isNumber(merged.height) ? merged.height : o.height;
+
+    // Self-generate line positions when no explicit points are provided. The
+    // base coordinates come from the axis ticks; getCoordinatesOfGrid then adds
+    // the plot-area edges (offset min/max) when syncWithTicks is false.
+    const verticalPoints =
+      merged.verticalPoints ??
+      getCoordinatesOfGrid(xTicks() ?? [], o.left, o.left + o.width, merged.syncWithTicks);
     const horizontalPoints =
-      merged.horizontalPoints ?? (yTicks() ?? []).map((tick) => tick.coordinate);
+      merged.horizontalPoints ??
+      getCoordinatesOfGrid(yTicks() ?? [], o.top, o.top + o.height, merged.syncWithTicks);
     return { x, y, width, height, verticalPoints, horizontalPoints };
   });
 
@@ -71,6 +137,19 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
   return (
     <Show when={isPositiveNumber(geom().width) && isPositiveNumber(geom().height) && !isPanorama}>
       <g class={["recharts-cartesian-grid", merged.class]}>
+        <Show when={merged.fill != null && merged.fill !== "none"}>
+          <rect
+            x={geom().x}
+            y={geom().y}
+            ry={merged.ry}
+            width={geom().width}
+            height={geom().height}
+            stroke="none"
+            fill={merged.fill}
+            fill-opacity={merged.fillOpacity}
+            class="recharts-cartesian-grid-bg"
+          />
+        </Show>
         <Show when={merged.horizontal}>
           <g class="recharts-cartesian-grid-horizontal">
             <For each={geom().horizontalPoints}>

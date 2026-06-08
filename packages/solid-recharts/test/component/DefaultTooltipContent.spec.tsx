@@ -68,4 +68,35 @@ describe("DefaultTooltipContent", () => {
 
     expect(tooltip[0]).toHaveTextContent("mock labelFormatterSOME NAME : SOME VALUE");
   });
+
+  it("renders without crashing when payload contains null or undefined entries", () => {
+    const mockPropsWithSparsePayload: DefaultTooltipContentProps = {
+      ...mockProps,
+      payload: [
+        {
+          stroke: "#3182bd",
+          fill: "#3182bd",
+          dataKey: "uv",
+          name: "A",
+          color: "#3182bd",
+          value: 10,
+          graphicalItemId: "recharts-area-0",
+        },
+        undefined,
+        null,
+        {
+          stroke: "#3182bd",
+          fill: "#3182bd",
+          dataKey: "uv",
+          name: "B",
+          color: "#3182bd",
+          value: 20,
+          graphicalItemId: "recharts-area-1",
+        },
+      ] as unknown as DefaultTooltipContentProps["payload"],
+    };
+    const { container } = render(() => <DefaultTooltipContent {...mockPropsWithSparsePayload} />);
+    const tooltipItems = container.querySelectorAll("li.recharts-tooltip-item");
+    expect(tooltipItems.length).toBe(2);
+  });
 });

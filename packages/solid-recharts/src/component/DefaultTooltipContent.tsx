@@ -101,6 +101,12 @@ function sortKeyOf(
   item: TooltipPayloadEntry,
   itemSorter: TooltipItemSorter,
 ): number | string | undefined {
+  // Deviation: the payload can contain null/undefined entries (recharts'
+  // es-toolkit `sortBy` tolerates them; the render map guards `!entry`). Mirror
+  // that here so the key extractor doesn't dereference a nullish entry.
+  if (item == null) {
+    return undefined;
+  }
   if (typeof itemSorter === "function") {
     return itemSorter(item);
   }

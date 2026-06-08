@@ -8,9 +8,10 @@
 // recharts' <Customized> spy — there is no <Customized> in this port; a plain
 // chart child already has the store context).
 //
-// NOT ported (blocked / out of this minimal port's scope, recorded by the author):
-//   - "...to the background" cases: this port does not render the
-//     `rect.recharts-cartesian-grid-bg` background rect (deferred in the source).
+// Now ported (previously deferred):
+//   - "renders 2 grid lines in an empty chart": self-generated edge coordinates.
+//   - "...to the background" cases: the `rect.recharts-cartesian-grid-bg` rect.
+//   - "uses offset.width and offset.height when width and height are NaN".
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
 import { render } from "../helper/render";
@@ -86,6 +87,31 @@ function expectVerticalGridLines(
 }
 
 describe("CartesianGrid", () => {
+  test("renders 2 grid lines in an empty chart", () => {
+    const { container } = render(() => (
+      <AreaChart width={500} height={500}>
+        <CartesianGrid />
+      </AreaChart>
+    ));
+    flush();
+    expectHorizontalGridLines(container, [
+      {
+        y: "5",
+      },
+      {
+        y: "495",
+      },
+    ]);
+    expectVerticalGridLines(container, [
+      {
+        x: "5",
+      },
+      {
+        x: "495",
+      },
+    ]);
+  });
+
   it("renders more grid lines when the chart has data", () => {
     const { container } = render(() => (
       <AreaChart width={500} height={500} data={pageData}>
@@ -320,6 +346,27 @@ describe.each(allChartsThatSupportCartesianGrid)(
       };
 
       describe("layout and size when set explicitly in $testName", () => {
+        it("should put x, y, width and height as coordinates to the background", () => {
+          const { container } = render(() => (
+            <ChartElement width={500} height={500}>
+              <CartesianGrid
+                {...exampleCartesianGridDimensions}
+                fill="green"
+                ry={10}
+                verticalPoints={verticalPoints}
+                horizontalPoints={horizontalPoints}
+              />
+            </ChartElement>
+          ));
+          flush();
+          const background = container.querySelector("rect.recharts-cartesian-grid-bg");
+          expect.soft(background).toHaveAttribute("x", "1");
+          expect.soft(background).toHaveAttribute("y", "2");
+          expect.soft(background).toHaveAttribute("width", "300");
+          expect.soft(background).toHaveAttribute("height", "200");
+          expect.soft(background).toHaveAttribute("ry", "10");
+        });
+
         it("should put x, y, width and height as coordinates to all lines", () => {
           const { container } = render(() => (
             <ChartElement width={500} height={500}>
@@ -392,6 +439,24 @@ describe.each(allChartsThatSupportCartesianGrid)(
       });
 
       describe("layout and size when inherited from parent chart", () => {
+        it("should put x, y, width and height as coordinates to the background", () => {
+          const { container } = render(() => (
+            <ChartElement margin={chartMargin} width={500} height={400}>
+              <CartesianGrid
+                fill="green"
+                verticalPoints={verticalPoints}
+                horizontalPoints={horizontalPoints}
+              />
+            </ChartElement>
+          ));
+          flush();
+          const background = container.querySelector("rect.recharts-cartesian-grid-bg");
+          expect.soft(background).toHaveAttribute("x", "12");
+          expect.soft(background).toHaveAttribute("y", "14");
+          expect.soft(background).toHaveAttribute("width", "475");
+          expect.soft(background).toHaveAttribute("height", "375");
+        });
+
         it("should put x, y, width and height as coordinates to all lines", () => {
           const { container } = render(() => (
             <ChartElement margin={chartMargin} width={500} height={400}>
@@ -483,6 +548,27 @@ describe.each(allChartsThatSupportCartesianGrid)(
             ));
             flush();
             expect(container.querySelectorAll("line")).toHaveLength(0);
+          });
+
+          test("uses offset.width and offset.height when width and height are NaN", () => {
+            const { container } = render(() => (
+              <ChartElement margin={chartMargin} width={500} height={400}>
+                <CartesianGrid
+                  width={NaN}
+                  height={NaN}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                />
+              </ChartElement>
+            ));
+            flush();
+            expect.soft(container.querySelectorAll("line")).toHaveLength(9);
+            expect
+              .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
+              .toHaveLength(horizontalPoints.length);
+            expect
+              .soft(container.querySelectorAll(".recharts-cartesian-grid-vertical line"))
+              .toHaveLength(verticalPoints.length);
           });
 
           test.each([0, -1, -Infinity])("Don't render any lines when height is %s", (h) => {

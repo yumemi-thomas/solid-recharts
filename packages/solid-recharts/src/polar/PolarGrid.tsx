@@ -66,6 +66,15 @@ interface GridCommon {
   strokeDasharray: string | undefined;
 }
 
+// recharts spreads the center coords onto the concentric <path> via
+// svgPropertiesNoEvents, so the rendered DOM carries cx/cy attributes that the
+// reference spec reads back. `cx`/`cy` are not part of the typed path
+// attributes, so build them as raw string attributes the JSX runtime forwards.
+const concentricPolygonAttrs = (cx: number, cy: number): Record<string, unknown> => ({
+  cx: String(cx),
+  cy: String(cy),
+});
+
 const ConcentricRing = (
   props: GridCommon & {
     radius: number;
@@ -77,6 +86,7 @@ const ConcentricRing = (
     when={props.gridType === "circle"}
     fallback={
       <path
+        {...concentricPolygonAttrs(props.cx, props.cy)}
         class="recharts-polar-grid-concentric-polygon"
         fill="none"
         stroke={props.stroke}
@@ -132,6 +142,13 @@ export const PolarGrid = (props: PolarGridProps): JSX.Element => {
   const dash = (): string | undefined =>
     merged.strokeDasharray == null ? undefined : String(merged.strokeDasharray);
 
+  // Solid 2.0 `merge` lets an explicit `undefined` prop override the default,
+  // whereas recharts' resolveDefaultProps falls back to the default for
+  // `undefined`. Re-apply the nullish fallback so `gridType={undefined}` /
+  // `radialLines={undefined}` behave like the unset (defaulted) case.
+  const gridType = (): "polygon" | "circle" => merged.gridType ?? "polygon";
+  const radialLines = (): boolean => merged.radialLines ?? true;
+
   const polarAngles = (): ReadonlyArray<number> | undefined =>
     Array.isArray(merged.polarAngles) ? merged.polarAngles : anglesFromStore();
   const polarRadius = (): ReadonlyArray<number> | undefined =>
@@ -172,7 +189,7 @@ export const PolarGrid = (props: PolarGridProps): JSX.Element => {
                   cx={g().cx}
                   cy={g().cy}
                   radius={radius}
-                  gridType={merged.gridType}
+                  gridType={gridType()}
                   polarAngles={g().angles}
                   stroke={merged.stroke}
                   strokeWidth={merged.strokeWidth}
@@ -181,7 +198,7 @@ export const PolarGrid = (props: PolarGridProps): JSX.Element => {
               )}
             </For>
           </g>
-          <Show when={merged.radialLines && g().angles.length > 0}>
+          <Show when={radialLines() && g().angles.length > 0}>
             <g class="recharts-polar-grid-angle">
               <For each={g().angles}>
                 {(angle) => (
