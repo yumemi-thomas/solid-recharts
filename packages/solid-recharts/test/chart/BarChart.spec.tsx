@@ -21,6 +21,14 @@ import {
 import { useOffset, usePlotArea } from "../../src/hooks";
 import { useClipPathId } from "../../src/container/ClipPathProvider";
 import { expectBars } from "../helper/expectBars";
+import {
+  selectAllBarPositions,
+  selectAllVisibleBars,
+  selectBarSizeList,
+} from "../../src/state/selectors/barSelectors";
+import { selectUnfilteredCartesianItems } from "../../src/state/selectors/axisSelectors";
+import type { BarSettings } from "../../src/state/types/BarSettings";
+import type { CartesianGraphicalItemSettings } from "../../src/state/graphicalItemsSlice";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -1029,5 +1037,465 @@ describe("bar width", () => {
         y: "5",
       },
     ]);
+  });
+});
+
+describe("in horizontal chart", () => {
+  describe("renders overlapping bars when there are separate XAxis", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <BarChart width={800} height={400} data={data}>
+        <Bar
+          dataKey="uv"
+          fill="green"
+          xAxisId="one"
+          barSize={50}
+          isAnimationActive={false}
+          id="bar-axis-one"
+        />
+        <XAxis xAxisId="one" />
+        {/* The smaller bar must be rendered in front of the larger one to be visible. */}
+        <Bar
+          dataKey="pv"
+          fill="red"
+          xAxisId="two"
+          barSize={30}
+          isAnimationActive={false}
+          id="bar-axis-two"
+        />
+        <XAxis xAxisId="two" hide />
+
+        {props.children}
+      </BarChart>
+    ));
+
+    test("selectUnfilteredCartesianItems", () => {
+      const { spy } = renderTestCase(selectUnfilteredCartesianItems);
+      const expected: ReadonlyArray<BarSettings> = [
+        {
+          id: "bar-axis-one",
+          isPanorama: false,
+          barSize: 50,
+          data: undefined,
+          dataKey: "uv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: "one",
+          yAxisId: 0,
+          zAxisId: 0,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+        },
+        {
+          id: "bar-axis-two",
+          isPanorama: false,
+          barSize: 30,
+          data: undefined,
+          dataKey: "pv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: "two",
+          yAxisId: 0,
+          zAxisId: 0,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+        },
+      ];
+      expectLastCalledWith(spy, expected);
+    });
+
+    it("should select bars for first axis", () => {
+      const { spy } = renderTestCase((state) => selectAllVisibleBars(state, "bar-axis-one", false));
+      expectLastCalledWith(spy, [
+        {
+          id: "bar-axis-one",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: 50,
+          data: undefined,
+          dataKey: "uv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: "one",
+          yAxisId: 0,
+          zAxisId: 0,
+        },
+      ]);
+    });
+
+    it("should select bars for second axis", () => {
+      const { spy } = renderTestCase((state) => selectAllVisibleBars(state, "bar-axis-two", false));
+      expectLastCalledWith(spy, [
+        {
+          id: "bar-axis-two",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: 30,
+          data: undefined,
+          dataKey: "pv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: "two",
+          yAxisId: 0,
+          zAxisId: 0,
+        },
+      ]);
+    });
+
+    it("should render bars", () => {
+      const { container } = renderTestCase();
+      expectBars(container, [
+        {
+          x: "79",
+          y: "350.6",
+          width: "50",
+          height: "14.4",
+          radius: "0",
+          d: "M 79,350.6 h 50 v 14.4 h -50 Z",
+        },
+        {
+          x: "276.5",
+          y: "354.2",
+          width: "50",
+          height: "10.8",
+          radius: "0",
+          d: "M 276.5,354.2 h 50 v 10.8 h -50 Z",
+        },
+        {
+          x: "474",
+          y: "354.2",
+          width: "50",
+          height: "10.8",
+          radius: "0",
+          d: "M 474,354.2 h 50 v 10.8 h -50 Z",
+        },
+        {
+          x: "671.5",
+          y: "357.8",
+          width: "50",
+          height: "7.2",
+          radius: "0",
+          d: "M 671.5,357.8 h 50 v 7.2 h -50 Z",
+        },
+        {
+          x: "89",
+          y: "278.6",
+          width: "30",
+          height: "86.4",
+          radius: "0",
+          d: "M 89,278.6 h 30 v 86.4 h -30 Z",
+        },
+        {
+          x: "286.5",
+          y: "200.588",
+          width: "30",
+          height: "164.412",
+          radius: "0",
+          d: "M 286.5,200.588 h 30 v 164.412 h -30 Z",
+        },
+        {
+          x: "484",
+          y: "314.672",
+          width: "30",
+          height: "50.328",
+          radius: "0",
+          d: "M 484,314.672 h 30 v 50.328 h -30 Z",
+        },
+        {
+          x: "681.5",
+          y: "12.2",
+          width: "30",
+          height: "352.8",
+          radius: "0",
+          d: "M 681.5,12.2 h 30 v 352.8 h -30 Z",
+        },
+      ]);
+    });
+  });
+
+  describe("renders bars as neighbours when there are multiple YAxes", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <BarChart width={500} height={300} data={data}>
+        <XAxis dataKey="name" />
+        <YAxis yAxisId="left" orientation="left" />
+        <YAxis yAxisId="right" orientation="right" />
+        <Bar yAxisId="left" id="my-bar-id-1" dataKey="pv" isAnimationActive={false} />
+        <Bar yAxisId="right" id="my-bar-id-2" dataKey="uv" isAnimationActive={false} />
+        {props.children}
+      </BarChart>
+    ));
+
+    test("selectUnfilteredCartesianItems", () => {
+      const { spy } = renderTestCase(selectUnfilteredCartesianItems);
+      const expected: ReadonlyArray<CartesianGraphicalItemSettings> = [
+        {
+          id: "my-bar-id-1",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: undefined,
+          data: undefined,
+          dataKey: "pv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: 0,
+          yAxisId: "left",
+          zAxisId: 0,
+        },
+        {
+          id: "my-bar-id-2",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: undefined,
+          data: undefined,
+          dataKey: "uv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: 0,
+          yAxisId: "right",
+          zAxisId: 0,
+        },
+      ];
+      expectLastCalledWith(spy, expected);
+    });
+
+    it("should select bars for left axis", () => {
+      const { spy } = renderTestCase((state) => selectAllVisibleBars(state, "my-bar-id-1", false));
+      expectLastCalledWith(spy, [
+        {
+          id: "my-bar-id-1",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: undefined,
+          data: undefined,
+          dataKey: "pv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: 0,
+          yAxisId: "left",
+          zAxisId: 0,
+        },
+        {
+          id: "my-bar-id-2",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: undefined,
+          data: undefined,
+          dataKey: "uv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: 0,
+          // this one quite clearly belongs to the right axis, why is it returned here?
+          yAxisId: "right",
+          zAxisId: 0,
+        },
+      ]);
+    });
+
+    it("should select bars for right axis", () => {
+      const { spy } = renderTestCase((state) => selectAllVisibleBars(state, "my-bar-id-2", false));
+      expectLastCalledWith(spy, [
+        {
+          id: "my-bar-id-1",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: undefined,
+          data: undefined,
+          dataKey: "pv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: 0,
+          // this one quite clearly belongs to the left axis, why is it returned here?
+          yAxisId: "left",
+          zAxisId: 0,
+        },
+        {
+          id: "my-bar-id-2",
+          isPanorama: false,
+          maxBarSize: undefined,
+          minPointSize: 0,
+          hasCustomShape: false,
+          barSize: undefined,
+          data: undefined,
+          dataKey: "uv",
+          hide: false,
+          stackId: undefined,
+          type: "bar",
+          xAxisId: 0,
+          yAxisId: "right",
+          zAxisId: 0,
+        },
+      ]);
+    });
+
+    it("should select bar size list for left axis", () => {
+      const { spy } = renderTestCase((state) => selectBarSizeList(state, "my-bar-id-1", false));
+      expectLastCalledWith(spy, [
+        {
+          barSize: undefined,
+          dataKeys: ["pv"],
+          stackId: undefined,
+        },
+        {
+          barSize: undefined,
+          dataKeys: ["uv"],
+          stackId: undefined,
+        },
+      ]);
+    });
+
+    it("should select bar size list for right axis", () => {
+      const { spy } = renderTestCase((state) => selectBarSizeList(state, "my-bar-id-2", false));
+      expectLastCalledWith(spy, [
+        {
+          barSize: undefined,
+          dataKeys: ["pv"],
+          stackId: undefined,
+        },
+        {
+          barSize: undefined,
+          dataKeys: ["uv"],
+          stackId: undefined,
+        },
+      ]);
+    });
+
+    it("should select all bar positions for left axis", () => {
+      const { spy } = renderTestCase((state) => selectAllBarPositions(state, "my-bar-id-1", false));
+      expectLastCalledWith(spy, [
+        {
+          dataKeys: ["pv"],
+          position: {
+            offset: 9.25,
+            size: 35,
+          },
+          stackId: undefined,
+        },
+        {
+          dataKeys: ["uv"],
+          position: {
+            offset: 48.25,
+            size: 35,
+          },
+          stackId: undefined,
+        },
+      ]);
+    });
+
+    it("should select all bar positions for right axis", () => {
+      const { spy } = renderTestCase((state) => selectAllBarPositions(state, "my-bar-id-2", false));
+      expectLastCalledWith(spy, [
+        {
+          dataKeys: ["pv"],
+          position: {
+            offset: 9.25,
+            size: 35,
+          },
+          stackId: undefined,
+        },
+        {
+          dataKeys: ["uv"],
+          position: {
+            offset: 48.25,
+            size: 35,
+          },
+          stackId: undefined,
+        },
+      ]);
+    });
+
+    it("should render bars", () => {
+      const { container } = renderTestCase();
+
+      expectBars(container, [
+        {
+          d: "M 74.25,202.6 h 35 v 62.4 h -35 Z",
+          height: "62.4",
+          radius: "0",
+          width: "35",
+          x: "74.25",
+          y: "202.6",
+        },
+        {
+          d: "M 166.75,146.258 h 35 v 118.742 h -35 Z",
+          height: "118.742",
+          radius: "0",
+          width: "35",
+          x: "166.75",
+          y: "146.258",
+        },
+        {
+          d: "M 259.25,228.652 h 35 v 36.348 h -35 Z",
+          height: "36.348",
+          radius: "0",
+          width: "35",
+          x: "259.25",
+          y: "228.652",
+        },
+        {
+          d: "M 351.75,10.2 h 35 v 254.8 h -35 Z",
+          height: "254.8",
+          radius: "0",
+          width: "35",
+          x: "351.75",
+          y: "10.2",
+        },
+        {
+          d: "M 113.25,5 h 35 v 260 h -35 Z",
+          height: "260",
+          radius: "0",
+          width: "35",
+          x: "113.25",
+          y: "5",
+        },
+        {
+          d: "M 205.75,70 h 35 v 195 h -35 Z",
+          height: "195",
+          radius: "0",
+          width: "35",
+          x: "205.75",
+          y: "70",
+        },
+        {
+          d: "M 298.25,70 h 35 v 195 h -35 Z",
+          height: "195",
+          radius: "0",
+          width: "35",
+          x: "298.25",
+          y: "70",
+        },
+        {
+          d: "M 390.75,135 h 35 v 130 h -35 Z",
+          height: "130",
+          radius: "0",
+          width: "35",
+          x: "390.75",
+          y: "135",
+        },
+      ]);
+    });
   });
 });
