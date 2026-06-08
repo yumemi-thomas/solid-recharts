@@ -6,11 +6,13 @@
 // geometry). The full spec (background bars, stacks, labels, animation, exact
 // per-bar coords) comes online when those features land. `flush()` after render
 // because the bar registers via an effect and its rectangles compute from the store.
-import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+import { describe, expect, it, vi } from "vitest";
+import { createEffect, flush } from "solid-js";
 import { render, fireEvent } from "../helper/render";
 import { BarChart, Bar, Tooltip, XAxis, YAxis } from "../../src";
 import { PageData } from "../_data";
+import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
+import { useClipPathId } from "../../src/container/ClipPathProvider";
 
 describe("<BarChart />", () => {
   const data = [
@@ -169,5 +171,82 @@ describe("<BarChart />", () => {
       (n) => n.textContent,
     );
     expect(values).toEqual([String(PageData[0]!.uv)]);
+  });
+
+  describe("BarChart layout context", () => {
+    it("should provide viewBox", () => {
+      const spy = vi.fn();
+      const Comp = (): null => {
+        const viewBox = useViewBox();
+        createEffect(
+          () => viewBox(),
+          (v) => spy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <BarChart width={100} height={50}>
+          <Comp />
+        </BarChart>
+      ));
+
+      expect(spy).toHaveBeenCalledWith({ x: 5, y: 5, width: 90, height: 40 });
+    });
+
+    it("should provide clipPathId", () => {
+      const spy = vi.fn();
+      const Comp = (): null => {
+        createEffect(
+          () => useClipPathId(),
+          (v) => spy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <BarChart width={100} height={50}>
+          <Comp />
+        </BarChart>
+      ));
+
+      expect(spy).toHaveBeenCalledWith(expect.stringMatching(/recharts\d+-clip/));
+    });
+
+    it("should provide width", () => {
+      const spy = vi.fn();
+      const Comp = (): null => {
+        const width = useChartWidth();
+        createEffect(
+          () => width(),
+          (v) => spy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <BarChart width={100} height={50}>
+          <Comp />
+        </BarChart>
+      ));
+
+      expect(spy).toHaveBeenCalledWith(100);
+    });
+
+    it("should provide height", () => {
+      const spy = vi.fn();
+      const Comp = (): null => {
+        const height = useChartHeight();
+        createEffect(
+          () => height(),
+          (v) => spy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <BarChart width={100} height={50}>
+          <Comp />
+        </BarChart>
+      ));
+
+      expect(spy).toHaveBeenCalledWith(50);
+    });
   });
 });
