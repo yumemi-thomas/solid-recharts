@@ -874,10 +874,12 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
           <ChartElement data={data}>
             <Bar
               isAnimationActive={false}
-              label={{
-                fill: "red",
-                elevation: 9,
-              }}
+              label={
+                {
+                  fill: "red",
+                  elevation: 9,
+                } as never
+              }
               dataKey="value"
             />
           </ChartElement>

@@ -45,10 +45,14 @@ describe("Bar stacked with truncateByDomain", () => {
       <XAxis
         dataKey="day"
         strokeOpacity="0"
-        tick={{ fill: "#ffffff", fillOpacity: "0.6" }}
+        tick={{ fill: "#ffffff", fillOpacity: "0.6" } as never}
         tickLine={false}
       />
-      <YAxis strokeOpacity="0" tick={{ fill: "#ffffff", fillOpacity: "0.6" }} tickLine={false} />
+      <YAxis
+        strokeOpacity="0"
+        tick={{ fill: "#ffffff", fillOpacity: "0.6" } as never}
+        tickLine={false}
+      />
       <Area
         name="Av"
         dataKey="kd"
@@ -196,7 +200,7 @@ describe("Bar stacked with truncateByDomain", () => {
           zAxisId: 0,
         },
       ]);
-      expectStackedData(stackGroups?.date?.stackedData ?? [], [
+      expectStackedData((stackGroups?.date?.stackedData ?? []) as never, [
         [
           [0, 0],
           [0, 3],

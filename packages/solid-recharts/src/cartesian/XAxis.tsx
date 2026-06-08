@@ -74,6 +74,10 @@ export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   allowDuplicatedCategory?: boolean;
   name?: string;
   unit?: string;
+  /** Axis-line color/opacity (forwarded to CartesianAxis). */
+  stroke?: string;
+  strokeOpacity?: number | string;
+  tickLine?: boolean;
   niceTicks?: NiceTicksAlgorithm;
   /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
   label?: ImplicitLabelType;

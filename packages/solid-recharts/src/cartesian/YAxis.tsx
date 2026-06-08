@@ -70,6 +70,8 @@ export interface YAxisProps<DataPointType = unknown, DataValueType = unknown> {
   unit?: string;
   /** Axis line / tick color (forwarded to CartesianAxis). */
   stroke?: string;
+  strokeOpacity?: number | string;
+  tickLine?: boolean;
   niceTicks?: NiceTicksAlgorithm;
   /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
   label?: ImplicitLabelType;
