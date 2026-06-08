@@ -698,7 +698,9 @@ const barErrorBarFormatter: ErrorBarDataPointFormatter = (entry, dataKey): Error
   const x = getValueByDataKey(entry, "x");
   const y = getValueByDataKey(entry, "y");
   const rawValue = getValueByDataKey(entry, "value");
-  const value = Array.isArray(rawValue) ? rawValue[rawValue.length - 1] : rawValue;
+  // Array.isArray narrows `unknown` to `any[]`; keep the element `unknown` (the
+  // `any → unknown` assignment is safe) so the typeof guard below stays sound.
+  const value: unknown = Array.isArray(rawValue) ? rawValue[rawValue.length - 1] : rawValue;
   const payload = getValueByDataKey(entry, "payload");
   return {
     x: typeof x === "number" ? x : undefined,

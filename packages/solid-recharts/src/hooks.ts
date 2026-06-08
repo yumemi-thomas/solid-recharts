@@ -173,5 +173,5 @@ export const useOffset = (): Accessor<ChartOffset | undefined> => useAppSelector
 export const usePlotArea = (): Accessor<PlotArea | undefined> => useAppSelector(selectPlotArea);
 
 /** Data points currently visible in the tooltip. @since 3.1 */
-export const useActiveTooltipDataPoints = <T = unknown>(): Accessor<ReadonlyArray<T> | undefined> =>
-  useAppSelector(selectActiveTooltipDataPoints) as Accessor<ReadonlyArray<T> | undefined>;
+export const useActiveTooltipDataPoints = (): Accessor<ReadonlyArray<unknown> | undefined> =>
+  useAppSelector(selectActiveTooltipDataPoints);
