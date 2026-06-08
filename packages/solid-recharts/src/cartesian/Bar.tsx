@@ -643,7 +643,8 @@ export interface BarProps extends ZIndexable {
   /** Custom bar shape. @defaultValue Rectangle */
   shape?: ActiveShape<BarShapeProps, SVGPathElement>;
   /** Highlight the active bar (boolean uses default shape). @defaultValue false */
-  activeBar?: ActiveShape<BarShapeProps, SVGPathElement> | boolean;
+  // `ActiveShape` already includes `boolean`, so no explicit `| boolean` needed.
+  activeBar?: ActiveShape<BarShapeProps, SVGPathElement>;
   onAnimationStart?: () => void;
   onAnimationEnd?: () => void;
   isAnimationActive?: boolean | "auto";

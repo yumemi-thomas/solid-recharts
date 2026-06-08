@@ -559,7 +559,7 @@ describe("<YAxis />", () => {
   });
 
   it("should render all labels in an example", () => {
-    const { getByText } = render(() => (
+    const view = render(() => (
       <AreaChart
         width={500}
         height={400}
@@ -575,11 +575,11 @@ describe("<YAxis />", () => {
         <Area type="monotone" dataKey="uv" stroke="#000" fill="url(#splitColor)" />
       </AreaChart>
     ));
-    expect(getByText("0")).toBeVisible();
-    expect(getByText("100")).toBeVisible();
-    expect(getByText("200")).toBeVisible();
-    expect(getByText("300")).toBeVisible();
-    expect(getByText("400")).toBeVisible();
+    expect(view.getByText("0")).toBeVisible();
+    expect(view.getByText("100")).toBeVisible();
+    expect(view.getByText("200")).toBeVisible();
+    expect(view.getByText("300")).toBeVisible();
+    expect(view.getByText("400")).toBeVisible();
   });
 
   it("should render all labels in another example", () => {

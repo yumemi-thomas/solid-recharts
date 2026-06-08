@@ -37,7 +37,7 @@ export type ChartDataState = {
    * store a copy of chart data after it has been processed by each chart's specific
    * compute functions. TODO: add other charts besides Sankey
    */
-  computedData: unknown | undefined;
+  computedData: unknown;
   /**
    * Using Brush, users can choose where they want to zoom in.
    * This is zero-based index of the starting data point.

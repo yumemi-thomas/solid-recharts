@@ -407,12 +407,9 @@ export type CategoricalDomain = ReadonlyArray<CategoricalDomainItem>;
 export type NumberDomain = readonly [min: number, max: number];
 
 export type AxisDomainItem =
-  | string
-  | number
-  | ((d: number) => string | number)
-  | "auto"
-  | "dataMin"
-  | "dataMax";
+  // `string & {}` keeps the literal suggestions ("auto"/…) visible in autocomplete
+  // without them being redundant constituents of a bare `string`.
+  (string & {}) | number | ((d: number) => string | number) | "auto" | "dataMin" | "dataMax";
 
 /**
  * The domain of axis.

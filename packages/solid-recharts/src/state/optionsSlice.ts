@@ -21,7 +21,7 @@ export type ChartOptions = {
 export const arrayTooltipSearcher: TooltipPayloadSearcher = (
   data: unknown,
   strIndex: TooltipIndex,
-): unknown | undefined => {
+): unknown => {
   if (!strIndex) return undefined;
   if (!Array.isArray(data)) return undefined;
   const numIndex = Number.parseInt(strIndex, 10);

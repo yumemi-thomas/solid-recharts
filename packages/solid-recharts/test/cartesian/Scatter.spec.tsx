@@ -116,15 +116,16 @@ describe("<Scatter />", () => {
   });
 
   it("should implicitly read `fill` property from the data array but not `name`", () => {
-    const { container, queryByText } = render(() => (
+    const view = render(() => (
       <ScatterChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
         <Scatter dataKey="value" />
       </ScatterChart>
     ));
-    expect.soft(queryByText("name1")).not.toBeInTheDocument();
-    expect.soft(queryByText("name2")).not.toBeInTheDocument();
-    expect.soft(queryByText("name3")).not.toBeInTheDocument();
-    expect.soft(queryByText("name4")).not.toBeInTheDocument();
+    const { container } = view;
+    expect.soft(view.queryByText("name1")).not.toBeInTheDocument();
+    expect.soft(view.queryByText("name2")).not.toBeInTheDocument();
+    expect.soft(view.queryByText("name3")).not.toBeInTheDocument();
+    expect.soft(view.queryByText("name4")).not.toBeInTheDocument();
     expect.soft(container.querySelector('[fill="fill1"]')).toBeInTheDocument();
     expect.soft(container.querySelector('[fill="fill2"]')).toBeInTheDocument();
     expect.soft(container.querySelector('[fill="fill3"]')).toBeInTheDocument();
