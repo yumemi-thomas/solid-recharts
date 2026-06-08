@@ -1,14 +1,18 @@
 // Ported from recharts 3.8.1 src/cartesian/CartesianAxis.tsx (commit 7a23854).
 //
-// MINIMAL PORT — draws the axis line + tick lines + tick labels + the axis `label`
-// (title) via CartesianLabelFromLabelProp + a `<Label>` child, and supports a
-// function-form `tick` renderer (invoked with recharts' tick-content props). The pure
-// tick geometry helpers (getTickLineCoord/getTickTextAnchor/getTickVerticalAnchor) are
-// ported verbatim. Deferred (documented): the getTicks interval/minTickGap thinning
-// (all selected ticks render — the ticks the selector already produces), ELEMENT-form
-// `tick`/`label` (Solid elements aren't introspectable), ZIndexLayer,
-// RenderedTicksReporter, Y-axis auto-width. Solid deviations: forwardRef dropped;
-// React CSSProperties n/a; `className`→`class`.
+// Draws the axis line + tick lines + tick labels + the axis `label` (title) via
+// CartesianLabelFromLabelProp + a `<Label>` child. Tick parity with recharts:
+// `tick` accepts boolean / settings-object (`{ className }`) / function-renderer;
+// `x` defaults to 0; `axisType` defaults to "xAxis"; `scale` is accepted-and-ignored
+// (recharts dropped it on CartesianAxis in 3.0); `viewBox` is accepted; a user
+// `textAnchor` overrides the orientation-derived one. The pure tick geometry helpers
+// (getTickLineCoord/getTickTextAnchor/getTickVerticalAnchor) are ported verbatim.
+// Deferred (documented): the getTicks interval/minTickGap thinning (all selected ticks
+// render — the ticks the selector already produces), ELEMENT-form `tick`/`label`
+// (Solid can't React.cloneElement an already-evaluated element to inject computed
+// x/y/payload — use the function form instead), ZIndexLayer, RenderedTicksReporter,
+// Y-axis auto-width. Solid deviations: forwardRef dropped; React CSSProperties n/a;
+// `className`→`class`.
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
@@ -22,6 +26,7 @@ import { isNullish, isNumber } from "../util/DataUtils";
 import {
   type CartesianTickContentProps,
   CartesianTickItem,
+  type CartesianViewBox,
   Coordinate,
   RectangleCoordinate,
   type TickProp,
@@ -106,9 +111,22 @@ function getTickVerticalAnchor(orientation: Orientation, mirror: boolean): TextV
   }
 }
 
+/**
+ * The settings-object form of `tick` (e.g. `tick={{ class: "custom" }}`): extra
+ * attributes merged onto the default tick `<Text>`. Solid-idiomatic `class` (recharts'
+ * React equivalent is `tick?: boolean | SVGProps | ReactElement | function`).
+ */
+export type CartesianTickSettings = {
+  class?: string;
+  fill?: string;
+  stroke?: string;
+};
+
 export interface CartesianAxisProps {
-  axisType: "xAxis" | "yAxis";
-  x: number;
+  /** Which axis this is. @defaultValue "xAxis" */
+  axisType?: "xAxis" | "yAxis";
+  /** Left offset of the axis box. @defaultValue 0 */
+  x?: number;
   y: number;
   width: number;
   height: number;
@@ -120,8 +138,22 @@ export interface CartesianAxisProps {
   stroke?: string;
   axisLine?: boolean;
   tickLine?: boolean;
-  tick?: TickProp<CartesianTickContentProps>;
+  // boolean is already covered by TickProp's JSX.Element (Solid's JSX.Element includes
+  // boolean); the settings-object form is the only addition over recharts' TickProp.
+  tick?: CartesianTickSettings | TickProp<CartesianTickContentProps>;
   tickFormatter?: (value: unknown, index: number) => string;
+  /**
+   * The recharts viewBox of the chart. Accepted for API parity; the axis title is
+   * positioned from the axis box (x/y/width/height) just like recharts.
+   */
+  viewBox?: CartesianViewBox;
+  /**
+   * Recharts ignores `scale` on CartesianAxis since 3.0 (it reads ticks directly).
+   * Accepted for API parity and ignored.
+   */
+  scale?: unknown;
+  /** Overrides the orientation-derived `text-anchor` on each tick label. */
+  textAnchor?: TextAnchor;
   interval?: number | string;
   /** Axis name, forwarded to a function-form tick's props (default undefined). */
   name?: string;
@@ -138,6 +170,8 @@ export interface CartesianAxisProps {
 }
 
 const cartesianAxisDefaults = {
+  axisType: "xAxis",
+  x: 0,
   orientation: "bottom",
   stroke: "#666",
   tickLine: true,
@@ -194,8 +228,20 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
   const strokeColor = (): string => merged.stroke ?? cartesianAxisDefaults.stroke;
 
   const textAnchor = (): TextAnchor => getTickTextAnchor(merged.orientation, merged.mirror);
+  // A user-provided `textAnchor` prop overrides the orientation-derived default.
+  const resolvedTextAnchor = (): TextAnchor => merged.textAnchor ?? textAnchor();
   const verticalAnchor = (): TextVerticalAnchor =>
     getTickVerticalAnchor(merged.orientation, merged.mirror);
+
+  // The settings-object form of `tick` (e.g. `{ class: "custom" }`): not a
+  // function, not a boolean, not an already-rendered element/array.
+  const isTickSettings = (t: CartesianAxisProps["tick"]): t is CartesianTickSettings =>
+    t != null &&
+    typeof t === "object" &&
+    !Array.isArray(t) &&
+    !(typeof Node !== "undefined" && t instanceof Node);
+  const tickSettings = (): CartesianTickSettings | null =>
+    isTickSettings(merged.tick) ? merged.tick : null;
 
   const visibleTicks = createMemo(() => {
     const interval = merged.interval;
@@ -266,7 +312,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
       className: `recharts-${merged.axisType} ${merged.axisType} recharts-cartesian-axis-tick-value`,
       fill: strokeColor(),
       stroke: "none",
-      textAnchor: textAnchor(),
+      textAnchor: resolvedTextAnchor(),
       verticalAnchor: verticalAnchor(),
       orientation: merged.orientation,
       height: merged.height,
@@ -310,18 +356,23 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                 </Show>
                 <Show when={merged.tick}>
                   {/* Function-form tick: invoke with recharts' tick-content props.
-                      Ternary (not <Show>) so the constant branch doesn't trip STRICT_READ. */}
+                      Object-form tick (`{ className: "custom" }`): default <Text> with
+                      the extra attrs merged in. Ternary (not <Show>) so the constant
+                      branch doesn't trip STRICT_READ. ELEMENT-form tick is unsupported
+                      (Solid can't clone-and-inject computed x/y into an evaluated node). */}
                   {typeof merged.tick === "function" ? (
                     merged.tick(tickContentProps(item))
                   ) : (
                     <Text
-                      class="recharts-cartesian-axis-tick-value"
+                      class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]
+                        .filter(Boolean)
+                        .join(" ")}
                       x={item.tick.x}
                       y={item.tick.y}
-                      text-anchor={textAnchor()}
+                      textAnchor={resolvedTextAnchor()}
                       verticalAnchor={verticalAnchor()}
                       stroke="none"
-                      fill={strokeColor()}
+                      fill={tickSettings()?.fill ?? strokeColor()}
                     >
                       {labelOf(item.entry, item.index)}
                     </Text>
