@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/cartesian/BarStack.tsx (commit 7a23854).
 // Solid deviations: `resolveDefaultProps`→`merge`; React context → Solid `createContext`;
 // `useMemo`→plain object; `React.memo`/`propsAreEqual` omitted (Solid comp granularity).
-import { createContext, createMemo, For, merge, omit, Show, useContext } from "solid-js";
+import { createContext, createMemo, For, merge, Show, useContext } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { getNormalizedStackId, type NormalizedStackId, type StackId } from "../util/ChartUtils";
 import { useUniqueId } from "../util/useUniqueId";
@@ -77,8 +77,14 @@ export const BarStackClipLayer = (props: LayerProps & { index: number }): JSX.El
   return (
     <Layer
       class={["recharts-bar-stack-layer", props.class].filter(Boolean).join(" ")}
-      clipPath={clipPathUrl}
-      {...omit(props, "class", "children", "index", "ref")}
+      clip-path={clipPathUrl}
+      onMouseEnter={props.onMouseEnter}
+      onMouseLeave={props.onMouseLeave}
+      onClick={props.onClick}
+      onMouseOver={props.onMouseOver}
+      onMouseOut={props.onMouseOut}
+      onTouchMove={props.onTouchMove}
+      onTouchEnd={props.onTouchEnd}
       ref={props.ref}
     >
       {props.children}

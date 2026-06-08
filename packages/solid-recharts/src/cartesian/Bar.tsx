@@ -136,7 +136,11 @@ export interface BarRectangleItem {
   label?: string;
 }
 
-export type BarShapeProps = BarRectangleItem & {
+export type BarShapeProps = Omit<BarRectangleItem, "value" | "tooltipPosition"> & {
+  // value/tooltipPosition are optional here: a bar shape receives them, but the same
+  // shape option also renders backgrounds (which omit them — see BarRectangleProps).
+  value?: BarRectangleItem["value"];
+  tooltipPosition?: BarRectangleItem["tooltipPosition"];
   isActive: boolean;
   index: number;
   /** Fired when the bar's CSS enter/exit transition ends (set during animation). */

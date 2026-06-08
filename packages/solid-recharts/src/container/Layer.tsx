@@ -11,7 +11,10 @@ interface LayerOwnProps {
   ref?: SVGGElement | ((el: SVGGElement) => void);
 }
 
-export type LayerProps = Omit<JSX.GSVGAttributes<SVGGElement>, "class"> & LayerOwnProps;
+// Omit class/children/ref from the SVG attrs so LayerOwnProps owns them cleanly
+// (avoids a `children`/`ref` intersection that breaks `{...spread}` forwarding).
+export type LayerProps = Omit<JSX.GSVGAttributes<SVGGElement>, "class" | "children" | "ref"> &
+  LayerOwnProps;
 
 /**
  * Creates an SVG group element to group other SVG elements.
