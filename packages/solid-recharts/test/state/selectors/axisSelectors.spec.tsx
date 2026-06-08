@@ -537,7 +537,8 @@ describe("selectHasBar", () => {
     expect(selectHasBar(store.state)).toBe(true);
 
     unmount();
-    store = undefined;
+    // The next render's <StoreCapture> reassigns `store`; no manual reset (which would
+    // narrow the type to `undefined`, then `never` after the null-check below).
     const oneBar = render(() => (
       <BarChart data={PageData} width={100} height={100}>
         <Bar dataKey="uv" />
