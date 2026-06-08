@@ -3,10 +3,12 @@
 // inheriting its parent's fill unless it sets its own. `flush()` because the chart
 // size is reported via an effect (ReportChartSize) before the arcs compute.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+import { createEffect, flush } from "solid-js";
 import { render, fireEvent } from "../helper/render";
 import { SunburstChart } from "../../src";
 import type { SunburstData } from "../../src";
+import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
+import { useClipPathId } from "../../src/container/ClipPathProvider";
 
 const data: SunburstData = {
   name: "Root",
@@ -60,5 +62,78 @@ describe("<SunburstChart />", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
     // The node passed back is the first child (Child1).
     expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "Child1", tooltipIndex: "[0]" });
+  });
+
+  it("does not call touch event callbacks", () => {
+    const onTouchMove = vi.fn();
+    const onTouchEnd = vi.fn();
+
+    const { container } = render(() => (
+      <SunburstChart
+        width={500}
+        height={500}
+        // @ts-expect-error typescript is correct here - SunburstChart does not fire touch events
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        data={data}
+      />
+    ));
+    flush();
+
+    const sector = container.querySelectorAll(".recharts-sector")[0]!;
+    fireEvent.touchMove(sector, { touches: [{ clientX: 200, clientY: 200 }] });
+    expect(onTouchMove).not.toHaveBeenCalled();
+  });
+
+  describe("SunburstChart layout context", () => {
+    it("should provide viewBox but not clipPathId", () => {
+      const clipPathSpy = vi.fn();
+      const viewBoxSpy = vi.fn();
+      const Comp = (): null => {
+        clipPathSpy(useClipPathId());
+        const viewBox = useViewBox();
+        createEffect(
+          () => viewBox(),
+          (v) => viewBoxSpy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <SunburstChart width={100} height={50} data={data}>
+          <Comp />
+        </SunburstChart>
+      ));
+      flush();
+
+      expect(clipPathSpy).toHaveBeenLastCalledWith(undefined);
+      expect(viewBoxSpy).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 100, height: 50 });
+    });
+
+    it("should set width and height in context", () => {
+      const widthSpy = vi.fn();
+      const heightSpy = vi.fn();
+      const Comp = (): null => {
+        const width = useChartWidth();
+        const height = useChartHeight();
+        createEffect(
+          () => width(),
+          (v) => widthSpy(v),
+        );
+        createEffect(
+          () => height(),
+          (v) => heightSpy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <SunburstChart width={100} height={50} data={data}>
+          <Comp />
+        </SunburstChart>
+      ));
+      flush();
+
+      expect(widthSpy).toHaveBeenLastCalledWith(100);
+      expect(heightSpy).toHaveBeenLastCalledWith(50);
+    });
   });
 });
