@@ -374,3 +374,35 @@ export const rangeData = [
   { day: "05-08", temperature: [0, 8] },
   { day: "05-09", temperature: [-3, 5] },
 ];
+
+// Ported from recharts 3.8.1 test/_data.ts — box-plot-shaped rows used by
+// ScatterChart Composed-with-stacks specs (ZAxis `size` vs stacked Bars).
+export const boxPlotData = [
+  {
+    min: 100,
+    bottomWhisker: 100,
+    bottomBox: 50,
+    topBox: 200,
+    topWhisker: 200,
+    average: 150,
+    size: 150,
+  },
+  {
+    min: 200,
+    bottomWhisker: 200,
+    bottomBox: 200,
+    topBox: 100,
+    topWhisker: 100,
+    average: 550,
+    size: 250,
+  },
+  {
+    min: 0,
+    bottomWhisker: 200,
+    bottomBox: 200,
+    topBox: 200,
+    topWhisker: 200,
+    average: 400,
+    size: 350,
+  },
+];

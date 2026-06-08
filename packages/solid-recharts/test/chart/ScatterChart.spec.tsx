@@ -4,8 +4,10 @@
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect } from "solid-js";
 import {
+  Bar,
   Brush,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Scatter,
   ScatterChart,
@@ -18,7 +20,7 @@ import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { expectXAxisTicks, expectYAxisTicks } from "../helper/expectAxisTicks";
 import { assertNotNull } from "../helper/assertNotNull";
 import { fireEvent, render } from "../helper/render";
-import { PageData } from "../_data";
+import { boxPlotData, PageData } from "../_data";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
@@ -32,7 +34,12 @@ import { selectChartDataWithIndexes } from "../../src/state/selectors/dataSelect
 import { selectTooltipState } from "../../src/state/selectors/selectTooltipState";
 import type { TooltipPayloadConfiguration, TooltipState } from "../../src/state/tooltipSlice";
 import {
+  selectAxisDomain,
+  selectBaseAxis,
+  selectDisplayedData,
+  selectDomainOfStackGroups,
   selectNumericalDomain,
+  selectTicksOfGraphicalItem,
   selectZAxisWithScale,
 } from "../../src/state/selectors/axisSelectors";
 import { expectScale } from "../helper/expectScale";
@@ -2204,5 +2211,279 @@ describe("ScatterChart with data with type property", () => {
   it("should render without throwing error", () => {
     const { container } = renderTestCase();
     expect(container).toBeInTheDocument();
+  });
+});
+
+describe("Composed chart when there are stacks but the stacks are smaller than the ZAxis dataKey", () => {
+  const renderTestCase = createSelectorTestCase((props) => (
+    <ComposedChart width={400} height={200} data={boxPlotData}>
+      <Bar stackId="a" dataKey="min" />
+      <ZAxis type="number" dataKey="size" range={[0, 250]} />
+      <Scatter dataKey="average" />
+      <XAxis />
+      <YAxis />
+      {props.children}
+    </ComposedChart>
+  ));
+
+  it("should select YAxis numerical domain", () => {
+    const { spy } = renderTestCase((state) => selectNumericalDomain(state, "yAxis", 0, false));
+    expectLastCalledWith(spy, [0, 550]);
+  });
+
+  it("should select YAxis final domain", () => {
+    const { spy } = renderTestCase((state) => selectAxisDomain(state, "yAxis", 0, false));
+    expectLastCalledWith(spy, [0, 550]);
+  });
+
+  it("should select YAxis ticks", () => {
+    const { spy } = renderTestCase((state) => selectTicksOfGraphicalItem(state, "yAxis", 0, false));
+    expectLastCalledWith(spy, [
+      { index: 0, coordinate: 165, value: 0, offset: 0 },
+      { index: 1, coordinate: 138.33333333333334, value: 100, offset: 0 },
+      { index: 2, coordinate: 111.66666666666669, value: 200, offset: 0 },
+      { index: 3, coordinate: 85, value: 300, offset: 0 },
+      { index: 4, coordinate: 58.33333333333334, value: 400, offset: 0 },
+      { index: 5, coordinate: 31.66666666666666, value: 500, offset: 0 },
+      { index: 6, coordinate: 5, value: 600, offset: 0 },
+    ]);
+  });
+
+  it("should select ZAxis displayed data", () => {
+    const { spy } = renderTestCase((state) => selectDisplayedData(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [
+      {
+        average: 150,
+        bottomBox: 50,
+        bottomWhisker: 100,
+        min: 100,
+        size: 150,
+        topBox: 200,
+        topWhisker: 200,
+      },
+      {
+        average: 550,
+        bottomBox: 200,
+        bottomWhisker: 200,
+        min: 200,
+        size: 250,
+        topBox: 100,
+        topWhisker: 100,
+      },
+      {
+        average: 400,
+        bottomBox: 200,
+        bottomWhisker: 200,
+        min: 0,
+        size: 350,
+        topBox: 200,
+        topWhisker: 200,
+      },
+    ]);
+  });
+
+  it("should select ZAxis stack groups domain", () => {
+    const { spy } = renderTestCase((state) => selectDomainOfStackGroups(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, undefined);
+  });
+
+  it("should select ZAxis numerical domain", () => {
+    const { spy } = renderTestCase((state) => selectNumericalDomain(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [0, 350]);
+  });
+
+  it("should select ZAxis final domain", () => {
+    const { spy } = renderTestCase((state) => selectAxisDomain(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [0, 350]);
+  });
+
+  it("should select ZAxis axis settings", () => {
+    const { spy } = renderTestCase((state) => selectZAxisWithScale(state, "zAxis", 0, false));
+    const settings = spy.mock.lastCall?.[0];
+    assertNotNull(settings);
+    expect(settings).toMatchObject({
+      domain: undefined,
+      allowDataOverflow: false,
+      allowDuplicatedCategory: false,
+      dataKey: "size",
+      id: 0,
+      includeHidden: false,
+      name: undefined,
+      range: [0, 250],
+      reversed: false,
+      type: "number",
+      unit: undefined,
+    });
+    expectScale(settings.scale, { domain: [0, 350], range: [0, 250] });
+  });
+
+  it("should render scatter points", () => {
+    const { container } = renderTestCase();
+    expectScatterPoints(container, [
+      {
+        cx: "120",
+        cy: "125",
+        d: "M0,0",
+        height: "11.67983401638037",
+        transform: "translate(120, 125)",
+        width: "11.67983401638037",
+      },
+      {
+        cx: "230",
+        cy: "18.33333333333334",
+        d: "M0,0",
+        height: "15.078600877302687",
+        transform: "translate(230, 18.33333333333334)",
+        width: "15.078600877302687",
+      },
+      {
+        cx: "340",
+        cy: "58.33333333333334",
+        d: "M0,0",
+        height: "17.841241161527712",
+        transform: "translate(340, 58.33333333333334)",
+        width: "17.841241161527712",
+      },
+    ]);
+  });
+});
+
+describe("Composed chart when stacks are bigger than ZAxis dataKey", () => {
+  const renderTestCase = createSelectorTestCase((props) => (
+    <ComposedChart width={400} height={200} data={boxPlotData}>
+      <Bar stackId="a" dataKey="min" />
+      <Bar stackId="a" dataKey="bar" />
+      <Bar stackId="a" dataKey="bottomWhisker" />
+      <Bar stackId="a" dataKey="bottomBox" />
+      <Bar stackId="a" dataKey="bar" />
+      <Bar stackId="a" dataKey="topBox" />
+      <Bar stackId="a" dataKey="topWhisker" />
+      <Bar stackId="a" dataKey="bar" />
+      <ZAxis type="number" dataKey="size" range={[0, 250]} />
+
+      <Scatter dataKey="average" />
+      <XAxis />
+      <YAxis />
+
+      {props.children}
+    </ComposedChart>
+  ));
+
+  it("should select YAxis numeric domain", () => {
+    const { spy } = renderTestCase((state) => selectNumericalDomain(state, "yAxis", 0, false));
+    expectLastCalledWith(spy, [0, 800]);
+  });
+
+  it("should select YAxis final domain", () => {
+    const { spy } = renderTestCase((state) => selectAxisDomain(state, "yAxis", 0, false));
+    expectLastCalledWith(spy, [0, 800]);
+  });
+
+  it("should select YAxis ticks", () => {
+    const { spy } = renderTestCase((state) => selectTicksOfGraphicalItem(state, "yAxis", 0, false));
+
+    expectLastCalledWith(spy, [
+      { index: 0, coordinate: 165, offset: 0, value: 0 },
+      { index: 1, coordinate: 125, offset: 0, value: 200 },
+      { index: 2, coordinate: 85, offset: 0, value: 400 },
+      { index: 3, coordinate: 45, offset: 0, value: 600 },
+      { index: 4, coordinate: 5, offset: 0, value: 800 },
+    ]);
+  });
+
+  it("should select ZAxis displayed data", () => {
+    const { spy } = renderTestCase((state) => selectDisplayedData(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [
+      {
+        average: 150,
+        bottomBox: 50,
+        bottomWhisker: 100,
+        min: 100,
+        size: 150,
+        topBox: 200,
+        topWhisker: 200,
+      },
+      {
+        average: 550,
+        bottomBox: 200,
+        bottomWhisker: 200,
+        min: 200,
+        size: 250,
+        topBox: 100,
+        topWhisker: 100,
+      },
+      {
+        average: 400,
+        bottomBox: 200,
+        bottomWhisker: 200,
+        min: 0,
+        size: 350,
+        topBox: 200,
+        topWhisker: 200,
+      },
+    ]);
+  });
+
+  it("should select ZAxis stack groups domain", () => {
+    const { spy } = renderTestCase((state) => selectDomainOfStackGroups(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, undefined);
+  });
+
+  it("should select ZAxis numerical domain", () => {
+    const { spy } = renderTestCase((state) => selectNumericalDomain(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [0, 350]);
+  });
+
+  it("should select ZAxis final domain", () => {
+    const { spy } = renderTestCase((state) => selectAxisDomain(state, "zAxis", 0, false));
+    expectLastCalledWith(spy, [0, 350]);
+  });
+
+  it("should select ZAxis axis settings", () => {
+    const { spy } = renderTestCase((state) => selectBaseAxis(state, "zAxis", 0));
+    expectLastCalledWith(spy, {
+      allowDataOverflow: false,
+      allowDuplicatedCategory: false,
+      dataKey: "size",
+      id: 0,
+      includeHidden: false,
+      name: undefined,
+      range: [0, 250],
+      reversed: false,
+      scale: "auto",
+      type: "number",
+      unit: undefined,
+      domain: undefined,
+    });
+  });
+
+  it("should render Scatter points", () => {
+    const { container } = renderTestCase();
+    expectScatterPoints(container, [
+      {
+        cx: "120",
+        cy: "135",
+        d: "M0,0",
+        height: "11.67983401638037",
+        transform: "translate(120, 135)",
+        width: "11.67983401638037",
+      },
+      {
+        cx: "230",
+        cy: "55",
+        d: "M0,0",
+        height: "15.078600877302687",
+        transform: "translate(230, 55)",
+        width: "15.078600877302687",
+      },
+      {
+        cx: "340",
+        cy: "85",
+        d: "M0,0",
+        height: "17.841241161527712",
+        transform: "translate(340, 85)",
+        width: "17.841241161527712",
+      },
+    ]);
   });
 });
