@@ -21,6 +21,7 @@ import {
 import { useOffset, usePlotArea } from "../../src/hooks";
 import { useClipPathId } from "../../src/container/ClipPathProvider";
 import { expectBars } from "../helper/expectBars";
+import { useAppSelector } from "../../src/state/hooks";
 import { expectScale } from "../helper/expectScale";
 import {
   selectAllBarPositions,
@@ -2507,6 +2508,435 @@ describe("when stackId is a number", () => {
         width: "6",
         x: "88.25",
         y: "5",
+      },
+    ]);
+  });
+});
+
+describe("rendering bar rectangles", () => {
+  test("renders simple BarChart", () => {
+    const barSpy = vi.fn();
+    const sizeListSpy = vi.fn();
+    const Comp = (): null => {
+      const bars = useAppSelector((state) => selectAllVisibleBars(state, "my-bar-id", false));
+      const sizeList = useAppSelector((state) => selectBarSizeList(state, "my-bar-id", false));
+      createEffect(
+        () => bars(),
+        (v) => barSpy(v),
+      );
+      createEffect(
+        () => sizeList(),
+        (v) => sizeListSpy(v),
+      );
+      return null;
+    };
+    const { container } = render(() => (
+      <BarChart width={100} height={50} data={data}>
+        <Bar dataKey="uv" isAnimationActive={false} id="my-bar-id" />
+        <Comp />
+      </BarChart>
+    ));
+
+    const expectedBar: BarSettings = {
+      id: expect.stringMatching("bar-"),
+      isPanorama: false,
+      maxBarSize: undefined,
+      minPointSize: 0,
+      hasCustomShape: false,
+      barSize: undefined,
+      data: undefined,
+      dataKey: "uv",
+      hide: false,
+      stackId: undefined,
+      type: "bar",
+      xAxisId: 0,
+      yAxisId: 0,
+      zAxisId: 0,
+    };
+    expect(barSpy).toHaveBeenLastCalledWith([expectedBar]);
+
+    expect(sizeListSpy).toHaveBeenLastCalledWith([
+      {
+        barSize: undefined,
+        dataKeys: ["uv"],
+        stackId: undefined,
+      },
+    ]);
+
+    expectBars(container, [
+      {
+        d: "M 7.25,5 h 18 v 40 h -18 Z",
+        height: "40",
+        radius: "0",
+        width: "18",
+        x: "7.25",
+        y: "5",
+      },
+      {
+        d: "M 29.75,15 h 18 v 30 h -18 Z",
+        height: "30",
+        radius: "0",
+        width: "18",
+        x: "29.75",
+        y: "15",
+      },
+      {
+        d: "M 52.25,15 h 18 v 30 h -18 Z",
+        height: "30",
+        radius: "0",
+        width: "18",
+        x: "52.25",
+        y: "15",
+      },
+      {
+        d: "M 74.75,25 h 18 v 20 h -18 Z",
+        height: "20",
+        radius: "0",
+        width: "18",
+        x: "74.75",
+        y: "25",
+      },
+    ]);
+  });
+
+  test("Renders BarChart with two Bars", () => {
+    const { container } = render(() => (
+      <BarChart width={100} height={50} data={data}>
+        <Bar dataKey="uv" isAnimationActive={false} />
+        <Bar dataKey="pv" isAnimationActive={false} />
+      </BarChart>
+    ));
+
+    expectBars(container, [
+      {
+        d: "M 7.25,43.4 h 7 v 1.6 h -7 Z",
+        height: "1.6",
+        radius: "0",
+        width: "7",
+        x: "7.25",
+        y: "43.4",
+      },
+      {
+        d: "M 29.75,43.8 h 7 v 1.2 h -7 Z",
+        height: "1.2",
+        radius: "0",
+        width: "7",
+        x: "29.75",
+        y: "43.8",
+      },
+      {
+        d: "M 52.25,43.8 h 7 v 1.2 h -7 Z",
+        height: "1.2",
+        radius: "0",
+        width: "7",
+        x: "52.25",
+        y: "43.8",
+      },
+      {
+        d: "M 74.75,44.2 h 7 v 0.8 h -7 Z",
+        height: "0.8",
+        radius: "0",
+        width: "7",
+        x: "74.75",
+        y: "44.2",
+      },
+      {
+        d: "M 18.25,35.4 h 7 v 9.6 h -7 Z",
+        height: "9.6",
+        radius: "0",
+        width: "7",
+        x: "18.25",
+        y: "35.4",
+      },
+      {
+        d: "M 40.75,26.732 h 7 v 18.268 h -7 Z",
+        height: "18.268",
+        radius: "0",
+        width: "7",
+        x: "40.75",
+        y: "26.732",
+      },
+      {
+        d: "M 63.25,39.408 h 7 v 5.592 h -7 Z",
+        height: "5.592",
+        radius: "0",
+        width: "7",
+        x: "63.25",
+        y: "39.408",
+      },
+      {
+        d: "M 85.75,5.8 h 7 v 39.2 h -7 Z",
+        height: "39.2",
+        radius: "0",
+        width: "7",
+        x: "85.75",
+        y: "5.8",
+      },
+    ]);
+  });
+
+  test("Don't renders any bars when no Bar item is added", () => {
+    const { container } = render(() => <BarChart width={100} height={50} data={data} />);
+
+    expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(0);
+  });
+
+  test("Renders 8 bars in a vertical BarChart", () => {
+    const { container } = render(() => (
+      <BarChart width={100} height={50} data={data} layout="vertical">
+        <XAxis type="number" />
+        <YAxis type="category" dataKey="name" />
+        <Bar dataKey="uv" fill="#ff7300" isAnimationActive={false} />
+        <Bar dataKey="pv" fill="#387908" isAnimationActive={false} />
+      </BarChart>
+    ));
+
+    expectBars(container, [
+      {
+        d: "M 65,5.25 h 1.2 v 1 h -1.2 Z",
+        height: "1",
+        radius: "0",
+        width: "1.2",
+        x: "65",
+        y: "5.25",
+      },
+      {
+        d: "M 65,7.75 h 0.9 v 1 h -0.9 Z",
+        height: "1",
+        radius: "0",
+        width: "0.9",
+        x: "65",
+        y: "7.75",
+      },
+      {
+        d: "M 65,10.25 h 0.9 v 1 h -0.9 Z",
+        height: "1",
+        radius: "0",
+        width: "0.9",
+        x: "65",
+        y: "10.25",
+      },
+      {
+        d: "M 65,12.75 h 0.6 v 1 h -0.6 Z",
+        height: "1",
+        radius: "0",
+        width: "0.6",
+        x: "65",
+        y: "12.75",
+      },
+      {
+        d: "M 65,6.25 h 7.2 v 1 h -7.2 Z",
+        height: "1",
+        radius: "0",
+        width: "7.2",
+        x: "65",
+        y: "6.25",
+      },
+      {
+        d: "M 65,8.75 h 13.701 v 1 h -13.701 Z",
+        height: "1",
+        radius: "0",
+        width: "13.701",
+        x: "65",
+        y: "8.75",
+      },
+      {
+        d: "M 65,11.25 h 4.194 v 1 h -4.194 Z",
+        height: "1",
+        radius: "0",
+        width: "4.194",
+        x: "65",
+        y: "11.25",
+      },
+      {
+        d: "M 65,13.75 h 29.4 v 1 h -29.4 Z",
+        height: "1",
+        radius: "0",
+        width: "29.4",
+        x: "65",
+        y: "13.75",
+      },
+    ]);
+  });
+
+  test("Renders 8 bars in a stacked BarChart, Bars of the same category have the same name and same x pos", () => {
+    const matchingStackConfig = [
+      { name: "food", firstBarIndex: 0, secondBarIndex: 4 },
+      { name: "cosmetic", firstBarIndex: 1, secondBarIndex: 5 },
+      { name: "storage", firstBarIndex: 2, secondBarIndex: 6 },
+      { name: "digital", firstBarIndex: 3, secondBarIndex: 7 },
+    ];
+
+    const { container } = render(() => (
+      <BarChart width={100} height={50} data={data}>
+        <YAxis />
+        <Bar dataKey="uv" stackId="test" fill="#ff7300" isAnimationActive={false} />
+        <Bar dataKey="pv" stackId="test" fill="#387908" isAnimationActive={false} />
+      </BarChart>
+    ));
+
+    const rects = container.querySelectorAll(".recharts-rectangle");
+    expect(rects).toHaveLength(8);
+
+    matchingStackConfig.forEach(({ name, firstBarIndex, secondBarIndex }) => {
+      // bar one and bar two should be the same category
+      const barOne = rects[firstBarIndex]!;
+      const barTwo = rects[secondBarIndex]!;
+      expect(barOne.getAttribute("name")).toEqual(name);
+      expect(barTwo.getAttribute("name")).toEqual(name);
+
+      // these bars should have the same x (cannot compare y accurately as Y does not start from 0)
+      expect(barOne.getAttribute("x")).toEqual(barTwo.getAttribute("x"));
+    });
+
+    expectBars(container, [
+      {
+        d: "M 65.75,43.4 h 6 v 1.6 h -6 Z",
+        height: "1.6",
+        radius: "0",
+        width: "6",
+        x: "65.75",
+        y: "43.4",
+      },
+      {
+        d: "M 73.25,43.8 h 6 v 1.2 h -6 Z",
+        height: "1.2",
+        radius: "0",
+        width: "6",
+        x: "73.25",
+        y: "43.8",
+      },
+      {
+        d: "M 80.75,43.8 h 6 v 1.2 h -6 Z",
+        height: "1.2",
+        radius: "0",
+        width: "6",
+        x: "80.75",
+        y: "43.8",
+      },
+      {
+        d: "M 88.25,44.2 h 6 v 0.8 h -6 Z",
+        height: "0.8",
+        radius: "0",
+        width: "6",
+        x: "88.25",
+        y: "44.2",
+      },
+      {
+        d: "M 65.75,33.8 h 6 v 9.6 h -6 Z",
+        height: "9.6",
+        radius: "0",
+        width: "6",
+        x: "65.75",
+        y: "33.8",
+      },
+      {
+        d: "M 73.25,25.532 h 6 v 18.268 h -6 Z",
+        height: "18.268",
+        radius: "0",
+        width: "6",
+        x: "73.25",
+        y: "25.532",
+      },
+      {
+        d: "M 80.75,38.208 h 6 v 5.592 h -6 Z",
+        height: "5.592",
+        radius: "0",
+        width: "6",
+        x: "80.75",
+        y: "38.208",
+      },
+      {
+        d: "M 88.25,5 h 6 v 39.2 h -6 Z",
+        height: "39.2",
+        radius: "0",
+        width: "6",
+        x: "88.25",
+        y: "5",
+      },
+    ]);
+  });
+
+  test("renders a horizontal stacked bar chart when x-axis is of type number", () => {
+    const dataWithNumberAsKey = [
+      { xKey: 4000, uv: 400, pv: 2400 },
+      { xKey: 6000, uv: 300, pv: 4567 },
+      { xKey: 8000, uv: 300, pv: 1398 },
+      { xKey: 10000, uv: 200, pv: 9800 },
+    ];
+
+    const { container } = render(() => (
+      <BarChart width={500} height={400} data={dataWithNumberAsKey}>
+        <XAxis type="number" dataKey="xKey" domain={["dataMin", "dataMax"]} />
+        <Bar dataKey="uv" stackId="test" fill="#ff7300" isAnimationActive={false} />
+        <Bar dataKey="pv" stackId="test" fill="#387908" isAnimationActive={false} />
+      </BarChart>
+    ));
+
+    expectBars(container, [
+      {
+        x: "-60.3333",
+        y: "350.6",
+        width: "131",
+        height: "14.4",
+        radius: "0",
+        d: "M -60.3333,350.6 h 131 v 14.4 h -131 Z",
+      },
+      {
+        x: "103",
+        y: "354.2",
+        width: "131",
+        height: "10.8",
+        radius: "0",
+        d: "M 103,354.2 h 131 v 10.8 h -131 Z",
+      },
+      {
+        x: "266.3333",
+        y: "354.2",
+        width: "131",
+        height: "10.8",
+        radius: "0",
+        d: "M 266.3333,354.2 h 131 v 10.8 h -131 Z",
+      },
+      {
+        x: "429.6667",
+        y: "357.8",
+        width: "131",
+        height: "7.2",
+        radius: "0",
+        d: "M 429.6667,357.8 h 131 v 7.2 h -131 Z",
+      },
+      {
+        x: "-60.3333",
+        y: "264.2",
+        width: "131",
+        height: "86.4",
+        radius: "0",
+        d: "M -60.3333,264.2 h 131 v 86.4 h -131 Z",
+      },
+      {
+        x: "103",
+        y: "189.788",
+        width: "131",
+        height: "164.412",
+        radius: "0",
+        d: "M 103,189.788 h 131 v 164.412 h -131 Z",
+      },
+      {
+        x: "266.3333",
+        y: "303.872",
+        width: "131",
+        height: "50.328",
+        radius: "0",
+        d: "M 266.3333,303.872 h 131 v 50.328 h -131 Z",
+      },
+      {
+        x: "429.6667",
+        y: "5",
+        width: "131",
+        height: "352.8",
+        radius: "0",
+        d: "M 429.6667,5 h 131 v 352.8 h -131 Z",
       },
     ]);
   });
