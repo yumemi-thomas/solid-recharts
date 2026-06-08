@@ -386,7 +386,7 @@ const squarify = (
 export interface TreemapProps extends EventThrottlingProps {
   class?: string;
   /** Top-level nodes; wrapped as the children of an implicit root that fills the chart. */
-  data: ReadonlyArray<TreemapDataType>;
+  data?: ReadonlyArray<TreemapDataType>;
   width?: number | Percent;
   height?: number | Percent;
   responsive?: boolean;
@@ -409,6 +409,7 @@ export interface TreemapProps extends EventThrottlingProps {
 }
 
 export const treemapDefaultProps = {
+  data: [],
   dataKey: "value",
   nameKey: "name",
   aspectRatio: 0.5 * (1 + Math.sqrt(5)),
