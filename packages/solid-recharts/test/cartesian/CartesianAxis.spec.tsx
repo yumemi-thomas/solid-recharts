@@ -19,7 +19,7 @@ const CustomizeLabel: LabelContentType = (props) => (
 );
 
 const CustomizedTick = (props: CartesianTickContentProps) => (
-  <text data-testid="customized-tick" x={props.x} y={props.y} class={props.className}>
+  <text data-testid="customized-tick" x={props.x} y={props.y} class={props.class}>
     test
   </text>
 );

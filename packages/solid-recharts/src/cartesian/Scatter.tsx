@@ -96,15 +96,15 @@ export interface ScatterPointItem {
 
 /**
  * Props the shape/activeShape renderer receives: a point's geometry plus the
- * presentation/active flags. `className` is accepted for recharts API parity
- * (React style); the port renders via `class`.
+ * presentation/active flags. Solid-idiomatic `class` (recharts' React prop is
+ * `className`).
  */
 export type ScatterShapeProps = ScatterPointItem & {
   isActive?: boolean;
   index?: number;
   type?: SymbolType;
   sizeType?: "area";
-  className?: string;
+  class?: string;
   fillOpacity?: number | string;
   stroke?: string;
 };

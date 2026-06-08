@@ -2544,7 +2544,7 @@ describe("ScatterChart customized active shape", () => {
           name="A school"
           data={data}
           fill="#ff7300"
-          activeShape={{ type: "triangle", className: "triangle-symbols-type", fill: "red" }}
+          activeShape={{ type: "triangle", class: "triangle-symbols-type", fill: "red" }}
         />
         <Tooltip />
       </ScatterChart>

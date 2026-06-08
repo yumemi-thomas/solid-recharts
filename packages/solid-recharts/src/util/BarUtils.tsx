@@ -37,8 +37,8 @@ export function BarRectangle(props: BarRectangleProps): JSX.Element {
       option={props.option}
       DefaultShape={defaultBarShape}
       shapeProps={shapeProps()}
-      activeClassName="recharts-active-bar"
-      inActiveClassName="recharts-inactive-bar"
+      activeClass="recharts-active-bar"
+      inactiveClass="recharts-inactive-bar"
     />
   );
 }

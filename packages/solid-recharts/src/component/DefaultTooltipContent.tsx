@@ -46,7 +46,7 @@ export interface Payload<TValue extends ValueType = ValueType, TName extends Nam
   stroke?: string;
   strokeDasharray?: string | number;
   strokeWidth?: number | string;
-  className?: string;
+  class?: string;
   hide?: boolean;
   /** The id of the graphical item the data point belongs to. */
   graphicalItemId: string;
@@ -59,8 +59,8 @@ export type TooltipItemSorter<
 
 export interface Props<TValue extends ValueType = ValueType, TName extends NameType = NameType> {
   separator?: string;
-  wrapperClassName?: string;
-  labelClassName?: string;
+  wrapperClass?: string;
+  labelClass?: string;
   formatter?: Formatter<TValue, TName>;
   contentStyle?: JSX.CSSProperties;
   itemStyle?: JSX.CSSProperties;
@@ -221,12 +221,12 @@ export const DefaultTooltipContent = (props: Props): JSX.Element => {
 
   return (
     <div
-      class={["recharts-default-tooltip", props.wrapperClassName]}
+      class={["recharts-default-tooltip", props.wrapperClass]}
       style={finalStyle()}
       role={merged.accessibilityLayer ? "status" : undefined}
       aria-live={merged.accessibilityLayer ? "assertive" : undefined}
     >
-      <p class={["recharts-tooltip-label", props.labelClassName]} style={finalLabelStyle()}>
+      <p class={["recharts-tooltip-label", props.labelClass]} style={finalLabelStyle()}>
         {finalLabel()}
       </p>
       <Show when={sortedPayload().length > 0}>

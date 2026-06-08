@@ -51,7 +51,7 @@ export const CartesianChart = (props: CartesianChartOptions): JSX.Element => {
     barCategoryGap: cp().barCategoryGap ?? "10%",
     barGap: cp().barGap ?? 4,
     barSize: cp().barSize,
-    className: cp().class,
+    class: cp().class,
     maxBarSize: cp().maxBarSize,
     stackOffset: cp().stackOffset ?? "none",
     syncId: cp().syncId,

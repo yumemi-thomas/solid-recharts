@@ -2,7 +2,7 @@
 //
 // Draws the axis line + tick lines + tick labels + the axis `label` (title) via
 // CartesianLabelFromLabelProp + a `<Label>` child. Tick parity with recharts:
-// `tick` accepts boolean / settings-object (`{ className }`) / function-renderer;
+// `tick` accepts boolean / settings-object (`{ class }`) / function-renderer;
 // `x` defaults to 0; `axisType` defaults to "xAxis"; `scale` is accepted-and-ignored
 // (recharts dropped it on CartesianAxis in 3.0); `viewBox` is accepted; a user
 // `textAnchor` overrides the orientation-derived one. The pure tick geometry helpers
@@ -287,7 +287,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
     merged.axisType === "yAxis" ? { top: 0, bottom: 0 } : { left: 0, right: 0 };
 
   // The props recharts passes to a function-form `tick` renderer, built to match its
-  // shape exactly (className = axis class + tick-value class; payload = the tick item).
+  // shape exactly (class = axis class + tick-value class; payload = the tick item).
   const tickContentProps = (item: {
     entry: CartesianTickItem;
     index: number;
@@ -309,7 +309,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
       },
       index: item.index,
       visibleTicksCount: visibleTicks().length,
-      className: `recharts-${merged.axisType} ${merged.axisType} recharts-cartesian-axis-tick-value`,
+      class: `recharts-${merged.axisType} ${merged.axisType} recharts-cartesian-axis-tick-value`,
       fill: strokeColor(),
       stroke: "none",
       textAnchor: resolvedTextAnchor(),
@@ -356,7 +356,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                 </Show>
                 <Show when={merged.tick}>
                   {/* Function-form tick: invoke with recharts' tick-content props.
-                      Object-form tick (`{ className: "custom" }`): default <Text> with
+                      Object-form tick (`{ class: "custom" }`): default <Text> with
                       the extra attrs merged in. Ternary (not <Show>) so the constant
                       branch doesn't trip STRICT_READ. ELEMENT-form tick is unsupported
                       (Solid can't clone-and-inject computed x/y into an evaluated node). */}

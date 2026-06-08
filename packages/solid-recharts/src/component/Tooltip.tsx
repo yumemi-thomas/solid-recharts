@@ -128,8 +128,8 @@ function renderContent(content: ContentType | undefined, props: TooltipContentPr
       contentStyle={props.contentStyle}
       itemStyle={props.itemStyle}
       labelStyle={props.labelStyle}
-      wrapperClassName={props.wrapperClassName}
-      labelClassName={props.labelClassName}
+      wrapperClass={props.wrapperClass}
+      labelClass={props.labelClass}
       formatter={props.formatter}
       labelFormatter={props.labelFormatter}
       label={props.label}

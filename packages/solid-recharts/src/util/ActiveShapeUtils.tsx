@@ -17,8 +17,8 @@ export type ShapeProps<PropsType extends object, ElementType extends SVGElement 
   option: ActiveShape<PropsType, ElementType> | undefined;
   DefaultShape: ShapeRenderer<PropsType>;
   shapeProps: PropsType;
-  activeClassName?: string;
-  inActiveClassName?: string;
+  activeClass?: string;
+  inactiveClass?: string;
 };
 
 function mergeShapeProps<PropsType extends object>(
@@ -70,8 +70,8 @@ export function Shape<PropsType extends object, ElementType extends SVGElement =
     <Layer
       class={
         isActiveShape(props.shapeProps)
-          ? (props.activeClassName ?? "recharts-active-shape")
-          : (props.inActiveClassName ?? "recharts-shape")
+          ? (props.activeClass ?? "recharts-active-shape")
+          : (props.inactiveClass ?? "recharts-shape")
       }
     >
       {renderShape()}

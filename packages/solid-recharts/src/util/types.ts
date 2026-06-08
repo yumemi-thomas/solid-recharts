@@ -562,7 +562,7 @@ export interface CartesianTickContentProps {
   };
   index: number;
   visibleTicksCount: number;
-  className: string;
+  class: string;
   fill: string;
   stroke: string;
   textAnchor: "start" | "middle" | "end" | "inherit";

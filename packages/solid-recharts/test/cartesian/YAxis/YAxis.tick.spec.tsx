@@ -212,7 +212,7 @@ describe("YAxis tick", () => {
       expect(myCustomTick).toHaveBeenCalledTimes(5);
       expectNthCalledWith(myCustomTick, 1, {
         angle: 0,
-        className: "recharts-yAxis yAxis recharts-cartesian-axis-tick-value",
+        class: "recharts-yAxis yAxis recharts-cartesian-axis-tick-value",
         fill: "#666",
         height: 390,
         index: 0,
@@ -242,7 +242,7 @@ describe("YAxis tick", () => {
 
       expectNthCalledWith(myCustomTick, 2, {
         angle: 0,
-        className: "recharts-yAxis yAxis recharts-cartesian-axis-tick-value",
+        class: "recharts-yAxis yAxis recharts-cartesian-axis-tick-value",
         fill: "#666",
         height: 390,
         index: 1,

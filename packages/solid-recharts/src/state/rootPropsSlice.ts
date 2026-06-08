@@ -11,7 +11,7 @@ export type UpdatableChartOptions = {
   barCategoryGap: number | string;
   barGap: number | string;
   barSize: string | number | undefined;
-  className: string | undefined;
+  class: string | undefined;
   maxBarSize: number | undefined;
   stackOffset: StackOffsetType;
   syncId: number | string | undefined;
@@ -25,7 +25,7 @@ export const initialRootPropsState: UpdatableChartOptions = {
   barCategoryGap: "10%",
   barGap: 4,
   barSize: undefined,
-  className: undefined,
+  class: undefined,
   maxBarSize: undefined,
   stackOffset: "none",
   syncId: undefined,
@@ -59,7 +59,7 @@ export function createRootPropsSlice(
         s.stackOffset = payload.stackOffset;
         s.syncId = payload.syncId;
         s.syncMethod = payload.syncMethod;
-        s.className = payload.className;
+        s.class = payload.class;
         s.baseValue = payload.baseValue;
         s.reverseStackOrder = payload.reverseStackOrder;
       });
