@@ -98,9 +98,19 @@ export interface LinkProps {
   targetY: number;
   sourceControlX: number;
   targetControlX: number;
+  sourceRelativeY: number;
+  targetRelativeY: number;
   linkWidth: number;
   index: number;
-  payload: { source: SankeyNode; target: SankeyNode; value: number };
+  // payload is the link with source/target replaced by the resolved node objects.
+  payload: {
+    source: SankeyNode;
+    target: SankeyNode;
+    value: number;
+    dy: number;
+    sy?: number;
+    ty?: number;
+  };
 }
 
 export type SankeyNodeProps = NodeProps;
@@ -466,19 +476,23 @@ const buildLinkProps = (
     return undefined;
   }
   const linkWidth = link.dy;
+  const sourceRelativeY = link.sy ?? 0;
+  const targetRelativeY = link.ty ?? 0;
   const sourceX = sourceNode.x + sourceNode.dx + left;
   const targetX = targetNode.x + left;
   const interp = interpolationGenerator(sourceX, targetX);
   return {
     sourceX,
     targetX,
-    sourceY: sourceNode.y + (link.sy ?? 0) + linkWidth / 2 + top,
-    targetY: targetNode.y + (link.ty ?? 0) + linkWidth / 2 + top,
+    sourceY: sourceNode.y + sourceRelativeY + linkWidth / 2 + top,
+    targetY: targetNode.y + targetRelativeY + linkWidth / 2 + top,
     sourceControlX: interp(linkCurvature),
     targetControlX: interp(1 - linkCurvature),
+    sourceRelativeY,
+    targetRelativeY,
     linkWidth,
     index: i,
-    payload: { source: sourceNode, target: targetNode, value: link.value },
+    payload: { ...link, source: sourceNode, target: targetNode },
   };
 };
 
@@ -545,6 +559,11 @@ export interface SankeyProps extends EventThrottlingProps {
   onMouseEnter?: (item: NodeProps | LinkProps, type: SankeyElementType, e: MousePointer) => void;
   onMouseLeave?: (item: NodeProps | LinkProps, type: SankeyElementType, e: MousePointer) => void;
   onClick?: (item: NodeProps | LinkProps, type: SankeyElementType, e: MousePointer) => void;
+  // Accepted (from the SVG container in recharts) but intentionally not wired —
+  // the Sankey only dispatches enter/leave/click on nodes and links.
+  onMouseMove?: (e: MousePointer) => void;
+  onTouchMove?: (e: TouchEvent) => void;
+  onTouchEnd?: (e: TouchEvent) => void;
   children?: JSX.Element;
   id?: string;
 }
