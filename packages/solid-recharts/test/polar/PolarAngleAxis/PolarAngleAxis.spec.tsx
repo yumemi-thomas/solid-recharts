@@ -662,6 +662,213 @@ describe("<PolarAngleAxis />", () => {
         ]);
       });
     });
+
+    describe("orientation, axisLine, reversed, and linear-scale niceTicks", () => {
+      it("renders labels and ticks on the inside with orientation=inner", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" orientation="inner" />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container } = renderTestCase((): null => null);
+
+        expectAngleAxisTicks(container, [
+          { x1: "250", x2: "250", y1: "54", y2: "62" },
+          {
+            x1: "388.5929291125633",
+            x2: "382.936074863071",
+            y1: "111.4070708874367",
+            y2: "117.06392513692907",
+          },
+          { x1: "446", x2: "438", y1: "250", y2: "250" },
+          {
+            x1: "388.5929291125633",
+            x2: "382.936074863071",
+            y1: "388.5929291125633",
+            y2: "382.9360748630709",
+          },
+          { x1: "250", x2: "250", y1: "446", y2: "438" },
+          {
+            x1: "111.4070708874367",
+            x2: "117.06392513692907",
+            y1: "388.5929291125633",
+            y2: "382.936074863071",
+          },
+          { x1: "54", x2: "62", y1: "250.00000000000003", y2: "250.00000000000003" },
+          {
+            x1: "111.40707088743665",
+            x2: "117.06392513692904",
+            y1: "111.4070708874367",
+            y2: "117.06392513692907",
+          },
+        ]);
+        expectAngleAxisTickLabels(container, [
+          { textContext: "420", x: "250", y: "62" },
+          { textContext: "460", x: "382.936074863071", y: "117.06392513692907" },
+          { textContext: "999", x: "438", y: "250" },
+          { textContext: "500", x: "382.936074863071", y: "382.9360748630709" },
+          { textContext: "864", x: "250", y: "438" },
+          { textContext: "650", x: "117.06392513692907", y: "382.936074863071" },
+          { textContext: "765", x: "62", y: "250.00000000000003" },
+          { textContext: "365", x: "117.06392513692904", y: "117.06392513692907" },
+        ]);
+      });
+
+      it("does not render any line when axisLine=false", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" axisLine={false} />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container } = renderTestCase((): null => null);
+
+        const axisLineElement = container.querySelector(".recharts-polar-angle-axis-line");
+        expect(axisLineElement).toBeNull();
+      });
+
+      it.each([undefined, "polygon"] as const)(
+        "renders polygon axisLine when axisLineType=%s",
+        (axisLineType) => {
+          const renderTestCase = createSelectorTestCase((props) => (
+            <RadarChart width={500} height={500} data={exampleRadarData}>
+              <Radar dataKey="value" />
+              <PolarAngleAxis dataKey="value" axisLineType={axisLineType} />
+              {props.children}
+            </RadarChart>
+          ));
+          const { container } = renderTestCase((): null => null);
+
+          const axisLineElement = container.querySelector(".recharts-polar-angle-axis-line");
+          assertNotNull(axisLineElement);
+          expect(axisLineElement.tagName).toBe("path");
+          expect(axisLineElement.getAttribute("fill")).toBe("none");
+          expect(axisLineElement.getAttribute("d")).toBe(
+            "M250,54L388.5929,111.4071L446,250L388.5929,388.5929L250,446L111.4071,388.5929L54,250L111.4071,111.4071L250,54Z",
+          );
+        },
+      );
+
+      it("renders circle axisLine", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={300} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" axisLineType="circle" />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container } = renderTestCase((): null => null);
+
+        const axisLineElement = container.querySelector(".recharts-polar-angle-axis-line");
+        assertNotNull(axisLineElement);
+        expect(axisLineElement.tagName).toBe("circle");
+        expect(axisLineElement.getAttribute("fill")).toBe("none");
+        expect(axisLineElement.getAttribute("cx")).toBe("250");
+        expect(axisLineElement.getAttribute("cy")).toBe("150");
+        expect(axisLineElement.getAttribute("r")).toBe("116");
+      });
+
+      it("renders labels in reverse if reversed=true", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" reversed />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container } = renderTestCase((): null => null);
+
+        expectAngleAxisTickLabels(container, [
+          { textContext: "420", x: "394.24978336205567", y: "105.75021663794428" },
+          { textContext: "460", x: "249.99999999999997", y: "46" },
+          { textContext: "999", x: "105.75021663794428", y: "105.7502166379443" },
+          { textContext: "500", x: "46", y: "250.00000000000003" },
+          { textContext: "864", x: "105.7502166379443", y: "394.2497833620557" },
+          { textContext: "650", x: "250", y: "454" },
+          { textContext: "765", x: "394.2497833620557", y: "394.2497833620557" },
+          { textContext: "365", x: "454", y: "250" },
+        ]);
+      });
+
+      it("linear scale should produce niceTicks=undefined too because that is what the generator does", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" type="number" />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container, spy } = renderTestCase((state) =>
+          selectPolarNiceTicks(state, "angleAxis", 0),
+        );
+
+        expectAngleAxisTicks(container, [
+          {
+            x1: "343.9696838086067",
+            x2: "347.8051811069172",
+            y1: "422.0049375015452",
+            y2: "429.02554719548584",
+          },
+          {
+            x1: "298.1937708077547",
+            x2: "300.1608634937854",
+            y1: "439.9825267105625",
+            y2: "447.73691555589164",
+          },
+          {
+            x1: "249.99999999999997",
+            x2: "249.99999999999997",
+            y1: "54",
+            y2: "46",
+          },
+          {
+            x1: "249.3836324872836",
+            x2: "249.3584746296217",
+            y1: "445.9990308422194",
+            y2: "453.998991284759",
+          },
+          {
+            x1: "102.86822817046604",
+            x2: "96.86284972844425",
+            y1: "120.507754215544",
+            y2: "115.22235642842335",
+          },
+          {
+            x1: "90.9630154532783",
+            x2: "84.47170996157536",
+            y1: "364.5567001370317",
+            y2: "369.2324838160942",
+          },
+          {
+            x1: "54.96086149174786",
+            x2: "47.00008032814574",
+            y1: "230.6161291286071",
+            y2: "229.8249507256931",
+          },
+          {
+            x1: "396.72382587365814",
+            x2: "402.7125534603381",
+            y1: "379.95429550806097",
+            y2: "385.2585524675737",
+          },
+        ]);
+        expectAngleAxisTickLabels(container, [
+          { textContext: "420", x: "347.8051811069172", y: "429.02554719548584" },
+          { textContext: "460", x: "300.1608634937854", y: "447.73691555589164" },
+          { textContext: "999", x: "249.99999999999997", y: "46" },
+          { textContext: "500", x: "249.3584746296217", y: "453.998991284759" },
+          { textContext: "864", x: "96.86284972844425", y: "115.22235642842335" },
+          { textContext: "650", x: "84.47170996157536", y: "369.2324838160942" },
+          { textContext: "765", x: "47.00008032814574", y: "229.8249507256931" },
+          { textContext: "365", x: "402.7125534603381", y: "385.2585524675737" },
+        ]);
+
+        expectLastCalledWith(spy, undefined);
+      });
+    });
   });
 
   describe("in RadialBarChart", () => {

@@ -9,15 +9,15 @@
 // + clipDot (clip infra), baseValue/curve-path golden render geometry, explicit-id clipPath,
 // <Customized>/render-count state integration, getBaseValue/computeArea pure-fn suites.
 import { describe, expect, it, test, vi } from "vitest";
-import { Area, AreaChart } from "../../src";
+import { Area, AreaChart, XAxis } from "../../src";
 import { getBaseValue, computeArea } from "../../src/cartesian/Area";
 import { AreaSettings } from "../../src/state/types/AreaSettings";
 import { BaseAxisWithScale, implicitYAxis } from "../../src/state/selectors/axisSelectors";
-import { BaseValue } from "../../src/util/types";
+import { BaseValue, DotItemDotProps } from "../../src/util/types";
 import { mockXAxisWithScale, mockYAxisWithScale } from "../helper/mockAxes";
 import { assertNotNull } from "../helper/assertNotNull";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render, screen } from "../helper/render";
 
 const emptyBaseValues: ReadonlyArray<BaseValue | undefined> = [undefined, NaN];
 
@@ -155,6 +155,97 @@ describe("<Area /> as a child of AreaChart", () => {
         expect.any(Object),
       );
     });
+  });
+
+  describe("dot", () => {
+    test("Render customized dot when dot is set to be a function", () => {
+      let areaDotProps;
+      const renderDot = (props: DotItemDotProps) => {
+        const { cx, cy } = props;
+        areaDotProps = props;
+
+        return <circle role="cell" cx={cx} cy={cy} r={5} class="customized-dot" />;
+      };
+
+      render(() => (
+        <AreaChart width={500} height={500} data={data}>
+          <Area dataKey="value" isAnimationActive={false} dot={renderDot} />
+        </AreaChart>
+      ));
+
+      expect(screen.getAllByRole("cell")).toHaveLength(data.length);
+      expect(areaDotProps).toHaveProperty("points");
+    });
+
+    test("Render customized dot when dot is set to be a react element", () => {
+      const CustomizedDot = (props: { cx?: number; cy?: number }) => (
+        <circle role="cell" cx={props.cx} cy={props.cy} r={5} class="customized-dot" />
+      );
+
+      render(() => (
+        <AreaChart width={500} height={500} data={data}>
+          <Area
+            dataKey="value"
+            isAnimationActive={false}
+            dot={({ cx, cy }) => <CustomizedDot cx={cx} cy={cy} />}
+          />
+        </AreaChart>
+      ));
+
+      expect(screen.getAllByRole("cell")).toHaveLength(data.length);
+    });
+
+    test("Does not throw when dot is null", () => {
+      const { container } = render(() => (
+        <AreaChart width={500} height={500} data={data}>
+          {/* Test that the error Cannot read properties of null (reading 'clipDot') does not appear in JS projects */}
+          {/* @ts-expect-error TypeScript should flag this as an error, but we have strict null checks disabled in config */}
+          <Area dataKey="value" dot={null} isAnimationActive={false} />
+          <XAxis dataKey="x" allowDataOverflow />
+        </AreaChart>
+      ));
+
+      expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(1);
+      expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(1);
+      expect(container.querySelectorAll(".recharts-area-dot")).toHaveLength(0);
+    });
+  });
+
+  test.each([{ myData: undefined }, { myData: [] }])(
+    "Don't render any path when data is $myData",
+    ({ myData }) => {
+      const { container } = render(() => (
+        <AreaChart width={500} height={500} data={myData}>
+          <Area dataKey="value" />
+        </AreaChart>
+      ));
+
+      expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(0);
+      expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(0);
+      expect(container.querySelectorAll(".recharts-area-dot")).toHaveLength(0);
+    },
+  );
+
+  test("renders the curve with the stroke on top (2nd) of the curve with the fill (1st)", () => {
+    const { container } = render(() => (
+      <AreaChart width={500} height={500} data={data}>
+        <Area dataKey="value" stroke="teal" fill="teal" />
+      </AreaChart>
+    ));
+
+    const curveCount = container.querySelectorAll(".recharts-curve").length;
+
+    expect(container.querySelectorAll(".recharts-curve")).toHaveLength(2);
+    expect(container.querySelectorAll(".recharts-curve")[0]).toHaveAttribute("stroke", "none");
+    expect(container.querySelectorAll(".recharts-curve")[0]).toHaveAttribute("fill", "teal");
+    expect(container.querySelectorAll(".recharts-curve")[curveCount - 1]).toHaveAttribute(
+      "stroke",
+      "teal",
+    );
+    expect(container.querySelectorAll(".recharts-curve")[curveCount - 1]).toHaveAttribute(
+      "fill",
+      "none",
+    );
   });
 });
 describe("getBaseValue", () => {

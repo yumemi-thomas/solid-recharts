@@ -3,7 +3,7 @@
 // deferrals because Solid has no cloneElement equivalent.
 import { flush } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
-import { Label, Line, LineChart, ReferenceLine, Surface } from "../../src";
+import { Label, Line, LineChart, PieChart, ReferenceLine, Surface } from "../../src";
 import type { Props as LabelProps } from "../../src/component/Label";
 import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -283,6 +283,36 @@ describe("<Label />", () => {
       });
 
       describe("function that returns a string", () => {
+        const fn = vi.fn(() => "label from function");
+
+        it("should render label when given children prop", () => {
+          // @ts-expect-error typescript is correct here, Label does not allow function as children, and renders gibberish
+          const { container } = renderLabelWithChildren(fn);
+          flush();
+
+          const label = container.querySelector(".recharts-label");
+          assertNotNull(label);
+          expect(label).toBeInTheDocument();
+
+          expect(label.textContent).toMatch("function(...args) {");
+
+          expect(fn).toHaveBeenCalledTimes(0);
+        });
+
+        it("should render label when given value prop", () => {
+          // @ts-expect-error typescript is correct here, Label does not allow function as value, and renders gibberish
+          const { container } = renderLabelWithValue(fn);
+          flush();
+
+          const label = container.querySelector(".recharts-label");
+          assertNotNull(label);
+          expect(label).toBeInTheDocument();
+
+          expect(label.textContent).toMatch("function(...args) {");
+
+          expect(fn).toHaveBeenCalledTimes(0);
+        });
+
         it("should render label when given content prop", () => {
           const fn = vi.fn(() => "label from function");
           renderLabelWithContent(fn);
@@ -307,6 +337,34 @@ describe("<Label />", () => {
               y: 50,
             },
           });
+        });
+      });
+
+      describe("array of strings", () => {
+        const array = ["label", "from", "array"];
+
+        it("should render label when given children prop", () => {
+          // @ts-expect-error typescript is correct here, Label does not allow React element as value, and it renders gibberish
+          const { container } = renderLabelWithChildren(array);
+          flush();
+
+          const label = container.querySelector(".recharts-label");
+          assertNotNull(label);
+          expect(label).toBeInTheDocument();
+
+          expect(label.textContent).toEqual("label,from,array");
+        });
+
+        it("should render label when given value prop", () => {
+          // @ts-expect-error typescript says that array of strings is not allowed as value, and indeed it calls the standard .toString() on it and renders that
+          const { container } = renderLabelWithValue(array);
+          flush();
+
+          const label = container.querySelector(".recharts-label");
+          assertNotNull(label);
+          expect(label).toBeInTheDocument();
+
+          expect(label.textContent).toEqual("label,from,array");
         });
       });
     });
@@ -503,5 +561,68 @@ describe("<Label />", () => {
 
     expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
     expect(screen.getByText(/400/i)).toBeInTheDocument();
+  });
+
+  describe("in PieChart", () => {
+    describe("with custom content function", () => {
+      it("should pass the correct props to the content function when position=insideEnd", () => {
+        const contentFn = vi.fn();
+        render(() => (
+          <PieChart height={100} width={200}>
+            <Label value="text" position="insideEnd" content={contentFn} />
+          </PieChart>
+        ));
+        flush();
+
+        expect(contentFn).toHaveBeenLastCalledWith({
+          viewBox: {
+            clockWise: false,
+            cx: 100,
+            cy: 50,
+            endAngle: 360,
+            innerRadius: 0,
+            outerRadius: 36,
+            startAngle: 0,
+          },
+          angle: 0,
+          value: "text",
+          textBreakAll: false,
+          position: "insideEnd",
+          offset: 5,
+          zIndex: DefaultZIndexes.label,
+        });
+      });
+    });
+  });
+
+  describe("in LineChart", () => {
+    describe("with custom content function", () => {
+      it("should pass the correct props to the content function", () => {
+        const contentFn = vi.fn();
+        render(() => (
+          <LineChart width={400} height={400} data={data}>
+            <Label value="text" position="center" content={contentFn} />
+          </LineChart>
+        ));
+        flush();
+
+        expect(contentFn).toHaveBeenLastCalledWith({
+          viewBox: {
+            height: 390,
+            width: 390,
+            lowerWidth: 390,
+            upperWidth: 390,
+            x: 5,
+            y: 5,
+          },
+          angle: 0,
+          value: "text",
+          textBreakAll: false,
+          position: "center",
+          offset: 5,
+          zIndex: DefaultZIndexes.label,
+        });
+      });
+    });
   });
 });

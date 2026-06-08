@@ -6,6 +6,9 @@ import {
   selectCartesianGraphicalItemsData,
   selectDisplayedData,
 } from "../../../src/state/selectors/axisSelectors";
+import { selectActiveTooltipIndex } from "../../../src/state/selectors/tooltipSelectors";
+import { showTooltipOnCoordinate } from "./tooltipTestHelpers";
+import { composedChartMouseHoverTooltipSelector } from "./tooltipMouseHoverSelectors";
 import { mockGetBoundingClientRect } from "../../helper/mockGetBoundingClientRect";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 import { expectLastCalledWithScale } from "../../helper/expectScale";
@@ -16,10 +19,15 @@ import { assertNotNull } from "../../helper/assertNotNull";
  * Ported from recharts 3.8.1 test/component/Tooltip/Tooltip.multipleDataArrays.spec.tsx
  * (reproducing https://github.com/recharts/recharts/issues/3044 — two <Line>s each
  * with their own `data`). Ported the robust, soup-free selector value assertions
- * (combined item data, displayed data, golden scale + scale.map). Omitted: the
- * activeTooltipDataPoints/active-index tests (this port names the selector
- * differently — selectActiveIndex with explicit args), `expectLines` (helper not
- * ported), and the `toBeRechartsScale` custom matcher (use expectLastCalledWithScale).
+ * (combined item data, displayed data, golden scale + scale.map) plus the
+ * active-index hover/defaultIndex tests. Solid deviations: selectors return
+ * Accessors spied via createSelectorTestCase, so exact React render-count
+ * assertions (toHaveBeenCalledTimes) are relaxed to value parity
+ * (expectLastCalledWith); the `toBeRechartsScale` custom matcher is replaced by
+ * expectLastCalledWithScale. Omitted: `should select activeTooltipDataPoints` —
+ * its load-bearing by-reference identity assertion (data points must be `===` the
+ * original input rows, which recharts' Redux store preserves) cannot hold in this
+ * port because state flows through Solid store proxies, not plain objects.
  */
 
 describe("Tooltip in chart with multiple data arrays", () => {
@@ -109,6 +117,49 @@ describe("Tooltip in chart with multiple data arrays", () => {
       expect(scale.map(5)).toBe(118.75);
       expect(scale.map(30)).toBe(387.5);
       expect(scale.map(40)).toBe(495);
+    });
+
+    it("should highlight the first dot when hovering the first xaxis tick", () => {
+      const { container, spy } = renderTestCase(selectActiveTooltipIndex);
+      expectLastCalledWith(spy, null);
+
+      showTooltipOnCoordinate(container, composedChartMouseHoverTooltipSelector, {
+        clientX: 118.75,
+        clientY: 100,
+      });
+      // this is 4 because the tick is at xAxis=5 which is the fifth point in the displayedData array
+      expectLastCalledWith(spy, "4");
+    });
+
+    it("should highlight the last dot when hovering the last xaxis tick", () => {
+      const { container, spy } = renderTestCase(selectActiveTooltipIndex);
+      expectLastCalledWith(spy, null);
+
+      showTooltipOnCoordinate(container, composedChartMouseHoverTooltipSelector, {
+        clientX: 495,
+        clientY: 100,
+      });
+      // this is 3 because the tick is at xAxis=40 which is the fourth point in the displayedData array
+      expectLastCalledWith(spy, "3");
+    });
+  });
+
+  describe("with defaultIndex=0", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <ComposedChart width={500} height={300}>
+        <XAxis dataKey="xAxis" type="number" />
+        <YAxis />
+        <Tooltip defaultIndex={0} />
+        <Legend />
+        <Line dataKey="y1" data={data1} isAnimationActive={false} />
+        <Line dataKey="y2" data={data2} isAnimationActive={false} />
+        {props.children}
+      </ComposedChart>
+    ));
+
+    it("should highlight the first dot", () => {
+      const { spy } = renderTestCase(selectActiveTooltipIndex);
+      expectLastCalledWith(spy, "0");
     });
   });
 });

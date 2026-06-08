@@ -5,12 +5,13 @@
 // element-form `shape`, the `line` connector, mouse/touch event prop snapshots,
 // implicit `fill` read from the data array, clip-path (and thus the explicit-id
 // clipPath case), and the <Customized>/render-count state-integration case.
-import { describe, expect, it, test } from "vitest";
+import { describe, expect, it, test, vi } from "vitest";
 import { Scatter, ScatterChart, ScatterProps, XAxis } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { render } from "../helper/render";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import { fireEvent, render } from "../helper/render";
 import { dataWithSpecialNameAndFillProperties } from "../_data";
 
 describe("<Scatter />", () => {
@@ -115,6 +116,48 @@ describe("<Scatter />", () => {
     expect(container.querySelectorAll(".customized-shape")).toHaveLength(data.length);
   });
 
+  test("Render customized line when line is set to be a function", () => {
+    const renderCustomizedLine = () => <path d="M0,0L200,200" class="customized-line" />;
+    const { container } = render(() => (
+      <ScatterChart width={500} height={500}>
+        <Scatter isAnimationActive={false} line={renderCustomizedLine} data={data} dataKey="size" />
+      </ScatterChart>
+    ));
+
+    expect(container.querySelectorAll(".customized-line")).toHaveLength(1);
+  });
+
+  test("mouse enter or mouse leave a symbol", () => {
+    const onClick = vi.fn();
+    const onMouseEnter = vi.fn();
+    const onMouseLeave = vi.fn();
+
+    const { container } = render(() => (
+      <ScatterChart width={500} height={500}>
+        <Scatter
+          isAnimationActive={false}
+          data={data}
+          dataKey="cx"
+          onClick={onClick}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        />
+      </ScatterChart>
+    ));
+    // recharts binds the handlers on the symbol via React synthetic delegation; the
+    // Solid port binds them on the wrapping `.recharts-scatter-symbol` Layer <g>. Since
+    // mouseEnter/mouseLeave do not bubble in the DOM, fire on that carrier element (the
+    // 5th symbol's <g>) — harness-only swap of the queried element.
+    const symbol = container.querySelectorAll(".recharts-scatter-symbol")[4];
+    assertNotNull(symbol);
+    fireEvent.mouseEnter(symbol);
+    expect(onMouseEnter).toHaveBeenCalled();
+    fireEvent.mouseLeave(symbol);
+    expect(onMouseLeave).toHaveBeenCalled();
+    fireEvent.click(symbol);
+    expect(onClick).toHaveBeenCalled();
+  });
+
   it("should implicitly read `fill` property from the data array but not `name`", () => {
     const view = render(() => (
       <ScatterChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
@@ -148,6 +191,77 @@ describe("<Scatter />", () => {
       assertNotNull(scatter);
       expect(scatter.tagName).toBe("g");
       expect(scatter.classList.value).toBe("recharts-layer recharts-scatter");
+    });
+  });
+
+  describe("events", () => {
+    // recharts uses userEvent.click; the established Solid harness convention swaps
+    // userEvent → fireEvent.click (the dispatch hook fires (data, index, event)).
+    it("should fire onClick event when clicking on a scatter point", () => {
+      const handleClick = vi.fn();
+      const { container } = render(() => (
+        <ScatterChart width={500} height={500}>
+          <Scatter data={data} dataKey="cx" onClick={handleClick} />
+        </ScatterChart>
+      ));
+
+      const scatterPoints = container.querySelectorAll(".recharts-symbols");
+      const firstPoint = scatterPoints[0];
+      assertNotNull(firstPoint);
+      fireEvent.click(firstPoint);
+      expect(handleClick).toHaveBeenCalledTimes(1);
+      expectLastCalledWith(
+        handleClick,
+        {
+          cx: 54,
+          cy: 467.77777777777777,
+          height: 9.0270333367641,
+          node: { x: 10, y: 10, z: "-" },
+          payload: {
+            cx: 10,
+            cy: 50,
+            payload: { x: 12, y: 23, z: 78 },
+            size: 64,
+          },
+          size: 0,
+          tooltipPayload: [
+            {
+              dataKey: "cx",
+              name: undefined,
+              payload: {
+                cx: 10,
+                cy: 50,
+                payload: { x: 12, y: 23, z: 78 },
+                size: 64,
+              },
+              type: undefined,
+              unit: "",
+              value: 10,
+              graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            },
+            {
+              dataKey: "cx",
+              name: undefined,
+              payload: {
+                cx: 10,
+                cy: 50,
+                payload: { x: 12, y: 23, z: 78 },
+                size: 64,
+              },
+              type: undefined,
+              unit: "",
+              value: 10,
+              graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+            },
+          ],
+          tooltipPosition: { x: 54, y: 467.77777777777777 },
+          width: 9.0270333367641,
+          x: 49.48648333161795,
+          y: 463.2642611093957,
+        },
+        0,
+        expect.any(Object),
+      );
     });
   });
 });

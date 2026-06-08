@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from "vitest";
+import { beforeEach, describe, expect, it, test, vi } from "vitest";
 import { exampleRadarData, PageData } from "../_data";
 import { PolarRadiusAxis, Radar, RadarChart, RadialBar, RadialBarChart } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -853,7 +853,11 @@ describe("<PolarRadiusAxis />", () => {
 
   describe("with custom tick formatter and category values", () => {
     // https://github.com/recharts/recharts/issues/6010
-    const formatter = (value: unknown): string => `Formatted: ${String(value)}`;
+    const formatter = vi.fn((value: unknown): string => `Formatted: ${String(value)}`);
+
+    beforeEach(() => {
+      formatter.mockClear();
+    });
 
     const renderTestCase = createSelectorTestCase((props) => (
       <RadarChart width={500} height={500} data={exampleRadarData}>
@@ -915,6 +919,19 @@ describe("<PolarRadiusAxis />", () => {
           y: "250",
         },
       ]);
+    });
+
+    it("should call the custom tick formatter function with the tick value, and index", () => {
+      renderTestCase();
+      expect(formatter).toHaveBeenCalledTimes(exampleRadarData.length);
+      expect(formatter).toHaveBeenNthCalledWith(1, "iPhone 3GS", 0);
+      expect(formatter).toHaveBeenNthCalledWith(2, "iPhone 4", 1);
+      expect(formatter).toHaveBeenNthCalledWith(3, "iPhone 4s", 2);
+      expect(formatter).toHaveBeenNthCalledWith(4, "iPhone 5", 3);
+      expect(formatter).toHaveBeenNthCalledWith(5, "iPhone 5s", 4);
+      expect(formatter).toHaveBeenNthCalledWith(6, "iPhone 6", 5);
+      expect(formatter).toHaveBeenNthCalledWith(7, "iPhone 6s", 6);
+      expect(formatter).toHaveBeenNthCalledWith(8, "iPhone 5se", 7);
     });
   });
 });

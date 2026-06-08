@@ -1,9 +1,20 @@
 // Ported from recharts 3.8.1 test/container/ClipPath.spec.tsx (commit
-// 7a23854). Solid deviations: this batch covers the root clip path and the
-// Line/Bar/Scatter overflow matrix; dot-specific and Area animation clips remain
-// tracked separately because those local surfaces are still partial.
+// 7a23854). Solid deviations: this batch covers the root clip path, the
+// Line/Bar/Scatter overflow matrix, the Line clipDot=false second-clipPath
+// dimension cases, and the Area animation clip path presence/absence.
 import { describe, expect, it } from "vitest";
-import { Bar, BarChart, Line, LineChart, Scatter, ScatterChart, XAxis, YAxis } from "../../src";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Line,
+  LineChart,
+  Scatter,
+  ScatterChart,
+  XAxis,
+  YAxis,
+} from "../../src";
 import { PageData } from "../_data";
 import { assertNotNull } from "../helper/assertNotNull";
 import { render } from "../helper/render";
@@ -140,6 +151,81 @@ describe("clip paths", () => {
         width: "319",
         x: "159",
         y: "11",
+      });
+    });
+
+    it("should render another clipPath when dot has clipDot = false", () => {
+      const { container } = render(() => (
+        <LineChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Line dataKey="uv" dot={{ clipDot: false }} />
+          <YAxis allowDataOverflow />
+        </LineChart>
+      ));
+      const line = container.querySelector(".recharts-line");
+      const allClipPaths = selectAllClipPaths(line);
+      expect(allClipPaths).toHaveLength(2);
+      const dotClipPath = allClipPaths[1];
+      assertNotNull(dotClipPath);
+      expectClipPathDimensions(dotClipPath, {
+        height: "453",
+        width: "327",
+        x: "155",
+        y: "7",
+      });
+    });
+
+    it("should change the dimensions of the second clipPath based on strokeWidth", () => {
+      const { container } = render(() => (
+        <LineChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Line dataKey="uv" dot={{ "stroke-width": 13, clipDot: false }} />
+          <YAxis allowDataOverflow />
+        </LineChart>
+      ));
+      const line = container.querySelector(".recharts-line");
+      const allClipPaths = selectAllClipPaths(line);
+      expect(allClipPaths).toHaveLength(2);
+      const dotClipPath = allClipPaths[1];
+      assertNotNull(dotClipPath);
+      expectClipPathDimensions(dotClipPath, {
+        height: "464",
+        width: "338",
+        x: "149.5",
+        y: "1.5",
+      });
+    });
+
+    it("should change the dimensions of the second clipPath based on r", () => {
+      const { container } = render(() => (
+        <LineChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Line dataKey="uv" dot={{ r: 5, clipDot: false }} />
+          <YAxis allowDataOverflow />
+        </LineChart>
+      ));
+      const line = container.querySelector(".recharts-line");
+      const allClipPaths = selectAllClipPaths(line);
+      expect(allClipPaths).toHaveLength(2);
+      const dotClipPath = allClipPaths[1];
+      assertNotNull(dotClipPath);
+      expectClipPathDimensions(dotClipPath, {
+        height: "457",
+        width: "331",
+        x: "153",
+        y: "5",
       });
     });
   });
@@ -323,6 +409,43 @@ describe("clip paths", () => {
         x: "159",
         y: "11",
       });
+    });
+  });
+
+  describe("in Area", () => {
+    it("should render one animation clipPaths by default", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="pv" />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      expectClipPath(area, {
+        height: "457",
+        width: "0",
+        x: "99",
+        y: "0",
+      });
+    });
+
+    it("should not render any clipPaths if isAnimationActive=false", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="pv" isAnimationActive={false} />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      expect(selectAllClipPaths(area)).toHaveLength(0);
     });
   });
 });
