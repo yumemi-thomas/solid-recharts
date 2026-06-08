@@ -238,6 +238,8 @@ export interface ScatterProps {
   name?: string | number;
   fill?: string;
   fillOpacity?: number | string;
+  stroke?: string;
+  strokeWidth?: number | string;
   line?: boolean | CurveProps | ((points: ReadonlyArray<ScatterPointItem>) => JSX.Element);
   /**
    * Built-in symbol type ("circle", "cross", …) OR a custom shape render prop
@@ -400,14 +402,17 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     dataDefinedOnItem: points()?.map((p) => p.tooltipPayload),
     getPosition: (index) => points()?.[Number(index)]?.tooltipPosition,
     settings: {
-      stroke: undefined,
-      fill: merged.fill,
+      // recharts reads the RAW prop fill/stroke (no defaults applied) for the
+      // tooltip entry — the #808080 default fill is render-only. Mirror that.
+      stroke: props.stroke,
+      strokeWidth: props.strokeWidth,
+      fill: props.fill,
       dataKey: merged.dataKey,
       nameKey: undefined,
       name: nameOf(),
       hide: merged.hide,
       type: merged.tooltipType,
-      color: merged.fill,
+      color: props.fill,
       unit: "",
       graphicalItemId: id,
     },

@@ -330,9 +330,9 @@ describe("itemSorter in ComposedChart", () => {
               ["5", { x: 275.83333333333337, y: 140.20000000000002 }],
             ]),
             settings: {
-              color: "#808080",
+              color: undefined,
               dataKey: "uv",
-              fill: "#808080",
+              fill: undefined,
               hide: false,
               name: "scatter",
               nameKey: undefined,
@@ -411,9 +411,9 @@ describe("itemSorter in ComposedChart", () => {
             graphicalItemId: "line-amt",
           },
           {
-            color: "#808080",
+            color: undefined,
             dataKey: "name",
-            fill: "#808080",
+            fill: undefined,
             hide: false,
             name: "name",
             nameKey: undefined,
@@ -430,9 +430,9 @@ describe("itemSorter in ComposedChart", () => {
             graphicalItemId: "scatter-uv",
           },
           {
-            color: "#808080",
+            color: undefined,
             dataKey: "pv",
-            fill: "#808080",
+            fill: undefined,
             hide: false,
             name: "pv",
             nameKey: undefined,
@@ -575,9 +575,9 @@ describe("itemSorter in ComposedChart", () => {
           value: 2400,
         });
         expect(spy).toHaveBeenNthCalledWith(4, {
-          color: "#808080",
+          color: undefined,
           dataKey: "name",
-          fill: "#808080",
+          fill: undefined,
           graphicalItemId: "scatter-uv",
           hide: false,
           name: "name",
@@ -594,9 +594,9 @@ describe("itemSorter in ComposedChart", () => {
           value: "Page D",
         });
         expect(spy).toHaveBeenNthCalledWith(5, {
-          color: "#808080",
+          color: undefined,
           dataKey: "pv",
-          fill: "#808080",
+          fill: undefined,
           graphicalItemId: "scatter-uv",
           hide: false,
           name: "pv",
@@ -714,9 +714,9 @@ describe("itemSorter in ComposedChart", () => {
             value: 2400,
           },
           {
-            color: "#808080",
+            color: undefined,
             dataKey: "name",
-            fill: "#808080",
+            fill: undefined,
             graphicalItemId: "scatter-uv",
             hide: false,
             name: "XAxis",
@@ -733,9 +733,9 @@ describe("itemSorter in ComposedChart", () => {
             value: "Page A",
           },
           {
-            color: "#808080",
+            color: undefined,
             dataKey: "pv",
-            fill: "#808080",
+            fill: undefined,
             graphicalItemId: "scatter-uv",
             hide: false,
             name: "YAxis",
@@ -878,9 +878,9 @@ describe("itemSorter in ComposedChart", () => {
           value: 9800,
         });
         expect(spy).toHaveBeenNthCalledWith(4, {
-          color: "#808080",
+          color: undefined,
           dataKey: "name",
-          fill: "#808080",
+          fill: undefined,
           graphicalItemId: "scatter-uv",
           hide: false,
           name: "XAxis",
@@ -897,9 +897,9 @@ describe("itemSorter in ComposedChart", () => {
           value: "Page D",
         });
         expect(spy).toHaveBeenNthCalledWith(5, {
-          color: "#808080",
+          color: undefined,
           dataKey: "pv",
-          fill: "#808080",
+          fill: undefined,
           graphicalItemId: "scatter-uv",
           hide: false,
           name: "YAxis",

@@ -1,7 +1,8 @@
 // Ported from recharts 3.8.1 test/chart/ScatterChart.spec.tsx (commit
 // 7a23854). Solid deviations: this first batch covers the base three-dimensional
 // scatter render, clip path, empty data, and item mouse-enter callback.
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, test, vi } from "vitest";
+import { createEffect } from "solid-js";
 import {
   CartesianGrid,
   Legend,
@@ -15,6 +16,20 @@ import {
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { assertNotNull } from "../helper/assertNotNull";
 import { fireEvent, render } from "../helper/render";
+import { PageData } from "../_data";
+import { createSelectorTestCase } from "../helper/createSelectorTestCase";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
+import { selectTooltipPayload } from "../../src/state/selectors/tooltipSelectors";
+import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
+import { useClipPathId } from "../../src/container/ClipPathProvider";
+import {
+  expectTooltipCoordinate,
+  expectTooltipNotVisible,
+  expectTooltipPayload,
+  showTooltip,
+} from "../component/Tooltip/tooltipTestHelpers";
+import { scatterChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
 
 describe("ScatterChart of three dimension data", () => {
   const data01 = [
@@ -222,5 +237,157 @@ describe("ScatterChart of three dimension data", () => {
     fireEvent.mouseEnter(symbol);
 
     expect(onMouseEnter).toHaveBeenCalled();
+  });
+});
+
+describe("ScatterChart layout context", () => {
+  it("should provide viewBox", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const viewBox = useViewBox();
+      createEffect(
+        () => viewBox(),
+        (v) => spy(v),
+      );
+      return null;
+    };
+    render(() => (
+      <ScatterChart width={100} height={50} barSize={20}>
+        <Comp />
+      </ScatterChart>
+    ));
+
+    expectLastCalledWith(spy, { x: 5, y: 5, width: 90, height: 40 });
+  });
+
+  it("should provide clipPathId", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      createEffect(
+        () => useClipPathId(),
+        (v) => spy(v),
+      );
+      return null;
+    };
+    render(() => (
+      <ScatterChart width={100} height={50} barSize={20}>
+        <Comp />
+      </ScatterChart>
+    ));
+
+    expect(spy).toHaveBeenCalledWith(expect.stringMatching(/recharts\d+-clip/));
+  });
+
+  it("should provide width", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const width = useChartWidth();
+      createEffect(
+        () => width(),
+        (v) => spy(v),
+      );
+      return null;
+    };
+    render(() => (
+      <ScatterChart width={100} height={50} barSize={20}>
+        <Comp />
+      </ScatterChart>
+    ));
+
+    expect(spy).toHaveBeenCalledWith(100);
+  });
+
+  it("should provide height", () => {
+    const spy = vi.fn();
+    const Comp = (): null => {
+      const height = useChartHeight();
+      createEffect(
+        () => height(),
+        (v) => spy(v),
+      );
+      return null;
+    };
+    render(() => (
+      <ScatterChart width={100} height={50} barSize={20}>
+        <Comp />
+      </ScatterChart>
+    ));
+
+    expect(spy).toHaveBeenCalledWith(50);
+  });
+});
+
+describe("Tooltip integration", () => {
+  describe("with default Tooltip", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <ScatterChart width={100} height={100} data={PageData}>
+        <Scatter isAnimationActive={false} id="my-scatter" />
+        <XAxis dataKey="uv" />
+        <YAxis dataKey="pv" />
+        <Tooltip isAnimationActive={false} />
+        {props.children}
+      </ScatterChart>
+    ));
+
+    it("should return tooltip payload", () => {
+      // ScatterChart only allows item interaction
+      const { spy } = renderTestCase((state) => selectTooltipPayload(state, "item", "hover", "0"));
+      expectLastCalledWith(spy, [
+        {
+          color: undefined,
+          dataKey: "uv",
+          fill: undefined,
+          graphicalItemId: "my-scatter",
+          hide: false,
+          name: "uv",
+          nameKey: undefined,
+          payload: {
+            amt: 2400,
+            name: "Page A",
+            pv: 2400,
+            uv: 400,
+          },
+          stroke: undefined,
+          strokeWidth: undefined,
+          type: undefined,
+          unit: "",
+          value: 400,
+        },
+        {
+          color: undefined,
+          dataKey: "pv",
+          fill: undefined,
+          graphicalItemId: "my-scatter",
+          hide: false,
+          name: "pv",
+          nameKey: undefined,
+          payload: {
+            amt: 2400,
+            name: "Page A",
+            pv: 2400,
+            uv: 400,
+          },
+          stroke: undefined,
+          strokeWidth: undefined,
+          type: undefined,
+          unit: "",
+          value: 2400,
+        },
+      ]);
+    });
+
+    it("should not render tooltip before user interaction", () => {
+      const { container } = renderTestCase();
+      expectTooltipNotVisible(container);
+    });
+
+    it("should render tooltip after mouse hover", () => {
+      mockGetBoundingClientRect({ width: 10, height: 10 });
+      const { container } = renderTestCase();
+      showTooltip(container, scatterChartMouseHoverTooltipSelector);
+
+      expectTooltipPayload(container, "", ["pv : 2400", "uv : 400"]);
+      expectTooltipCoordinate(container, { x: 77.5, y: 30.6 });
+    });
   });
 });
