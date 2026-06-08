@@ -8,30 +8,27 @@
 // Solid deviations: `resolveDefaultProps`→`merge`; effect-dispatch registration
 // → `createEffect`/`onCleanup` (addPolarGraphicalItem matched by id); `clsx`→array.
 // Tooltip-entry + legend-payload registration are WIRED (axis-type tooltip).
-// DEFERRED (documented): dots / activeDot / ActivePoints, animation (renders the
-// final t=1 frame — points directly), label (LabelList), custom `shape`,
-// ZIndexLayer (plain <Layer>).
-import { createEffect, createMemo, merge, onCleanup, untrack } from "solid-js";
+// Animation is WIRED: the polygon (and, for range radars, its baseline) interpolates
+// each point from the previous frame (or, on first mount, from the (cx,cy) center)
+// to its settled position, mirroring recharts' Radar anim (interpolatePolarPoint +
+// JavascriptAnimate). DEFERRED (documented): dots / activeDot / ActivePoints, label
+// (LabelList), custom `shape`, ZIndexLayer (plain <Layer>).
+import { createEffect, createMemo, merge, onCleanup, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useUniqueId } from "../util/useUniqueId";
+import { useAnimationId } from "../util/useAnimationId";
+import { JavascriptAnimate } from "../animation/JavascriptAnimate";
 import type { EasingInput } from "../animation/easing";
 import { Layer } from "../container/Layer";
 import { Polygon } from "../shape/Polygon";
 import { selectRadarPoints } from "../state/selectors/radarSelectors";
 import { RadarSettings } from "../state/types/RadarSettings";
 import { ChartData } from "../state/chartDataSlice";
-import {
-  ActiveDotType,
-  AnimationDuration,
-  Coordinate,
-  DataKey,
-  LegendType,
-  TooltipType,
-} from "../util/types";
+import { ActiveDotType, AnimationDuration, DataKey, LegendType, TooltipType } from "../util/types";
 import { polarToCartesian } from "../util/PolarUtils";
-import { isNullish, noop } from "../util/DataUtils";
+import { interpolate, isNullish, noop } from "../util/DataUtils";
 import { getTooltipNameProp, getValueByDataKey } from "../util/ChartUtils";
 import { RechartsScale } from "../util/scale/RechartsScale";
 import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
@@ -134,6 +131,32 @@ export function computeRadarPoints({
   return { points, isRange, baseLinePoints };
 }
 
+// Interpolate one radar point from the previous frame (or, on first mount, from the
+// (cx,cy) center) to its settled position. Mirrors recharts' interpolatePolarPoint.
+function interpolatePolarPoint(
+  prevPoints: ReadonlyArray<RadarPoint> | undefined,
+  prevPointsDiffFactor: number,
+  t: number,
+): (entry: RadarPoint, index: number) => RadarPoint {
+  return (entry, index) => {
+    const prev = prevPoints && prevPoints[Math.floor(index * prevPointsDiffFactor)];
+
+    if (prev) {
+      return {
+        ...entry,
+        x: interpolate(prev.x, entry.x, t),
+        y: interpolate(prev.y, entry.y, t),
+      };
+    }
+
+    return {
+      ...entry,
+      x: interpolate(entry.cx, entry.x, t),
+      y: interpolate(entry.cy, entry.y, t),
+    };
+  };
+}
+
 export interface RadarProps<DataPointType = Record<string, unknown>, DataValueType = unknown> {
   angleAxisId?: string | number;
   radiusAxisId?: string | number;
@@ -152,6 +175,8 @@ export interface RadarProps<DataPointType = Record<string, unknown>, DataValueTy
   animationBegin?: number;
   animationDuration?: AnimationDuration;
   animationEasing?: EasingInput;
+  onAnimationStart?: () => void;
+  onAnimationEnd?: () => void;
   id?: string;
   class?: string;
 }
@@ -250,12 +275,11 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
 
   // RadarPoint is structurally a Coordinate ({x,y}+extras), so the arrays pass
   // straight to <Polygon> with no assertion.
-  const baseLine = (): ReadonlyArray<Coordinate> | undefined => {
+  const baseLine = (): ReadonlyArray<RadarPoint> | undefined => {
     const r = radar();
     return r?.isRange ? r.baseLinePoints : undefined;
   };
 
-  // Animation is deferred in this port: render the settled t=1 polygon directly.
   const mainColor = getLegendItemColor(merged.stroke, merged.fill);
   const activeRadarPoints = createMemo((): ReadonlyArray<RadarPoint> | undefined =>
     merged.hide ? undefined : radar()?.points,
@@ -265,28 +289,36 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
     <>
       <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
       <SetLegendPayload id={id} legendPayload={legendPayload()} />
-      {activeRadarPoints() ? (
-        <RadarAnimatedContent
-          stepData={activeRadarPoints() ?? []}
-          baseLinePoints={untrack(baseLine)}
-          layerClass={untrack(layerClass)}
-          connectNulls={merged.connectNulls}
-          fill={merged.fill}
-          fillOpacity={merged.fillOpacity}
-          stroke={merged.stroke}
-          strokeWidth={merged.strokeWidth}
-          activeDot={merged.activeDot}
-          mainColor={mainColor}
-          dataKey={merged.dataKey}
-        />
-      ) : null}
+      <Show when={activeRadarPoints()}>
+        {(points) => (
+          <RadarAnimatedContent
+            stepData={points()}
+            baseLinePoints={baseLine()}
+            layerClass={layerClass()}
+            connectNulls={merged.connectNulls}
+            fill={merged.fill}
+            fillOpacity={merged.fillOpacity}
+            stroke={merged.stroke}
+            strokeWidth={merged.strokeWidth}
+            activeDot={merged.activeDot}
+            mainColor={mainColor}
+            dataKey={merged.dataKey}
+            isAnimationActive={merged.isAnimationActive}
+            animationBegin={merged.animationBegin}
+            animationDuration={merged.animationDuration}
+            animationEasing={merged.animationEasing}
+            onAnimationStart={merged.onAnimationStart}
+            onAnimationEnd={merged.onAnimationEnd}
+          />
+        )}
+      </Show>
     </>
   );
 }
 
 function RadarAnimatedContent(props: {
   stepData: ReadonlyArray<RadarPoint>;
-  baseLinePoints: ReadonlyArray<Coordinate> | undefined;
+  baseLinePoints: ReadonlyArray<RadarPoint> | undefined;
   layerClass: string;
   connectNulls: boolean | undefined;
   fill: string | undefined;
@@ -296,22 +328,77 @@ function RadarAnimatedContent(props: {
   activeDot: ActiveDotType;
   mainColor: string | undefined;
   dataKey: DataKey<unknown> | undefined;
+  isAnimationActive: boolean | "auto";
+  animationBegin: number;
+  animationDuration: AnimationDuration;
+  animationEasing: EasingInput;
+  onAnimationStart: (() => void) | undefined;
+  onAnimationEnd: (() => void) | undefined;
 }): JSX.Element {
+  // Track the settled points (and baseline) reactively; a fresh reference yields a
+  // new animation id, which restarts the JavascriptAnimate from t=0.
+  const animationId = useAnimationId(() => props.stepData, "recharts-radar-");
+
+  // Previous-frame closure vars (recharts' previousPointsRef): seed the next
+  // animation's interpolation start. Each animated frame writes them back.
+  let prevPoints: ReadonlyArray<RadarPoint> | undefined;
+  let prevBaseLinePoints: ReadonlyArray<RadarPoint> | undefined;
+
   return (
-    <>
-      <Layer class={props.layerClass}>
-        <Layer class="recharts-radar-polygon">
-          <Polygon
-            points={props.stepData}
-            baseLinePoints={props.baseLinePoints}
-            connectNulls={props.connectNulls}
-            fill={props.fill}
-            fill-opacity={props.fillOpacity}
-            stroke={props.stroke}
-            stroke-width={props.strokeWidth}
-          />
-        </Layer>
-      </Layer>
-    </>
+    <Layer class={props.layerClass}>
+      <Show when={animationId()} keyed>
+        {(animId) => (
+          <JavascriptAnimate
+            animationId={animId}
+            begin={props.animationBegin}
+            duration={typeof props.animationDuration === "number" ? props.animationDuration : 1500}
+            easing={props.animationEasing}
+            isActive={props.isAnimationActive}
+            onAnimationStart={props.onAnimationStart}
+            onAnimationEnd={props.onAnimationEnd}
+          >
+            {(t) => {
+              const points = untrack(() => props.stepData);
+              const baseLinePoints = untrack(() => props.baseLinePoints);
+              const prevPointsDiffFactor = prevPoints ? prevPoints.length / points.length : 1;
+              const prevBaseLinePointsDiffFactor =
+                prevBaseLinePoints && baseLinePoints
+                  ? prevBaseLinePoints.length / baseLinePoints.length
+                  : 1;
+
+              const stepData =
+                t === 1
+                  ? points
+                  : points.map(interpolatePolarPoint(prevPoints, prevPointsDiffFactor, t));
+              const stepBaseLinePoints =
+                t === 1
+                  ? baseLinePoints
+                  : baseLinePoints?.map(
+                      interpolatePolarPoint(prevBaseLinePoints, prevBaseLinePointsDiffFactor, t),
+                    );
+
+              if (t > 0) {
+                prevPoints = stepData;
+                prevBaseLinePoints = stepBaseLinePoints;
+              }
+
+              return (
+                <Layer class="recharts-radar-polygon">
+                  <Polygon
+                    points={stepData}
+                    baseLinePoints={stepBaseLinePoints}
+                    connectNulls={props.connectNulls}
+                    fill={props.fill}
+                    fill-opacity={props.fillOpacity}
+                    stroke={props.stroke}
+                    stroke-width={props.strokeWidth}
+                  />
+                </Layer>
+              );
+            }}
+          </JavascriptAnimate>
+        )}
+      </Show>
+    </Layer>
   );
 }
