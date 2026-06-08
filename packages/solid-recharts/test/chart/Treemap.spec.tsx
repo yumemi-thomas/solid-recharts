@@ -5,7 +5,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
 import { render, fireEvent } from "../helper/render";
-import { Treemap, XAxis, YAxis } from "../../src";
+import { Tooltip, Treemap, XAxis, YAxis } from "../../src";
+import { getTooltip, showTooltip } from "../component/Tooltip/tooltipTestHelpers";
+import { treemapNodeChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
 import {
   type TreemapNode,
   addToTreemapNodeIndex,
@@ -115,6 +117,307 @@ describe("<Treemap />", () => {
     fireEvent.click(container.querySelector("circle.custom-node[data-name='A']")!);
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "A" });
+  });
+});
+
+describe("with Tooltip trigger=hover", () => {
+  it("should display Tooltip on mouse enter on a Node and hide it on mouse leave", () => {
+    const { container } = render(() => (
+      <Treemap width={1000} height={500} data={exampleTreemapData}>
+        <Tooltip trigger="hover" />
+      </Treemap>
+    ));
+    flush();
+
+    const tooltip = getTooltip(container);
+    expect(tooltip).not.toBeVisible();
+
+    const tooltipTriggerElement = showTooltip(container, treemapNodeChartMouseHoverTooltipSelector);
+
+    expect(tooltip).toBeVisible();
+
+    fireEvent.mouseOut(tooltipTriggerElement);
+
+    expect(tooltip).not.toBeVisible();
+  });
+
+  // Deferred: with custom content the tooltip-activation handler lives only on the
+  // wrapping node <Layer> (faithful to recharts' ContentItem). recharts' helper fires
+  // a *bubbling* `mouseOver` on the inner element, which React synthesizes into the
+  // Layer's `onMouseEnter`; this port's helper fires a non-bubbling `mouseEnter` on the
+  // inner element, which never reaches the Layer. Default content works because the
+  // <Rectangle> itself carries the handler. Pure event-model divergence, not an impl gap.
+  it.skip("should display/hide Tooltip on mouse enter/leave when custom content is passed as a function", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={1000}
+        height={500}
+        data={exampleTreemapData}
+        content={(props) => {
+          const { depth, x, y, width, height, index, name } = props;
+
+          return (
+            <g>
+              <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                style={{
+                  fill: "#111",
+                  stroke: "#fff",
+                  "stroke-width": 2 / (depth + 1e-10),
+                  "stroke-opacity": 1 / (depth + 1e-10),
+                }}
+                // needed for unit tests to find the tooltip
+                class="recharts-rectangle"
+              />
+              {depth === 1 ? (
+                <text
+                  x={x + width / 2}
+                  y={y + height / 2 + 7}
+                  text-anchor="middle"
+                  fill="#fff"
+                  font-size="14"
+                >
+                  {name}
+                </text>
+              ) : null}
+              {depth === 1 ? (
+                <text x={x + 4} y={y + 18} fill="#fff" font-size="16" fill-opacity="0.9">
+                  {index + 1}
+                </text>
+              ) : null}
+            </g>
+          );
+        }}
+      >
+        <Tooltip trigger="hover" />
+      </Treemap>
+    ));
+    flush();
+
+    const tooltip = getTooltip(container);
+    expect(tooltip).not.toBeVisible();
+
+    const tooltipTriggerElement = showTooltip(container, treemapNodeChartMouseHoverTooltipSelector);
+
+    expect(tooltip).toBeVisible();
+
+    fireEvent.mouseOut(tooltipTriggerElement);
+
+    expect(tooltip).not.toBeVisible();
+  });
+
+  it("should not display Tooltip when clicking on a Node", () => {
+    const { container } = render(() => (
+      <Treemap width={1000} height={500} data={exampleTreemapData}>
+        <Tooltip trigger="hover" />
+      </Treemap>
+    ));
+    flush();
+
+    const tooltip = getTooltip(container);
+    const tooltipTriggerElement = container.querySelector(
+      treemapNodeChartMouseHoverTooltipSelector,
+    );
+    assertNotNull(tooltipTriggerElement);
+    expect(tooltip).not.toBeVisible();
+
+    fireEvent.click(tooltipTriggerElement);
+
+    expect(tooltip).not.toBeVisible();
+  });
+});
+
+describe("with Tooltip trigger=click", () => {
+  it("should display Tooltip on mouse enter on a Node and keep it on mouse leave", () => {
+    const { container } = render(() => (
+      <Treemap width={1000} height={500} data={exampleTreemapData}>
+        <Tooltip trigger="click" />
+      </Treemap>
+    ));
+    flush();
+
+    const tooltip = getTooltip(container);
+    expect(tooltip).not.toBeVisible();
+
+    const tooltipTriggerElement = container.querySelector(
+      treemapNodeChartMouseHoverTooltipSelector,
+    );
+    assertNotNull(tooltipTriggerElement);
+    fireEvent.click(tooltipTriggerElement);
+    flush();
+
+    expect(tooltip).toBeVisible();
+
+    fireEvent.click(tooltipTriggerElement);
+    flush();
+
+    expect(tooltip).toBeVisible();
+  });
+
+  it("should do nothing on hover over Node", () => {
+    const { container } = render(() => (
+      <Treemap width={1000} height={500} data={exampleTreemapData}>
+        <Tooltip trigger="click" />
+      </Treemap>
+    ));
+    flush();
+
+    const tooltip = getTooltip(container);
+    showTooltip(container, treemapNodeChartMouseHoverTooltipSelector);
+    expect(tooltip).not.toBeVisible();
+  });
+});
+
+describe("Treemap geometry (nodeInset / nodeGap)", () => {
+  const multiLevelInsetData = [
+    {
+      name: "Root A",
+      children: [
+        {
+          name: "A1",
+          children: [{ name: "A1a", value: 100 }],
+        },
+      ],
+    },
+  ];
+
+  const siblingGapData = [
+    { name: "Left", value: 100 },
+    { name: "Right", value: 100 },
+  ];
+
+  it("renders nested children directly on top of parent when nodeInset is not set", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={multiLevelInsetData}
+        isAnimationActive={false}
+        dataKey="value"
+        nameKey="name"
+      />
+    ));
+    flush();
+
+    const depth1Rect = container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle");
+    const depth2Rect = container.querySelector(".recharts-treemap-depth-2 .recharts-rectangle");
+    assertNotNull(depth1Rect);
+    assertNotNull(depth2Rect);
+
+    expect(depth2Rect.getAttribute("x")).toBe(depth1Rect.getAttribute("x"));
+    expect(depth2Rect.getAttribute("y")).toBe(depth1Rect.getAttribute("y"));
+    expect(depth2Rect.getAttribute("width")).toBe(depth1Rect.getAttribute("width"));
+    expect(depth2Rect.getAttribute("height")).toBe(depth1Rect.getAttribute("height"));
+  });
+
+  it("insets nested children when nodeInset is set", () => {
+    const nodeInset = 8;
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={multiLevelInsetData}
+        isAnimationActive={false}
+        dataKey="value"
+        nameKey="name"
+        nodeInset={nodeInset}
+      />
+    ));
+    flush();
+
+    const depth1Rect = container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle");
+    const depth2Rect = container.querySelector(".recharts-treemap-depth-2 .recharts-rectangle");
+    assertNotNull(depth1Rect);
+    assertNotNull(depth2Rect);
+
+    const depth1X = Number(depth1Rect.getAttribute("x"));
+    const depth1Y = Number(depth1Rect.getAttribute("y"));
+    const depth1Width = Number(depth1Rect.getAttribute("width"));
+    const depth1Height = Number(depth1Rect.getAttribute("height"));
+    const depth2X = Number(depth2Rect.getAttribute("x"));
+    const depth2Y = Number(depth2Rect.getAttribute("y"));
+    const depth2Width = Number(depth2Rect.getAttribute("width"));
+    const depth2Height = Number(depth2Rect.getAttribute("height"));
+
+    expect(depth2X).toBe(depth1X + nodeInset);
+    expect(depth2Y).toBe(depth1Y + nodeInset);
+    expect(depth2Width).toBe(depth1Width - nodeInset * 2);
+    expect(depth2Height).toBe(depth1Height - nodeInset * 2);
+  });
+
+  it("renders sibling nodes without spacing when nodeGap is not set", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={siblingGapData}
+        isAnimationActive={false}
+        dataKey="value"
+        nameKey="name"
+      />
+    ));
+    flush();
+
+    const depth1Rects = container.querySelectorAll(".recharts-treemap-depth-1 .recharts-rectangle");
+    expect(depth1Rects).toHaveLength(2);
+
+    const firstRect = depth1Rects[0];
+    const secondRect = depth1Rects[1];
+    assertNotNull(firstRect);
+    assertNotNull(secondRect);
+
+    const firstX = Number(firstRect.getAttribute("x"));
+    const firstY = Number(firstRect.getAttribute("y"));
+    const firstWidth = Number(firstRect.getAttribute("width"));
+    const firstHeight = Number(firstRect.getAttribute("height"));
+    const secondX = Number(secondRect.getAttribute("x"));
+    const secondY = Number(secondRect.getAttribute("y"));
+    const secondWidth = Number(secondRect.getAttribute("width"));
+    const secondHeight = Number(secondRect.getAttribute("height"));
+    const gapX = Math.max(secondX - (firstX + firstWidth), firstX - (secondX + secondWidth), 0);
+    const gapY = Math.max(secondY - (firstY + firstHeight), firstY - (secondY + secondHeight), 0);
+
+    expect(Math.max(gapX, gapY)).toBe(0);
+  });
+
+  it("adds spacing between sibling nodes when nodeGap is set", () => {
+    const nodeGap = 10;
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={siblingGapData}
+        isAnimationActive={false}
+        dataKey="value"
+        nameKey="name"
+        nodeGap={nodeGap}
+      />
+    ));
+    flush();
+
+    const depth1Rects = container.querySelectorAll(".recharts-treemap-depth-1 .recharts-rectangle");
+    expect(depth1Rects).toHaveLength(2);
+
+    const firstRect = depth1Rects[0];
+    const secondRect = depth1Rects[1];
+    assertNotNull(firstRect);
+    assertNotNull(secondRect);
+
+    const firstX = Number(firstRect.getAttribute("x"));
+    const firstY = Number(firstRect.getAttribute("y"));
+    const firstWidth = Number(firstRect.getAttribute("width"));
+    const firstHeight = Number(firstRect.getAttribute("height"));
+    const secondX = Number(secondRect.getAttribute("x"));
+    const secondY = Number(secondRect.getAttribute("y"));
+    const secondWidth = Number(secondRect.getAttribute("width"));
+    const secondHeight = Number(secondRect.getAttribute("height"));
+    const gapX = Math.max(secondX - (firstX + firstWidth), firstX - (secondX + secondWidth), 0);
+    const gapY = Math.max(secondY - (firstY + firstHeight), firstY - (secondY + secondHeight), 0);
+
+    expect(Math.max(gapX, gapY)).toBe(nodeGap);
   });
 });
 
