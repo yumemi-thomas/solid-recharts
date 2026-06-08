@@ -11,7 +11,7 @@ import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 import { expectBars, ExpectedBar } from "../../helper/expectBars";
 import "../../helper/expectStackGroups"; // registers toBeRechartsStacked* matchers (expect.extend)
 import { BarPositionPosition, getStackedData } from "../../../src/util/ChartUtils";
-import { StackDataPoint, StackSeries } from "../../../src/util/stacks/stackTypes";
+import { StackSeries } from "../../../src/util/stacks/stackTypes";
 import { selectDisplayedStackedData } from "../../../src/state/selectors/axisSelectors";
 import { defaultAxisId } from "../../../src/state/cartesianAxisSlice";
 import { DisplayedStackedData } from "../../../src/state/selectors/combiners/combineDisplayedStackedData";

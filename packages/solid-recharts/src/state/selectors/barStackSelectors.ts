@@ -3,7 +3,6 @@ import type { RechartsRootState } from "../store";
 import type { NormalizedStackId } from "../../util/ChartUtils";
 import type { BarSettings } from "../types/BarSettings";
 import { selectUnfilteredCartesianItems } from "./axisSelectors";
-import type { CartesianGraphicalItemSettings } from "../graphicalItemsSlice";
 import { selectBarRectangles } from "./barSelectors";
 
 export const selectAllBarsInStack = (

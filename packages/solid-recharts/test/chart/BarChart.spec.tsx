@@ -49,7 +49,6 @@ import { defaultAxisId } from "../../src/state/cartesianAxisSlice";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { assertNotNull } from "../helper/assertNotNull";
-import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 
 // Shared with the appended vendor describes (recharts' top-level `data`).
 const data = [

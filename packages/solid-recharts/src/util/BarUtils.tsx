@@ -6,7 +6,7 @@ import invariant from "tiny-invariant";
 import { createMemo } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Rectangle, type RectangleProps } from "../shape/Rectangle";
-import type { BarRectangleItem, BarShapeProps } from "../cartesian/Bar";
+import type { BarShapeProps } from "../cartesian/Bar";
 import { Shape } from "./ActiveShapeUtils";
 import { ActiveShape, DataKey } from "./types";
 import { isNullish, isNumber } from "./DataUtils";

@@ -3,7 +3,7 @@
 // JSX is built in the parent's JSX scope via `renderActivePointsLayerFromState`.
 // Mounting a child component that subscribes to tooltip selectors trips STRICT_READ.
 // ZIndexLayer deferred.
-import type { JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { isNullish } from "../util/DataUtils";
 import type { ActiveDotProps, ActiveDotType, DataKey } from "../util/types";
 import { svgPropertiesNoEventsFromUnknown } from "../util/svgPropertiesNoEvents";
@@ -32,6 +32,9 @@ export interface ActivePointsLayerArgs extends ActivePointsProps {
 
 export interface ActivePointState {
   point: PointType;
+  /** Narrowed coordinates of `point` (guaranteed non-null when this state exists). */
+  cx: number;
+  cy: number;
   childIndex: number;
 }
 
@@ -56,13 +59,16 @@ export function computeActivePointState(args: ActivePointsLayerArgs): ActivePoin
     return null;
   }
 
-  const activePoint = args.points.find((p) => args.activeDataPoints!.includes(p.payload));
+  const activeDataPoints = args.activeDataPoints;
+  const activePoint = args.points.find((p) => activeDataPoints.includes(p.payload));
   if (isNullish(activePoint) || activePoint.x == null || activePoint.y == null) {
     return null;
   }
 
   return {
     point: activePoint,
+    cx: activePoint.x,
+    cy: activePoint.y,
     childIndex: Number(args.activeTooltipIndex ?? 0),
   };
 }
@@ -97,8 +103,8 @@ export function renderActivePointsLayerFromState(
   const dotProps: ActiveDotProps = {
     index: state.childIndex,
     dataKey: args.itemDataKey,
-    cx: state.point.x!,
-    cy: state.point.y!,
+    cx: state.cx,
+    cy: state.cy,
     r: 4,
     fill: args.mainColor ?? "none",
     strokeWidth: 2,

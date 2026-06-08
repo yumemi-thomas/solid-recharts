@@ -11,7 +11,7 @@ import type { JSX } from "@solidjs/web";
 import { vi, type Mock } from "vitest";
 import { render } from "./render";
 import { useAppSelector, useAppStore } from "../../src/state/hooks";
-import type { RechartsRootState, RechartsStore } from "../../src/state/store";
+import type { RechartsRootState } from "../../src/state/store";
 
 // The wrapper MUST read `props.children` inside its JSX (never destructure) so
 // the Spy child getter stays lazy and runs inside the chart's store context.

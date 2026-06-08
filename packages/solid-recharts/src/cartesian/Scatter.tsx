@@ -19,7 +19,7 @@ import type { EasingInput } from "../animation/easing";
 import { Layer } from "../container/Layer";
 import { Symbols } from "../shape/Symbols";
 import { Curve, type CurveProps, type CurveType } from "../shape/Curve";
-import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
+import { svgPropertiesNoEventsFromUnknown } from "../util/svgPropertiesNoEvents";
 import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
 import { type CellProps, collectCells } from "../component/Cell";
 import {
@@ -483,14 +483,13 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
   // Curve renders fill=none, stroke=scatter fill, carrying the scatter's `name`.
   const renderScatterLine = (frame: ReadonlyArray<ScatterPointItem>): JSX.Element => {
     const line = merged.line;
-    if (!line || frame.length === 0) {
+    const head = frame[0];
+    if (!line || head == null) {
       return null;
     }
     let linePoints: ReadonlyArray<NullableCoordinate>;
     if (merged.lineType === "fitting") {
-      const { xmin, xmax, a, b } = getLinearRegression(
-        frame as [ScatterPointItem, ...ScatterPointItem[]],
-      );
+      const { xmin, xmax, a, b } = getLinearRegression([head, ...frame.slice(1)]);
       const linearExp = (x: number): number => a * x + b;
       linePoints = [
         { x: xmin, y: linearExp(xmin) },
@@ -500,7 +499,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
       linePoints = frame.map((entry) => ({ x: entry.cx ?? null, y: entry.cy ?? null }));
     }
     const customLineProps =
-      typeof line === "object" ? svgPropertiesNoEvents(line as Record<string, unknown>) : undefined;
+      typeof line === "object" ? (svgPropertiesNoEventsFromUnknown(line) ?? undefined) : undefined;
     // `name` renders on the path (recharts spreads the scatter's name onto the
     // line) but isn't in the typed SVG path attributes — widen the local.
     const lineProps: CurveProps & { name?: string } = {

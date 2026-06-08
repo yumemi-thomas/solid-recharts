@@ -40,7 +40,7 @@ function isStyleObject(value: unknown): value is Record<string, unknown> {
 }
 
 export function createAnimateManager(timeoutController: TimeoutController): AnimationManager {
-  let currStyle: ReactSmoothQueueItem | ReactSmoothQueue | undefined;
+  let _currStyle: ReactSmoothQueueItem | ReactSmoothQueue | undefined;
   let handleChange: HandleChangeFn = () => null;
   let shouldStop = false;
   let cancelTimeout: CancelableTimeout | null = null;
@@ -70,7 +70,7 @@ export function createAnimateManager(timeoutController: TimeoutController): Anim
     }
 
     if (typeof _style === "string") {
-      currStyle = _style;
+      _currStyle = _style;
       handleChange(_style);
     }
 
@@ -79,7 +79,7 @@ export function createAnimateManager(timeoutController: TimeoutController): Anim
     // `ReactSmoothQueue` in `_style`'s type here. Use an explicit guard to reach
     // the plain style-object case without an `as` cast.
     if (isStyleObject(_style)) {
-      currStyle = _style;
+      _currStyle = _style;
       handleChange(_style);
     }
 

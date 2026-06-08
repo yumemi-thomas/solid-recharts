@@ -45,7 +45,6 @@ import {
   selectReferenceDots,
   selectReferenceLines,
   selectRealScaleType,
-  selectRenderableAxisSettings,
   selectTooltipAxis,
   selectUnfilteredCartesianItems,
 } from "./axisSelectors";
