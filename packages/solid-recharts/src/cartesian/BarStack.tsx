@@ -76,7 +76,7 @@ export const BarStackClipLayer = (props: LayerProps & { index: number }): JSX.El
   const clipPathUrl = useBarStackClipPathUrl(props.index);
   return (
     <Layer
-      class={["recharts-bar-stack-layer", props.class]}
+      class={["recharts-bar-stack-layer", props.class].filter(Boolean).join(" ")}
       clipPath={clipPathUrl}
       {...omit(props, "class", "children", "index", "ref")}
       ref={props.ref}
@@ -105,27 +105,21 @@ const BarStackClipPath = (props: {
     <Show when={hasPositions()}>
       <defs>
         <For each={positions()}>
-          {(pos, index) => (
-            <Show when={pos != null}>
-              {() => {
-                const p = pos!;
-                const clipPathId = getClipPathId(props.stackId, index());
-                return (
-                  <clipPath id={clipPathId}>
-                    <Rectangle
-                      isAnimationActive={false}
-                      isUpdateAnimationActive={false}
-                      x={p.x}
-                      y={p.y}
-                      width={p.width}
-                      height={p.height}
-                      radius={props.radius}
-                    />
-                  </clipPath>
-                );
-              }}
-            </Show>
-          )}
+          {(pos, index) =>
+            pos == null ? null : (
+              <clipPath id={getClipPathId(props.stackId, index())}>
+                <Rectangle
+                  isAnimationActive={false}
+                  isUpdateAnimationActive={false}
+                  x={pos.x}
+                  y={pos.y}
+                  width={pos.width}
+                  height={pos.height}
+                  radius={props.radius}
+                />
+              </clipPath>
+            )
+          }
         </For>
       </defs>
     </Show>

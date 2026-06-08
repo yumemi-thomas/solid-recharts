@@ -5,7 +5,7 @@ const parseIsSsrByDefault = (): boolean =>
   !(
     typeof window !== "undefined" &&
     window.document &&
-    Boolean(window.document.createElement) &&
+    typeof window.document.createElement === "function" &&
     window.setTimeout
   );
 

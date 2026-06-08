@@ -57,9 +57,7 @@ class DecimalCSS {
     public num: number,
     public unit: string,
   ) {
-    this.num = num;
-    this.unit = unit;
-
+    // `num`/`unit` are parameter properties (auto-assigned); no explicit assignment needed.
     if (isNan(num)) {
       this.unit = "";
     }
