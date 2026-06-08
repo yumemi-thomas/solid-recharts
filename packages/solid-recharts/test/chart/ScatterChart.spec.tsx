@@ -4,6 +4,7 @@
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect } from "solid-js";
 import {
+  Brush,
   CartesianGrid,
   Legend,
   Scatter,
@@ -242,6 +243,369 @@ describe("ScatterChart of three dimension data", () => {
     fireEvent.mouseEnter(symbol);
 
     expect(onMouseEnter).toHaveBeenCalled();
+  });
+});
+
+describe("ScatterChart of two dimension data", () => {
+  const data = [
+    { x: 100, y: 200, z: 200 },
+    { x: 120, y: 100, z: 260 },
+    { x: 170, y: 300, z: 400 },
+    { x: 140, y: 250, z: 280 },
+    { x: 150, y: 400, z: 500 },
+    { x: 110, y: 280, z: 200 },
+  ];
+
+  test("renders 6 circles in simple ScatterChart", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter line name="A school" data={data} fill="#ff7300" />
+      </ScatterChart>
+    ));
+
+    expect(container.querySelectorAll(".recharts-symbols")).toHaveLength(6);
+
+    expectScatterPoints(container, [
+      {
+        cx: "105",
+        cy: "185",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(105, 185)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "155",
+        cy: "267.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(155, 267.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "205",
+        cy: "102.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(205, 102.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "255",
+        cy: "143.75",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(255, 143.75)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "305",
+        cy: "20",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(305, 20)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "355",
+        cy: "119.00000000000001",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(355, 119.00000000000001)",
+        width: "9.0270333367641",
+      },
+    ]);
+  });
+
+  test("renders 6 circles in ScatterChart when data is defined on chart root", () => {
+    const { container } = render(() => (
+      <ScatterChart
+        width={400}
+        height={400}
+        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+        data={data}
+      >
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter line name="A school" fill="#ff7300" />
+      </ScatterChart>
+    ));
+
+    expectScatterPoints(container, [
+      {
+        cx: "105",
+        cy: "185",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(105, 185)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "155",
+        cy: "267.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(155, 267.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "205",
+        cy: "102.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(205, 102.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "255",
+        cy: "143.75",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(255, 143.75)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "305",
+        cy: "20",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(305, 20)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "355",
+        cy: "119.00000000000001",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(355, 119.00000000000001)",
+        width: "9.0270333367641",
+      },
+    ]);
+  });
+
+  test("renders 6 circles in ScatterChart when data is defined on chart root and there are no axes", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} data={data}>
+        <Scatter dataKey="y" />
+      </ScatterChart>
+    ));
+
+    expectScatterPoints(container, [
+      {
+        cx: "37.5",
+        cy: "200",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(37.5, 200)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "102.5",
+        cy: "297.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(102.5, 297.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "167.5",
+        cy: "102.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(167.5, 102.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "232.5",
+        cy: "151.25",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(232.5, 151.25)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "297.5",
+        cy: "5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(297.5, 5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "362.5",
+        cy: "122.00000000000001",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(362.5, 122.00000000000001)",
+        width: "9.0270333367641",
+      },
+    ]);
+  });
+
+  // DEFERRED: ScatterLine (the connecting line through the points) is not yet
+  // rendered by the port — `line` is accepted as a prop but ignored (see Scatter.tsx
+  // header). The symbol geometry above is unaffected.
+  test.skip("renders line when line prop=true", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter line name="A school" data={data} fill="#ff7300" />
+      </ScatterChart>
+    ));
+
+    const allLines = container.querySelectorAll(".recharts-scatter-line path");
+    expect(allLines).toHaveLength(1);
+    const line = allLines[0]!;
+    expect(line.getAttributeNames()).toEqual(["name", "fill", "stroke", "class", "d"]);
+    expect(line.getAttribute("name")).toEqual("A school");
+    expect(line.getAttribute("fill")).toEqual("none");
+    expect(line.getAttribute("stroke")).toEqual("#ff7300");
+    expect(line.getAttribute("class")).toEqual("recharts-curve");
+    expect(line.getAttribute("d")).toEqual(
+      "M105,185L155,267.5L205,102.5L255,143.75L305,20L355,119",
+    );
+  });
+
+  test("ignores points when data have nulls in it", () => {
+    const dataWithNulls: Array<{ x: number | null; y: number | null }> = [
+      { x: null, y: 2 },
+      { x: 3, y: 4 },
+    ];
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" />
+        <YAxis dataKey="y" />
+        <Scatter name="A school" data={dataWithNulls} fill="#ff7300" />
+      </ScatterChart>
+    ));
+
+    expectScatterPoints(container, [
+      {
+        cx: "230",
+        cy: "185",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(230, 185)",
+        width: "9.0270333367641",
+      },
+    ]);
+  });
+
+  // DEFERRED: Scatter does not yet mirror into the Brush panorama (the nested
+  // panorama ScatterChart renders no points). Tracked with the other panorama gaps.
+  test.skip("renders scatter points in Brush panorama", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} data={data}>
+        <Scatter dataKey="y" />
+        <Brush>
+          <ScatterChart data={data}>
+            <Scatter dataKey="y" />
+          </ScatterChart>
+        </Brush>
+      </ScatterChart>
+    ));
+
+    expectScatterPoints(container, [
+      {
+        cx: "33.333333333333336",
+        cy: "20",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(33.333333333333336, 20)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "98",
+        cy: "29.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(98, 29.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "162.66666666666669",
+        cy: "10.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(162.66666666666669, 10.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "227.33333333333334",
+        cy: "15.25",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(227.33333333333334, 15.25)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "292",
+        cy: "1",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(292, 1)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "356.6666666666667",
+        cy: "12.4",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(356.6666666666667, 12.4)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "37.5",
+        cy: "180",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(37.5, 180)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "102.5",
+        cy: "267.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(102.5, 267.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "167.5",
+        cy: "92.5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(167.5, 92.5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "232.5",
+        cy: "136.25",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(232.5, 136.25)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "297.5",
+        cy: "5",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(297.5, 5)",
+        width: "9.0270333367641",
+      },
+      {
+        cx: "362.5",
+        cy: "110.00000000000001",
+        d: "M0,0",
+        height: "9.0270333367641",
+        transform: "translate(362.5, 110.00000000000001)",
+        width: "9.0270333367641",
+      },
+    ]);
   });
 });
 
