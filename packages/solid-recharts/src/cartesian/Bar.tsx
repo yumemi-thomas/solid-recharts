@@ -765,13 +765,16 @@ export const Bar = (props: BarProps): JSX.Element => {
     settings: {
       stroke: merged.stroke,
       strokeWidth: merged.strokeWidth,
-      fill: merged.fill,
+      // recharts' defaultBarProps has NO `fill` — the #3182bd default is applied
+      // only at render time, so the tooltip entry carries the RAW prop fill
+      // (undefined when unset). Use props.fill, not merged.fill, for parity.
+      fill: props.fill,
       dataKey: merged.dataKey,
       nameKey: undefined,
       name: getTooltipNameProp(merged.name, merged.dataKey),
       hide: merged.hide,
       type: merged.tooltipType,
-      color: merged.fill,
+      color: props.fill,
       unit: merged.unit,
       graphicalItemId: id,
     },

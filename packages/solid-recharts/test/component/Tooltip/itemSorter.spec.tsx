@@ -108,9 +108,9 @@ describe("itemSorter in ComposedChart", () => {
             dataDefinedOnItem: undefined,
             getPosition: noop,
             settings: {
-              color: "#3182bd",
+              color: undefined,
               dataKey: "pv",
-              fill: "#3182bd",
+              fill: undefined,
               hide: false,
               name: "bar",
               nameKey: undefined,
@@ -371,9 +371,9 @@ describe("itemSorter in ComposedChart", () => {
             graphicalItemId: "area-uv",
           },
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "pv",
-            fill: "#3182bd",
+            fill: undefined,
             hide: false,
             name: "bar",
             nameKey: undefined,
@@ -535,9 +535,9 @@ describe("itemSorter in ComposedChart", () => {
           value: 200,
         });
         expect(spy).toHaveBeenNthCalledWith(2, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "pv",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-pv",
           hide: false,
           name: "bar",
@@ -694,9 +694,9 @@ describe("itemSorter in ComposedChart", () => {
             value: 400,
           },
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "pv",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-pv",
             hide: false,
             name: "Bar",
@@ -858,9 +858,9 @@ describe("itemSorter in ComposedChart", () => {
           value: 200,
         });
         expect(spy).toHaveBeenNthCalledWith(3, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "pv",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-pv",
           hide: false,
           name: "Bar",
@@ -2018,9 +2018,9 @@ describe("itemSorter in stacked BarChart", () => {
         );
         expectLastCalledWith(spy, [
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "pv",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-pv",
             hide: false,
             name: "pv",
@@ -2038,9 +2038,9 @@ describe("itemSorter in stacked BarChart", () => {
             value: 2400,
           },
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "uv",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-uv",
             hide: false,
             name: "uv",
@@ -2058,9 +2058,9 @@ describe("itemSorter in stacked BarChart", () => {
             value: 400,
           },
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "amt",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-amt",
             hide: false,
             name: "amt",
@@ -2119,9 +2119,9 @@ describe("itemSorter in stacked BarChart", () => {
         showTooltip(container, barChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "pv",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-pv",
           hide: false,
           name: "pv",
@@ -2139,9 +2139,9 @@ describe("itemSorter in stacked BarChart", () => {
           value: 9800,
         });
         expect(spy).toHaveBeenNthCalledWith(2, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "uv",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-uv",
           hide: false,
           name: "uv",
@@ -2159,9 +2159,9 @@ describe("itemSorter in stacked BarChart", () => {
           value: 200,
         });
         expect(spy).toHaveBeenNthCalledWith(3, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "amt",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-amt",
           hide: false,
           name: "amt",
@@ -2217,9 +2217,9 @@ describe("itemSorter in stacked BarChart", () => {
         );
         expectLastCalledWith(spy, [
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "pv",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-pv",
             hide: false,
             name: "Bar-pv",
@@ -2237,9 +2237,9 @@ describe("itemSorter in stacked BarChart", () => {
             value: 2400,
           },
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "uv",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-uv",
             hide: false,
             name: "Bar-uv",
@@ -2257,9 +2257,9 @@ describe("itemSorter in stacked BarChart", () => {
             value: 400,
           },
           {
-            color: "#3182bd",
+            color: undefined,
             dataKey: "amt",
-            fill: "#3182bd",
+            fill: undefined,
             graphicalItemId: "bar-amt",
             hide: false,
             name: "Bar-amt",
@@ -2334,9 +2334,9 @@ describe("itemSorter in stacked BarChart", () => {
         showTooltip(container, barChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "pv",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-pv",
           hide: false,
           name: "Bar-pv",
@@ -2354,9 +2354,9 @@ describe("itemSorter in stacked BarChart", () => {
           value: 9800,
         });
         expect(spy).toHaveBeenNthCalledWith(2, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "uv",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-uv",
           hide: false,
           name: "Bar-uv",
@@ -2374,9 +2374,9 @@ describe("itemSorter in stacked BarChart", () => {
           value: 200,
         });
         expect(spy).toHaveBeenNthCalledWith(3, {
-          color: "#3182bd",
+          color: undefined,
           dataKey: "amt",
-          fill: "#3182bd",
+          fill: undefined,
           graphicalItemId: "bar-amt",
           hide: false,
           name: "Bar-amt",
