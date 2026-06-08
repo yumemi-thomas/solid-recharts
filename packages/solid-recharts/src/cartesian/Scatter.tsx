@@ -29,6 +29,8 @@ import {
   LabelListFromLabelProp,
 } from "../component/LabelList";
 import { selectScatterPoints } from "../state/selectors/scatterSelectors";
+import { selectActiveTooltipIndex } from "../state/selectors/tooltipSelectors";
+import { Shape } from "../util/ActiveShapeUtils";
 import { RegisterGraphicalItemId } from "../context/RegisterGraphicalItemId";
 import { SetErrorBarContext } from "../context/ErrorBarContext";
 import type { ErrorBarDataItem, ErrorBarDataPointFormatter, ErrorBarDirection } from "./ErrorBar";
@@ -91,6 +93,21 @@ export interface ScatterPointItem {
   /** Per-point presentation overrides from a matching <Cell> child (if any). */
   cell?: CellProps | undefined;
 }
+
+/**
+ * Props the shape/activeShape renderer receives: a point's geometry plus the
+ * presentation/active flags. `className` is accepted for recharts API parity
+ * (React style); the port renders via `class`.
+ */
+export type ScatterShapeProps = ScatterPointItem & {
+  isActive?: boolean;
+  index?: number;
+  type?: SymbolType;
+  sizeType?: "area";
+  className?: string;
+  fillOpacity?: number | string;
+  stroke?: string;
+};
 
 export type ScatterMouseEvent = MouseEnterLeaveEvent<ScatterPointItem>;
 
@@ -256,8 +273,8 @@ export interface ScatterProps {
    * element form is deferred, see header.)
    */
   shape?: SymbolType | ((item: ScatterPointItem) => JSX.Element);
-  /** Highlighted shape for the active point. Accepted for API parity; rendering is deferred. */
-  activeShape?: ActiveShape<ScatterPointItem, SVGElement>;
+  /** Highlighted shape for the active (hovered) point — object/function/boolean forms. */
+  activeShape?: ActiveShape<ScatterShapeProps, SVGElement>;
   legendType?: LegendType;
   tooltipType?: TooltipType;
   hide?: boolean;
@@ -331,6 +348,17 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
   const customShape = typeof merged.shape === "function" ? merged.shape : undefined;
   const symbolType = typeof merged.shape === "function" ? "circle" : merged.shape;
   const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
+
+  // Active-shape highlight on the hovered point (recharts ScatterSymbols): the
+  // active point swaps its shape for `activeShape` and renders in a
+  // `.recharts-active-shape` layer. `false`/nullish disables it.
+  const activeTooltipIndex = useAppSelector(selectActiveTooltipIndex);
+  const hasActiveShape = (): boolean => {
+    const a = merged.activeShape;
+    return a != null && a !== false;
+  };
+  // The default shape a (possibly partial-object) activeShape falls back to.
+  const defaultSymbolShape = (p: ScatterShapeProps): JSX.Element => <Symbols {...p} />;
 
   let prev: ScatterSettings | null = null;
 
@@ -507,7 +535,20 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
             onClick={onItemClick(entry, i())}
           >
             <Show when={entry.cx != null && entry.cy != null}>
-              {customShape ? (
+              {hasActiveShape() && activeTooltipIndex() === String(i()) ? (
+                <Shape
+                  option={merged.activeShape}
+                  DefaultShape={defaultSymbolShape}
+                  shapeProps={{
+                    ...entry,
+                    type: symbolType,
+                    sizeType: "area",
+                    fill: entry.cell?.fill ?? entry.fill ?? merged.fill,
+                    isActive: true,
+                    index: i(),
+                  }}
+                />
+              ) : customShape ? (
                 customShape(entry)
               ) : (
                 <Symbols

@@ -2,7 +2,7 @@
 // 7a23854). Solid deviations: this first batch covers the base three-dimensional
 // scatter render, clip path, empty data, and item mouse-enter callback.
 import { describe, expect, it, test, vi } from "vitest";
-import { createEffect } from "solid-js";
+import { createEffect, flush } from "solid-js";
 import {
   Bar,
   Brush,
@@ -11,6 +11,8 @@ import {
   Legend,
   Scatter,
   ScatterChart,
+  Symbols,
+  type SymbolsProps,
   Tooltip,
   XAxis,
   YAxis,
@@ -2485,5 +2487,122 @@ describe("Composed chart when stacks are bigger than ZAxis dataKey", () => {
         width: "17.841241161527712",
       },
     ]);
+  });
+});
+
+describe("ScatterChart customized active shape", () => {
+  const data = [
+    { x: 100, y: 200, z: 200 },
+    { x: 120, y: 100, z: 260 },
+    { x: 170, y: 300, z: 400 },
+    { x: 140, y: 250, z: 280 },
+    { x: 150, y: 400, z: 500 },
+    { x: 110, y: 280, z: 200 },
+  ];
+
+  // recharts fires mouseOver on a point + mouseOut to dismiss; the port's per-item
+  // Layers listen for the non-bubbling mouseEnter/mouseLeave, so adapt the events
+  // (and flush() — Solid defers reactive propagation).
+  function assertActiveShapeInteractions(container: HTMLElement): void {
+    const sectorNodes = container.querySelectorAll(".recharts-scatter-symbol");
+    expect(sectorNodes.length).toBeGreaterThanOrEqual(2);
+    const sector1 = sectorNodes[0]!;
+    fireEvent.mouseEnter(sector1, { clientX: 200, clientY: 200 });
+    flush();
+    expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(1);
+
+    const sector2 = container.querySelectorAll(".recharts-scatter-symbol")[1]!;
+    fireEvent.mouseEnter(sector2, { clientX: 200, clientY: 200 });
+    flush();
+    expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(1);
+
+    fireEvent.mouseLeave(container.querySelectorAll(".recharts-scatter-symbol")[1]!);
+    flush();
+    expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(0);
+  }
+
+  test("Renders customized active shape when activeShape set to be an object", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter line name="A school" data={data} fill="#ff7300" activeShape={{ fill: "red" }} />
+        <Tooltip />
+      </ScatterChart>
+    ));
+
+    assertActiveShapeInteractions(container);
+  });
+
+  test("Renders customized active shape when activeShape set to be an object as symbols props", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter
+          line
+          name="A school"
+          data={data}
+          fill="#ff7300"
+          activeShape={{ type: "triangle", className: "triangle-symbols-type", fill: "red" }}
+        />
+        <Tooltip />
+      </ScatterChart>
+    ));
+
+    assertActiveShapeInteractions(container);
+  });
+
+  test("Renders customized active shape when activeShape set to be a function", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter
+          line
+          name="A school"
+          data={data}
+          fill="#ff7300"
+          activeShape={(props: SymbolsProps) => <Symbols {...props} type="circle" fill="red" />}
+        />
+        <Tooltip />
+      </ScatterChart>
+    ));
+
+    assertActiveShapeInteractions(container);
+  });
+
+  // DEFERRED: element-form activeShape={<Symbols/>} — Solid has no cloneElement and
+  // elements aren't introspectable, so ActiveShape excludes the element constituent.
+  test.skip("Renders customized active shape when activeShape set to be a ReactElement", () => {});
+
+  test("Renders customized active shape when activeShape is set to be a truthy boolean", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter line name="A school" data={data} fill="#ff7300" activeShape />
+        <Tooltip />
+      </ScatterChart>
+    ));
+
+    assertActiveShapeInteractions(container);
+  });
+
+  test("Does not render customized active shape when activeShape set to be a falsy boolean", () => {
+    const { container } = render(() => (
+      <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+        <XAxis dataKey="x" name="stature" unit="cm" />
+        <YAxis dataKey="y" name="weight" unit="kg" />
+        <Scatter line name="A school" data={data} fill="#ff7300" activeShape={false} />
+        <Tooltip />
+      </ScatterChart>
+    ));
+
+    const sector = container.querySelectorAll(".recharts-scatter-symbol")[0]!;
+    fireEvent.mouseEnter(sector, { clientX: 200, clientY: 200 });
+    flush();
+
+    expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(0);
   });
 });
