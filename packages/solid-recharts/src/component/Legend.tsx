@@ -52,9 +52,36 @@ export const legendDefaultProps = {
   iconSize: 14,
   inactiveColor: "#ccc",
   itemSorter: "value",
+  labelStyle: {},
   layout: "horizontal",
   verticalAlign: "bottom",
 } as const satisfies Partial<LegendProps>;
+
+// Props passed to a function-form `content`. Mirrors recharts' ContentProps: the
+// legend props plus chart-derived margin/dimensions and the final (sorted) payload.
+type LegendContentProps = LegendProps & {
+  margin?: Margin;
+  chartWidth?: number;
+  chartHeight?: number;
+  payload?: ReadonlyArray<LegendPayload>;
+};
+
+// Port of recharts' getWidthOrHeight: a horizontal legend takes an explicit width
+// or falls back to the available chart width; a vertical legend takes an explicit height.
+function getWidthOrHeight(
+  layout: LayoutType | undefined,
+  height: number | string | undefined,
+  width: number | string | undefined,
+  maxWidth: number,
+): { height?: number | string; width?: number | string } | null {
+  if (layout === "vertical" && height != null) {
+    return { height };
+  }
+  if (layout === "horizontal") {
+    return { width: width || maxWidth };
+  }
+  return null;
+}
 
 function getDefaultPosition(
   props: {
@@ -130,6 +157,43 @@ export const Legend = (props: LegendProps): JSX.Element => {
     getUniqPayload(contextPayload() ?? [], merged.payloadUniqBy, defaultUniqBy),
   );
 
+  // Props handed to a function-form `content`. Built as a plain object (spreading
+  // the Solid `merge()` proxy leaks a MERGE_SOURCE symbol and doesn't materialize
+  // keys); reads finalPayload()/chart dims so the enclosing reactive insert re-runs
+  // when the payload populates.
+  const buildContentProps = (): LegendContentProps => {
+    const w = chartWidth() ?? 0;
+    const h = chartHeight() ?? 0;
+    const m = margin();
+    const maxWidth = w - (m?.left ?? 0) - (m?.right ?? 0);
+    const widthOrHeight = getWidthOrHeight(merged.layout, merged.height, merged.width, maxWidth);
+    return {
+      align: merged.align,
+      iconSize: merged.iconSize,
+      iconType: merged.iconType,
+      inactiveColor: merged.inactiveColor,
+      itemSorter: merged.itemSorter,
+      labelStyle: merged.labelStyle,
+      layout: merged.layout,
+      verticalAlign: merged.verticalAlign,
+      formatter: merged.formatter,
+      content: merged.content,
+      onClick: merged.onClick,
+      onMouseEnter: merged.onMouseEnter,
+      onMouseLeave: merged.onMouseLeave,
+      wrapperStyle: merged.wrapperStyle,
+      width: merged.width,
+      height: merged.height,
+      payloadUniqBy: merged.payloadUniqBy,
+      portal: merged.portal,
+      ...widthOrHeight,
+      margin: m,
+      chartWidth: w,
+      chartHeight: h,
+      payload: finalPayload(),
+    };
+  };
+
   const outerStyle = (): JSX.CSSProperties => {
     if (props.portal != null) {
       return merged.wrapperStyle ?? {};
@@ -184,7 +248,7 @@ export const Legend = (props: LegendProps): JSX.Element => {
                 />
               }
             >
-              {(contentFn) => contentFn()({ ...merged, payload: finalPayload() })}
+              {(contentFn) => <>{contentFn()(buildContentProps())}</>}
             </Show>
           </div>
         </Portal>
