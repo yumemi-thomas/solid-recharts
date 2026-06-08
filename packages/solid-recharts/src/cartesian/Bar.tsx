@@ -617,6 +617,9 @@ export interface BarProps extends ZIndexable {
   /** Tooltip entry type (recharts only supports `'none'`). */
   tooltipType?: TooltipType;
   fill?: string;
+  fillOpacity?: number | string;
+  opacity?: number | string;
+  cursor?: string;
   stroke?: string;
   strokeWidth?: number;
   hide?: boolean;

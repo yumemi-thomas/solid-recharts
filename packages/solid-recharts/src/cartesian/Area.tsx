@@ -240,6 +240,8 @@ export interface AreaProps extends AreaSvgProps {
   strokeWidth?: number;
   fill?: string;
   fillOpacity?: number | string;
+  /** Forwarded onto the area; recharts accepts the React-style camelCase attr. */
+  pointerEvents?: string;
   connectNulls?: boolean;
   baseValue?: BaseValue;
   hide?: boolean;
