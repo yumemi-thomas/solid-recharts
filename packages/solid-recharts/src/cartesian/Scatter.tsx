@@ -82,6 +82,8 @@ export interface ScatterPointItem {
   tooltipPosition: Coordinate;
   /** Fill read implicitly from the data row's `fill` property (recharts spreads `...entry`). */
   fill?: string | undefined;
+  /** Name read implicitly from the data row's `name` property (recharts spreads `...entry`). */
+  name?: string | number | undefined;
   /** Per-point presentation overrides from a matching <Cell> child (if any). */
   cell?: CellProps | undefined;
 }
@@ -199,6 +201,10 @@ export function computeScatterPoints({
       fill: ((): string | undefined => {
         const f = getValueByDataKey(entry, "fill");
         return typeof f === "string" ? f : undefined;
+      })(),
+      name: ((): string | number | undefined => {
+        const n = getValueByDataKey(entry, "name");
+        return typeof n === "string" || typeof n === "number" ? n : undefined;
       })(),
       cell: cells?.[index],
     };
@@ -450,6 +456,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
                   size={entry.size}
                   sizeType="area"
                   type={symbolType}
+                  name={entry.name}
                   fill={entry.cell?.fill ?? entry.fill ?? merged.fill}
                   fill-opacity={merged.fillOpacity}
                   stroke={entry.cell?.stroke}

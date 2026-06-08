@@ -79,6 +79,8 @@ export interface RadialBarProps<DataPointType = Record<string, unknown>, DataVal
   radiusAxisId?: AxisId;
   dataKey?: DataKey<DataPointType, DataValueType>;
   stackId?: string | number;
+  /** A background sector drawn behind each bar (recharts `background` prop). */
+  background?: boolean | SectorProps;
   barSize?: number;
   minPointSize?: number;
   maxBarSize?: number;

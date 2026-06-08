@@ -82,6 +82,8 @@ export interface InnerSymbolsProp {
   height?: number;
   size?: number;
   sizeType?: SizeType;
+  /** A data row's `name` rides through onto the symbol (recharts spreads `...entry`). */
+  name?: string | number;
 }
 
 export type SymbolsProps = Omit<JSX.PathSVGAttributes<SVGPathElement>, "type" | "class"> &
