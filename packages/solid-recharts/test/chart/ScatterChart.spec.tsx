@@ -444,10 +444,7 @@ describe("ScatterChart of two dimension data", () => {
     ]);
   });
 
-  // DEFERRED: ScatterLine (the connecting line through the points) is not yet
-  // rendered by the port — `line` is accepted as a prop but ignored (see Scatter.tsx
-  // header). The symbol geometry above is unaffected.
-  test.skip("renders line when line prop=true", () => {
+  test("renders line when line prop=true", () => {
     const { container } = render(() => (
       <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
         <XAxis dataKey="x" name="stature" unit="cm" />

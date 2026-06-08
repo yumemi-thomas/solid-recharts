@@ -17,7 +17,8 @@ import { JavascriptAnimate } from "../animation/JavascriptAnimate";
 import type { EasingInput } from "../animation/easing";
 import { Layer } from "../container/Layer";
 import { Symbols } from "../shape/Symbols";
-import type { CurveProps } from "../shape/Curve";
+import { Curve, type CurveProps, type CurveType } from "../shape/Curve";
+import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
 import { type CellProps, collectCells } from "../component/Cell";
 import {
@@ -52,13 +53,14 @@ import {
   Coordinate,
   DataKey,
   LegendType,
+  NullableCoordinate,
   SymbolType,
   TickItem,
   TooltipType,
   TrapezoidViewBox,
 } from "../util/types";
 import { getCateCoordinateOfLine, getTooltipNameProp, getValueByDataKey } from "../util/ChartUtils";
-import { interpolate, isNullish, isNumOrStr } from "../util/DataUtils";
+import { getLinearRegression, interpolate, isNullish, isNumOrStr } from "../util/DataUtils";
 import { BaseAxisWithScale, implicitZAxis, ZAxisWithScale } from "../state/selectors/axisSelectors";
 import type { ValueType } from "../component/DefaultTooltipContent";
 
@@ -241,6 +243,10 @@ export interface ScatterProps {
   stroke?: string;
   strokeWidth?: number | string;
   line?: boolean | CurveProps | ((points: ReadonlyArray<ScatterPointItem>) => JSX.Element);
+  /** How the connecting line is computed: through every point ("joint") or a linear regression ("fitting"). */
+  lineType?: "fitting" | "joint";
+  /** Curve interpolation for the joint line. Has no effect for lineType="fitting". */
+  lineJointType?: CurveType;
   /**
    * Built-in symbol type ("circle", "cross", …) OR a custom shape render prop
    * (function form): called per point with its computed geometry + payload, its
@@ -273,6 +279,9 @@ export const scatterDefaultProps = {
   legendType: "circle",
   shape: "circle",
   fill: "#808080",
+  line: false,
+  lineType: "joint",
+  lineJointType: "linear",
   hide: false,
   isAnimationActive: "auto",
   animationBegin: 0,
@@ -437,8 +446,52 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
   // id; isAnimationActive=false → t=1 → full size → byte-identical to static.
   const animationId = useAnimationId(() => points(), "recharts-scatter-");
   let prevPoints: ReadonlyArray<ScatterPointItem> | null = null;
+  // The optional connecting line through the points (recharts ScatterLine):
+  // lineType "joint" links every point; "fitting" draws a linear regression. The
+  // Curve renders fill=none, stroke=scatter fill, carrying the scatter's `name`.
+  const renderScatterLine = (frame: ReadonlyArray<ScatterPointItem>): JSX.Element => {
+    const line = merged.line;
+    if (!line || frame.length === 0) {
+      return null;
+    }
+    let linePoints: ReadonlyArray<NullableCoordinate>;
+    if (merged.lineType === "fitting") {
+      const { xmin, xmax, a, b } = getLinearRegression(
+        frame as [ScatterPointItem, ...ScatterPointItem[]],
+      );
+      const linearExp = (x: number): number => a * x + b;
+      linePoints = [
+        { x: xmin, y: linearExp(xmin) },
+        { x: xmax, y: linearExp(xmax) },
+      ];
+    } else {
+      linePoints = frame.map((entry) => ({ x: entry.cx ?? null, y: entry.cy ?? null }));
+    }
+    const customLineProps =
+      typeof line === "object" ? svgPropertiesNoEvents(line as Record<string, unknown>) : undefined;
+    // `name` renders on the path (recharts spreads the scatter's name onto the
+    // line) but isn't in the typed SVG path attributes — widen the local.
+    const lineProps: CurveProps & { name?: string } = {
+      name: merged.name == null ? undefined : String(merged.name),
+      fill: "none",
+      stroke: merged.fill,
+      ...customLineProps,
+      points: linePoints,
+    };
+    return (
+      <Layer class="recharts-scatter-line">
+        {typeof line === "function" ? (
+          line(frame)
+        ) : (
+          <Curve {...lineProps} type={merged.lineJointType} />
+        )}
+      </Layer>
+    );
+  };
+
   const renderScatterBody = (frame: ReadonlyArray<ScatterPointItem>): JSX.Element => (
     <>
+      {renderScatterLine(frame)}
       <For each={frame}>
         {(entry, i) => (
           <Layer
