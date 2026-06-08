@@ -86,7 +86,7 @@ describe("GraphicalItemClipPath", () => {
         const { container } = renderTestCase();
         const clipPaths = container.querySelectorAll("clipPath");
         expect(clipPaths).toHaveLength(1);
-        expect(clipPaths[0].id).toMatch(/-clip$/);
+        expect(clipPaths[0]!.id).toMatch(/-clip$/);
       });
     });
 
@@ -123,7 +123,7 @@ describe("GraphicalItemClipPath", () => {
         const { container } = renderTestCase();
         const clipPaths = container.querySelectorAll("clipPath");
         expect(clipPaths).toHaveLength(1);
-        expect(clipPaths[0].id).toMatch(/-clip$/);
+        expect(clipPaths[0]!.id).toMatch(/-clip$/);
       });
     });
 
@@ -311,7 +311,7 @@ describe("GraphicalItemClipPath", () => {
         const { container } = renderTestCase();
         const clipPaths = container.querySelectorAll("clipPath");
         expect(clipPaths).toHaveLength(1);
-        expect(clipPaths[0].id).toMatch(/-clip$/);
+        expect(clipPaths[0]!.id).toMatch(/-clip$/);
       });
     });
   });

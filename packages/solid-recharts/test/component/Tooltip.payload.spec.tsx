@@ -1562,7 +1562,7 @@ describe("Tooltip payload", () => {
         const barGroups = container.querySelectorAll(".recharts-bar");
 
         // Hover bar1 (row A) — should show bar1's payload
-        const bar1Group = barGroups[0];
+        const bar1Group = barGroups[0]!;
         const bar1Rect =
           bar1Group.querySelector(barMouseHoverTooltipSelector) ??
           bar1Group.querySelector(".recharts-bar-stack-layer");
@@ -1575,7 +1575,7 @@ describe("Tooltip payload", () => {
         flush();
 
         // Hover bar2 (row B) — should show bar2's payload, not bar1's
-        const bar2Group = barGroups[1];
+        const bar2Group = barGroups[1]!;
         const bar2Rect =
           bar2Group.querySelector(barMouseHoverTooltipSelector) ??
           bar2Group.querySelector(".recharts-bar-stack-layer");
@@ -1678,9 +1678,9 @@ describe("Tooltip payload", () => {
         });
 
         it("should render tooltip payload with data from all Bars", () => {
-          const { container, debug } = renderTestCase();
+          const { container } = renderTestCase();
 
-          showTooltip(container, radialBarChartMouseHoverTooltipSelector, debug);
+          showTooltip(container, radialBarChartMouseHoverTooltipSelector);
 
           const expectedTooltipTitle = "3";
           const expectedTooltipContent = ["My custom name : 9800", "amt : 2400", "uv : 200"];

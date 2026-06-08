@@ -93,7 +93,7 @@ describe("Bar zero-dimension filtering", () => {
 
     const clippedBarLayers = container.querySelectorAll(".recharts-bar-rectangle[clip-path]");
     expect(clippedBarLayers).toHaveLength(1);
-    expect(clippedBarLayers[0].getAttribute("clip-path")).toBe(
+    expect(clippedBarLayers[0]!.getAttribute("clip-path")).toBe(
       "url(#recharts-bar-stack-clip-path-sparse-stack-1)",
     );
 
