@@ -7,46 +7,57 @@
 // Harness adaptation: recharts uses createSelectorTestCase(...).rerender(NextChart)
 // + a CompositeAnimationManager that sequences one inner manager per animationId.
 // Our shared createSelectorTestCase has no rerender/animationManager, so this file
-// builds an equivalent: the chart reads a `data()` signal (so swapping data keeps
-// the SAME component instance → the `prev*` geometry closure survives), and a
-// manager registry hands out one MockProgressAnimationManager per animationId and
-// drives the most-recently-created (currently active) one. Tier-A geometry
-// assertions are byte-identical to the reference.
+// builds an equivalent: the chart reads a `data()` signal behind a keyed <Show>, so
+// swapping data REMOUNTS the whole chart — matching the reference, whose
+// rerender(NextChart) passes a freshly-created component TYPE and React unmounts +
+// remounts everything (all `previousPointsRef` tween state resets; "legacy" = a
+// clean entrance animation over the new data). A manager registry hands out one
+// MockProgressAnimationManager per animationId and drives the most-recently-created
+// (currently active) one. Tier-A geometry assertions are byte-identical to the
+// reference. The same-instance data swap — where prev geometry survives and the
+// shapes MORPH — is covered by the Line/Area .animation.spec data-change blocks.
 //
-// NOT PORTED (SRC behavior gaps — the Solid impl diverges from recharts here):
-//   - Radar (2 cases): polar/Radar.tsx renders statically; it is NOT wrapped in
-//     JavascriptAnimate, so there is no per-frame dot interpolation to assert.
-//   - Funnel (2 cases): cartesian/Funnel.tsx renders statically; not wrapped in
-//     JavascriptAnimate, so trapezoids do not grow/shrink across a data change.
-//   - Scatter / Pie / RadialBar / Bar SHRINKS (4 cases): on a data-length DECREASE
-//     the reference asserts SURVIVING items re-grow from zero (size/angle/height ≈ 0
-//     at the first frame). The Solid impl's per-element `prev*` interpolation keeps
-//     the previous (full) geometry for index-matched survivors, so survivors start at
-//     their prior size/angle/height rather than zero — the geometry diverges from
-//     recharts. The GROWS counterparts (which only assert the newly-APPENDED item,
-//     prev=null → grows from zero) match recharts exactly and ARE ported below
-//     (including Bar grows — the prior NO_OWNER_EFFECT on a Bar re-animation is fixed;
-//     see Bar.tsx, the ZIndexLayer-inside-Show change).
+// GROWS and SHRINKS are both ported for Bar / Funnel / Scatter / Pie / RadialBar:
+// under remount semantics every item re-enters from zero, so the appended-item and
+// surviving-item assertions hold exactly as in the reference.
+//
+// Radar (2 cases) is ported: Radar dots now render inside the animation frame, so the
+// legacy `dot` positions can be captured (the reference's element-form `dot={<CaptureDot/>}`
+// is expressed here as the portable function form `dot={props => <CaptureDot {...props} />}`).
+// Under remount semantics every point re-enters from the (cx,cy) center, so the mid-frame
+// dot sits at the midpoint between the center-start and its settled position — matching the
+// reference's proportional-matching assertions.
 import { beforeEach, describe, expect, it } from "vitest";
-import { createSignal, flush, type Accessor } from "solid-js";
+import { createSignal, flush, Show, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
   Area,
   AreaChart,
   Bar,
   BarChart,
+  Funnel,
+  FunnelChart,
   Line,
   LineChart,
   Pie,
   PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
   RadialBar,
   RadialBarChart,
   Scatter,
   ScatterChart,
 } from "../../src";
 import { render, fireEvent } from "../helper/render";
-import { AnimationManagerContext } from "../../src/animation/useAnimationManager";
-import { MockProgressAnimationManager } from "./MockProgressAnimationManager";
+import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
+import type { AnimationController } from "../../src";
+import {
+  MockControllerAnimationManager,
+  type MockAnimationManager,
+} from "./mockControllerAnimationManager";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { assertNotNull } from "../helper/assertNotNull";
 import { PageData } from "../_data";
@@ -68,7 +79,28 @@ type PolarData = ReadonlyArray<(typeof pageDataWithFillColor)[number]>;
 
 type ScatterCaptureProps = { cx?: number; cy?: number; size?: number };
 type SectorCaptureProps = { startAngle?: number; endAngle?: number };
+type DotCaptureProps = { cx?: number; cy?: number };
 type BarCaptureProps = { x?: number; y?: number; width?: number; height?: number };
+type FunnelCaptureProps = {
+  x?: number;
+  y?: number;
+  upperWidth?: number;
+  lowerWidth?: number;
+  height?: number;
+};
+
+function CaptureFunnel(props: FunnelCaptureProps): JSX.Element {
+  return (
+    <path
+      class="capture-funnel"
+      data-x={props.x}
+      data-y={props.y}
+      data-upper-width={props.upperWidth}
+      data-lower-width={props.lowerWidth}
+      data-height={props.height}
+    />
+  );
+}
 
 function CaptureBar(props: BarCaptureProps): JSX.Element {
   return (
@@ -98,11 +130,26 @@ function CaptureSector(props: SectorCaptureProps): JSX.Element {
   );
 }
 
+function CaptureDot(props: DotCaptureProps): JSX.Element {
+  return <circle class="capture-dot" data-cx={props.cx} data-cy={props.cy} />;
+}
+
 function parseNumber(value: string | null, attribute: string): number {
   if (value == null) {
     throw new Error(`Missing ${attribute}`);
   }
   return Number(value);
+}
+
+function midpoint(a: number, b: number): number {
+  return (a + b) / 2;
+}
+
+function getCapturedDots(container: Element): ReadonlyArray<{ cx: number; cy: number }> {
+  return Array.from(container.querySelectorAll<SVGCircleElement>(".capture-dot")).map((dot) => ({
+    cx: parseNumber(dot.getAttribute("data-cx"), "data-cx"),
+    cy: parseNumber(dot.getAttribute("data-cy"), "data-cy"),
+  }));
 }
 
 function getCurvePoints(
@@ -157,6 +204,20 @@ function getCapturedBars(
   }));
 }
 
+function getCapturedFunnels(
+  container: Element,
+): ReadonlyArray<{ x: number; y: number; upperWidth: number; lowerWidth: number; height: number }> {
+  return Array.from(container.querySelectorAll<SVGPathElement>(".capture-funnel")).map(
+    (funnel) => ({
+      x: parseNumber(funnel.getAttribute("data-x"), "data-x"),
+      y: parseNumber(funnel.getAttribute("data-y"), "data-y"),
+      upperWidth: parseNumber(funnel.getAttribute("data-upper-width"), "data-upper-width"),
+      lowerWidth: parseNumber(funnel.getAttribute("data-lower-width"), "data-lower-width"),
+      height: parseNumber(funnel.getAttribute("data-height"), "data-height"),
+    }),
+  );
+}
+
 function getCapturedSectors(
   container: Element,
 ): ReadonlyArray<{ startAngle: number; endAngle: number }> {
@@ -175,28 +236,29 @@ const linearAnimationProps = {
 };
 
 // Each chart animates exactly ONE graphical item, but the animationId changes when
-// data length changes → a NEW JavascriptAnimate subscribes a NEW manager via the
-// context factory. This registry hands out one manager per id and exposes the most
-// recently created (= currently active) one to drive.
+// data length changes → a NEW animation subscribes a NEW manager. The injected v3.9
+// `controller` routes per-id via `handle.getAnimationId()` so a remount's stop() on the
+// old id never clobbers the new id's manager, and `current()` returns the most recently
+// activated one (= currently animating).
 function createManagerRegistry(): {
-  factory: (id: string) => MockProgressAnimationManager;
-  current: () => MockProgressAnimationManager;
+  controller: AnimationController;
+  current: () => MockAnimationManager;
 } {
-  const managers = new Map<string, MockProgressAnimationManager>();
-  let latest: MockProgressAnimationManager | null = null;
+  const managers = new Map<string, MockControllerAnimationManager>();
+  let latest: MockAnimationManager | null = null;
   return {
-    factory: (id: string): MockProgressAnimationManager => {
-      const existing = managers.get(id);
-      if (existing != null) {
-        latest = existing;
-        return existing;
+    controller: (timeoutController, animationHandle, listener) => {
+      const id = animationHandle.getAnimationId();
+      let manager = managers.get(id);
+      if (manager == null) {
+        manager = new MockControllerAnimationManager(id);
+        managers.set(id, manager);
       }
-      const manager = new MockProgressAnimationManager(id);
-      managers.set(id, manager);
       latest = manager;
-      return manager;
+      manager.start(animationHandle, listener);
+      return () => manager.stop();
     },
-    current: (): MockProgressAnimationManager => {
+    current: (): MockAnimationManager => {
       if (latest == null) {
         throw new Error("No animation manager has been created yet");
       }
@@ -216,9 +278,14 @@ type RenderResult = {
   registry: ReturnType<typeof createManagerRegistry>;
 };
 
-// Render a chart whose data is driven by a signal. `chart(data)` returns the chart
-// JSX for the current data; swapping the signal keeps the SAME component instance so
-// the graphical item's `prev*` geometry closure survives across the data change.
+// Render a chart whose data is driven by a signal, REMOUNTING the whole chart when
+// the data swaps (keyed <Show> on the array identity). This mirrors the reference
+// harness exactly: its `rerender(NextComponent)` passes a freshly-created component
+// TYPE, so React unmounts and remounts the entire chart — every `previousPointsRef`
+// (prev-frame tween geometry) resets and the "legacy" behavior under test is a clean
+// ENTRANCE animation over the new data, not a data-change morph. (The same-instance
+// data swap — prev geometry surviving — is the tween path, covered by the
+// Line/Area/... .animation.spec data-change blocks instead.)
 //
 // The swap is triggered by clicking an in-tree <button> (NOT by writing the signal
 // from the test body) so the data-change re-render — which re-creates chart effects
@@ -233,7 +300,7 @@ function renderLengthChangeChart(
   const [data, setData] = createSignal<SmallData | PolarData>(initialData);
   const [next, setNext] = createSignal<SmallData | PolarData | null>(null);
   const { container } = render(() => (
-    <AnimationManagerContext value={registry.factory}>
+    <AnimationControllerProvider value={registry.controller}>
       <button
         type="button"
         data-testid="swap-data"
@@ -244,8 +311,10 @@ function renderLengthChangeChart(
           }
         }}
       />
-      {chart(data)}
-    </AnimationManagerContext>
+      <Show when={data()} keyed>
+        {(d) => chart(() => d)}
+      </Show>
+    </AnimationControllerProvider>
   ));
   flush();
   const button = container.querySelector<HTMLButtonElement>('[data-testid="swap-data"]');
@@ -351,6 +420,67 @@ describe("legacy animation behavior when data length changes", () => {
 
     expect(initialCurve).not.toEqual(finalCurve);
     expect(midCurve).toEqual(finalCurve);
+  });
+
+  const renderRadar = (data: Accessor<SmallData | PolarData>): JSX.Element => (
+    <RadarChart cx={50} cy={50} outerRadius={40} width={100} height={100} data={data()}>
+      <PolarGrid />
+      <PolarAngleAxis dataKey="name" />
+      <PolarRadiusAxis />
+      <Radar dataKey="uv" dot={(props) => <CaptureDot {...props} />} {...linearAnimationProps} />
+    </RadarChart>
+  );
+
+  it("Radar keeps proportional point matching", async () => {
+    const r = renderLengthChangeChart(smallData, renderRadar);
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(largeData);
+    const initialDots = getCapturedDots(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midDots = getCapturedDots(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalDots = getCapturedDots(r.container);
+
+    expect(initialDots).toHaveLength(3);
+    expect(midDots).toHaveLength(3);
+    expect(finalDots).toHaveLength(3);
+    const mid1 = midDots[1];
+    const init0 = initialDots[0];
+    const final1 = finalDots[1];
+    assertNotNull(mid1);
+    assertNotNull(init0);
+    assertNotNull(final1);
+    expect(mid1.cx).toBeCloseTo(midpoint(init0.cx, final1.cx), 4);
+    expect(mid1.cy).toBeCloseTo(midpoint(init0.cy, final1.cy), 4);
+  });
+
+  it("Radar keeps proportional point matching when data length decreases", async () => {
+    const r = renderLengthChangeChart(largeData, renderRadar);
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(smallData);
+    const initialDots = getCapturedDots(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midDots = getCapturedDots(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalDots = getCapturedDots(r.container);
+
+    expect(initialDots).toHaveLength(2);
+    expect(midDots).toHaveLength(2);
+    expect(finalDots).toHaveLength(2);
+    const mid1 = midDots[1];
+    const init1 = initialDots[1];
+    const final1 = finalDots[1];
+    assertNotNull(mid1);
+    assertNotNull(init1);
+    assertNotNull(final1);
+    expect(mid1.cx).toBeCloseTo(midpoint(init1.cx, final1.cx), 4);
+    expect(mid1.cy).toBeCloseTo(midpoint(init1.cy, final1.cy), 4);
   });
 
   it("Scatter grows newly appended items from zero size at their final position", async () => {
@@ -461,6 +591,210 @@ describe("legacy animation behavior when data length changes", () => {
     assertNotNull(midSector);
     assertNotNull(finalSector);
 
+    expect(midSector.endAngle - midSector.startAngle).toBeCloseTo(
+      (finalSector.endAngle - finalSector.startAngle) / 2,
+      4,
+    );
+  });
+
+  it("Funnel grows newly appended items from zero size", async () => {
+    const r = renderLengthChangeChart(smallData, (data) => (
+      <FunnelChart width={100} height={100}>
+        <Funnel data={data()} dataKey="uv" shape={CaptureFunnel} {...linearAnimationProps} />
+      </FunnelChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(largeData);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midFunnels = getCapturedFunnels(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalFunnels = getCapturedFunnels(r.container);
+
+    expect(midFunnels).toHaveLength(3);
+    expect(finalFunnels).toHaveLength(3);
+    const midFunnel = midFunnels[2];
+    const finalFunnel = finalFunnels[2];
+    assertNotNull(midFunnel);
+    assertNotNull(finalFunnel);
+
+    // The newly-appended (3rd) trapezoid has no previous frame → grows from zero, so
+    // at t=0.5 its geometry is half the settled size.
+    expect(midFunnel.upperWidth).toBeCloseTo(finalFunnel.upperWidth / 2, 4);
+    expect(midFunnel.lowerWidth).toBeCloseTo(finalFunnel.lowerWidth / 2, 4);
+    expect(midFunnel.height).toBeCloseTo(finalFunnel.height / 2, 4);
+  });
+
+  // SHRINKS cases: a data-length DECREASE remounts the chart (keyed harness), so the
+  // surviving items re-run a clean entrance — zero size at the first frame, half the
+  // settled geometry at t=0.5. Assertions byte-identical to the reference.
+
+  it("Bar shrinks removed trailing items to zero size", async () => {
+    const r = renderLengthChangeChart(largeData, (data) => (
+      <BarChart width={100} height={100} data={data()}>
+        <Bar dataKey="uv" shape={CaptureBar} {...linearAnimationProps} />
+      </BarChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(smallData);
+    const initialBars = getCapturedBars(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midBars = getCapturedBars(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalBars = getCapturedBars(r.container);
+
+    expect(initialBars).toHaveLength(2);
+    expect(midBars).toHaveLength(2);
+    expect(finalBars).toHaveLength(2);
+    const initialBar = initialBars[1];
+    const midBar = midBars[1];
+    const finalBar = finalBars[1];
+    assertNotNull(initialBar);
+    assertNotNull(midBar);
+    assertNotNull(finalBar);
+
+    expect(initialBar.x).toBeCloseTo(finalBar.x, 4);
+    expect(initialBar.width).toBeCloseTo(finalBar.width, 4);
+    expect(initialBar.height).toBeCloseTo(0, 4);
+    expect(midBar.x).toBeCloseTo(finalBar.x, 4);
+    expect(midBar.width).toBeCloseTo(finalBar.width, 4);
+    expect(midBar.height).toBeCloseTo(finalBar.height / 2, 4);
+  });
+
+  it("Funnel shrinks removed trailing items to zero size", async () => {
+    const r = renderLengthChangeChart(largeData, (data) => (
+      <FunnelChart width={100} height={100}>
+        <Funnel data={data()} dataKey="uv" shape={CaptureFunnel} {...linearAnimationProps} />
+      </FunnelChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(smallData);
+    const initialFunnels = getCapturedFunnels(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midFunnels = getCapturedFunnels(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalFunnels = getCapturedFunnels(r.container);
+
+    expect(initialFunnels).toHaveLength(2);
+    expect(midFunnels).toHaveLength(2);
+    expect(finalFunnels).toHaveLength(2);
+    const initialFunnel = initialFunnels[1];
+    const midFunnel = midFunnels[1];
+    const finalFunnel = finalFunnels[1];
+    assertNotNull(initialFunnel);
+    assertNotNull(midFunnel);
+    assertNotNull(finalFunnel);
+
+    expect(initialFunnel.upperWidth).toBeCloseTo(0, 4);
+    expect(initialFunnel.lowerWidth).toBeCloseTo(0, 4);
+    expect(initialFunnel.height).toBeCloseTo(0, 4);
+    expect(midFunnel.upperWidth).toBeCloseTo(finalFunnel.upperWidth / 2, 4);
+    expect(midFunnel.lowerWidth).toBeCloseTo(finalFunnel.lowerWidth / 2, 4);
+    expect(midFunnel.height).toBeCloseTo(finalFunnel.height / 2, 4);
+  });
+
+  it("Scatter shrinks removed trailing items to zero size at their current position", async () => {
+    const r = renderLengthChangeChart(largeData, (data) => (
+      <ScatterChart width={100} height={100} data={data()}>
+        <Scatter dataKey="uv" shape={CaptureScatter} {...linearAnimationProps} />
+      </ScatterChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(smallData);
+    const initialPoints = getCapturedScatterPoints(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midPoints = getCapturedScatterPoints(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalPoints = getCapturedScatterPoints(r.container);
+
+    expect(initialPoints).toHaveLength(2);
+    expect(midPoints).toHaveLength(2);
+    expect(finalPoints).toHaveLength(2);
+    const initialPoint = initialPoints[1];
+    const midPoint = midPoints[1];
+    const finalPoint = finalPoints[1];
+    assertNotNull(initialPoint);
+    assertNotNull(midPoint);
+    assertNotNull(finalPoint);
+
+    expect(initialPoint.cx).toBeCloseTo(finalPoint.cx, 4);
+    expect(initialPoint.cy).toBeCloseTo(finalPoint.cy, 4);
+    expect(initialPoint.size).toBeCloseTo(0, 4);
+    expect(midPoint.cx).toBeCloseTo(finalPoint.cx, 4);
+    expect(midPoint.cy).toBeCloseTo(finalPoint.cy, 4);
+    expect(midPoint.size).toBeCloseTo(finalPoint.size / 2, 4);
+  });
+
+  it("Pie shrinks removed trailing sectors to zero angle span", async () => {
+    const r = renderLengthChangeChart(largeData, (data) => (
+      <PieChart width={100} height={100}>
+        <Pie data={data()} dataKey="uv" shape={CaptureSector} {...linearAnimationProps} />
+      </PieChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(smallData);
+    const initialSectors = getCapturedSectors(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midSectors = getCapturedSectors(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalSectors = getCapturedSectors(r.container);
+
+    expect(initialSectors).toHaveLength(0);
+    expect(midSectors).toHaveLength(2);
+    expect(finalSectors).toHaveLength(2);
+    const midSector = midSectors[1];
+    const finalSector = finalSectors[1];
+    assertNotNull(midSector);
+    assertNotNull(finalSector);
+
+    expect(midSector.endAngle - midSector.startAngle).toBeCloseTo(
+      (finalSector.endAngle - finalSector.startAngle) / 2,
+      3,
+    );
+  });
+
+  it("RadialBar shrinks removed trailing sectors to zero angle span", async () => {
+    const r = renderLengthChangeChart(largePolarData, (data) => (
+      <RadialBarChart width={400} height={400} data={data()}>
+        <RadialBar dataKey="uv" shape={CaptureSector} {...linearAnimationProps} />
+      </RadialBarChart>
+    ));
+    await r.registry.current().completeAnimation();
+    flush();
+    r.setData(smallPolarData);
+    const initialSectors = getCapturedSectors(r.container);
+    await r.registry.current().setAnimationProgress(0.5);
+    flush();
+    const midSectors = getCapturedSectors(r.container);
+    await r.registry.current().completeAnimation();
+    flush();
+    const finalSectors = getCapturedSectors(r.container);
+
+    expect(initialSectors).toHaveLength(2);
+    expect(midSectors).toHaveLength(2);
+    expect(finalSectors).toHaveLength(2);
+    const initialSector = initialSectors[1];
+    const midSector = midSectors[1];
+    const finalSector = finalSectors[1];
+    assertNotNull(initialSector);
+    assertNotNull(midSector);
+    assertNotNull(finalSector);
+
+    expect(initialSector.startAngle).toBeCloseTo(initialSector.endAngle, 4);
     expect(midSector.endAngle - midSector.startAngle).toBeCloseTo(
       (finalSector.endAngle - finalSector.startAngle) / 2,
       4,

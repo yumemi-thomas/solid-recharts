@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 src/util/DataUtils.ts (grown incrementally as
 // consumers need more; the full 53-case spec ports when this is completed).
-import get from "es-toolkit/compat/get";
+import { get } from "./objectPath";
 import { NonEmptyArray, Percent } from "./types";
 import { round } from "./round";
 

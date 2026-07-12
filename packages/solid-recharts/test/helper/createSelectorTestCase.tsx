@@ -93,3 +93,84 @@ export function createSelectorTestCase(Component: Wrapper) {
     return { container, spy, rerenderSameComponent, unmount };
   };
 }
+
+/**
+ * Solid-native, reduced port of recharts' `createSynchronisedSelectorTestCase`.
+ * Renders TWO (or three) chart wrappers side by side, each with its own store and
+ * a Spy reading `selector` against that store — used to assert cross-chart sync
+ * receipt (one chart hovers, the other's state updates via the sync registry).
+ *
+ * Each wrapper MUST read `props.children` inside its JSX (never destructure) so
+ * the Spy mounts inside that chart's store (test-wrapper-no-destructure-children).
+ */
+export function createSynchronisedSelectorTestCase(
+  ComponentA: Wrapper,
+  ComponentB: Wrapper,
+  ComponentC?: Wrapper,
+) {
+  return function renderTestCase<T>(selector?: (state: RechartsRootState) => T): {
+    container: HTMLElement;
+    wrapperA: Element;
+    wrapperB: Element;
+    wrapperC: Element | null;
+    spyA: Mock;
+    spyB: Mock;
+    spyC: Mock;
+    unmount: () => void;
+  } {
+    const spyA: Mock = vi.fn();
+    const spyB: Mock = vi.fn();
+    const spyC: Mock = vi.fn();
+
+    const makeSpy =
+      (spy: Mock): (() => null) =>
+      (): null => {
+        if (selector == null) {
+          return null;
+        }
+        const accessor = useAppSelector(selector);
+        createEffect(
+          () => accessor(),
+          (value) => spy(value),
+        );
+        return null;
+      };
+    const SpyA = makeSpy(spyA);
+    const SpyB = makeSpy(spyB);
+    const SpyC = makeSpy(spyC);
+
+    const { container, unmount } = render(() => (
+      <>
+        <div id="wrapperA">
+          <ComponentA>
+            <SpyA />
+          </ComponentA>
+        </div>
+        <div id="wrapperB">
+          <ComponentB>
+            <SpyB />
+          </ComponentB>
+        </div>
+        {ComponentC != null ? (
+          <div id="wrapperC">
+            <ComponentC>
+              <SpyC />
+            </ComponentC>
+          </div>
+        ) : null}
+      </>
+    ));
+    flush();
+    flush();
+    flush();
+
+    const wrapperA = container.querySelector("#wrapperA");
+    const wrapperB = container.querySelector("#wrapperB");
+    const wrapperC = container.querySelector("#wrapperC");
+    if (wrapperA == null || wrapperB == null) {
+      throw new Error("synchronised test case wrappers failed to render");
+    }
+
+    return { container, spyA, spyB, spyC, wrapperA, wrapperB, wrapperC, unmount };
+  };
+}

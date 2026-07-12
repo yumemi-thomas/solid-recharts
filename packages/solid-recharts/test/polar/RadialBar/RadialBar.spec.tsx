@@ -19,12 +19,15 @@ import type { Mock } from "vitest";
 import type { RadialBarDataItem } from "../../../src/polar/RadialBar";
 import { describe, expect, it, vi } from "vitest";
 import {
+  DefaultZIndexes,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis,
   RadialBar,
   RadialBarChart,
+  Tooltip,
 } from "../../../src";
+import { assertZIndexLayerOrder } from "../../helper/assertZIndexLayerOrder";
 import { fireEvent, render } from "../../helper/render";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectPolarItemsSettings } from "../../../src/state/selectors/polarSelectors";
@@ -1037,6 +1040,27 @@ describe("<RadialBar />", () => {
     expectRadialBars(container, []);
   });
 
+  // Not in the recharts reference spec: covers the `strokeWidth` prop the
+  // reference forwards to every sector via its svg-props spread
+  // (RadialBarSectors baseProps).
+  it("forwards the component-level strokeWidth to every sector path", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData}>
+        <RadialBar isAnimationActive={false} dataKey="uv" stroke="#111" strokeWidth={4} />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const sectors = container.querySelectorAll(
+      ".recharts-radial-bar-sectors path.recharts-radial-bar-sector",
+    );
+    expect(sectors).toHaveLength(PageData.length);
+    sectors.forEach((sector) => {
+      expect(sector.getAttribute("stroke-width")).toBe("4");
+      expect(sector.getAttribute("stroke")).toBe("#111");
+    });
+  });
+
   it("calls mouse handler events", () => {
     const onMouseEnter: Mock<(data: RadialBarDataItem, index: number, e: MouseEvent) => void> =
       vi.fn();
@@ -1104,6 +1128,53 @@ describe("<RadialBar />", () => {
     expectLastCalledWith(onClick, expectedData, 0, expect.any(Object));
   });
 
+  it("calls the remaining pointer handler events", () => {
+    const onMouseDown = vi.fn();
+    const onMouseUp = vi.fn();
+    const onMouseMove = vi.fn();
+    const onMouseOver = vi.fn();
+    const onMouseOut = vi.fn();
+    const onTouchStart = vi.fn();
+
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar
+          isAnimationActive={false}
+          dataKey="amt"
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
+          onMouseMove={onMouseMove}
+          onMouseOver={onMouseOver}
+          onMouseOut={onMouseOut}
+          onTouchStart={onTouchStart}
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const sector = container.querySelectorAll(".recharts-sector")[0];
+    assertNotNull(sector);
+
+    fireEvent.mouseDown(sector);
+    expect(onMouseDown).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(onMouseDown, expect.any(Object), 0, expect.any(Object));
+
+    fireEvent.mouseUp(sector);
+    expect(onMouseUp).toHaveBeenCalledTimes(1);
+
+    fireEvent.mouseMove(sector);
+    expect(onMouseMove).toHaveBeenCalledTimes(1);
+
+    fireEvent.mouseOver(sector);
+    expect(onMouseOver).toHaveBeenCalledTimes(1);
+
+    fireEvent.mouseOut(sector);
+    expect(onMouseOut).toHaveBeenCalledTimes(1);
+
+    fireEvent.touchStart(sector);
+    expect(onTouchStart).toHaveBeenCalledTimes(1);
+  });
+
   it("calls touch handler events", () => {
     const onTouchMove = vi.fn();
     const onTouchEnd = vi.fn();
@@ -1160,6 +1231,70 @@ describe("<RadialBar />", () => {
     );
   });
 
+  it("renders the activeShape for the active sector", () => {
+    // RadialBarChart is an AXIS-tooltip chart (defaultTooltipEventType="axis", like
+    // recharts), so activeShape activates from the active AXIS index — set here via
+    // Tooltip defaultIndex (or, in a browser, the polar axis pointer). Per-sector
+    // item mouseEnter correctly does NOT drive an axis-tooltip chart's activeShape.
+    const withActive = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar
+          isAnimationActive={false}
+          dataKey="amt"
+          activeShape={(p) => <path class="custom-active-radial" d={`M${p.cx},${p.cy}`} />}
+        />
+        <Tooltip defaultIndex={0} />
+      </RadialBarChart>
+    ));
+    flush();
+    expect(withActive.container.querySelector(".custom-active-radial")).not.toBeNull();
+
+    // Without an active index, the regular shape is used (no activeShape).
+    const noActive = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar
+          isAnimationActive={false}
+          dataKey="amt"
+          activeShape={(p) => <path class="custom-active-radial" d={`M${p.cx},${p.cy}`} />}
+        />
+      </RadialBarChart>
+    ));
+    flush();
+    expect(noActive.container.querySelector(".custom-active-radial")).toBeNull();
+  });
+
+  // Object-form activeShape (recharts RadialBarChart.spec "activeShape set to be an
+  // object"). The reference drives the active sector by pointer hover + asserts the
+  // `.recharts-active-shape` WRAPPER class; that wrapper mechanism is covered
+  // elsewhere and pointer hover needs a real getBoundingClientRect (0 in jsdom), so
+  // here we drive the active index via Tooltip `defaultIndex` (RadialBarChart is an
+  // axis-tooltip chart) and assert the OBJECT props merged onto the active sector's
+  // shape (fill:"red") — wrapper-independent.
+  it("merges object-form activeShape props onto the active sector", () => {
+    const withActive = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar isAnimationActive={false} dataKey="amt" activeShape={{ fill: "red" }} />
+        <Tooltip defaultIndex={0} />
+      </RadialBarChart>
+    ));
+    flush();
+    // Exactly the active sector (index 0) picks up the merged fill.
+    expect(
+      withActive.container.querySelectorAll('.recharts-radial-bar-sector[fill="red"]'),
+    ).toHaveLength(1);
+
+    // Without an active index no sector uses the activeShape fill.
+    const noActive = render(() => (
+      <RadialBarChart width={500} height={500} data={PageData} throttledEvents={[]}>
+        <RadialBar isAnimationActive={false} dataKey="amt" activeShape={{ fill: "red" }} />
+      </RadialBarChart>
+    ));
+    flush();
+    expect(
+      noActive.container.querySelectorAll('.recharts-radial-bar-sector[fill="red"]'),
+    ).toHaveLength(0);
+  });
+
   describe("state integration", () => {
     it("should report its settings to Redux state, and remove it when removed from DOM", () => {
       const [showBar, setShowBar] = createSignal(true);
@@ -1206,5 +1341,181 @@ describe("<RadialBar />", () => {
 
       expect(polarItemsSpy).toHaveBeenLastCalledWith([]);
     });
+  });
+});
+
+describe("RadialBar background zIndex", () => {
+  const dataWithBackground = [
+    { name: "A", uv: 400, pv: 2400, fill: "#8884d8" },
+    { name: "B", uv: 300, pv: 4567, fill: "#83a6ed" },
+  ];
+
+  it("should render background with default zIndex when background prop is true", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar background isAnimationActive={false} dataKey="pv" />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
+    const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
+    assertNotNull(radialBarSectors[0]);
+    assertNotNull(backgroundSectors[0]);
+    assertZIndexLayerOrder({ front: radialBarSectors[0], back: backgroundSectors[0] });
+  });
+
+  it("should render background with default zIndex when background prop is an object without zIndex", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar background={{ fill: "#eee" }} isAnimationActive={false} dataKey="pv" />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
+    const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
+    assertNotNull(radialBarSectors[0]);
+    assertNotNull(backgroundSectors[0]);
+    assertZIndexLayerOrder({ front: radialBarSectors[0], back: backgroundSectors[0] });
+  });
+
+  it("should render background with custom zIndex when background prop includes zIndex", () => {
+    const customZIndex = DefaultZIndexes.bar + 1;
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar
+          background={{ fill: "#eee", zIndex: customZIndex }}
+          isAnimationActive={false}
+          dataKey="pv"
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
+    const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
+    assertNotNull(radialBarSectors[0]);
+    assertNotNull(backgroundSectors[0]);
+    assertZIndexLayerOrder({ back: radialBarSectors[0], front: backgroundSectors[0] });
+  });
+
+  it("should handle background with zIndex as 0", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar
+          background={{ fill: "#eee", zIndex: 0 }}
+          isAnimationActive={false}
+          dataKey="pv"
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
+    const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
+    assertNotNull(radialBarSectors[0]);
+    assertNotNull(backgroundSectors[0]);
+    assertZIndexLayerOrder({ front: radialBarSectors[0], back: backgroundSectors[0] });
+  });
+
+  it("should handle negative zIndex values in background prop", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar
+          background={{ fill: "#eee", zIndex: -150 }}
+          isAnimationActive={false}
+          dataKey="pv"
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
+    const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
+    assertNotNull(radialBarSectors[0]);
+    assertNotNull(backgroundSectors[0]);
+    assertZIndexLayerOrder({ front: radialBarSectors[0], back: backgroundSectors[0] });
+  });
+
+  it("should ignore non-number zIndex values and use default", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar
+          // @ts-expect-error testing runtime behavior with an invalid (string) zIndex
+          background={{ fill: "#eee", zIndex: "1200" }}
+          isAnimationActive={false}
+          dataKey="pv"
+        />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
+    const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
+    assertNotNull(radialBarSectors[0]);
+    assertNotNull(backgroundSectors[0]);
+    assertZIndexLayerOrder({ front: radialBarSectors[0], back: backgroundSectors[0] });
+  });
+
+  it("should handle background prop when it is undefined", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar background={undefined} isAnimationActive={false} dataKey="pv" />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(0);
+  });
+
+  it("should handle background prop when it is false", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        <RadialBar background={false} isAnimationActive={false} dataKey="pv" />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(0);
+  });
+
+  it.each([null, false, undefined] as const)(
+    "should not render any background when background=%s",
+    (background) => {
+      const { container } = render(() => (
+        <RadialBarChart width={500} height={500} data={dataWithBackground}>
+          {/* @ts-expect-error testing runtime behavior */}
+          <RadialBar background={background} isAnimationActive={false} dataKey="pv" />
+        </RadialBarChart>
+      ));
+      flush();
+
+      const backgroundSectors = container.querySelectorAll(
+        ".recharts-radial-bar-background-sector",
+      );
+      expect(backgroundSectors).toHaveLength(0);
+    },
+  );
+
+  it("should render backgrounds with non-object values - typescript says it will not but it does!", () => {
+    const { container } = render(() => (
+      <RadialBarChart width={500} height={500} data={dataWithBackground}>
+        {/* @ts-expect-error testing runtime behavior */}
+        <RadialBar background="invalid" isAnimationActive={false} dataKey="pv" />
+      </RadialBarChart>
+    ));
+    flush();
+
+    const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
+    expect(backgroundSectors).toHaveLength(dataWithBackground.length);
   });
 });

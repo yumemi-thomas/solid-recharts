@@ -320,7 +320,7 @@ export function isDataAttribute(key: string): key is DataAttributeKeyType {
 // This map renames just those keys on the way out. Genuinely-camelCase SVG
 // attributes (viewBox, gradientTransform, attributeName, clipPathUnits, …) are
 // intentionally ABSENT here and pass through unchanged.
-export const SVG_ATTRIBUTE_RENAMES: Readonly<Record<string, string>> = {
+export const SVG_ATTRIBUTE_RENAMES = {
   className: "class",
   tabIndex: "tabindex",
   accentHeight: "accent-height",
@@ -404,22 +404,43 @@ export const SVG_ATTRIBUTE_RENAMES: Readonly<Record<string, string>> = {
   xlinkType: "xlink:type",
   xmlBase: "xml:base",
   xmlLang: "xml:lang",
+} as const satisfies Readonly<Record<string, string>>;
+
+// Widened view for string-keyed lookup (the literal type above has no index signature).
+const SVG_ATTRIBUTE_RENAMES_LOOKUP: Readonly<Record<string, string>> = SVG_ATTRIBUTE_RENAMES;
+
+/** The camelCase prop names that rename to a different DOM attribute name. */
+type SvgCamelRenameKey = keyof typeof SVG_ATTRIBUTE_RENAMES;
+/** The kebab/namespaced DOM attribute names produced by the rename map. */
+export type SvgKebabRenameTarget = (typeof SVG_ATTRIBUTE_RENAMES)[SvgCamelRenameKey];
+
+/**
+ * SINGLE-CONVENTION PUBLIC SURFACE: every SVG passthrough prop has exactly ONE
+ * accepted spelling — the recharts camelCase name (`strokeWidth`), matching
+ * recharts' `filterProps`. The kebab DOM spellings (`stroke-width`) are NOT
+ * accepted as component props; they exist only on the rendered DOM output.
+ *
+ * `CamelSvgAttributes` is the camel vocabulary (minus `className` — this port's
+ * components own `class`); `CamelSvgProps<Base>` grafts it onto a Solid
+ * `JSX.*SVGAttributes` base while stripping the kebab duplicates (keeping
+ * Solid-native `class`, which the rename map targets but components re-own).
+ */
+export type CamelSvgAttributes = {
+  [K in Exclude<SvgCamelRenameKey, "className">]?: string | number;
 };
+export type CamelSvgProps<Base> = Omit<Base, Exclude<SvgKebabRenameTarget, "class">> &
+  CamelSvgAttributes;
 
 /** The DOM attribute name for a (possibly camelCase) SVG prop key. */
 export function toSvgAttributeName(key: string): string {
-  return SVG_ATTRIBUTE_RENAMES[key] ?? key;
+  return SVG_ATTRIBUTE_RENAMES_LOOKUP[key] ?? key;
 }
 
-// Recognize BOTH the camelCase allowlist keys AND their kebab DOM names, so input
-// objects in either convention are accepted: recharts-style camelCase props
-// (`strokeWidth`) and Solid `JSX.*SVGAttributes`-derived kebab props (`stroke-width`).
-// The namespaced (`xlink:`/`xml:`) and `class` rename targets are excluded — they
-// aren't expected as raw input keys and `class` is handled separately by callers.
-const SVG_KEY_SET: ReadonlySet<string> = new Set([
-  ...SVGElementPropKeys,
-  ...Object.values(SVG_ATTRIBUTE_RENAMES).filter((v) => !v.includes(":") && v !== "class"),
-]);
+// Recognize ONLY the camelCase allowlist keys (single convention — recharts
+// `filterProps` parity). Kebab DOM names are an OUTPUT format (see
+// toSvgAttributeName), never an input convention; `aria-*` entries in the
+// allowlist are canonically kebab in recharts and Solid alike and stay as-is.
+const SVG_KEY_SET: ReadonlySet<string> = new Set(SVGElementPropKeys);
 
 export function isSvgElementPropKey(key: string): boolean {
   return SVG_KEY_SET.has(key);
@@ -438,6 +459,43 @@ export function svgPropertiesNoEvents(obj: Record<string, unknown>): Record<stri
     }
   }
   return result;
+}
+
+/**
+ * Vendor-verbatim variant of {@link svgPropertiesNoEvents}: same allowlist
+ * filter, but KEEPS the camelCase key names (recharts' filterProps returns
+ * camel keys — React renders them; only OUR raw-DOM spreads need the rename).
+ * Use when BUILDING a component-input/payload record (props fed to <Dot> /
+ * <Rectangle> or handed to `shape`/`activeDot` render functions): the camel
+ * keys are the public vocabulary, and the consuming component applies the
+ * DOM rename itself.
+ */
+export function svgPropertiesNoEventsKeepCase(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key in obj) {
+    if (
+      Object.prototype.hasOwnProperty.call(obj, key) &&
+      (isSvgElementPropKey(key) || isDataAttribute(key))
+    ) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+/** Keep-case twin of {@link svgPropertiesNoEventsFromUnknown}. */
+export function svgPropertiesNoEventsFromUnknownKeepCase(
+  input: unknown,
+): Record<string, unknown> | null {
+  if (input == null) {
+    return null;
+  }
+  if (typeof input === "object" && !Array.isArray(input)) {
+    return svgPropertiesNoEventsKeepCase({ ...input });
+  }
+  return null;
 }
 
 /**

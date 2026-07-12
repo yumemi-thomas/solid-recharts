@@ -15,13 +15,13 @@ import {
   Brush,
   CartesianGrid,
   ComposedChart,
-  Curve,
   DefaultZIndexes,
   Funnel,
   FunnelChart,
   Legend,
   Line,
   LineChart,
+  LineDrawShape,
   Pie,
   PieChart,
   PolarAngleAxis,
@@ -882,7 +882,7 @@ describe("Tooltip visibility", () => {
             isAnimationActive: "auto",
             label: false,
             legendType: "line",
-            shape: Curve,
+            shape: LineDrawShape,
             stroke: "#82ca9d",
             strokeWidth: 1,
             type: "linear",
@@ -1799,6 +1799,7 @@ describe("Active element visibility", () => {
     LineChartVerticalTestCase,
     ComposedChartWithAreaTestCase,
     ComposedChartWithLineTestCase,
+    RadarChartTestCase,
   ])("as a child of $name", ({ Wrapper, mouseHoverSelector }) => {
     it("should display activeDot", () => {
       const { container, debug } = render(() => (
@@ -1813,10 +1814,6 @@ describe("Active element visibility", () => {
 
       expect(container.querySelector(".recharts-active-dot")).toBeVisible();
     });
-  });
-
-  it.skip("as a child of RadarChart should display activeDot", () => {
-    // Radar activeDot is deferred in this Solid port; see src/polar/Radar.tsx.
   });
 
   describe.each([

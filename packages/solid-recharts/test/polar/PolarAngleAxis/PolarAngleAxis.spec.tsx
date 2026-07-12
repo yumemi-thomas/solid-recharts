@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { createEffect, createSignal, flush } from "solid-js";
+import { Show } from "@solidjs/web";
 import {
   PolarAngleAxis,
   PolarRadiusAxis,
@@ -10,10 +12,12 @@ import {
 import { exampleRadarData, PageData, pageDataWithFillColor } from "../../_data";
 import { assertNotNull } from "../../helper/assertNotNull";
 import {
+  implicitAngleAxis,
   selectAngleAxis,
   selectAngleAxisRangeWithReversed,
   selectPolarOptions,
 } from "../../../src/state/selectors/polarAxisSelectors";
+import { useAppSelector } from "../../../src/state/hooks";
 import { selectNiceTicks, selectRealScaleType } from "../../../src/state/selectors/axisSelectors";
 import {
   selectPolarAxisScale,
@@ -28,6 +32,8 @@ import {
 import { expectLastCalledWithScale } from "../../helper/expectScale";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
+import { render } from "../../helper/render";
+import type { PolarAngleTickContentProps } from "../../../src/polar/PolarAngleAxis";
 
 /*
  * Ported from recharts 3.8.1 test/polar/PolarAngleAxis/PolarAngleAxis.spec.tsx.
@@ -663,6 +669,37 @@ describe("<PolarAngleAxis />", () => {
       });
     });
 
+    // Adaptation: the reference passes `type="number"` to <Radar> too, but the
+    // port's RadarProps has no `type` (recharts' Radar ignores it as well).
+    it("renders 4 ticks", () => {
+      const data = [
+        { angle: 0, r: 1 },
+        { angle: 90, r: 2 },
+        { angle: 180, r: 3 },
+        { angle: 270, r: 4 },
+      ];
+
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={data}>
+          <PolarAngleAxis dataKey="angle" axisLineType="circle" type="number" domain={[0, 360]} />
+          <Radar name="r" dataKey="r" fillOpacity={0} stroke="#000" />
+        </RadarChart>
+      ));
+
+      expectAngleAxisTicks(container, [
+        { x1: "250", x2: "250", y1: "54", y2: "46" },
+        { x1: "446", x2: "454", y1: "250", y2: "250" },
+        { x1: "250", x2: "250", y1: "446", y2: "454" },
+        { x1: "54", x2: "46", y1: "250.00000000000003", y2: "250.00000000000003" },
+      ]);
+      expectAngleAxisTickLabels(container, [
+        { textContext: "0", x: "250", y: "46" },
+        { textContext: "90", x: "454", y: "250" },
+        { textContext: "180", x: "250", y: "454" },
+        { textContext: "270", x: "46", y: "250.00000000000003" },
+      ]);
+    });
+
     describe("orientation, axisLine, reversed, and linear-scale niceTicks", () => {
       it("renders labels and ticks on the inside with orientation=inner", () => {
         const renderTestCase = createSelectorTestCase((props) => (
@@ -771,6 +808,43 @@ describe("<PolarAngleAxis />", () => {
         expect(axisLineElement.getAttribute("r")).toBe("116");
       });
 
+      // Object-form axisLine/tickLine (recharts `SVGProps` form): extra
+      // presentation props restyle the shapes; geometry stays computed.
+      it("merges object-form axisLine presentation props onto the axis line", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" axisLine={{ stroke: "red", strokeWidth: 2 }} />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container } = renderTestCase((): null => null);
+
+        const axisLineElement = container.querySelector(".recharts-polar-angle-axis-line");
+        assertNotNull(axisLineElement);
+        expect(axisLineElement.getAttribute("stroke")).toBe("red");
+        expect(axisLineElement.getAttribute("stroke-width")).toBe("2");
+        expect(axisLineElement.getAttribute("fill")).toBe("none");
+      });
+
+      it("merges object-form tickLine presentation props onto each tick line", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={exampleRadarData}>
+            <Radar dataKey="value" />
+            <PolarAngleAxis dataKey="value" tickLine={{ stroke: "red", strokeDasharray: "3 3" }} />
+            {props.children}
+          </RadarChart>
+        ));
+        const { container } = renderTestCase((): null => null);
+
+        const tickLines = container.querySelectorAll(".recharts-polar-angle-axis-tick-line");
+        expect(tickLines.length).toBeGreaterThan(0);
+        tickLines.forEach((tickLine) => {
+          expect(tickLine.getAttribute("stroke")).toBe("red");
+          expect(tickLine.getAttribute("stroke-dasharray")).toBe("3 3");
+        });
+      });
+
       it("renders labels in reverse if reversed=true", () => {
         const renderTestCase = createSelectorTestCase((props) => (
           <RadarChart width={500} height={500} data={exampleRadarData}>
@@ -867,6 +941,24 @@ describe("<PolarAngleAxis />", () => {
         ]);
 
         expectLastCalledWith(spy, undefined);
+      });
+    });
+
+    describe.each([
+      { axisType: "number", expectedScale: "linear" },
+      { axisType: "category", expectedScale: "band" },
+      { axisType: undefined, expectedScale: "band" },
+    ] as const)("uses $expectedScale scale when type=$axisType", ({ axisType, expectedScale }) => {
+      it("selects the expected real scale type", () => {
+        const renderTestCase = createSelectorTestCase((props) => (
+          <RadarChart width={500} height={500} data={PageData}>
+            <Radar dataKey="uv" />
+            <PolarAngleAxis dataKey="uv" type={axisType} />
+            {props.children}
+          </RadarChart>
+        ));
+        const { spy } = renderTestCase((state) => selectRealScaleType(state, "angleAxis", 0));
+        expectLastCalledWith(spy, expectedScale);
       });
     });
   });
@@ -1687,9 +1779,57 @@ describe("<PolarAngleAxis />", () => {
     });
   });
 
-  // state-integration "report settings + remove on unmount" omitted (needs React
-  // rerender to unmount; Solid equivalent is a signal toggle).
   describe("state integration", () => {
+    // Solid deviation: the reference unmounts via `rerender()`; here a signal-driven
+    // <Show> removes the axis (same pattern as Radar.spec). Call-count assertions are
+    // omitted (Solid's flush timing differs from React's render count).
+    it("should report its settings to Redux store, and remove it when component is removed", () => {
+      const angleAxisSpy = vi.fn();
+      const [showAxis, setShowAxis] = createSignal(true);
+      const Comp = (): null => {
+        const settings = useAppSelector((state) => selectAngleAxis(state, 0));
+        createEffect(
+          () => settings(),
+          (v) => angleAxisSpy(v),
+        );
+        return null;
+      };
+      render(() => (
+        <RadarChart width={1} height={2}>
+          <Show when={showAxis()}>
+            <PolarAngleAxis />
+          </Show>
+          <Comp />
+        </RadarChart>
+      ));
+      flush();
+
+      const expectedAxis = {
+        allowDataOverflow: false,
+        allowDecimals: false,
+        allowDuplicatedCategory: false,
+        dataKey: undefined,
+        domain: undefined,
+        id: 0,
+        includeHidden: false,
+        name: undefined,
+        reversed: false,
+        niceTicks: "auto",
+        scale: "auto",
+        tick: true,
+        tickCount: undefined,
+        ticks: undefined,
+        type: "category",
+        unit: undefined,
+      };
+      expect(angleAxisSpy).toHaveBeenLastCalledWith(expectedAxis);
+
+      setShowAxis(false);
+      flush();
+
+      expect(angleAxisSpy).toHaveBeenLastCalledWith({ ...implicitAngleAxis, type: "category" });
+    });
+
     it("should select angle axis settings", () => {
       const exampleTicks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
       const renderTestCase = createSelectorTestCase((props) => (
@@ -1857,6 +1997,83 @@ describe("<PolarAngleAxis />", () => {
         { textContext: "Formatted: iPhone 6s", x: "46", y: "250.00000000000003" },
         { textContext: "Formatted: iPhone 5se", x: "105.75021663794428", y: "105.7502166379443" },
       ]);
+    });
+  });
+
+  describe("function-form tick", () => {
+    it("Renders ticks when tick is set to be a function", () => {
+      const Tick = (props: PolarAngleTickContentProps) => (
+        <text x={props.x} y={props.y} class="customized-tick">
+          test
+        </text>
+      );
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar dataKey="value" />
+          <PolarAngleAxis tick={Tick} axisLineType="circle" />
+        </RadarChart>
+      ));
+
+      expect(container.querySelectorAll(".customized-tick")).toHaveLength(exampleRadarData.length);
+    });
+
+    it("passes custom data to the tick function", () => {
+      const tick = vi.fn().mockImplementation(() => null);
+
+      render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar dataKey="value" />
+          <PolarAngleAxis tick={tick} />
+        </RadarChart>
+      ));
+
+      // Harness deviation: Solid re-runs the renderer when the polar layout
+      // settles after the first flush, so assert on the final round of calls
+      // (recharts' single React render calls it exactly once per tick).
+      expect(tick.mock.calls.length % exampleRadarData.length).toBe(0);
+      const lastRound = tick.mock.calls
+        .slice(-exampleRadarData.length)
+        .map((args: ReadonlyArray<unknown>) => args[0]);
+      expect(lastRound[0]).toEqual({
+        angle: 0,
+        cx: 250,
+        cy: 250,
+        fill: undefined,
+        index: 0,
+        orientation: "outer",
+        payload: {
+          coordinate: 90,
+          index: 0,
+          offset: 45,
+          value: 0,
+        },
+        radius: 196,
+        stroke: "none",
+        textAnchor: "middle",
+        verticalAnchor: "end",
+        x: 250,
+        y: 46,
+      });
+      expect(lastRound[1]).toEqual({
+        angle: 0,
+        cx: 250,
+        cy: 250,
+        fill: undefined,
+        index: 1,
+        orientation: "outer",
+        payload: {
+          coordinate: 45,
+          index: 1,
+          offset: 45,
+          value: 1,
+        },
+        radius: 196,
+        stroke: "none",
+        textAnchor: "start",
+        verticalAnchor: "end",
+        x: 394.2497833620557,
+        y: 105.7502166379443,
+      });
     });
   });
 });

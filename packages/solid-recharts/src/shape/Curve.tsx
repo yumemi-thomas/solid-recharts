@@ -16,6 +16,7 @@
  *   - Two `@ts-expect-error` from recharts kept: d3's `defined()` changes the
  *     generic type internally but its typings don't reflect that.
  */
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { Show, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
@@ -266,7 +267,8 @@ interface CurveOwnProps {
   strokeDasharray?: string | number;
 }
 
-export type CurveProps = Omit<JSX.PathSVGAttributes<SVGPathElement>, "class"> & CurveOwnProps;
+export type CurveProps = Omit<CamelSvgProps<JSX.PathSVGAttributes<SVGPathElement>>, "class"> &
+  CurveOwnProps;
 
 // ---------------------------------------------------------------------------
 // Component

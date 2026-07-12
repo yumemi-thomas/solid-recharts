@@ -498,9 +498,7 @@ describe("categorical domain", () => {
       expectLastCalledWith(spy, [90, 200, 260, 400, 280, 500]);
     });
 
-    // SKIP: parity gap — multi-axis domain filtering by xAxisId (graphical-item data
-    // not yet partitioned per xAxisId in the Solid domain selector).
-    it.skip.each([true, false, undefined])(
+    it.each([true, false, undefined])(
       "should only display domain of data with matching xAxisId when allowDuplicatedCategory=%s",
       (allowDuplicatedCategory) => {
         const defaultReduxDomainSpy = vi.fn();
@@ -527,7 +525,7 @@ describe("categorical domain", () => {
             <ExpectAxisDomain assert={reduxDomainSpyB} axisType="xAxis" axisId="xb" />
           </LineChart>
         ));
-        const allXAxes = container.querySelectorAll(".recharts-xAxis-tick-labels");
+        const allXAxes = container.querySelectorAll(".recharts-xAxis");
         expect(allXAxes).toHaveLength(2);
         expectXAxisTicks(allXAxes[0]!, [
           {
@@ -739,10 +737,7 @@ describe("categorical domain", () => {
       expect(axisDomainSpy).toHaveBeenLastCalledWith([0, 1, 2, 3, 4, 5, 6]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserve*/equidistant) not wired
-    // into CartesianAxis render (getTicks exists but isn't applied; default interval thinning
-    // has wide blast radius + depends on getStringSize fidelity — needs a focused effort).
-    it.skip("should attempt to show the ticks start with interval = preserveStart", () => {
+    it("should attempt to show the ticks start with interval = preserveStart", () => {
       const axisDomainSpy = vi.fn();
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
@@ -775,10 +770,7 @@ describe("categorical domain", () => {
       expect(axisDomainSpy).toHaveBeenLastCalledWith([90, 100, 120, 170, 140, 150, 110]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserve*/equidistant) not wired
-    // into CartesianAxis render (getTicks exists but isn't applied; default interval thinning
-    // has wide blast radius + depends on getStringSize fidelity — needs a focused effort).
-    it.skip("should attempt to show the ticks end with interval = preserveEnd", () => {
+    it("should attempt to show the ticks end with interval = preserveEnd", () => {
       const spy = vi.fn();
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
@@ -811,10 +803,7 @@ describe("categorical domain", () => {
       expectLastCalledWith(spy, [90, 100, 120, 170, 140, 150, 110]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserve*/equidistant) not wired
-    // into CartesianAxis render (getTicks exists but isn't applied; default interval thinning
-    // has wide blast radius + depends on getStringSize fidelity — needs a focused effort).
-    it.skip("should attempt to show the ticks start and end with interval = preserveStartEnd", () => {
+    it("should attempt to show the ticks start and end with interval = preserveStartEnd", () => {
       const spy = vi.fn();
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
@@ -847,10 +836,7 @@ describe("categorical domain", () => {
       expectLastCalledWith(spy, [90, 100, 120, 170, 140, 150, 110]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserve*/equidistant) not wired
-    // into CartesianAxis render (getTicks exists but isn't applied; default interval thinning
-    // has wide blast radius + depends on getStringSize fidelity — needs a focused effort).
-    it.skip("should do ... same thing as preserveStart? with interval = equidistantPreserveStart", () => {
+    it("should do ... same thing as preserveStart? with interval = equidistantPreserveStart", () => {
       const spy = vi.fn();
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>

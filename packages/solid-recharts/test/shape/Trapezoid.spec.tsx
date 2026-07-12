@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 test/shape/Trapezoid.spec.tsx.
 // Harness changes only: render from the local Solid shim (thunk), no React
-// import. The 'with animation' case asserts only that the shape renders, which
-// holds with the static path (the update-animation behavior is deferred).
+// import. The 'with animation' case snapshot matches the reference byte-for-byte
+// (the update-animation path renders the t=0 frame with the "0px 1px" dash).
 import { render } from "../helper/render";
 import { Surface, Trapezoid } from "../../src";
 

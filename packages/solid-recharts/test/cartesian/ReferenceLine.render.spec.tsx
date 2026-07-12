@@ -119,7 +119,7 @@ describe("<ReferenceLine />", () => {
         <XAxis dataKey="name" />
         <YAxis type="number" domain={[0, 100]} />
         <Line dataKey="uv" />
-        <ReferenceLine y={50} stroke="#ff0000" stroke-width={3} stroke-dasharray="4 2" />
+        <ReferenceLine y={50} stroke="#ff0000" strokeWidth={3} strokeDasharray="4 2" />
       </LineChart>
     ));
     flush();

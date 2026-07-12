@@ -28,3 +28,9 @@ export const selectChartBaseValue = (state: RechartsRootState): BaseValue | unde
 
 export const selectSyncMethod = (state: RechartsRootState): SyncMethod =>
   state.rootProps.syncMethod;
+
+export const selectSyncId = (state: RechartsRootState): number | string | undefined =>
+  state.rootProps.syncId;
+
+export const selectEventEmitter = (state: RechartsRootState): symbol | undefined =>
+  state.options.eventEmitter;

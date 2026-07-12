@@ -1,0 +1,45 @@
+export const meta = {
+  slug: "cell",
+  title: "Cell",
+  group: "general",
+  description: "Per-entry styling (fill, stroke, class) for Bar, Pie, RadialBar, and Scatter.",
+  example: "pie-donut",
+};
+
+# Cell
+
+`Cell` sets the fill, stroke, and class for a single data entry in a `Bar`, `Pie`, `RadialBar`, or `Scatter` chart. Use a `<For>` loop to apply cells to each data point.
+
+```tsx
+import { PieChart, Pie, Cell, For } from "solid-recharts";
+
+<PieChart width={400} height={300}>
+  <Pie data={data} dataKey="value">
+    <For each={data}>{(_, i) => <Cell fill={COLORS[i() % COLORS.length]} />}</For>
+  </Pie>
+</PieChart>;
+```
+
+<Example slug="pie-donut" />
+
+## Props
+
+| Prop     | Type     | Default | Description                  |
+| -------- | -------- | ------- | ---------------------------- |
+| `fill`   | `string` | —       | Fill color (CSS color value) |
+| `stroke` | `string` | —       | Stroke color                 |
+| `class`  | `string` | —       | CSS class for the element    |
+
+## Notes
+
+- **No `key` prop**: Unlike React, Solid does not require a `key` on `<For>` items.
+- **Iterate with `<For>`**: Use `<For each={data}>{(item, i) => <Cell ... />}</For>` to create one cell per data point. The index accessor `i()` is read as a function.
+- **Order matters**: Cells are assigned to data entries in the order they render. The first `<Cell>` applies to `data[0]`, the second to `data[1]`, etc.
+- **Supported parents**: `Pie`, `Bar`, `Scatter`, `RadialBar`. Not for `Line`, `Area`, or `Radar`.
+- **SVG-only**: `fill` and `stroke` are CSS colors; CSS classes apply SVG presentation attributes.
+
+## See also
+
+- [Pie](/docs/pie) — common use of Cell for per-slice colors
+- [Bar](/docs/bar) — Cell for per-bar styling
+- [Scatter](/docs/scatter) — Cell for per-point styling

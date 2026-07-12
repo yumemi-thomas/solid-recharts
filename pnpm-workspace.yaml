@@ -1,9 +1,23 @@
 packages:
   - "packages/*"
-  - "app/*"
+  # app/docs is intentionally NOT a workspace member: it runs TanStack Start
+  # SSR, which is proven on real vite@8 but breaks (silent hydration
+  # unclaiming) on the vite-plus-core engine this workspace overrides `vite`
+  # to. It gets its own lockfile/node_modules — install with
+  # `pnpm install --ignore-workspace` inside app/docs.
+  - "app/dev"
+
+allowBuilds:
+  canvas: set this to true or false
+  esbuild: true
 
 # Pre/post scripts must run so the library's `pretest` reference gate fires.
 enablePrePostScripts: true
+
+minimumReleaseAgeExclude:
+  - "@solidjs/signals@2.0.0-beta.15"
+  - "@solidjs/web@2.0.0-beta.15"
+  - solid-js@2.0.0-beta.15
 
 # Beta/preview toolchain (Solid 2.0, Vite+, vite-plugin-solid@next): hoisted layout so plugin
 # peer resolution and the `vp` bin behave like the npm-flat setup proven green.
@@ -13,3 +27,9 @@ nodeLinker: hoisted
 overrides:
   vite: "npm:@voidzero-dev/vite-plus-core@^0.1.24"
   vitest: "npm:@voidzero-dev/vite-plus-test@^0.1.24"
+
+# Portal patch (was: @solidjs/web@2.0.0-beta.14) REMOVED on the beta.15 bump.
+# beta.15 rewrote Portal natively — `mount` no longer wraps in createElementProxy
+# (the browser `contains` crash is gone) and the `{schedule: true}` render effect is
+# now paired with getOwner()/runWithOwner(owner, …)/createRoot, so apply-phase inserts
+# stay owned. No downstream patch needed.

@@ -17,14 +17,16 @@
 //     so onTouchMove never fires (probe-verified: 0 calls).
 //   - the `onlyCompact(allCharts)` "should not call …" block: the `compact`
 //     (Brush panorama) branch is DEFERRED in CategoricalChart.
-//   - the "chart wrapper event data" cases (trigger=click / hover / undefined):
-//     blocked on Solid 2.0 reactivity timing — handleClick / dispatchMouseClick
-//     writes the active tooltip index then synchronously dispatches the external
-//     onClick handler, but the store write is not flushed before
-//     externalEventsMiddleware reads store.state, so the handler receives the
-//     stale (inactive) tooltip state instead of the golden value. Needs a src
-//     flush() between the index write and the external-handler dispatch.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+//   - the hover/move/leave "chart wrapper event data" case (trigger=hover /
+//     undefined): blocked on the same non-bubbling onMouseEnter divergence above —
+//     onMouseEnter never fires from a mouseOver dispatched on the inner surface.
+//
+// NOW PORTED: the trigger=click "chart wrapper event data" case. Its earlier
+// blocker (the external onClick handler reading stale store.state because the
+// click-driven active-tooltip write was not flushed first) is fixed in src —
+// RechartsWrapper.handleClick now flush()es between dispatchMouseClick and the
+// external-handler dispatch.
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { fireEvent, render } from "../helper/render";
 import {
   BarChartCase,
@@ -32,6 +34,20 @@ import {
   ScatterChartCase,
 } from "../helper/parameterizedTestCases";
 import { assertNotNull } from "../helper/assertNotNull";
+import { createSelectorTestCase } from "../helper/createSelectorTestCase";
+import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
+import { Bar, BarChart, Tooltip, XAxis } from "../../src";
+import { PageData } from "../_data";
+import type { MouseHandlerDataParam } from "../../src/synchronisation/types";
+
+function expectLastCalledWithData(spy: Mock, expectedNextState: MouseHandlerDataParam): void {
+  const lastCall = spy.mock.calls[spy.mock.calls.length - 1];
+  assertNotNull(lastCall);
+  // first argument is the nextState object, second argument is the DOM event
+  expect(lastCall).toHaveLength(2);
+  expect(lastCall[0]).toEqual(expectedNextState);
+  expect(lastCall[1]).toBeInstanceOf(Object);
+}
 
 const chartsThatSupportWrapperEvents = [ComposedChartCase, BarChartCase, ScatterChartCase];
 
@@ -71,6 +87,41 @@ describe("chart wrapper events", () => {
       vi.runOnlyPendingTimers();
 
       expect(spies.onClick).toHaveBeenCalled();
+    });
+  });
+});
+
+describe("chart wrapper event data", () => {
+  beforeEach(() => {
+    Object.values(spies).forEach((spy) => spy.mockClear());
+    mockGetBoundingClientRect({ width: 100, height: 100 });
+  });
+
+  describe("when Tooltip has trigger=click", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <BarChart width={400} height={400} data={PageData} {...spies}>
+        <Bar dataKey="uv" />
+        <Tooltip trigger="click" />
+        <XAxis dataKey="name" />
+        {props.children}
+      </BarChart>
+    ));
+
+    it("should pass tooltip state to onClick when user clicks on the chart", () => {
+      const { container } = renderTestCase();
+      const surface = container.querySelector(".recharts-surface");
+      assertNotNull(surface);
+      fireEvent.click(surface, { clientX: 10, clientY: 10 });
+      vi.runOnlyPendingTimers();
+
+      expectLastCalledWithData(spies.onClick, {
+        activeCoordinate: { x: 37.5, y: 10 },
+        activeDataKey: undefined,
+        activeIndex: "0",
+        activeLabel: "Page A",
+        activeTooltipIndex: "0",
+        isTooltipActive: true,
+      });
     });
   });
 });

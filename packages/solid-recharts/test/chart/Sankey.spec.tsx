@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
 import { render, fireEvent } from "../helper/render";
 import { Sankey, Tooltip, XAxis, YAxis } from "../../src";
+import { computeData, sankeyPayloadSearcher } from "../../src/chart/Sankey";
 import type { SankeyLinkProps, SankeyNodeProps } from "../../src";
 import { exampleSankeyData } from "../_data";
 import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
@@ -27,6 +28,79 @@ const data = {
     { source: 1, target: 3, value: 8 },
     { source: 2, target: 3, value: 3 },
   ],
+};
+
+const readSvgNumber = (element: Element, attribute: string): number =>
+  Number(element.getAttribute(attribute));
+
+const getCubicPoint = (
+  start: number,
+  control1: number,
+  control2: number,
+  end: number,
+  t: number,
+): number => {
+  const inverseT = 1 - t;
+  return (
+    inverseT ** 3 * start +
+    3 * inverseT ** 2 * t * control1 +
+    3 * inverseT * t ** 2 * control2 +
+    t ** 3 * end
+  );
+};
+
+const getLinkYAtX = (path: Element, x: number): number => {
+  const coordinates = path
+    .getAttribute("d")
+    ?.match(/-?\d+(?:\.\d+)?/g)
+    ?.map(Number);
+
+  if (coordinates == null) {
+    throw new Error("Expected Sankey link path to have coordinates");
+  }
+
+  const [
+    sourceX,
+    sourceY,
+    sourceControlX,
+    sourceControlY,
+    targetControlX,
+    targetControlY,
+    targetX,
+    targetY,
+  ] = coordinates;
+
+  if (
+    sourceX == null ||
+    sourceY == null ||
+    sourceControlX == null ||
+    sourceControlY == null ||
+    targetControlX == null ||
+    targetControlY == null ||
+    targetX == null ||
+    targetY == null
+  ) {
+    throw new Error(
+      `Expected Sankey link path to have at least 8 coordinates, got ${coordinates.length}`,
+    );
+  }
+
+  let minT = 0;
+  let maxT = 1;
+
+  for (let i = 0; i < 30; i++) {
+    const middleT = (minT + maxT) / 2;
+    const middleX = getCubicPoint(sourceX, sourceControlX, targetControlX, targetX, middleT);
+
+    if (middleX < x) {
+      minT = middleT;
+    } else {
+      maxT = middleT;
+    }
+  }
+
+  const t = (minT + maxT) / 2;
+  return getCubicPoint(sourceY, sourceControlY, targetControlY, targetY, t);
 };
 
 describe("<Sankey />", () => {
@@ -702,5 +776,177 @@ describe("<Sankey />", () => {
     // A and B should render because they have >0 values.
     // C and D have 0 values, so they get 0 height and do not render.
     expect(nodes.length).toBe(2);
+  });
+
+  it("should keep intermediate nodes out of links that skip over their depth", () => {
+    const overlappingData = {
+      nodes: [
+        { name: "Consumption bought" },
+        { name: "Total consumption" },
+        { name: "Total production" },
+        { name: "Consumed production" },
+        { name: "Passive surplus" },
+        { name: "Unused production" },
+      ],
+      links: [
+        { source: 0, target: 1, value: 797.44 },
+        { source: 2, target: 3, value: 39.73 },
+        { source: 3, target: 1, value: 39.73 },
+        { source: 2, target: 4, value: 1.95 },
+        { source: 4, target: 5, value: 1.95 },
+      ],
+    };
+
+    const { container } = render(() => <Sankey width={760} height={420} data={overlappingData} />);
+    flush();
+
+    const nodes = Array.from(container.querySelectorAll(".recharts-sankey-node"));
+    const link = container.querySelector(".recharts-sankey-link");
+
+    assertNotNull(link);
+
+    for (const node of [nodes[3], nodes[4]]) {
+      assertNotNull(node);
+
+      const nodeX = readSvgNumber(node, "x");
+      const nodeY = readSvgNumber(node, "y");
+      const nodeWidth = readSvgNumber(node, "width");
+      const nodeHeight = readSvgNumber(node, "height");
+      const linkY = getLinkYAtX(link, nodeX + nodeWidth / 2);
+      const linkWidth = readSvgNumber(link, "stroke-width");
+      const isAboveLink = nodeY + nodeHeight <= linkY - linkWidth / 2;
+      const isBelowLink = nodeY >= linkY + linkWidth / 2;
+
+      expect(
+        isAboveLink || isBelowLink,
+        JSON.stringify({ nodeY, nodeHeight, linkY, linkWidth, nodeBottom: nodeY + nodeHeight }),
+      ).toBe(true);
+    }
+  });
+
+  describe("layout of large, heavily branching graphs", () => {
+    const computeOptions = {
+      width: 1000,
+      height: 500,
+      iterations: 32,
+      nodeWidth: 10,
+      nodePadding: 10,
+      sort: true,
+      verticalAlign: "justify",
+      align: "justify",
+    } as const;
+
+    type ChainLink = { source: number; target: number; value: number };
+    type BranchingChain = {
+      nodes: Array<{ name: string }>;
+      links: ChainLink[];
+      segments: number;
+    };
+
+    /**
+     * Builds a chain where every node branches into two nodes that immediately merge back into the
+     * next node. The graph stays small (a few nodes per segment), but the number of distinct paths
+     * from the first node to the last grows as `2 ** segments`.
+     *
+     * The default of 28 segments makes the path count large enough to exercise the layout on a
+     * densely branching graph. The chosen `segments` is returned so callers can assert on it
+     * without repeating the number.
+     */
+    const makeBranchingChainData = (segments = 28): BranchingChain => {
+      const nodes: Array<{ name: string }> = [{ name: "entry-0" }];
+      const links: ChainLink[] = [];
+      let entry = 0;
+
+      for (let i = 0; i < segments; i++) {
+        const top = nodes.push({ name: `top-${i}` }) - 1;
+        const bottom = nodes.push({ name: `bottom-${i}` }) - 1;
+        const next = nodes.push({ name: `entry-${i + 1}` }) - 1;
+
+        links.push({ source: entry, target: top, value: 1 });
+        links.push({ source: entry, target: bottom, value: 1 });
+        links.push({ source: top, target: next, value: 1 });
+        links.push({ source: bottom, target: next, value: 1 });
+
+        entry = next;
+      }
+
+      return { nodes, links, segments };
+    };
+
+    it("assigns depth as the longest path from a source, even when nodes skip layers", () => {
+      // 0 -> 1 -> 2, plus a shortcut 0 -> 2.
+      // Node 2 must take the longer path (depth 2), not the shortcut.
+      const shortcutData = {
+        nodes: [{ name: "a" }, { name: "b" }, { name: "c" }],
+        links: [
+          { source: 0, target: 1, value: 1 },
+          { source: 1, target: 2, value: 1 },
+          { source: 0, target: 2, value: 1 },
+        ],
+      };
+
+      const { nodes } = computeData({ data: shortcutData, ...computeOptions });
+
+      expect(nodes.map((node) => node.depth)).toEqual([0, 1, 2]);
+    });
+
+    it("computes the layout in linear time for a heavily branching graph", () => {
+      const { segments, ...chainData } = makeBranchingChainData();
+
+      const { nodes } = computeData({ data: chainData, ...computeOptions });
+
+      expect(nodes).toHaveLength(chainData.nodes.length);
+      // Each segment contributes two layers of depth (entry -> top/bottom -> next entry).
+      expect(Math.max(...nodes.map((node) => node.depth))).toBe(segments * 2);
+    });
+
+    it("renders a heavily branching graph without freezing the main thread", () => {
+      const { nodes, links } = makeBranchingChainData();
+
+      const { container } = render(() => (
+        <Sankey width={1000} height={500} data={{ nodes, links }} />
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".recharts-sankey-node")).toHaveLength(nodes.length);
+      expect(container.querySelectorAll(".recharts-sankey-link")).toHaveLength(links.length);
+    });
+  });
+});
+
+// Tooltip names resolve through the user's `nameKey` (reference
+// getPayloadOfTooltip: getValueByDataKey(payload, nameKey, '')).
+describe("sankeyPayloadSearcher", () => {
+  const computedData = {
+    nodes: [{ payload: { name: "Visit", label: "Visits!", value: 100 } }],
+    links: [
+      {
+        payload: {
+          source: { name: "Visit", label: "Visits!" },
+          target: { name: "Order", label: "Orders!" },
+          value: 30,
+        },
+      },
+    ],
+  };
+
+  it("resolves node and link names through the default `name` key", () => {
+    expect(sankeyPayloadSearcher(undefined, "node-0", computedData)).toMatchObject({
+      name: "Visit",
+      value: 100,
+    });
+    expect(sankeyPayloadSearcher(undefined, "link-0", computedData)).toMatchObject({
+      name: "Visit - Order",
+      value: 30,
+    });
+  });
+
+  it("resolves names through a custom nameKey", () => {
+    expect(sankeyPayloadSearcher(undefined, "node-0", computedData, "label")).toMatchObject({
+      name: "Visits!",
+    });
+    expect(sankeyPayloadSearcher(undefined, "link-0", computedData, "label")).toMatchObject({
+      name: "Visits! - Orders!",
+    });
   });
 });

@@ -1,0 +1,57 @@
+export const meta = {
+  slug: "scatter",
+  title: "Scatter",
+  group: "cartesian",
+  description:
+    "A scatter plot series component for displaying point clouds with optional connecting lines and size scaling.",
+  example: "scatter-bubble",
+};
+
+# Scatter
+
+`Scatter` is a graphical series component that renders points on a cartesian chart, typically for scatter plots and bubble charts. Points can be sized by a Z-axis value and optionally connected with a line.
+
+```tsx
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<ScatterChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="x" />
+  <YAxis dataKey="y" />
+  <Tooltip />
+  <Scatter name="Series A" dataKey="y" fill="#8884d8" />
+</ScatterChart>;
+```
+
+<Example slug="scatter-bubble" />
+
+## Props
+
+| Prop                | Type                            | Default     | Description                                        |
+| ------------------- | ------------------------------- | ----------- | -------------------------------------------------- |
+| `dataKey`           | `string \| number \| func`      | —           | Y-axis data key or accessor (X from XAxis.dataKey) |
+| `xAxisId`           | `number \| string`              | `0`         | X-axis id to bind to                               |
+| `yAxisId`           | `number \| string`              | `0`         | Y-axis id to bind to                               |
+| `zAxisId`           | `number \| string`              | `0`         | Z-axis id for point size                           |
+| `fill`              | `string`                        | `"#808080"` | Point fill color                                   |
+| `shape`             | `string \| function`            | `"circle"`  | Symbol type or custom render function              |
+| `line`              | `boolean \| object \| function` | `false`     | Render a connecting line through points            |
+| `lineType`          | `"fitting" \| "joint"`          | `"joint"`   | Line computation: regression line or connect-all   |
+| `lineJointType`     | `string`                        | `"linear"`  | Curve interpolation for the joint line             |
+| `isAnimationActive` | `boolean \| "auto"`             | `"auto"`    | Enable enter/update animation                      |
+| `label`             | `boolean \| object`             | `false`     | Render labels at each point                        |
+
+See the [recharts Scatter docs](https://recharts.org/en-US/api/Scatter) for the full prop matrix.
+
+## Notes
+
+- **XAxis/YAxis data**: `Scatter` uses the chart's XAxis/YAxis `dataKey` props to locate x and y values; if either axis has no `dataKey`, `Scatter`'s `dataKey` is used for that axis.
+- **Z-axis sizing**: if the chart has a `ZAxis`, its `dataKey` scales point size (larger Z → larger bubble); omit ZAxis for uniform-sized points.
+- **Connecting lines**: set `line={true}` to draw a line through the points; `lineType="fitting"` fits a linear regression instead of connecting all points.
+- **Custom symbols**: pass built-in types (`"circle"`, `"cross"`, `"diamond"`, etc.) or a function render prop that returns custom SVG.
+
+## See also
+
+- [ScatterChart](/docs/scatter-chart) — the chart container
+- [ZAxis](/docs/z-axis) — controls point size scaling
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) — axes

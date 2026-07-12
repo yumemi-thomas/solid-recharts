@@ -1,0 +1,58 @@
+export const meta = {
+  slug: "getting-started",
+  title: "Getting started",
+  group: "guides",
+  description: "Install solid-recharts and compose your first chart.",
+  order: 0,
+};
+
+# Getting started
+
+`solid-recharts` is a SolidJS 2.0 port of [recharts](https://recharts.org). It keeps the
+recharts composable API — you declare a chart, axes, grid, tooltip and series as JSX
+children — but the internals are rebuilt on Solid's fine-grained reactivity: no Redux,
+no reselect, no virtual DOM re-renders. Updating one data point updates exactly the SVG
+attributes that depend on it.
+
+## Install
+
+<InstallCommand pkg="solid-recharts" />
+
+`solid-js` and `@solidjs/web` (2.0 beta) are peer dependencies.
+
+## Your first chart
+
+A chart is a container (`LineChart`, `BarChart`, …) plus the pieces you want, in any
+order. Wrap it in `ResponsiveContainer` to fill the parent element, or give the chart a
+fixed `width`/`height`.
+
+<Example slug="line-basic" />
+
+## The composable model
+
+Every chart family works the same way:
+
+| Piece                      | Role                                                |
+| -------------------------- | --------------------------------------------------- |
+| `LineChart`, `BarChart`, … | Chart container — owns layout, scales and state     |
+| `Line`, `Bar`, `Area`, …   | A graphical series bound to a `dataKey`             |
+| `XAxis`, `YAxis`           | Axes — categorical or numerical, multiple per chart |
+| `CartesianGrid`            | Background grid lines                               |
+| `Tooltip`, `Legend`        | Hover info and series legend                        |
+
+Because components register themselves with the chart context, you can add, remove or
+reorder them freely — exactly like recharts.
+
+## Differences from recharts
+
+- **Solid JSX, not React JSX** — use `class` instead of `className`; control flow uses
+  `<For>`/`<Show>` instead of `.map()` when you iterate (e.g. `Cell` per slice).
+- **SVG props are camelCase** — `strokeDasharray`, `strokeWidth` etc., same as recharts.
+- **No `key` prop** — Solid doesn't need it.
+- **Smaller bundle** — the Redux/reselect state layer is replaced with Solid stores,
+  and heavy utility dependencies were removed.
+
+## See also
+
+- [LineChart](/docs/line-chart) — the first chart family to explore
+- [ResponsiveContainer](/docs/responsive-container) — fluid sizing

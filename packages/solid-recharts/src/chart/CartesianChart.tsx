@@ -16,6 +16,7 @@ import { CartesianChartProps, LayoutType, Margin, TooltipEventType } from "../ut
 import { TooltipPayloadSearcher } from "../state/tooltipSlice";
 import { UpdatableChartOptions } from "../state/rootPropsSlice";
 import { CategoricalChart } from "./CategoricalChart";
+import { useIsPanorama } from "../context/PanoramaContext";
 
 const defaultMargin: Margin = { top: 5, right: 5, bottom: 5, left: 5 };
 
@@ -34,6 +35,16 @@ export interface CartesianChartOptions {
 
 export const CartesianChart = (props: CartesianChartOptions): JSX.Element => {
   const cp = (): CartesianChartProps => props.categoricalChartProps;
+
+  // Brush panorama: a nested `<SomeChart>` inside `<Brush>` is an overview of the
+  // OUTER chart's full dataset. Instead of recharts' cloneElement-into-the-main-
+  // surface, render this nested chart's graphical items directly into the existing
+  // panorama context — they register into the outer store and draw into the brush's
+  // panorama surface (isPanorama=true → full data range + brush viewBox). No new
+  // store/wrapper/surface; the chart-level props (width/height/data) are the outer's.
+  if (useIsPanorama()) {
+    return <>{cp().children}</>;
+  }
 
   const options = (): ChartOptions => ({
     chartName: props.chartName,

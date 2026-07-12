@@ -1,0 +1,55 @@
+export const meta = {
+  slug: "polar-grid",
+  title: "PolarGrid",
+  group: "polar",
+  description: "Background grid lines for polar charts (concentric rings and radial lines).",
+  example: "radar-basic",
+};
+
+# PolarGrid
+
+`PolarGrid` draws the background grid for a polar chart: concentric polygons or circles (via radius ticks) and radial lines (via angle ticks). It helps readers estimate data values and is typically placed before series in the chart.
+
+```tsx
+import { PolarGrid, RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis } from "solid-recharts";
+
+<RadarChart data={data}>
+  <PolarGrid strokeDasharray="3 3" />
+  <PolarAngleAxis dataKey="name" />
+  <PolarRadiusAxis />
+  <Radar dataKey="value" />
+</RadarChart>;
+```
+
+<Example slug="radar-basic" />
+
+## Props
+
+| Prop              | Type                    | Default     | Description                                                                 |
+| ----------------- | ----------------------- | ----------- | --------------------------------------------------------------------------- |
+| `gridType`        | `"polygon" \| "circle"` | `"polygon"` | Shape of concentric rings (polygon for radar, circle for gauge-like charts) |
+| `radialLines`     | `boolean`               | `true`      | Show radial lines from center to outer edge                                 |
+| `stroke`          | `string`                | `"#ccc"`    | Line color                                                                  |
+| `strokeWidth`     | `number \| string`      | `1`         | Line thickness                                                              |
+| `strokeDasharray` | `string \| number`      | —           | Dash pattern (e.g. `"3 3"` for dashes)                                      |
+| `fill`            | `string`                | `"none"`    | Background fill color of the outer ring                                     |
+| `fillOpacity`     | `number \| string`      | —           | Opacity of the fill (0–1)                                                   |
+| `angleAxisId`     | `string \| number`      | `0`         | ID of the `PolarAngleAxis` to read ticks from                               |
+| `radiusAxisId`    | `string \| number`      | `0`         | ID of the `PolarRadiusAxis` to read ticks from                              |
+
+All other recharts `PolarGrid` props are supported; see the
+[recharts PolarGrid docs](https://recharts.org/en-US/api/PolarGrid) for the full matrix.
+
+## Notes
+
+- `gridType="polygon"` draws concentric polygons (one per radius tick), ideal for multi-axis radar.
+- `gridType="circle"` draws concentric circles, common for gauge or circular layouts.
+- `radialLines={true}` draws lines from center to the outer circle (one per angle tick).
+- Combine with `strokeDasharray` to style dashed grid lines.
+- The grid respects the ticks of the configured angle and radius axes.
+
+## See also
+
+- [RadarChart](/docs/radar-chart) · [PieChart](/docs/pie-chart) — polar chart containers
+- [PolarAngleAxis](/docs/polar-angle-axis) · [PolarRadiusAxis](/docs/polar-radius-axis) — axes
+- [CartesianGrid](/docs/cartesian-grid) — equivalent for Cartesian charts

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Funnel, FunnelChart } from "../../src";
+import { Funnel, FunnelChart, getRelativeCoordinate, type FunnelTrapezoidItem } from "../../src";
 import { render } from "../helper/render";
 
 type ExampleDataPoint = {
@@ -154,5 +154,68 @@ describe("Funnel with strong typing", () => {
         </FunnelChart>
       ));
     });
+  });
+});
+
+describe("Funnel event handlers", () => {
+  it("should NOT allow calling getRelativeCoordinate with the raw DOM event Solid passes to a Funnel handler", () => {
+    /*
+     * Provenance: the React reference passes a recharts pointer event here and expects
+     * NO error. The Solid `FunnelMouseEvent` 3rd arg is a raw DOM `MouseEvent | TouchEvent`,
+     * whose `currentTarget` is `EventTarget | null` — NOT assignable to
+     * `getRelativeCoordinate`'s `HTMLElementTarget | SVGElementTarget`. So each call below
+     * is a genuine Solid type error (golden-anchored to the Solid type surface).
+     */
+    return (
+      <FunnelChart width={100} height={100}>
+        <Funnel
+          dataKey="foo"
+          onClick={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseDown={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseUp={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseMove={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseLeave={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseOver={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseOut={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseEnter={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onTouchStart={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onTouchMove={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onTouchEnd={(_data: FunnelTrapezoidItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+        />
+      </FunnelChart>
+    );
   });
 });

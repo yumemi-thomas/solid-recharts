@@ -48,8 +48,9 @@ describe("niche chart tooltips", () => {
     ));
     flush();
 
-    // Hover handlers live on the node Layer (mouseenter doesn't bubble from the rect).
-    fireEvent.mouseEnter(container.querySelector(".recharts-treemap-depth-1")!);
+    // Hover handlers live on the inner node Layer / its Rectangle (mouseenter doesn't
+    // bubble; the outer depth-class Layer just groups).
+    fireEvent.mouseEnter(container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle")!);
     flush();
     expect(tipItems(container)).toEqual(["A", "100"]);
   });

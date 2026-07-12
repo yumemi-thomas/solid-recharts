@@ -4,7 +4,12 @@
 // `svgPropertiesAndEvents` (plain-object filter); all test cases port
 // directly with no React-element cases to defer.
 import { describe, expect, it, vi } from "vitest";
-import { svgPropertiesAndEvents } from "../../src/util/svgPropertiesAndEvents";
+import {
+  svgPropertiesAndEvents,
+  svgPropertiesAndEventsKeepCase,
+} from "../../src/util/svgPropertiesAndEvents";
+
+const noop = () => {};
 
 describe("svgPropertiesAndEvents", () => {
   it("should return an empty object when called with an empty object", () => {
@@ -163,10 +168,23 @@ describe("svgPropertiesAndEvents", () => {
     });
   });
 
-  it("accepts kebab input keys too and leaves them unchanged", () => {
+  it("rejects kebab input keys (single convention: camelCase in, DOM names out)", () => {
+    // recharts `filterProps` parity: input vocabulary is the camelCase prop
+    // names only; the kebab spellings exist solely on the rendered DOM output.
     expect(
       svgPropertiesAndEvents({ "stroke-width": 3, "fill-opacity": 0.2, "stroke-dasharray": "1 1" }),
-    ).toEqual({ "stroke-width": 3, "fill-opacity": 0.2, "stroke-dasharray": "1 1" });
+    ).toEqual({});
+  });
+
+  it("KeepCase variant filters identically but keeps the camelCase keys", () => {
+    expect(
+      svgPropertiesAndEventsKeepCase({
+        strokeWidth: 3,
+        clipPath: "url(#c)",
+        dataKey: "x",
+        onClick: noop,
+      }),
+    ).toEqual({ strokeWidth: 3, clipPath: "url(#c)", onClick: noop });
   });
 
   it("preserves genuinely-camelCase SVG attributes (no false conversion)", () => {

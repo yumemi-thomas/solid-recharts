@@ -6,19 +6,41 @@
 // x/y/width/height) is inlined here as a local function since spec files may not
 // add helpers.
 //
+// The traveller a11y markup (role="slider" + aria-label/aria-valuenow, attribute
+// order asserted) IS now ported (see Brush.tsx). The `.toMatchFileSnapshot` of the
+// traveller inner SVG is SELF-RECORDED (no vendored snapshot; Solid's serialized
+// SVG markup is recorded once and locked — the vendored React snapshot would be
+// byte-coupled to React's attribute serialization anyway).
+//
 // NOT ported (see the agent's `blocked` report): the `traveller` prop cases (custom
-// traveller element/component — prop not implemented), the `dy` prop cases (prop not
-// implemented), the aria-label/aria-valuenow + file-snapshot traveller markup case
-// (those attributes are not emitted), and the `Customized`-based panorama/state
-// integration cases (Customized is not exported). The controlled-input case uses
-// React useState + number inputs (React-ism N/A).
-import { describe, expect, test } from "vitest";
-import { flush } from "solid-js";
+// traveller element/component — prop not implemented), and the controlled-input
+// case (React useState + number inputs — React-ism N/A).
+//
+// The "with panorama" cases and the `Customized`-based "panorama and state
+// integration" cases ARE ported: the nested <LineChart>/<ComposedChart> inside
+// <Brush> is panorama-transparent (CartesianChart short-circuits to its children
+// inside a PanoramaContext), so its items draw the OUTER store's full dataset into
+// the brush panorama surface — recharts' cloneElement(width/height/data/compact)
+// semantics without cloneElement. `Customized` probes become plain probe
+// components rendered as chart children.
+import { describe, expect, it, test } from "vitest";
+import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { render, fireEvent, screen, waitFor } from "../helper/render";
-import { BarChart, Brush, ComposedChart, Line, LineChart } from "../../src";
+import { BarChart, Brush, ComposedChart, Line, LineChart, ReferenceLine } from "../../src";
 import type { BrushProps } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
+import { createSelectorTestCase } from "../helper/createSelectorTestCase";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import { selectChartDataWithIndexes } from "../../src/state/selectors/dataSelectors";
+
+// `pageX` isn't a MouseEventInit field (and testing-library doesn't assign it), so
+// define it explicitly on a bubbling event — the Brush reads e.pageX (like recharts).
+function mouseEventWithPageX(type: string, pageX: number): MouseEvent {
+  const ev = new MouseEvent(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(ev, "pageX", { value: pageX, configurable: true });
+  return ev;
+}
 
 type ExpectedBrush = {
   x: string;
@@ -57,6 +79,73 @@ describe("<Brush />", () => {
     { date: "2023-01-13", value: 10, name: "M" },
     { date: "2023-01-14", value: 10, name: "N" },
   ];
+
+  describe("with panorama", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <LineChart width={400} height={100} data={data}>
+        <Line dataKey="value" dot isAnimationActive={false} />
+        <Brush dataKey="value" x={100} y={50} width={400} height={40}>
+          <LineChart>
+            <Line dataKey="value" dot isAnimationActive={false} />
+          </LineChart>
+        </Brush>
+        {props.children}
+      </LineChart>
+    ));
+
+    function selectAllDotsInMainChart(container: Element): NodeListOf<Element> {
+      return container.querySelectorAll(".recharts-line-dot:not(.recharts-brush *)");
+    }
+
+    function selectAllDotsInPanorama(container: Element): NodeListOf<Element> {
+      return container.querySelectorAll(".recharts-brush .recharts-line-dot");
+    }
+
+    it("should render two lines, one for the big chart another in the panorama", () => {
+      const { container } = renderTestCase();
+
+      const dotsInPanorama = selectAllDotsInPanorama(container);
+      expect(dotsInPanorama).toHaveLength(data.length);
+
+      const dotsInMainChart = selectAllDotsInMainChart(container);
+      expect(dotsInMainChart).toHaveLength(data.length);
+    });
+
+    it("should hide dots in the main chart after moving the slider, but keep all dots in the panorama visible", () => {
+      const { container, spy } = renderTestCase(selectChartDataWithIndexes);
+
+      expectLastCalledWith(spy, {
+        chartData: data,
+        dataStartIndex: 0,
+        dataEndIndex: data.length - 1,
+        computedData: undefined,
+      });
+
+      // The vendored test fires mouseMove on the traveller with clientX; the port
+      // drags via the Brush's window capture listeners with an explicit pageX
+      // (jsdom doesn't derive pageX from clientX), flushing after mouseDown so the
+      // "isTravellerMoving" signal is visible before the move.
+      const slider = container.querySelector(".recharts-brush-traveller") as SVGGElement;
+      fireEvent.mouseDown(slider);
+      flush();
+      window.dispatchEvent(mouseEventWithPageX("mousemove", 200));
+      window.dispatchEvent(mouseEventWithPageX("mouseup", 200));
+      flush();
+
+      expectLastCalledWith(spy, {
+        chartData: data,
+        dataStartIndex: 6,
+        dataEndIndex: data.length - 1,
+        computedData: undefined,
+      });
+
+      const dotsInPanorama = selectAllDotsInPanorama(container);
+      expect(dotsInPanorama).toHaveLength(data.length);
+
+      const dotsInMainChart = selectAllDotsInMainChart(container);
+      expect(dotsInMainChart).toHaveLength(data.length - 6);
+    });
+  });
 
   test("Don't render any travellers or slide when data is empty in simple Brush", () => {
     const { container } = render(() => (
@@ -191,11 +280,39 @@ describe("<Brush />", () => {
 
       const travellers = container.querySelectorAll(".recharts-brush-traveller");
       expect(travellers).toHaveLength(2);
+      expect(container.querySelectorAll(".recharts-brush-slide")).toHaveLength(1);
       travellers.forEach((travellerElement) => {
         // tabIndex=0 is necessary for a keyboard user to tab to an element.
         // If this fails, the component ceases to be accessible in any way.
         expect(travellerElement).toHaveProperty("tabIndex", 0);
       });
+
+      // Each traveller is a `role="slider"` with an aria-label (the first/last data
+      // `name`, "sic" per recharts — the label says "value" but reads `name`) and an
+      // aria-valuenow = the traveller's pixel x. The attribute ORDER is asserted
+      // byte-for-byte to match recharts. The vendor `.toMatchFileSnapshot` of the
+      // inner SVG markup is SELF-RECORDED here via toMatchSnapshot (repo convention,
+      // __snapshots__/) — it locks the port's OWN Solid serialization; the vendored
+      // React `.svg` files are byte-coupled to React's serialization so aren't reused.
+      const [traveller1, traveller2] = [travellers[0]!, travellers[1]!];
+      const expectedNames = ["class", "tabindex", "role", "aria-label", "aria-valuenow", "style"];
+      expect(traveller1.getAttributeNames()).toEqual(expectedNames);
+      expect(traveller1.getAttribute("class")).toBe("recharts-layer recharts-brush-traveller");
+      expect(traveller1.getAttribute("tabindex")).toBe("0");
+      expect(traveller1.getAttribute("role")).toBe("slider");
+      expect(traveller1.getAttribute("aria-label")).toBe("Min value: A, Max value: N");
+      expect(traveller1.getAttribute("aria-valuenow")).toBe("100");
+      expect(traveller1.getAttribute("style")).toBe("cursor: col-resize;");
+      expect(traveller1.innerHTML).toMatchSnapshot();
+
+      expect(traveller2.getAttributeNames()).toEqual(expectedNames);
+      expect(traveller2.getAttribute("class")).toBe("recharts-layer recharts-brush-traveller");
+      expect(traveller2.getAttribute("tabindex")).toBe("0");
+      expect(traveller2.getAttribute("role")).toBe("slider");
+      expect(traveller2.getAttribute("aria-label")).toBe("Min value: A, Max value: N");
+      expect(traveller2.getAttribute("aria-valuenow")).toBe("495");
+      expect(traveller2.getAttribute("style")).toBe("cursor: col-resize;");
+      expect(traveller2.innerHTML).toMatchSnapshot();
     });
 
     test("Brush text should appear while travellers are in focus", async () => {
@@ -307,6 +424,99 @@ describe("<Brush />", () => {
       await waitFor(() => {
         expect(textContent()).toBe("10");
       });
+    });
+  });
+
+  // Ported from the reference "Travellers should move..." controlled block. The
+  // React useState + number-input fixture becomes a Solid signal + in-tree button
+  // (writing the signal from test scope would re-render with an ownerless effect
+  // → NO_OWNER diagnostic; the button keeps the swap inside the render root).
+  describe("with controlled startIndex/endIndex", () => {
+    const renderControlled = () => {
+      const [startIndex, setStartIndex] = createSignal<number | undefined>(3);
+      const [endIndex, setEndIndex] = createSignal<number | undefined>(data.length - 1);
+      const result = render(() => (
+        <>
+          <button
+            type="button"
+            data-testid="set-indexes"
+            onClick={() => {
+              setStartIndex(2);
+              setEndIndex(5);
+            }}
+          />
+          <ComposedChart data={data} height={400} width={400}>
+            <Line dataKey="value" isAnimationActive={false} />
+            <ReferenceLine y={30} />
+            <Brush
+              startIndex={startIndex()}
+              endIndex={endIndex()}
+              onChange={(e) => {
+                setEndIndex(e.endIndex);
+                setStartIndex(e.startIndex);
+              }}
+              alwaysShowText
+            >
+              <ComposedChart>
+                <Line dataKey="value" isAnimationActive={false} />
+                <ReferenceLine y={30} />
+              </ComposedChart>
+            </Brush>
+          </ComposedChart>
+        </>
+      ));
+      return result;
+    };
+
+    test("Travellers should move and chart should update when brush start and end indexes are controlled", async () => {
+      const { container } = renderControlled();
+      flush();
+      assertNotNull(container);
+
+      const traveller = container.querySelector(".recharts-brush-traveller");
+      assertNotNull(traveller);
+      fireEvent.focus(traveller);
+      flush();
+
+      const button = container.querySelector('[data-testid="set-indexes"]');
+      assertNotNull(button);
+      fireEvent.click(button);
+      flush();
+
+      await waitFor(() => {
+        const brushTexts = container
+          .getElementsByClassName("recharts-brush-texts")
+          .item(0)?.children;
+        assertNotNull(brushTexts);
+        expect(brushTexts.item(0)).toBeInTheDocument();
+        expect(brushTexts.item(0)?.textContent).toContain("2");
+        expect(brushTexts.item(1)?.textContent).toContain("5");
+      });
+    });
+
+    test("Should render panorama in brush", () => {
+      const { container } = renderControlled();
+      flush();
+
+      const svgs = container.getElementsByTagName("svg");
+      expect(svgs).toHaveLength(2);
+
+      const lines = container.getElementsByClassName("recharts-line");
+      expect(lines).toHaveLength(2);
+
+      const referenceLines = container.getElementsByClassName("recharts-reference-line-line");
+      expect(referenceLines).toHaveLength(2);
+
+      const chartReferenceLineY1 = referenceLines[0]?.getAttribute("y1");
+      const chartReferenceLineY2 = referenceLines[0]?.getAttribute("y2");
+
+      const panoReferenceLineY1 = referenceLines[1]?.getAttribute("y1");
+      const panoReferenceLineY2 = referenceLines[1]?.getAttribute("y2");
+
+      // Reference lines are created on different scales (chart vs panorama) and
+      // therefore have different values.
+      expect(chartReferenceLineY1).not.toEqual(panoReferenceLineY1);
+      expect(chartReferenceLineY2).not.toEqual(panoReferenceLineY2);
     });
   });
 });

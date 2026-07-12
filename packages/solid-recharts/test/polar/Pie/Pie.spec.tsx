@@ -1,8 +1,13 @@
-import { describe, expect, it, test } from "vitest";
-import { Pie, PieChart, Sector, Tooltip, type PieProps } from "../../../src";
-import type { PieSectorDataItem } from "../../../src/polar/Pie";
+import { describe, expect, it, test, vi } from "vitest";
+import { flush } from "solid-js";
+import { Pie, PieChart, Sector, Tooltip, Label, type PieProps } from "../../../src";
+import type {
+  PieSectorDataItem,
+  PieLabelRenderProps,
+  PieSectorShapeProps,
+} from "../../../src/polar/Pie";
 import { PageData } from "../../_data";
-import { render } from "../../helper/render";
+import { render, fireEvent } from "../../helper/render";
 import { expectPieSectors } from "../../helper/expectPieSectors";
 import { expectTooltipPayload } from "../../component/Tooltip/tooltipTestHelpers";
 import { assertNotNull } from "../../helper/assertNotNull";
@@ -105,9 +110,166 @@ describe("<Pie />", () => {
       expectPieSectors(container, []);
     });
 
-    // Deferred (documented in Pie.tsx header): `activeShape` / element-form shape and
-    // the shape-function `isActive` (hover) flag are not ported, so the two
-    // "customized active sector on hover" tests are omitted.
+    test("Render customized active sector when shape is a function and isActive is used", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            shape={(props) => (
+              <Sector
+                {...props}
+                fill="#ff7300"
+                class={props.isActive ? "customized-active-shape" : undefined}
+              />
+            )}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+          />
+          <Tooltip />
+        </PieChart>
+      ));
+      flush();
+
+      fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
+      flush();
+
+      expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
+    });
+
+    test("Render customized active sector when activeShape is set to be an object", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            activeShape={{ fill: "#ff7300", class: "customized-active-shape" }}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+          />
+          <Tooltip />
+        </PieChart>
+      ));
+      flush();
+
+      fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
+      flush();
+
+      expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
+    });
+
+    test("Render customized inactive sectors when inactiveShape is a function", () => {
+      const renderActiveShape = (props: PieSectorShapeProps): ReturnType<typeof Sector> => (
+        <Sector {...props} fill="#ff7300" class="customized-active-shape" />
+      );
+      const renderInactiveShape = (props: PieSectorShapeProps): ReturnType<typeof Sector> => (
+        <Sector {...props} fill="#ff7300" class="customized-inactive-shape" />
+      );
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            activeShape={renderActiveShape}
+            inactiveShape={renderInactiveShape}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+          />
+        </PieChart>
+      ));
+      flush();
+      expect(container.querySelectorAll(".customized-inactive-shape")).toHaveLength(0);
+
+      fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
+      flush();
+
+      expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
+      expect(container.querySelectorAll(".customized-inactive-shape")).toHaveLength(
+        PageData.length - 1,
+      );
+    });
+
+    test("Render customized inactive sectors when inactiveShape is an object", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            fill="red"
+            activeShape={{ fill: "green" }}
+            inactiveShape={{ fill: "blue" }}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+          />
+          <Tooltip />
+        </PieChart>
+      ));
+      flush();
+      const renderedSectors = container.querySelectorAll(".recharts-sector");
+      expect(renderedSectors).toHaveLength(PageData.length);
+      renderedSectors.forEach((s) => {
+        expect(s.getAttribute("fill")).toBe("red");
+      });
+
+      fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
+      flush();
+
+      const renderedSectors2 = container.querySelectorAll(".recharts-sector");
+      expect(renderedSectors2[0]).toHaveAttribute("fill", "green");
+      for (let i = 1; i < PageData.length; i += 1) {
+        expect(renderedSectors2[i]).toHaveAttribute("fill", "blue");
+      }
+    });
+
+    test("should not render customized inactive sectors if there is no active index", () => {
+      const renderActiveShape = (props: PieSectorShapeProps): ReturnType<typeof Sector> => (
+        <Sector {...props} fill="#ff7300" class="customized-active-shape" />
+      );
+      const renderInactiveShape = (props: PieSectorShapeProps): ReturnType<typeof Sector> => (
+        <Sector {...props} fill="#ff7300" class="customized-inactive-shape" />
+      );
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            activeShape={renderActiveShape}
+            inactiveShape={renderInactiveShape}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="cy"
+          />
+        </PieChart>
+      ));
+      flush();
+      expect(container.querySelectorAll(".customized-inactive-shape")).toHaveLength(0);
+    });
+
+    test("Don't render any sector when data is empty", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie data={[]} dataKey="cy" />
+        </PieChart>
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".recharts-pie")).toHaveLength(1);
+      expect(container.querySelectorAll(".recharts-pie-sector")).toHaveLength(0);
+    });
 
     test("should use per-sector fill for tooltip item color when shape is customized", () => {
       const data = [
@@ -165,6 +327,304 @@ describe("<Pie />", () => {
         );
       }
       expect(tooltipItem).toHaveStyle({ color: "rgb(255, 0, 0)" });
+    });
+  });
+
+  describe("label", () => {
+    test("Render customized label when label is a function", () => {
+      const renderLabel = (props: PieLabelRenderProps): string => {
+        const ir: number = props.innerRadius;
+        expect(ir).toBe(0);
+        const or: number = props.outerRadius;
+        expect(or).toBe(200);
+        const p = props.percent;
+        expect(p).toBeGreaterThanOrEqual(0);
+        expect(p).toBeLessThanOrEqual(1);
+        return `${props.name}: ${props.value}`;
+      };
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            label={renderLabel}
+            innerRadius={0}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="value"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      const labels = container.querySelectorAll(".recharts-pie-label-text");
+      expect(labels).toHaveLength(sectorsData.length);
+      expect(labels[0]!.textContent).toBe("A: 40");
+    });
+
+    test("Render customized label when label is a component returning a text element", () => {
+      const RenderLabel = (props: PieLabelRenderProps): ReturnType<typeof Sector> => (
+        <text x={props.x} y={props.y} class="customized-label">
+          test
+        </text>
+      );
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            label={RenderLabel}
+            innerRadius={0}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="cy"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".customized-label")).toHaveLength(sectorsData.length);
+    });
+
+    test("Render customized label line when labelLine is a function", () => {
+      const renderLabelLine = (props: {
+        points?: ReadonlyArray<{ x: number; y: number }>;
+      }): ReturnType<typeof Sector> => {
+        const { points } = props;
+        if (!points) {
+          return null;
+        }
+        return (
+          <path
+            d={`M${points[0]!.x},${points[0]!.y}L${points[1]!.x},${points[1]!.y}`}
+            class="customized-label-line"
+          />
+        );
+      };
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            label
+            labelLine={renderLabelLine}
+            innerRadius={0}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="cy"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".customized-label-line")).toHaveLength(sectorsData.length);
+    });
+
+    test("Render default label text + label line when label is truthy", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            label
+            innerRadius={0}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="cy"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".recharts-pie-label-text")).toHaveLength(
+        sectorsData.length,
+      );
+      expect(container.querySelectorAll(".recharts-pie-label-line")).toHaveLength(
+        sectorsData.length,
+      );
+    });
+
+    it("should render label with position=center", () => {
+      // https://github.com/recharts/recharts/issues/5985
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            innerRadius={100}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="cy"
+          >
+            <Label position="center" value="My test label" />
+          </Pie>
+        </PieChart>
+      ));
+      flush();
+
+      const label = container.querySelector(".recharts-label");
+      expect(label).not.toBeNull();
+      expect(label).toHaveAttribute("x", "250");
+      expect(label).toHaveAttribute("y", "250");
+    });
+
+    it("should shift the label with dx and dy", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            innerRadius={100}
+            outerRadius={200}
+            data={sectorsData}
+            dataKey="cy"
+          >
+            <Label position="center" value="My test label" dx={50} dy={-20} />
+          </Pie>
+        </PieChart>
+      ));
+      flush();
+
+      const label = container.querySelector(".recharts-label");
+      expect(label).not.toBeNull();
+      expect(label).toHaveAttribute("x", "300");
+      expect(label).toHaveAttribute("y", "230");
+    });
+  });
+
+  describe("events", () => {
+    test("should call external onMouseEnter / onMouseLeave / onClick handlers", () => {
+      const onMouseEnter = vi.fn();
+      const onMouseLeave = vi.fn();
+      const onClick = vi.fn();
+      const { container } = render(() => (
+        <PieChart width={400} height={400}>
+          <Pie
+            isAnimationActive={false}
+            data={sectorsData}
+            dataKey="cy"
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            onClick={onClick}
+          />
+        </PieChart>
+      ));
+      flush();
+
+      const sector = container.querySelectorAll(".recharts-pie-sector")[1];
+      assertNotNull(sector);
+
+      fireEvent.mouseEnter(sector);
+      expect(onMouseEnter).toHaveBeenCalledTimes(1);
+      const enterArgs = onMouseEnter.mock.lastCall;
+      assertNotNull(enterArgs);
+      expect(enterArgs[0]).toMatchObject({ name: "B", value: 250, dataKey: "cy" });
+      expect(enterArgs[1]).toBe(1);
+
+      fireEvent.mouseLeave(sector);
+      expect(onMouseLeave).toHaveBeenCalledTimes(1);
+      expect(onMouseLeave.mock.lastCall?.[1]).toBe(1);
+
+      fireEvent.click(sector);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(onClick.mock.lastCall?.[1]).toBe(1);
+    });
+
+    it("should fire onClick with the full sector data when clicking a sector", () => {
+      const handleClick = vi.fn();
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+            onClick={handleClick}
+            id="pie-uv"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      const sectors = container.querySelectorAll(".recharts-pie-sector");
+      fireEvent.click(sectors[0]!);
+      expect(handleClick).toHaveBeenCalledTimes(1);
+      const arg = handleClick.mock.lastCall?.[0];
+      expect(arg).toMatchObject({
+        amt: 2400,
+        cx: 255,
+        cy: 255,
+        dataKey: "uv",
+        name: "Page A",
+        outerRadius: 200,
+        uv: 400,
+        value: 400,
+      });
+      expect(handleClick.mock.lastCall?.[1]).toBe(0);
+    });
+
+    it("should fire onMouseOver and onMouseOut handlers", () => {
+      const handleMouseOver = vi.fn();
+      const handleMouseOut = vi.fn();
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+            onMouseOver={handleMouseOver}
+            onMouseOut={handleMouseOut}
+            id="pie-uv"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      const sectors = container.querySelectorAll(".recharts-pie-sector");
+      fireEvent.mouseOver(sectors[0]!);
+      expect(handleMouseOver).toHaveBeenCalledTimes(1);
+      expect(handleMouseOver.mock.lastCall?.[0]).toMatchObject({ name: "Page A", value: 400 });
+
+      fireEvent.mouseOut(sectors[0]!);
+      expect(handleMouseOut).toHaveBeenCalledTimes(1);
+      expect(handleMouseOut.mock.lastCall?.[0]).toMatchObject({ name: "Page A", value: 400 });
+    });
+
+    it("should fire onTouchMove and onTouchEnd handlers", () => {
+      const handleTouchMove = vi.fn();
+      const handleTouchEnd = vi.fn();
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Pie
+            isAnimationActive={false}
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            data={PageData}
+            dataKey="uv"
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            id="pie-uv"
+          />
+        </PieChart>
+      ));
+      flush();
+
+      const sectors = container.querySelectorAll(".recharts-pie-sector");
+      fireEvent.touchMove(sectors[0]!, { touches: [{ clientX: 200, clientY: 200 }] });
+      expect(handleTouchMove).toHaveBeenCalledTimes(1);
+      expect(handleTouchMove.mock.lastCall?.[0]).toMatchObject({ name: "Page A", value: 400 });
+      expect(handleTouchMove.mock.lastCall?.[1]).toBe(0);
     });
   });
 
@@ -278,5 +738,47 @@ describe("<Pie />", () => {
       expect(sectorPaths[1]).not.toBe(sectorPaths[2]);
       expect(sectorPaths[0]).not.toBe(sectorPaths[2]);
     });
+  });
+});
+
+// Not in the recharts reference spec: covers the `strokeWidth` prop the reference
+// forwards to every sector via its svg-props spread (Pie.tsx presentationProps).
+describe("strokeWidth", () => {
+  it("should forward the component-level strokeWidth to every sector path", () => {
+    const { container } = render(() => (
+      <PieChart width={500} height={500}>
+        <Pie
+          isAnimationActive={false}
+          cx={250}
+          cy={250}
+          innerRadius={0}
+          outerRadius={200}
+          data={PageData}
+          dataKey="uv"
+          strokeWidth={5}
+        />
+      </PieChart>
+    ));
+    const sectors = container.querySelectorAll(".recharts-pie-sector .recharts-sector");
+    expect(sectors).toHaveLength(PageData.length);
+    sectors.forEach((sector) => {
+      expect(sector.getAttribute("stroke-width")).toBe("5");
+    });
+  });
+
+  it("should let a per-row strokeWidth win over the component prop", () => {
+    const data = [
+      { name: "A", value: 1, strokeWidth: 9 },
+      { name: "B", value: 1 },
+    ];
+    const { container } = render(() => (
+      <PieChart width={500} height={500}>
+        <Pie isAnimationActive={false} data={data} dataKey="value" strokeWidth={2} />
+      </PieChart>
+    ));
+    const sectors = container.querySelectorAll(".recharts-pie-sector .recharts-sector");
+    expect(sectors).toHaveLength(2);
+    expect(sectors[0]!.getAttribute("stroke-width")).toBe("9");
+    expect(sectors[1]!.getAttribute("stroke-width")).toBe("2");
   });
 });

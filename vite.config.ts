@@ -34,6 +34,10 @@ export default defineConfig({
     root: libRoot,
     environment: "jsdom",
     globals: true,
+    // Force UTC so the d3 scaleTime / toLocaleDateString golden values (computed
+    // under UTC, like recharts' CI) match on any host — the time-axis specs are
+    // `it.skipIf(getTimezoneOffset() !== 0)`, so this makes them always run.
+    env: { TZ: "UTC" },
     // Match the recharts reference vitest config: auto-restore `vi.spyOn` mocks and
     // `vi.stubGlobal` stubs after each test so spy call-counts and stubbed globals
     // (requestAnimationFrame/performance in the animation timers) don't leak.
@@ -46,8 +50,17 @@ export default defineConfig({
   // Oxfmt (`vp fmt` / `vp check`): keep the formatter out of the vendored recharts
   // reference (its `www/` app has unresolved imports that abort `vp check`) and
   // build output. ignorePatterns here mirrors the lint ignore below.
+  // *.gen.ts files are tool-generated (e.g. TanStack Router's routeTree.gen.ts in
+  // app/docs) — reformatting them just creates churn against the generator.
   fmt: {
-    ignorePatterns: ["vendor/**", "**/dist/**", "node_modules/**", "scripts/**"],
+    ignorePatterns: [
+      "vendor/**",
+      "**/dist/**",
+      "node_modules/**",
+      "scripts/**",
+      "bench/**",
+      "**/*.gen.ts",
+    ],
   },
 
   // ── Oxlint (`vp lint` / `vp check`) ───────────────────────────────────────
@@ -57,7 +70,17 @@ export default defineConfig({
   // `vp check`) so they engage. `as const` is a const assertion and stays allowed.
   lint: {
     plugins: ["typescript"],
-    ignorePatterns: ["vendor/**", "**/dist/**", "node_modules/**", "scripts/**"],
+    // bench/ is a standalone npm project (react entries have no @types/react —
+    // the type-aware rules would flood it with false unsafe-* errors).
+    // *.gen.ts files are tool-generated (see the fmt ignore above).
+    ignorePatterns: [
+      "vendor/**",
+      "**/dist/**",
+      "node_modules/**",
+      "scripts/**",
+      "bench/**",
+      "**/*.gen.ts",
+    ],
     options: {
       typeAware: true,
       typeCheck: true,

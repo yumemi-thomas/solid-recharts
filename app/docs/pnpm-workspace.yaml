@@ -1,0 +1,9 @@
+# Standalone pnpm root for the docs app — keeps it OUT of the monorepo
+# workspace on purpose: TanStack Start SSR is proven on real vite@8, while the
+# monorepo overrides `vite` to vite-plus-core, which silently breaks Solid 2.0
+# hydration (unclaimed server nodes, dead pages).
+allowBuilds:
+  esbuild: set this to true or false
+
+# Portal patch removed on the beta.15 bump — beta.15 fixes the upstream Portal
+# bug (createElementProxy -> native `contains` throw) natively. No patch needed.

@@ -13,11 +13,13 @@
     "build": "pnpm -r build"
   },
   "devDependencies": {
-    "@solidjs/web": "2.0.0-beta.14",
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.60.0",
+    "@solidjs/web": "2.0.0-beta.15",
     "@testing-library/jest-dom": "^6.4.0",
     "@types/node": "^22.0.0",
     "jsdom": "^25.0.0",
-    "solid-js": "2.0.0-beta.14",
+    "solid-js": "2.0.0-beta.15",
     "typescript": "^5.6.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.24",
     "vite-plugin-solid": "3.0.0-next.5",

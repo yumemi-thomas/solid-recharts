@@ -40,8 +40,9 @@ describe("<SunburstChart />", () => {
     expect(sectors[4]).toHaveAttribute("fill", "#e9c46a");
   });
 
-  it("fires onMouseEnter and onClick with the hovered node", () => {
+  it("fires onMouseEnter, onMouseLeave and onClick with the hovered node", () => {
     const onMouseEnter = vi.fn();
+    const onMouseLeave = vi.fn();
     const onClick = vi.fn();
     const { container } = render(() => (
       <SunburstChart
@@ -49,6 +50,7 @@ describe("<SunburstChart />", () => {
         height={500}
         data={data}
         onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         onClick={onClick}
       />
     ));
@@ -56,11 +58,16 @@ describe("<SunburstChart />", () => {
 
     const first = container.querySelector(".recharts-sector")!;
     fireEvent.mouseEnter(first);
-    fireEvent.click(first);
-
     expect(onMouseEnter).toHaveBeenCalledTimes(1);
-    expect(onClick).toHaveBeenCalledTimes(1);
     // The node passed back is the first child (Child1).
+    expect(onMouseEnter.mock.calls[0]![0]).toMatchObject({ name: "Child1", tooltipIndex: "[0]" });
+
+    fireEvent.mouseLeave(first);
+    expect(onMouseLeave).toHaveBeenCalledTimes(1);
+    expect(onMouseLeave.mock.calls[0]![0]).toMatchObject({ name: "Child1", tooltipIndex: "[0]" });
+
+    fireEvent.click(first);
+    expect(onClick).toHaveBeenCalledTimes(1);
     expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "Child1", tooltipIndex: "[0]" });
   });
 

@@ -4,8 +4,8 @@
 // slices (deferred to T3) or victory-vendor d3-shape. We seed ONLY the leaf pieces
 // that pure consumers need today, growing incrementally (same approach as types.ts).
 // Kept byte-identical so importers match the reference path (`./ChartUtils`).
-import sortBy from "es-toolkit/compat/sortBy";
-import get from "es-toolkit/compat/get";
+import { sortBy } from "./collectionUtils";
+import { get } from "./objectPath";
 import {
   type Series,
   type SeriesPoint,
@@ -97,11 +97,10 @@ export function getValueByDataKey<DataPointType, DataValueType>(
   }
 
   if (isNumOrStr(dataKey)) {
-    // es-toolkit's `get` resolves deep string paths (e.g. 'a.b', 'arr[1].y') and
-    // is therefore typed `any` for a runtime (non-literal) path — an unavoidable
-    // external-any boundary. The overloads above pin the public return type.
-    // eslint-disable-next-line typescript/no-unsafe-return
-    return get(obj, dataKey, defaultValue);
+    // `get` resolves deep string paths (e.g. 'a.b', 'arr[1].y'); a runtime path
+    // can't prove its value's type, so its generic overload is the declared
+    // boundary that pins the public return type.
+    return get<DataValueType>(obj, dataKey, defaultValue);
   }
 
   if (typeof dataKey === "function") {
@@ -411,7 +410,7 @@ export const getBandSizeOfAxis = (
   }
 
   if (axis && ticks && ticks.length >= 2) {
-    const orderedTicks: ReadonlyArray<TickItem> = sortBy(ticks, (o: TickItem) => o.coordinate);
+    const orderedTicks: ReadonlyArray<TickItem> = sortBy(ticks, [(o: TickItem) => o.coordinate]);
     let bandSize = Infinity;
 
     for (let i = 1, len = orderedTicks.length; i < len; i++) {

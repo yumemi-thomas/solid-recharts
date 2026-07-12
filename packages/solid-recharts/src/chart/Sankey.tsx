@@ -6,12 +6,18 @@
 // resolveCollisions + relax{Left,Right} settle the y positions, updateYOfLinks
 // stacks link endpoints — ported verbatim (the in-place mutation operates on the
 // working copies the maps create, so it stays local). Self-contained — owns its store.
+// Includes the v3.9.1 layout fixes: updateDepthOfTargets prunes non-growing depth
+// recursion (52a2a89) and resolveNodeLinkCollisions nudges nodes out of
+// skipped-depth link bands (0663afe).
 //
 // Solid deviations: `resolveDefaultProps`→`merge`; `useAppDispatch`→`useAppStore`;
 // `RegisterGraphicalItemId`→`useUniqueId`; es-toolkit `maxBy`/`sumBy`/`get`→inline;
 // the layout output is flattened into node/link prop arrays rendered by a single
-// `<For>` each (For-item reads → no STRICT_READ). DEFERRED: custom node/link content,
-// animation, the node-name `nameKey` resolution beyond the default, responsive.
+// `<For>` each (For-item reads → no STRICT_READ). Custom function-form node/link
+// renderers ARE wired (element form is N/A — no cloneElement). `nameKey` resolves
+// through getValueByDataKey in the payload searcher (reference parity).
+// NON-GAPS: the reference Sankey has NO animation and hardcodes responsive={false}
+// on its wrapper (ResponsiveContainer sizing flows via the wrapper context).
 import { createEffect, createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Surface } from "../container/Surface";
@@ -25,6 +31,7 @@ import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
 import { useAppStore } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
 import { isNotNil } from "../util/DataUtils";
+import { getValueByDataKey } from "../util/ChartUtils";
 import type { ChartOptions } from "../state/optionsSlice";
 import type {
   TooltipIndex,
@@ -117,6 +124,12 @@ export type SankeyNodeProps = NodeProps;
 export type SankeyLinkProps = LinkProps;
 export type SankeyElementType = "node" | "link";
 
+/**
+ * The type of the Sankey `node` prop — recharts parity name. Upstream also accepts
+ * a ReactElement / props-object form; the Solid port supports the function form.
+ */
+export type SankeyNodeOptions = (props: NodeProps) => JSX.Element;
+
 type SankeyVerticalAlign = "justify" | "top";
 type SankeyHorizontalAlign = "left" | "justify";
 
@@ -130,6 +143,22 @@ const interpolationGenerator = (a: number, b: number) => {
   return (t: number) => ka + kb * t;
 };
 const centerY = (node: SankeyNode): number => node.y + node.dy / 2;
+
+const cubicValue = (
+  start: number,
+  control1: number,
+  control2: number,
+  end: number,
+  t: number,
+): number => {
+  const inverseT = 1 - t;
+  return (
+    inverseT ** 3 * start +
+    3 * inverseT ** 2 * t * control1 +
+    3 * inverseT * t ** 2 * control2 +
+    t ** 3 * end
+  );
+};
 const getValue = (entry: { value?: number } | undefined): number => (entry && entry.value) || 0;
 const getSumOfIds = (links: ReadonlyArray<LinkDataItem>, ids: number[]): number =>
   ids.reduce((result, id) => result + getValue(links[id]), 0);
@@ -200,8 +229,16 @@ const updateDepthOfTargets = (tree: SankeyNode[], curNode: SankeyNode): void => 
     }
     const target = tree[targetNode];
     if (target) {
-      target.depth = Math.max(curNode.depth + 1, target.depth);
-      updateDepthOfTargets(tree, target);
+      const newDepth = curNode.depth + 1;
+      /*
+       * Only recurse when the depth grows. Depth is the longest path to a node, so once it stops
+       * increasing the subtree is already up to date; without this guard every path through the
+       * graph is walked separately, which explodes combinatorially on dense graphs.
+       */
+      if (newDepth > target.depth) {
+        target.depth = newDepth;
+        updateDepthOfTargets(tree, target);
+      }
     }
   }
 };
@@ -423,6 +460,134 @@ const updateYOfLinks = (tree: SankeyNode[], links: LinkDataItemDy[]): void => {
   }
 };
 
+const getLinkYAtX = (
+  sourceNode: SankeyNode,
+  targetNode: SankeyNode,
+  link: LinkDataItemDy,
+  x: number,
+): number => {
+  const sourceX = sourceNode.x + sourceNode.dx;
+  const targetX = targetNode.x;
+  const progress = targetX === sourceX ? 0 : (x - sourceX) / (targetX - sourceX);
+  const boundedProgress = Math.min(Math.max(progress, 0), 1);
+  const sourceY = sourceNode.y + (link.sy ?? 0) + link.dy / 2;
+  const targetY = targetNode.y + (link.ty ?? 0) + link.dy / 2;
+
+  return cubicValue(sourceY, sourceY, targetY, targetY, boundedProgress);
+};
+
+const resolveNodeLinkCollisions = (
+  tree: SankeyNode[],
+  depthTree: SankeyNode[][],
+  links: LinkDataItemDy[],
+  height: number,
+  nodePadding: number,
+): void => {
+  const depthByNode = new Map<SankeyNode, number>();
+
+  for (let depth = 0; depth < depthTree.length; depth++) {
+    const nodes = depthTree[depth];
+    if (nodes == null) {
+      continue;
+    }
+
+    for (const node of nodes) {
+      depthByNode.set(node, depth);
+    }
+  }
+
+  for (let depth = 0; depth < depthTree.length; depth++) {
+    const nodes = depthTree[depth];
+    if (nodes == null || nodes.length === 0) {
+      continue;
+    }
+
+    const depthX = nodes[0] == null ? undefined : nodes[0].x + nodes[0].dx / 2;
+    if (depthX == null) {
+      continue;
+    }
+
+    const fixedObstacles = links.flatMap((link) => {
+      const sourceNode = tree[link.source];
+      const targetNode = tree[link.target];
+      if (sourceNode == null || targetNode == null) {
+        return [];
+      }
+
+      const sourceDepth = depthByNode.get(sourceNode);
+      const targetDepth = depthByNode.get(targetNode);
+      if (sourceDepth == null || targetDepth == null) {
+        return [];
+      }
+
+      if (
+        depth <= Math.min(sourceDepth, targetDepth) ||
+        depth >= Math.max(sourceDepth, targetDepth)
+      ) {
+        return [];
+      }
+
+      const y = getLinkYAtX(sourceNode, targetNode, link, depthX) - link.dy / 2;
+      return [{ y, dy: link.dy, fixed: true as const }];
+    });
+
+    const containedNodeObstacles = fixedObstacles.filter((obstacle) =>
+      nodes.some((node) => node.y >= obstacle.y && node.y + node.dy <= obstacle.y + obstacle.dy),
+    );
+
+    if (containedNodeObstacles.length === 0) {
+      continue;
+    }
+
+    type CollisionItem =
+      | { node: SankeyNode; fixed: false }
+      | { y: number; dy: number; fixed: true };
+    const getItemY = (item: CollisionItem): number => (item.fixed ? item.y : item.node.y);
+    const getItemHeight = (item: CollisionItem): number => (item.fixed ? item.dy : item.node.dy);
+    let items: CollisionItem[] = [
+      ...nodes.map((node) => ({ node, fixed: false as const })),
+      ...containedNodeObstacles,
+    ].sort((a, b) => getItemY(a) - getItemY(b));
+
+    let nextY = 0;
+    for (const item of items) {
+      if (item.fixed) {
+        nextY = Math.max(nextY, item.y + item.dy + nodePadding);
+        continue;
+      }
+
+      if (item.node.y < nextY) {
+        item.node.y = nextY;
+      }
+      nextY = item.node.y + item.node.dy + nodePadding;
+    }
+
+    items = items.sort((a, b) => getItemY(a) - getItemY(b));
+
+    let previousY = height + nodePadding;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (item == null) {
+        continue;
+      }
+
+      if (item.fixed) {
+        previousY = Math.min(previousY, item.y - nodePadding);
+        continue;
+      }
+
+      // This backward pass only keeps moved nodes within the chart bounds.
+      // It intentionally does not iterate again against fixed obstacles above,
+      // because this fix is scoped to the fully-contained skipped-depth case.
+      const dy = item.node.y + getItemHeight(item) + nodePadding - previousY;
+      if (dy > 0) {
+        item.node.y -= dy;
+      }
+      previousY = item.node.y;
+    }
+  }
+};
+
 export const computeData = ({
   data,
   width,
@@ -458,6 +623,8 @@ export const computeData = ({
       resolveCollisions(depthTree, height, nodePadding, sort);
     }
   }
+  updateYOfLinks(tree, linksWithDy);
+  resolveNodeLinkCollisions(tree, depthTree, linksWithDy, height, nodePadding);
   updateYOfLinks(tree, linksWithDy);
   return { nodes: tree, links: linksWithDy };
 };
@@ -510,6 +677,7 @@ export const sankeyPayloadSearcher: TooltipPayloadSearcher = (
   _data: unknown,
   activeIndex: TooltipIndex,
   computedData?: unknown,
+  nameKey?: DataKey<unknown>,
 ): unknown => {
   if (activeIndex == null || typeof activeIndex !== "string") {
     return undefined;
@@ -530,13 +698,16 @@ export const sankeyPayloadSearcher: TooltipPayloadSearcher = (
   }
   const payload = item.payload;
   // Shape the result as {payload, name, value} so combineTooltipPayload can read
-  // `value` (dataKey) and `name` (nameKey) — node name/value come straight off the
-  // node; a link is "source - target" with the link's value.
+  // `value` (dataKey) and `name` — names resolve through the user's `nameKey`
+  // (reference getPayloadOfTooltip: getValueByDataKey(payload, nameKey, '')),
+  // falling back to "name" when no nameKey reaches the searcher.
+  const resolveName = (target: unknown): unknown =>
+    getValueByDataKey(target, nameKey ?? "name", "");
   if (targetType === "node") {
-    return { payload, name: payload.name, value: payload.value };
+    return { payload, name: resolveName(payload), value: payload.value };
   }
-  const source = isObj(payload.source) ? payload.source.name : undefined;
-  const target = isObj(payload.target) ? payload.target.name : undefined;
+  const source = isObj(payload.source) ? resolveName(payload.source) : undefined;
+  const target = isObj(payload.target) ? resolveName(payload.target) : undefined;
   return { payload, name: `${String(source)} - ${String(target)}`, value: payload.value };
 };
 
@@ -556,6 +727,10 @@ export interface SankeyProps extends EventThrottlingProps {
   sort?: boolean;
   align?: SankeyHorizontalAlign;
   verticalAlign?: SankeyVerticalAlign;
+  /** Custom node renderer (function form). Receives the laid-out node props. */
+  node?: SankeyNodeOptions;
+  /** Custom link renderer (function form). Receives the laid-out link props. */
+  link?: (props: LinkProps) => JSX.Element;
   onMouseEnter?: (item: NodeProps | LinkProps, type: SankeyElementType, e: MousePointer) => void;
   onMouseLeave?: (item: NodeProps | LinkProps, type: SankeyElementType, e: MousePointer) => void;
   onClick?: (item: NodeProps | LinkProps, type: SankeyElementType, e: MousePointer) => void;
@@ -695,7 +870,28 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
                     x: (lp.sourceX + lp.targetX) / 2,
                     y: (lp.sourceY + lp.targetY) / 2,
                   };
-                  return (
+                  const onMouseEnter = (e: MousePointer): void => {
+                    merged.onMouseEnter?.(lp, "link", e);
+                    dispatchEnter(`link-${lp.index}`, coord);
+                  };
+                  const onMouseLeave = (e: MousePointer): void => {
+                    merged.onMouseLeave?.(lp, "link", e);
+                    store?.actions.tooltip.mouseLeaveItem();
+                  };
+                  const onClick = (e: MousePointer): void => {
+                    merged.onClick?.(lp, "link", e);
+                    dispatchClick(`link-${lp.index}`, coord);
+                  };
+                  return typeof merged.link === "function" ? (
+                    <g
+                      class="recharts-sankey-link"
+                      onMouseEnter={onMouseEnter}
+                      onMouseLeave={onMouseLeave}
+                      onClick={onClick}
+                    >
+                      {merged.link(lp)}
+                    </g>
+                  ) : (
                     <path
                       class="recharts-sankey-link"
                       d={`M${lp.sourceX},${lp.sourceY}C${lp.sourceControlX},${lp.sourceY} ${lp.targetControlX},${lp.targetY} ${lp.targetX},${lp.targetY}`}
@@ -703,18 +899,9 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
                       stroke="#333"
                       stroke-width={lp.linkWidth}
                       stroke-opacity="0.2"
-                      onMouseEnter={(e) => {
-                        merged.onMouseEnter?.(lp, "link", e);
-                        dispatchEnter(`link-${lp.index}`, coord);
-                      }}
-                      onMouseLeave={(e) => {
-                        merged.onMouseLeave?.(lp, "link", e);
-                        store?.actions.tooltip.mouseLeaveItem();
-                      }}
-                      onClick={(e) => {
-                        merged.onClick?.(lp, "link", e);
-                        dispatchClick(`link-${lp.index}`, coord);
-                      }}
+                      onMouseEnter={onMouseEnter}
+                      onMouseLeave={onMouseLeave}
+                      onClick={onClick}
                     />
                   );
                 }}
@@ -727,7 +914,30 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
                     x: np.x + np.width / 2,
                     y: np.y + np.height / 2,
                   };
-                  return (
+                  const onMouseEnter = (e: MousePointer): void => {
+                    merged.onMouseEnter?.(np, "node", e);
+                    dispatchEnter(`node-${np.index}`, coord);
+                  };
+                  const onMouseLeave = (e: MousePointer): void => {
+                    merged.onMouseLeave?.(np, "node", e);
+                    store?.actions.tooltip.mouseLeaveItem();
+                  };
+                  const onClick = (e: MousePointer): void => {
+                    merged.onClick?.(np, "node", e);
+                    dispatchClick(`node-${np.index}`, coord);
+                  };
+                  // Custom function-form node: render its output inside an
+                  // event-handling <g> (events stay on the wrapper, mirroring recharts).
+                  return typeof merged.node === "function" ? (
+                    <g
+                      class="recharts-sankey-node"
+                      onMouseEnter={onMouseEnter}
+                      onMouseLeave={onMouseLeave}
+                      onClick={onClick}
+                    >
+                      {merged.node(np)}
+                    </g>
+                  ) : (
                     <Rectangle
                       class="recharts-sankey-node"
                       fill="#0088fe"
@@ -736,18 +946,9 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
                       y={np.y}
                       width={np.width}
                       height={np.height}
-                      onMouseEnter={(e) => {
-                        merged.onMouseEnter?.(np, "node", e);
-                        dispatchEnter(`node-${np.index}`, coord);
-                      }}
-                      onMouseLeave={(e) => {
-                        merged.onMouseLeave?.(np, "node", e);
-                        store?.actions.tooltip.mouseLeaveItem();
-                      }}
-                      onClick={(e) => {
-                        merged.onClick?.(np, "node", e);
-                        dispatchClick(`node-${np.index}`, coord);
-                      }}
+                      onMouseEnter={onMouseEnter}
+                      onMouseLeave={onMouseLeave}
+                      onClick={onClick}
                     />
                   );
                 }}

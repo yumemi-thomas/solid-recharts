@@ -7,6 +7,7 @@
 // `class`; React CSSProperties → csstype Properties (matches getStringSize); the
 // SVG passthrough props go through svgPropertiesAndEvents like the shape ports;
 // `React.ReactNode` children → `RenderableText`.
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { createMemo, For, merge, omit, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import type { Properties as CSSProperties } from "csstype";
@@ -106,7 +107,7 @@ interface TextProps {
 }
 
 export type Props = Omit<
-  JSX.TextSVGAttributes<SVGTextElement>,
+  CamelSvgProps<JSX.TextSVGAttributes<SVGTextElement>>,
   "textAnchor" | "verticalAnchor" | "style" | "children" | "class" | "fill"
 > &
   TextProps;

@@ -6,6 +6,7 @@
  * → per-prop `?? default` accessors; `className` → `class` (Omit the wide SVG
  * `class`); `clsx` → `class={[...]}`; `return null` → `<Show>`.
  */
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { Show, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { GeometrySector, GeometrySectorWithCornerRadius } from "../util/types";
@@ -232,7 +233,10 @@ interface SectorOwnProps {
  * SVG cx, cy are `string | number | undefined`, but internally we use `number`, so we
  * override the types here.
  */
-export type SectorProps = Omit<JSX.PathSVGAttributes<SVGPathElement>, "cx" | "cy" | "class"> &
+export type SectorProps = Omit<
+  CamelSvgProps<JSX.PathSVGAttributes<SVGPathElement>>,
+  "cx" | "cy" | "class"
+> &
   SectorOwnProps;
 
 export const Sector = (props: SectorProps): JSX.Element => {

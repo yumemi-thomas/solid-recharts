@@ -1,16 +1,16 @@
 // Ported from recharts 3.8.1 src/cartesian/XAxis.tsx (commit 7a23854).
 //
-// MINIMAL / REGISTRATION-ONLY: the reference XAxis is two halves — `SetXAxisSettings`
-// (pushes axis config into the cartesianAxis slice) and `XAxisImpl` (renders the
-// `<CartesianAxis>` visual). Only the registration half is needed for graphical
-// items (e.g. <Line>) to get a scale; the visual is deferred until `<CartesianAxis>`
-// is ported. So this component registers settings and renders nothing.
+// BOTH HALVES of the reference XAxis are ported: `SetXAxisSettings` (pushes axis
+// config into the cartesianAxis slice, so graphical items like <Line> get a scale)
+// and the `XAxisImpl` visual (the `<CartesianAxis>` render at the bottom of this
+// file — ticks + labels + axis line, skipped inside a Brush panorama).
 //
 // Solid deviations: `useAppDispatch` + `useLayoutEffect`/`prevSettingsRef` →
 // `useAppStore()` + a single `createEffect((compute) => settings, (apply) => add/replace)`
 // plus `onCleanup` for removal. Defaults are resolved field-by-field to match
 // recharts' `resolveDefaultProps`: explicit `undefined` falls back to defaults.
-import { createEffect, createMemo, onCleanup, Show } from "solid-js";
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
+import { createEffect, createMemo, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
@@ -25,7 +25,7 @@ import {
   selectXAxisPosition,
   selectXAxisSize,
 } from "../state/selectors/axisSelectors";
-import { CartesianAxis } from "./CartesianAxis";
+import { CartesianAxis, type CartesianTickEventHandler } from "./CartesianAxis";
 import type { ImplicitLabelType } from "../component/Label";
 import { RenderedTicksReporter } from "./RenderedTicksReporter";
 import { useIsPanorama } from "../context/PanoramaContext";
@@ -43,6 +43,7 @@ import {
   TickProp,
 } from "../util/types";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   xAxisId?: string | number;
@@ -74,10 +75,39 @@ export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   allowDuplicatedCategory?: boolean;
   name?: string;
   unit?: string;
+  /** Extra CSS class(es) for the axis layer (recharts: `className`). */
+  class?: string;
+  /**
+   * Font size of the tick text; also feeds the tick-width measurement used to
+   * decide how many ticks render without overlapping (recharts `fontSize`).
+   */
+  fontSize?: number | string;
+  /** Letter spacing of the tick text; measured together with `fontSize`. */
+  letterSpacing?: number | string;
   /** Axis-line color/opacity (forwarded to CartesianAxis). */
   stroke?: string;
   strokeOpacity?: number | string;
+  /** Toggle/style the axis line. boolean or SVG props object. @defaultValue true */
+  axisLine?: boolean | CamelSvgProps<JSX.LineSVGAttributes<SVGLineElement>>;
   tickLine?: boolean;
+  /** Length of the tick line. @defaultValue 6 */
+  tickSize?: number;
+  /** Gap between the tick line and the tick text. @defaultValue 2 */
+  tickMargin?: number;
+  /** When set, relocates the axis into that z-index portal (unset = inline). */
+  zIndex?: number;
+  /** Per-tick pointer handlers, called props-first `(tickItem, index, event)`. */
+  onClick?: CartesianTickEventHandler<MouseEvent>;
+  onMouseEnter?: CartesianTickEventHandler<MouseEvent>;
+  onMouseLeave?: CartesianTickEventHandler<MouseEvent>;
+  onMouseOver?: CartesianTickEventHandler<MouseEvent>;
+  onMouseOut?: CartesianTickEventHandler<MouseEvent>;
+  onMouseMove?: CartesianTickEventHandler<MouseEvent>;
+  onMouseDown?: CartesianTickEventHandler<MouseEvent>;
+  onMouseUp?: CartesianTickEventHandler<MouseEvent>;
+  onTouchStart?: CartesianTickEventHandler<TouchEvent>;
+  onTouchMove?: CartesianTickEventHandler<TouchEvent>;
+  onTouchEnd?: CartesianTickEventHandler<TouchEvent>;
   niceTicks?: NiceTicksAlgorithm;
   /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
   label?: ImplicitLabelType;
@@ -184,7 +214,7 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.cartesianAxis.removeXAxis(prev);
       prev = null;
@@ -200,11 +230,13 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
   const axisRender = createMemo(() => {
     const p = position();
     const s = size();
-    const t = ticks();
-    if (p == null || s == null || t == null) {
+    // Deviation: recharts gates the axis render only on size+position (the registered
+    // axis settings), NOT on ticks — a data-less axis still draws the Layer + axis line
+    // with an empty tick set. Mirror that: fall back to `[]` when no scale/ticks resolve.
+    if (p == null || s == null) {
       return null;
     }
-    return { position: p, size: s, ticks: t };
+    return { position: p, size: s, ticks: ticks() ?? [] };
   });
 
   return (
@@ -223,8 +255,30 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
             tick={tick()}
             tickFormatter={tickFormatter()}
             interval={withDefault(props.interval, xAxisDefaultProps.interval)}
+            minTickGap={withDefault(props.minTickGap, xAxisDefaultProps.minTickGap)}
             unit={unit()}
             mirror={mirror()}
+            class={props.class}
+            fontSize={props.fontSize}
+            letterSpacing={props.letterSpacing}
+            axisLine={props.axisLine ?? true}
+            tickLine={props.tickLine ?? true}
+            tickSize={props.tickSize ?? 6}
+            tickMargin={props.tickMargin ?? 2}
+            stroke={props.stroke}
+            strokeOpacity={props.strokeOpacity}
+            zIndex={props.zIndex}
+            onClick={props.onClick}
+            onMouseEnter={props.onMouseEnter}
+            onMouseLeave={props.onMouseLeave}
+            onMouseOver={props.onMouseOver}
+            onMouseOut={props.onMouseOut}
+            onMouseMove={props.onMouseMove}
+            onMouseDown={props.onMouseDown}
+            onMouseUp={props.onMouseUp}
+            onTouchStart={props.onTouchStart}
+            onTouchMove={props.onTouchMove}
+            onTouchEnd={props.onTouchEnd}
             label={props.label}
             name={props.name}
             angle={props.angle}

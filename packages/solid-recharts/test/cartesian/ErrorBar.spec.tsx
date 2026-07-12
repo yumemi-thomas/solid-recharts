@@ -1,9 +1,10 @@
 // Ported from recharts 3.8.1 test/cartesian/ErrorBar.spec.tsx — the render-geometry
 // matrix from the top-level `<ErrorBar />` describe (Bar / stacked-Bar / Line /
-// Scatter horizontal+vertical golden line coordinates). Harness: React render →
-// Solid createSelectorTestCase. Deferred to a follow-up: the 5 animation cases
-// (ErrorBar animation is DEFERRED in the port + no animationManager in our helper)
-// and the "ErrorBar and axis domain interaction" describe (20 cases, rerender→signal).
+// Scatter horizontal+vertical golden line coordinates), the "ErrorBar and axis
+// domain interaction" describe (rerender→signal), and the 5 animation cases
+// (React animationManager → Solid createManagerRegistry + completeAll; the
+// "with animation delay" case also covers the bare `begin` SVG-attr passthrough
+// onto the whisker group via svgPropertiesNoEvents).
 import { describe, expect, it, test } from "vitest";
 import { createSignal, flush, Show } from "solid-js";
 import {
@@ -18,8 +19,9 @@ import {
   YAxis,
 } from "../../src";
 import { render } from "../helper/render";
-import { AnimationManagerContext } from "../../src/animation/useAnimationManager";
-import { MockProgressAnimationManager } from "../animation/MockProgressAnimationManager";
+import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
+import type { AnimationController } from "../../src";
+import { MockControllerAnimationManager } from "../animation/mockControllerAnimationManager";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectXAxisTicks, expectYAxisTicks } from "../helper/expectAxisTicks";
@@ -81,22 +83,24 @@ function assertAnimationStyles(
 }
 
 // ErrorBar renders one CSSTransitionAnimate per whisker line, each keyed by a unique
-// animationId; AnimationManager.subscribe is last-wins, so each line needs its OWN
-// manager. This registry hands out a manager per id and completes them all.
+// animationId. On the v3.9 engine the injected AnimationController routes per-id
+// (via handle.getAnimationId()) to its own MockControllerAnimationManager, and
+// completeAll() finishes them all.
 function createManagerRegistry(): {
-  get: (id: string) => MockProgressAnimationManager;
+  controller: AnimationController;
   completeAll: () => Promise<void>;
 } {
-  const managers = new Map<string, MockProgressAnimationManager>();
+  const managers = new Map<string, MockControllerAnimationManager>();
   return {
-    get: (id) => {
-      const existing = managers.get(id);
-      if (existing) {
-        return existing;
+    controller: (timeoutController, animationHandle, listener) => {
+      const id = animationHandle.getAnimationId();
+      let m = managers.get(id);
+      if (m == null) {
+        m = new MockControllerAnimationManager(id);
+        managers.set(id, m);
       }
-      const created = new MockProgressAnimationManager(id);
-      managers.set(id, created);
-      return created;
+      m.start(animationHandle, listener);
+      return () => m.stop();
     },
     completeAll: async () => {
       // Some consumers in the tree (e.g. a Bar with isAnimationActive=false) get a
@@ -2292,18 +2296,47 @@ describe("<ErrorBar />", () => {
   });
 
   // Ported from recharts: ErrorBar whisker animation (CSS transform scale 0→1).
-  // The `begin`-as-an-SVG-attribute case is deferred (needs arbitrary SVG-prop
-  // passthrough onto the whisker group, separate from animationBegin).
+  it("Renders Error Bars with animation delay", async () => {
+    const registry = createManagerRegistry();
+    const { container } = render(() => (
+      <AnimationControllerProvider value={registry.controller}>
+        <BarChart data={dataWithError} width={500} height={500}>
+          <Bar isAnimationActive={false} dataKey="uv">
+            <ErrorBar isAnimationActive begin={200} dataKey="uvError" />
+          </Bar>
+        </BarChart>
+      </AnimationControllerProvider>
+    ));
+    flush();
+
+    await registry.completeAll();
+    flush();
+
+    expectErrorBars(container, expectedErrorBars);
+    assertAnimationStyles(container, true, {
+      transition: "transform 400ms ease-in-out",
+      transform: "scaleY(1)",
+    });
+
+    // The bare `begin` SVG attribute rides through to the whisker group
+    // (recharts `Props = SVGProps & ErrorBarProps` passthrough).
+    const errorBars = container.querySelectorAll(".recharts-errorBar");
+    expect(errorBars.length).toBeGreaterThan(0);
+    errorBars.forEach((bar) => {
+      expect(bar.getAttribute("begin")).toBe("200");
+    });
+  });
+
   it("Renders Error Bars with animation", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationManagerContext value={registry.get}>
+      <AnimationControllerProvider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationManagerContext>
+      </AnimationControllerProvider>
     ));
     flush();
 
@@ -2336,13 +2369,13 @@ describe("<ErrorBar />", () => {
   it("Renders Error Bars with animation duration", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationManagerContext value={registry.get}>
+      <AnimationControllerProvider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive animationDuration={400} dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationManagerContext>
+      </AnimationControllerProvider>
     ));
     flush();
 
@@ -2359,13 +2392,13 @@ describe("<ErrorBar />", () => {
   it("Renders Error Bars with animation easing", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationManagerContext value={registry.get}>
+      <AnimationControllerProvider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive animationEasing="linear" dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationManagerContext>
+      </AnimationControllerProvider>
     ));
     flush();
 

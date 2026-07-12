@@ -1,0 +1,96 @@
+import { Bar, BarChart, XAxis } from "solid-recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/shadcn/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "~/components/shadcn/chart";
+
+export const meta = {
+  slug: "shadcn-tooltip-label-formatter",
+  title: "Tooltip - Label Formatter",
+  category: "shadcn-tooltip",
+  description: "Tooltip with label formatter.",
+  tag: "BarChart",
+} as const;
+
+const chartData = [
+  { date: "2024-07-15", running: 450, swimming: 300 },
+  { date: "2024-07-16", running: 380, swimming: 420 },
+  { date: "2024-07-17", running: 520, swimming: 120 },
+  { date: "2024-07-18", running: 140, swimming: 550 },
+  { date: "2024-07-19", running: 600, swimming: 350 },
+  { date: "2024-07-20", running: 480, swimming: 400 },
+];
+
+const chartConfig = {
+  running: {
+    label: "Running",
+    color: "var(--chart-1)",
+  },
+  swimming: {
+    label: "Swimming",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
+
+export default function ShadcnTooltipLabelFormatter() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Tooltip - Label Formatter</CardTitle>
+        <CardDescription>Tooltip with label formatter.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig}>
+          <BarChart accessibilityLayer data={chartData}>
+            <XAxis
+              dataKey="date"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+              tickFormatter={(value) =>
+                new Date(String(value)).toLocaleDateString("en-US", {
+                  weekday: "short",
+                })
+              }
+            />
+            <Bar dataKey="running" stackId="a" fill="var(--color-running)" radius={[0, 0, 4, 4]} />
+            <Bar
+              dataKey="swimming"
+              stackId="a"
+              fill="var(--color-swimming)"
+              radius={[4, 4, 0, 0]}
+            />
+            <ChartTooltip
+              content={(contentProps) => (
+                <ChartTooltipContent
+                  {...contentProps}
+                  labelFormatter={(value) =>
+                    // The label arrives as JSX.Element — only date-format string labels.
+                    typeof value === "string"
+                      ? new Date(value).toLocaleDateString("en-US", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : value
+                  }
+                />
+              )}
+              cursor={false}
+              defaultIndex={1}
+            />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+  );
+}

@@ -7,7 +7,7 @@
 // Solid deviations: context value carries an `Accessor` (Solid context is fixed
 // at provide-time; the accessor keeps `data` reactive). useEffect add/replace +
 // cleanup remove → createEffect + onCleanup. useGraphicalItemId provides the id.
-import { createContext, createEffect, onCleanup, useContext } from "solid-js";
+import { createContext, createEffect, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { AxisId } from "../state/cartesianAxisSlice";
@@ -15,6 +15,7 @@ import type { ErrorBarDataPointFormatter } from "../cartesian/ErrorBar";
 import type { ErrorBarsSettings } from "../state/errorBarSlice";
 import { useAppStore } from "../state/hooks";
 import { useGraphicalItemId } from "./RegisterGraphicalItemId";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export interface ErrorBarContextValue {
   data: ReadonlyArray<unknown> | undefined;
@@ -73,7 +74,7 @@ export function ReportErrorBarSettings(props: ErrorBarsSettings): JSX.Element {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev != null && store != null && graphicalItemId != null) {
       store.actions.errorBars.removeErrorBar({ itemId: graphicalItemId, errorBar: prev });
       prev = null;

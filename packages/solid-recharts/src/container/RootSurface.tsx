@@ -46,11 +46,10 @@ const MainChartSurface = (props: RootSurfaceProps): JSX.Element => {
     if (other == null) {
       return undefined;
     }
-    return typeof other.tabIndex === "number"
-      ? other.tabIndex
-      : hasAccessibilityLayer()
-        ? 0
-        : undefined;
+    // The chart-prop record keeps recharts' camelCase keys (KeepCase filter);
+    // Surface renames to DOM attribute names when it renders.
+    const explicit = other.tabIndex;
+    return typeof explicit === "number" ? explicit : hasAccessibilityLayer() ? 0 : undefined;
   };
   const role = (): string | undefined => {
     const other = props.otherAttributes;
@@ -69,7 +68,7 @@ const MainChartSurface = (props: RootSurfaceProps): JSX.Element => {
   const attrs = (): Record<string, unknown> => ({
     ...(props.otherAttributes ?? {}),
     role: role(),
-    tabindex: tabIndex(),
+    tabIndex: tabIndex(),
   });
 
   // Non-keyed Show: mount the Surface once when dimensions are positive; width/

@@ -14,7 +14,12 @@ export type { FunnelChartProps } from "./chart/FunnelChart";
 export { SunburstChart } from "./chart/SunburstChart";
 export type { SunburstChartProps, SunburstData } from "./chart/SunburstChart";
 export { Treemap } from "./chart/Treemap";
-export type { TreemapProps, TreemapDataType, TreemapNode } from "./chart/Treemap";
+export type {
+  TreemapProps,
+  TreemapDataType,
+  TreemapNode,
+  TreemapContentType,
+} from "./chart/Treemap";
 export { Sankey } from "./chart/Sankey";
 export type {
   SankeyProps,
@@ -24,6 +29,7 @@ export type {
   SankeyNodeProps,
   SankeyLinkProps,
   SankeyElementType,
+  SankeyNodeOptions,
 } from "./chart/Sankey";
 export { PieChart } from "./chart/PieChart";
 export type { PieChartProps } from "./chart/PieChart";
@@ -47,6 +53,8 @@ export { Trapezoid } from "./shape/Trapezoid";
 export type { TrapezoidProps } from "./shape/Trapezoid";
 export { Global } from "./util/Global";
 export { getRelativeCoordinate } from "./util/getRelativeCoordinate";
+export { createHorizontalChart, createVerticalChart } from "./util/createCartesianCharts";
+export { createCentricChart, createRadialChart } from "./util/createPolarCharts";
 export { DefaultZIndexes } from "./zIndex/DefaultZIndexes";
 export { Surface } from "./container/Surface";
 export type { SurfaceProps, CartesianViewBox } from "./container/Surface";
@@ -55,25 +63,31 @@ export type { DotProps } from "./shape/Dot";
 export { Curve, getPath, defaultCurveProps } from "./shape/Curve";
 export type { CurveProps, CurveType, BaseLineType } from "./shape/Curve";
 export { Line } from "./cartesian/Line";
-export type { LineProps } from "./cartesian/Line";
+export type { LineProps, LinePointItem } from "./cartesian/Line";
+export { LineDrawShape } from "./cartesian/LineDrawShape";
+export type { LineDrawShapeProps } from "./cartesian/LineDrawShape";
 export { Bar } from "./cartesian/Bar";
 export type { BarProps, BarRectangleItem } from "./cartesian/Bar";
 export { BarStack } from "./cartesian/BarStack";
 export type { BarStackProps } from "./cartesian/BarStack";
 export { Area } from "./cartesian/Area";
-export type { AreaProps } from "./cartesian/Area";
+export type { AreaProps, AreaPointItem } from "./cartesian/Area";
+export { AreaRevealShape } from "./cartesian/AreaRevealShape";
+export type { AreaRevealShapeProps } from "./cartesian/AreaRevealShape";
 export { Scatter } from "./cartesian/Scatter";
 export type { ScatterProps } from "./cartesian/Scatter";
 export { Funnel } from "./cartesian/Funnel";
 export type { FunnelProps, FunnelTrapezoidItem } from "./cartesian/Funnel";
+export { FunnelTrapezoid, defaultFunnelShape } from "./util/FunnelUtils";
+export type { FunnelTrapezoidProps } from "./util/FunnelUtils";
 export { Brush } from "./cartesian/Brush";
 export type { BrushProps } from "./cartesian/Brush";
 export { Pie } from "./polar/Pie";
-export type { PieProps } from "./polar/Pie";
+export type { PieProps, PieShape } from "./polar/Pie";
 export { PolarAngleAxis } from "./polar/PolarAngleAxis";
-export type { PolarAngleAxisProps } from "./polar/PolarAngleAxis";
+export type { PolarAngleAxisProps, PolarAngleTickContentProps } from "./polar/PolarAngleAxis";
 export { PolarRadiusAxis } from "./polar/PolarRadiusAxis";
-export type { PolarRadiusAxisProps } from "./polar/PolarRadiusAxis";
+export type { PolarRadiusAxisProps, PolarRadiusTickContentProps } from "./polar/PolarRadiusAxis";
 export { Radar } from "./polar/Radar";
 export type { RadarProps } from "./polar/Radar";
 export { PolarGrid } from "./polar/PolarGrid";
@@ -85,7 +99,11 @@ export type { ZAxisProps } from "./cartesian/ZAxis";
 export { ReferenceLine } from "./cartesian/ReferenceLine";
 export type { ReferenceLineProps, ReferenceLineSegment } from "./cartesian/ReferenceLine";
 export { ReferenceDot } from "./cartesian/ReferenceDot";
-export type { ReferenceDotProps } from "./cartesian/ReferenceDot";
+export type {
+  ReferenceDotProps,
+  ReferenceDotEventHandler,
+  ReferenceDotTouchEventHandler,
+} from "./cartesian/ReferenceDot";
 export { ReferenceArea } from "./cartesian/ReferenceArea";
 export type { ReferenceAreaProps } from "./cartesian/ReferenceArea";
 export { ErrorBar } from "./cartesian/ErrorBar";
@@ -104,7 +122,12 @@ export {
 } from "./component/Label";
 export type { Props as LabelProps, ImplicitLabelType, LabelPosition } from "./component/Label";
 export { LabelList, LabelListFromLabelProp } from "./component/LabelList";
-export type { ImplicitLabelListType, CartesianLabelListEntry } from "./component/LabelList";
+export type {
+  ImplicitLabelListType,
+  CartesianLabelListEntry,
+  Props as LabelListProps,
+  LabelListPropsWithPosition,
+} from "./component/LabelList";
 export { CartesianAxis } from "./cartesian/CartesianAxis";
 export type { CartesianAxisProps } from "./cartesian/CartesianAxis";
 export { CartesianGrid } from "./cartesian/CartesianGrid";
@@ -121,9 +144,23 @@ export type {
 } from "./component/ResponsiveContainer";
 export { useChartHeight, useChartWidth } from "./context/chartLayoutContext";
 export { DefaultLegendContent } from "./component/DefaultLegendContent";
-export type { LegendPayload } from "./component/DefaultLegendContent";
-export type { TooltipItemSorter } from "./component/DefaultTooltipContent";
-export type { LegendType, CartesianTickContentProps } from "./util/types";
+export type {
+  LegendPayload,
+  Props as DefaultLegendContentProps,
+} from "./component/DefaultLegendContent";
+export type {
+  TooltipItemSorter,
+  Props as DefaultTooltipContentProps,
+  ValueType as TooltipValueType,
+} from "./component/DefaultTooltipContent";
+export type {
+  LegendType,
+  CartesianTickContentProps,
+  BaseTickContentProps,
+  XAxisTickContentProps,
+  YAxisTickContentProps,
+  ShapeAnimationProps,
+} from "./util/types";
 export type { IfOverflow } from "./util/IfOverflow";
 export { XAxis } from "./cartesian/XAxis";
 export type { XAxisProps } from "./cartesian/XAxis";
@@ -132,12 +169,17 @@ export type { YAxisProps } from "./cartesian/YAxis";
 // Public hooks (recharts exposes these from the main entry too).
 export {
   useActiveTooltipDataPoints,
+  useActiveTooltipLabel,
+  useActiveTooltipCoordinate,
+  useIsTooltipActive,
   useXAxis,
   useYAxis,
   useXAxisScale,
   useYAxisScale,
   useXAxisInverseScale,
   useYAxisInverseScale,
+  useXAxisInverseDataSnapScale,
+  useYAxisInverseDataSnapScale,
   useXAxisInverseTickSnapScale,
   useYAxisInverseTickSnapScale,
   useXAxisTicks,
@@ -149,3 +191,98 @@ export {
   usePlotArea,
 } from "./hooks";
 export type { ScaleFunction, InverseScaleFunction, CartesianDataPoint } from "./hooks";
+// Layout hooks + low-level building blocks recharts also exposes from the main entry.
+export {
+  useChartLayout,
+  useCartesianChartLayout,
+  usePolarChartLayout,
+  useMargin,
+} from "./context/chartLayoutContext";
+export { Layer } from "./container/Layer";
+export type { LayerProps } from "./container/Layer";
+export { ZIndexLayer } from "./zIndex/ZIndexLayer";
+export { getNiceTickValues } from "./util/scale/getNiceTickValues";
+export { interpolate } from "./util/DataUtils";
+// Animation engine (v3.9) — matching, handles, controller injection.
+export { matchByIndex, matchByDataKey, matchAppend } from "./animation/matchBy";
+export type { AnimationItem, AnimationMatchBy, AnimationMatchByProp } from "./animation/matchBy";
+export { JavascriptAnimation, CSSTransitionAnimation } from "./animation/AnimationHandle";
+export type { AnimationHandle } from "./animation/AnimationHandle";
+export type { AnimationController, OnAnimationStateUpdate } from "./animation/AnimationController";
+export type { TimeoutController, CancelableTimeout } from "./animation/timeoutController";
+export { AnimationControllerProvider } from "./animation/useAnimationController";
+export type { AnimationInterpolateFn } from "./animation/AnimatedItems";
+export { DefaultTooltipContent } from "./component/DefaultTooltipContent";
+
+// ---------------------------------------------------------------------------
+// Public type re-exports — match the recharts main-entry type surface.
+// ---------------------------------------------------------------------------
+export type { BarShapeProps } from "./cartesian/Bar";
+export type { ScatterPointItem, ScatterPointNode, ScatterShapeProps } from "./cartesian/Scatter";
+export type { LabelListEntry } from "./component/LabelList";
+export type {
+  RenderableText,
+  TextAnchor,
+  TextVerticalAnchor,
+  Props as TextProps,
+} from "./component/Text";
+export type { TooltipContentProps } from "./component/Tooltip";
+export type {
+  PieLabel,
+  PieLabelRenderProps,
+  PieSectorDataItem,
+  PieSectorShapeProps,
+} from "./polar/Pie";
+export type { RadarPoint } from "./polar/Radar";
+export type { RadialBarDataItem } from "./polar/RadialBar";
+export type {
+  AxisId,
+  NiceTicksAlgorithm,
+  XAxisOrientation,
+  XAxisPadding,
+  YAxisOrientation,
+  YAxisPadding,
+} from "./state/cartesianAxisSlice";
+export type { AxisRange } from "./state/selectors/axisSelectors";
+export type { TooltipIndex, TooltipPayload, TooltipPayloadEntry } from "./state/tooltipSlice";
+export type { ActiveLabel, MouseHandlerDataParam } from "./synchronisation/types";
+export type { ChartOffset, PlotArea } from "./types";
+export type { RadialBarSectorProps } from "./util/RadialBarUtils";
+export type {
+  NoFunnel,
+  TypedHorizontalChartContext,
+  TypedVerticalChartContext,
+} from "./util/createCartesianCharts";
+export type {
+  NoCentric,
+  NoRadial,
+  TypedCentricChartContext,
+  TypedRadialChartContext,
+} from "./util/createPolarCharts";
+export type { CustomScaleDefinition } from "./util/scale/CustomScaleDefinition";
+export type { BandPosition } from "./util/scale/RechartsScale";
+export type {
+  ActiveDotProps,
+  AxisDomainItem,
+  AxisInterval,
+  CartesianLayout,
+  CartesianTickItem,
+  Coordinate,
+  DataKey,
+  DotItemDotProps,
+  HTMLMousePointer,
+  HTMLTouchPointer,
+  LayoutType,
+  Margin,
+  MousePointer,
+  NumberDomain,
+  Padding,
+  PolarCoordinate,
+  PolarLayout,
+  RelativePointer,
+  SVGMousePointer,
+  SVGTouchPointer,
+  SymbolType,
+  TickItem,
+  TouchPointer,
+} from "./util/types";

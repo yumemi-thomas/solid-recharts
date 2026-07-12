@@ -8,7 +8,9 @@ import {
   createMemo,
   createSignal,
   flush,
+  omit,
   onCleanup,
+  onSettled,
   untrack,
   useContext,
 } from "solid-js";
@@ -175,6 +177,28 @@ function createDebouncedResize(
 }
 
 function SizeDetectorContainer(props: Props): JSX.Element {
+  // Arbitrary HTML attributes (role, aria-*, data-*, event handlers, …) are
+  // forwarded onto the wrapper div, mirroring recharts' `{...others}` spread.
+  // We omit every prop this component consumes itself so they don't leak onto
+  // the DOM. (`omit` keeps the rest reactive — no destructuring.)
+  const others = omit(
+    props,
+    "aspect",
+    "width",
+    "height",
+    "minWidth",
+    "minHeight",
+    "initialDimension",
+    "maxHeight",
+    "children",
+    "debounce",
+    "id",
+    "class",
+    "style",
+    "onResize",
+    "ref",
+    "data-testid",
+  );
   const initialDimension = (): { width: number; height: number } =>
     props.initialDimension ?? defaultResponsiveContainerProps.initialDimension;
   const width = (): Percent | number | undefined => props.width;
@@ -187,7 +211,7 @@ function SizeDetectorContainer(props: Props): JSX.Element {
   let observer: ResizeObserver | undefined;
   let activeResizeCallback: DebouncedResize | undefined;
 
-  const setContainerSize = (newWidth: number, newHeight: number): void => {
+  const writeContainerSize = (newWidth: number, newHeight: number): void => {
     const roundedWidth = Math.round(newWidth);
     const roundedHeight = Math.round(newHeight);
     if (untrack(containerWidth) === roundedWidth && untrack(containerHeight) === roundedHeight) {
@@ -195,15 +219,33 @@ function SizeDetectorContainer(props: Props): JSX.Element {
     }
     setContainerWidth(roundedWidth);
     setContainerHeight(roundedHeight);
+  };
+
+  const setContainerSize = (newWidth: number, newHeight: number): void => {
+    writeContainerSize(newWidth, newHeight);
     flush();
   };
+
+  let containerEl: HTMLDivElement | undefined;
 
   const setRef = (el: HTMLDivElement): void => {
     const forwarded = props.ref;
     if (typeof forwarded === "function") {
       forwarded(el);
     }
-    if (typeof ResizeObserver === "undefined") {
+    containerEl = el;
+  };
+
+  // recharts attaches the observer and takes the initial measure in a useEffect,
+  // i.e. AFTER the committed DOM is laid out. The ref callback runs at element
+  // creation (possibly before insertion/layout), where getBoundingClientRect()
+  // returns 0x0 and a bogus "width(0) and height(0)" warning fires on every
+  // mount. `onSettled` is the post-layout equivalent. The initial measure must
+  // not flush (onSettled is a leaf scope); the write propagates at the next
+  // flush boundary, matching React's setState-in-effect timing.
+  onSettled(() => {
+    const el = containerEl;
+    if (el == null || typeof ResizeObserver === "undefined") {
       return;
     }
 
@@ -221,9 +263,9 @@ function SizeDetectorContainer(props: Props): JSX.Element {
     activeResizeCallback = isDebouncedResize(resizeCallback) ? resizeCallback : undefined;
     observer = new ResizeObserver(resizeCallback);
     const { width: nextWidth, height: nextHeight } = el.getBoundingClientRect();
-    setContainerSize(nextWidth, nextHeight);
+    writeContainerSize(nextWidth, nextHeight);
     observer.observe(el);
-  };
+  });
 
   onCleanup(() => {
     activeResizeCallback?.cancel();
@@ -296,6 +338,7 @@ function SizeDetectorContainer(props: Props): JSX.Element {
       style={wrapperStyle()}
       ref={setRef}
       data-testid={props["data-testid"]}
+      {...others}
     >
       <div style={getInnerDivStyle({ width: width(), height: height() })}>
         <ResponsiveContainerContextProvider

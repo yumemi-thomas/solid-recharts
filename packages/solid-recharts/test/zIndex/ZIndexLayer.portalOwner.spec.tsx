@@ -11,30 +11,35 @@ import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { render, fireEvent } from "../helper/render";
 import { BarChart, Bar } from "../../src";
-import { AnimationManagerContext } from "../../src/animation/useAnimationManager";
-import { MockProgressAnimationManager } from "../animation/MockProgressAnimationManager";
+import type { AnimationController } from "../../src";
+import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
+import { MockControllerAnimationManager } from "../animation/mockControllerAnimationManager";
 import { PageData } from "../_data";
 
 const small = PageData.slice(0, 2);
 const large = PageData.slice(0, 3);
 
+// Bar runs on the v3.9 animation engine, so we drive it through an injected
+// AnimationController that routes per-id (via handle.getAnimationId()) to a
+// MockControllerAnimationManager — a remount's stop() on the old id then never
+// clobbers the new id's manager.
 function createRegistry(): {
-  factory: (id: string) => MockProgressAnimationManager;
-  current: () => MockProgressAnimationManager;
+  controller: AnimationController;
+  current: () => MockControllerAnimationManager;
 } {
-  const managers = new Map<string, MockProgressAnimationManager>();
-  let latest: MockProgressAnimationManager | null = null;
+  const managers = new Map<string, MockControllerAnimationManager>();
+  let latest: MockControllerAnimationManager | null = null;
   return {
-    factory: (id) => {
-      const existing = managers.get(id);
-      if (existing != null) {
-        latest = existing;
-        return existing;
+    controller: (timeoutController, animationHandle, listener) => {
+      const id = animationHandle.getAnimationId();
+      let m = managers.get(id);
+      if (m == null) {
+        m = new MockControllerAnimationManager(id);
+        managers.set(id, m);
       }
-      const m = new MockProgressAnimationManager(id);
-      managers.set(id, m);
       latest = m;
-      return m;
+      m.start(animationHandle, listener);
+      return () => m.stop();
     },
     current: () => {
       if (latest == null) throw new Error("no manager yet");
@@ -53,7 +58,7 @@ function renderChart(background: boolean): {
   const [data, setData] = createSignal<typeof small>(small);
   const [next, setNext] = createSignal<typeof small | null>(null);
   const { container } = render(() => (
-    <AnimationManagerContext value={registry.factory}>
+    <AnimationControllerProvider value={registry.controller}>
       <button
         type="button"
         data-testid="swap"
@@ -71,7 +76,7 @@ function renderChart(background: boolean): {
           animationEasing="linear"
         />
       </BarChart>
-    </AnimationManagerContext>
+    </AnimationControllerProvider>
   )) as { container: HTMLElement };
   flush();
   const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');

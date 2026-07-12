@@ -1,0 +1,54 @@
+export const meta = {
+  slug: "scatter-chart",
+  title: "ScatterChart",
+  group: "charts",
+  description: "Cartesian chart container for scatter plot series with optional bubble sizing.",
+  example: "scatter-bubble",
+};
+
+# ScatterChart
+
+`ScatterChart` is the cartesian container for [`Scatter`](/docs/scatter) series (point clouds).
+It owns the layout, scales, and interaction state; children like `XAxis`, `YAxis`,
+`CartesianGrid` and `Tooltip` register themselves into it. A `ZAxis` can drive bubble sizes.
+
+```tsx
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<ScatterChart width={500} height={300} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+  <CartesianGrid />
+  <XAxis dataKey="x" type="number" />
+  <YAxis dataKey="y" type="number" />
+  <ZAxis dataKey="z" range={[100, 1000]} />
+  <Tooltip />
+  <Scatter name="Series" data={data} fill="#8884d8" />
+</ScatterChart>;
+```
+
+<Example slug="scatter-bubble" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per point              |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `layout`                    | `"horizontal" \| "vertical"`   | `"horizontal"`   | Direction of the independent axis                   |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `ScatterChart` props are supported; see the
+[recharts ScatterChart docs](https://recharts.org/en-US/api/ScatterChart) for the full matrix.
+
+## Notes
+
+- Use numerical `XAxis` and `YAxis` with `type="number"` for proper coordinate mapping.
+- Add a `ZAxis` to drive bubble sizes via a data property.
+- The `ZAxis` `range` prop sets the minimum and maximum bubble area in pixels (e.g. `range={[100, 1000]}`).
+- Multiple `Scatter` children share the same axes unless you assign custom `xAxisId`/`yAxisId`/`zAxisId`.
+
+## See also
+
+- [Scatter](/docs/scatter) — the point series component
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) · [ZAxis](/docs/z-axis)
+- [LineChart](/docs/line-chart) — similar cartesian layout for line series

@@ -1,9 +1,10 @@
 // Ported from recharts 3.8.1 test/helper/mockGetBoundingClientRect.ts.
-// `getMockDomRect` + `mockGetBoundingClientRect` are ported (the latter used by
-// DOMUtils.spec); `mockSequenceOfGetBoundingClientRect` (needs the NonEmptyArray
-// type) ports when a consumer spec first needs it.
+// `getMockDomRect`, `mockGetBoundingClientRect`, and
+// `mockSequenceOfGetBoundingClientRect` are ported.
 import { vi } from "vitest";
 import { mockHTMLElementProperty } from "./mockHTMLElementProperty";
+
+type NonEmptyArray<T> = [T, ...T[]];
 
 export function getMockDomRect(partial: Partial<DOMRect> = {}): DOMRect {
   return {
@@ -39,5 +40,27 @@ export function mockGetBoundingClientRect(
   if (mockClientHeightWidth) {
     mockHTMLElementProperty("offsetHeight", mockDomRect.height);
     mockHTMLElementProperty("offsetWidth", mockDomRect.width);
+  }
+}
+
+/**
+ * Like `mockGetBoundingClientRect`, but returns each rect in `rects` in order for
+ * the first N-1 calls and the last rect for every subsequent call. Used to model
+ * layout that measures a 0x0 element before it is sized (e.g. Legend bbox).
+ */
+export function mockSequenceOfGetBoundingClientRect(
+  rects: NonEmptyArray<Partial<DOMRect>>,
+  mockClientHeightWidth = true,
+): void {
+  const mockDomRects = rects.map((r) => getMockDomRect(r));
+  const spy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+  for (let i = 0; i < mockDomRects.length - 1; i++) {
+    spy.mockReturnValueOnce(mockDomRects[i]!);
+  }
+  spy.mockReturnValue(mockDomRects[mockDomRects.length - 1]!);
+
+  if (mockClientHeightWidth) {
+    mockHTMLElementProperty("offsetHeight", mockDomRects[0]!.height);
+    mockHTMLElementProperty("offsetWidth", mockDomRects[0]!.width);
   }
 }

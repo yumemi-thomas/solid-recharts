@@ -1,0 +1,59 @@
+export const meta = {
+  slug: "pie",
+  title: "Pie",
+  group: "polar",
+  description: "A pie series with configurable angles, radii, and labels.",
+  example: "pie-donut",
+};
+
+# Pie
+
+`Pie` renders one sector per data entry, configurable by center, radii, angle range, and optional labels. It works inside a `PieChart` and respects `Cell` children for per-slice styling.
+
+```tsx
+import { Pie, PieChart, ResponsiveContainer, Tooltip } from "solid-recharts";
+
+<PieChart>
+  <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} />
+  <Tooltip />
+</PieChart>;
+```
+
+<Example slug="pie-donut" />
+
+## Props
+
+| Prop           | Type                            | Default  | Description                                                                   |
+| -------------- | ------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `data`         | `object[]`                      | —        | Source data array, one entry per slice; omit to use `<Cell>` children as data |
+| `dataKey`      | `string \| function`            | —        | Key or accessor to extract the numeric value for each slice                   |
+| `nameKey`      | `string`                        | `"name"` | Key to extract the slice label for legend/tooltip                             |
+| `cx`           | `number \| string`              | `"50%"`  | Center x coordinate (px or %)                                                 |
+| `cy`           | `number \| string`              | `"50%"`  | Center y coordinate (px or %)                                                 |
+| `innerRadius`  | `number \| string`              | `0`      | Radius of the inner hole (donut); 0 = solid pie                               |
+| `outerRadius`  | `number \| string`              | —        | Radius of the outer edge (required)                                           |
+| `startAngle`   | `number`                        | `0`      | Starting angle in degrees (0 = 3 o'clock, clockwise)                          |
+| `endAngle`     | `number`                        | `360`    | Ending angle in degrees                                                       |
+| `paddingAngle` | `number`                        | `0`      | Gap between sectors in degrees                                                |
+| `label`        | `boolean \| object \| function` | `false`  | Render labels on sectors; object/function for customization                   |
+| `labelLine`    | `boolean \| object \| function` | `true`   | Connector line from sector to label                                           |
+| `activeShape`  | `object \| function`            | —        | Shape rendered on hover/active (merges props or calls function)               |
+| `fill`         | `string`                        | —        | Default slice color (overridden by `<Cell>`)                                  |
+
+All other recharts `Pie` props are supported; see the
+[recharts Pie docs](https://recharts.org/en-US/api/Pie) for the full matrix.
+
+## Notes
+
+- Use `<Cell>` children (one per slice or in a `<For>` loop) to override `fill` and `stroke` per slice.
+- `dataKey` can be a function: `dataKey={(entry) => entry.value}`.
+- Angles are in degrees; 0° points right, increases clockwise.
+- `innerRadius` + `outerRadius` can be percentages of the chart area.
+- The `label` prop can render a function: `label={(entry) => entry.name}`.
+
+## See also
+
+- [PieChart](/docs/pie-chart) — the container
+- [Cell](/docs/cell) — per-slice styling
+- [Tooltip](/docs/tooltip) — hover details
+- [Label](/docs/label) · [LabelList](/docs/label-list) — custom label rendering

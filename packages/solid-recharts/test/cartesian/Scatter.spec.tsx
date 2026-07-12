@@ -1,18 +1,28 @@
 // Port of recharts 3.8.1 test/cartesian/Scatter.spec.tsx (commit 7a23854) — the
 // behavioral subset whose features the Solid Scatter implements: symbol geometry,
-// custom component, empty data, function-form `shape`, and the explicit-id DOM
-// element. Deferred (impl gaps / minimal-port deferrals, tracked in TESTS.md):
-// element-form `shape`, the `line` connector, mouse/touch event prop snapshots,
-// implicit `fill` read from the data array, clip-path (and thus the explicit-id
-// clipPath case), and the <Customized>/render-count state-integration case.
+// custom component, empty data, function-form `shape`, the function-form `line`
+// connector, the explicit-id DOM element + clipPath, implicit `fill` read from the
+// data array, and Tooltip-payload selector integration.
+//
+// PERMANENT-N/A (NOT ported):
+//   - element-form `shape`/`line` ReactElement cases (no React.isValidElement /
+//     cloneElement in Solid; function form IS ported);
+//   - mouse-over/-out + touch event-prop snapshots (Scatter exposes only
+//     onClick/onMouseEnter/onMouseLeave — recharts' onMouseOver/onMouseOut/
+//     onTouchMove/onTouchEnd pass-through props are not part of the Solid surface);
+//   - the <Customized>/render-count state-integration case (Customized +
+//     toHaveBeenCalledTimes — no Customized, render-count coupling out of scope).
 import { describe, expect, it, test, vi } from "vitest";
-import { Scatter, ScatterChart, ScatterProps, XAxis } from "../../src";
+import { flush } from "solid-js";
+import { Scatter, ScatterChart, ScatterProps, Tooltip, XAxis, YAxis, ZAxis } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { fireEvent, render } from "../helper/render";
-import { dataWithSpecialNameAndFillProperties } from "../_data";
+import { dataWithSpecialNameAndFillProperties, PageData } from "../_data";
+import { selectTooltipPayload } from "../../src/state/selectors/tooltipSelectors";
+import { selectActiveTooltipPayload } from "../../src/state/selectors/tooltipSelectors";
 
 describe("<Scatter />", () => {
   const data = [
@@ -192,6 +202,14 @@ describe("<Scatter />", () => {
       expect(scatter.tagName).toBe("g");
       expect(scatter.classList.value).toBe("recharts-layer recharts-scatter");
     });
+
+    it("should set the ID on the clipPath, if it needs clipping", () => {
+      const { container } = renderTestCase();
+
+      const clipPath = container.querySelector("#clipPath-test-scatter-id");
+      assertNotNull(clipPath);
+      expect(clipPath.tagName).toBe("clipPath");
+    });
   });
 
   describe("events", () => {
@@ -262,6 +280,127 @@ describe("<Scatter />", () => {
         0,
         expect.any(Object),
       );
+    });
+  });
+
+  describe("Tooltip integration", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <ScatterChart width={100} height={100}>
+        <Scatter isAnimationActive={false} data={PageData} />
+        <XAxis dataKey="uv" />
+        <YAxis dataKey="pv" />
+        {props.children}
+      </ScatterChart>
+    ));
+
+    it("should return tooltip payload", () => {
+      const { spy } = renderTestCase((state) => selectTooltipPayload(state, "axis", "hover", "0"));
+      expectLastCalledWith(spy, [
+        {
+          color: undefined,
+          dataKey: "uv",
+          fill: undefined,
+          graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+          hide: false,
+          name: "uv",
+          nameKey: undefined,
+          payload: {
+            amt: 2400,
+            name: "Page A",
+            pv: 2400,
+            uv: 400,
+          },
+          stroke: undefined,
+          strokeWidth: undefined,
+          type: undefined,
+          unit: "",
+          value: 400,
+        },
+        {
+          color: undefined,
+          dataKey: "pv",
+          fill: undefined,
+          graphicalItemId: expect.stringMatching(/^recharts-scatter-.+/),
+          hide: false,
+          name: "pv",
+          nameKey: undefined,
+          payload: {
+            amt: 2400,
+            name: "Page A",
+            pv: 2400,
+            uv: 400,
+          },
+          stroke: undefined,
+          strokeWidth: undefined,
+          type: undefined,
+          unit: "",
+          value: 2400,
+        },
+      ]);
+    });
+
+    describe("Multiple Scatter components tooltip filtering", () => {
+      /**
+       * https://github.com/recharts/recharts/pull/6537
+       * https://github.com/recharts/recharts/issues/6075
+       */
+      it("should only show tooltip data from the hovered Scatter component", () => {
+        const data01 = [
+          { x: 10, y: 20, z: 30 },
+          { x: 20, y: 30, z: 40 },
+        ];
+        const data02 = [
+          { x: 15, y: 25, z: 35 },
+          { x: 25, y: 35, z: 45 },
+        ];
+
+        const renderTooltipTestCase = createSelectorTestCase((props) => (
+          <ScatterChart width={400} height={400}>
+            <XAxis dataKey="x" type="number" allowDecimals={false} />
+            <YAxis dataKey="y" type="number" allowDecimals={false} />
+            <ZAxis dataKey="z" type="number" range={[64, 144]} />
+            <Tooltip cursor={false} />
+            <Scatter name="A school" data={data01} fill="#8884d8" />
+            <Scatter name="B school" data={data02} fill="#82ca9d" />
+            {props.children}
+          </ScatterChart>
+        ));
+
+        const { container, spy } = renderTooltipTestCase(selectActiveTooltipPayload);
+
+        const scatterPoints = container.querySelectorAll(".recharts-scatter-symbol");
+        fireEvent.mouseEnter(scatterPoints[0]!);
+        flush();
+
+        const payloadFromFirstScatter = spy.mock.calls.at(-1)?.[0];
+        assertNotNull(payloadFromFirstScatter);
+        expect(payloadFromFirstScatter).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ payload: expect.objectContaining(data01[0]) }),
+          ]),
+        );
+        expect(payloadFromFirstScatter).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ payload: expect.objectContaining(data02[0]) }),
+          ]),
+        );
+
+        fireEvent.mouseEnter(scatterPoints[2]!);
+        flush();
+
+        const payloadFromSecondScatter = spy.mock.calls.at(-1)?.[0];
+        assertNotNull(payloadFromSecondScatter);
+        expect(payloadFromSecondScatter).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ payload: expect.objectContaining(data02[0]) }),
+          ]),
+        );
+        expect(payloadFromSecondScatter).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ payload: expect.objectContaining(data01[0]) }),
+          ]),
+        );
+      });
     });
   });
 });

@@ -1,0 +1,14 @@
+{
+  "name": "@solid-recharts/bundle-size-bench",
+  "private": true,
+  "type": "module",
+  "description": "Bundle-size comparison: solid-recharts (from source) vs recharts 3.8.1 (npm dist), identical chart entries, same Vite pipeline. Install with `npm install` (npm, not pnpm — kept outside the workspace on purpose), then `node build.mjs`.",
+  "scripts": {
+    "bench": "node build.mjs"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "3.8.1"
+  }
+}

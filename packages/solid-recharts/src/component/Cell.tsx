@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 src/component/Cell.tsx (commit 7a23854).
-// Deviations: React's `SVGProps<SVGElement>` → Solid's `JSX.SVGAttributes<SVGElement>`
+// Deviations: React's `SVGProps<SVGElement>` → Solid's `CamelSvgProps<JSX.SVGAttributes<SVGElement>>`
 // (which already names the class prop `class`); React's `displayName` is dropped.
 //
 // The CellReader pattern: recharts extracts cells by walking the React element
@@ -8,10 +8,11 @@
 // Instead each <Cell> registers its props into a module-level registrar while a
 // parent (Bar/Pie/RadialBar) synchronously resolves its children inside
 // `collectCells`. Cells render no DOM (the standalone <Cell /> spec asserts this).
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { createMemo, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
-export interface CellProps extends JSX.SVGAttributes<SVGElement> {
+export interface CellProps extends CamelSvgProps<JSX.SVGAttributes<SVGElement>> {
   /**
    * The fill color.
    */

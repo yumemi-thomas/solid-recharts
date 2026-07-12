@@ -1,0 +1,54 @@
+export const meta = {
+  slug: "bar-chart",
+  title: "BarChart",
+  group: "charts",
+  description: "Cartesian chart container for one or more Bar series.",
+  example: "bar-basic",
+};
+
+# BarChart
+
+`BarChart` is the cartesian container for [`Bar`](/docs/bar) series. It owns the
+chart's layout, scales, and interaction state; children like `XAxis`, `CartesianGrid`
+and `Tooltip` register themselves into it.
+
+```tsx
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<BarChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Bar dataKey="uv" fill="#82ca9d" />
+</BarChart>;
+```
+
+<Example slug="bar-basic" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per x position         |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `layout`                    | `"horizontal" \| "vertical"`   | `"horizontal"`   | Direction of the independent axis                   |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `syncId`                    | `string`                       | —                | Sync tooltip/brush across charts sharing the id     |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `BarChart` props are supported; see the
+[recharts BarChart docs](https://recharts.org/en-US/api/BarChart) for the full matrix.
+
+## Notes
+
+- Multiple `Bar` children are rendered side-by-side (grouped) unless you set a `stackId`.
+- Set the same `stackId` on two or more `Bar` children to stack them.
+- Use the `radius` prop to round the top corners: `radius={[4, 4, 0, 0]}`.
+- Set `syncId` on two charts to mirror tooltips and brushes between them.
+
+## See also
+
+- [Bar](/docs/bar) — the series component and its shape/label options
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis)
+- [ComposedChart](/docs/composed-chart) — mix bars with lines and areas

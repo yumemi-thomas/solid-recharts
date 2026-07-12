@@ -1,5 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "types": [] },
+  // "node" only: the vite alias points `solid-recharts` at the library SOURCE,
+  // which reads `process.env.NODE_ENV` (Vite define-replaces it) and so needs
+  // the same ambient types the library's own tsconfig declares. No test globals.
+  "compilerOptions": { "types": ["node"] },
   "include": ["src"]
 }

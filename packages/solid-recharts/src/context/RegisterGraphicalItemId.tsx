@@ -22,7 +22,12 @@ export interface IdSetter {
   children: (id: GraphicalItemId) => JSX.Element;
 }
 
-const GraphicalItemIdContext = createContext<GraphicalItemId | undefined>(undefined);
+// Default must be a real value (null), not an explicit `undefined`: Solid 2.0
+// treats an undefined default as "no default" and THROWS from useContext when
+// no provider is above. Consumers (e.g. an <ErrorBar> child evaluated by Bar's
+// collectCells probe outside the provider) rely on getting "no id" back and
+// no-op'ing instead.
+const GraphicalItemIdContext = createContext<GraphicalItemId | null>(null);
 
 export const RegisterGraphicalItemId = (props: IdSetter): JSX.Element => {
   const resolvedId = useUniqueId(`recharts-${props.type}`, props.id);
@@ -32,5 +37,5 @@ export const RegisterGraphicalItemId = (props: IdSetter): JSX.Element => {
 };
 
 export function useGraphicalItemId(): GraphicalItemId | undefined {
-  return useContext(GraphicalItemIdContext);
+  return useContext(GraphicalItemIdContext) ?? undefined;
 }

@@ -322,4 +322,75 @@ describe("<CartesianAxis />", () => {
       expect(text).toHaveAttribute("text-anchor", "middle");
     });
   });
+
+  it("Appends a user class to the axis Layer (recharts: className)", () => {
+    const { container } = render(() => (
+      <Surface width={500} height={500}>
+        <CartesianAxis
+          orientation="bottom"
+          y={100}
+          width={400}
+          height={50}
+          viewBox={{ x: 0, y: 0, width: 500, height: 500 }}
+          ticks={ticks}
+          class="my-axis"
+          scale={exampleScale}
+        />
+      </Surface>
+    ));
+
+    const layer = container.querySelector(".recharts-cartesian-axis");
+    expect(layer).not.toBeNull();
+    expect(layer).toHaveClass("my-axis");
+  });
+
+  it("Merges tickTextProps into each tick Text, keeping the tick-value class", () => {
+    const { container } = render(() => (
+      <Surface width={500} height={500}>
+        <CartesianAxis
+          orientation="bottom"
+          y={100}
+          width={400}
+          height={50}
+          viewBox={{ x: 0, y: 0, width: 500, height: 500 }}
+          ticks={ticks}
+          tickTextProps={{ fill: "red", fontSize: 20 }}
+          scale={exampleScale}
+        />
+      </Surface>
+    ));
+
+    const tickTexts = container.querySelectorAll(".recharts-cartesian-axis-tick-value");
+    expect(tickTexts).toHaveLength(5);
+    tickTexts.forEach((text) => {
+      expect(text).toHaveAttribute("fill", "red");
+      expect(text).toHaveAttribute("font-size", "20");
+      expect(text).toHaveClass("recharts-cartesian-axis-tick-value");
+    });
+  });
+
+  it("Applies fontSize and letterSpacing props to the tick text", () => {
+    const { container } = render(() => (
+      <Surface width={500} height={500}>
+        <CartesianAxis
+          orientation="bottom"
+          y={100}
+          width={400}
+          height={50}
+          viewBox={{ x: 0, y: 0, width: 500, height: 500 }}
+          ticks={ticks}
+          fontSize={14}
+          letterSpacing="0.5em"
+          scale={exampleScale}
+        />
+      </Surface>
+    ));
+
+    const tickTexts = container.querySelectorAll(".recharts-cartesian-axis-tick-value");
+    expect(tickTexts).toHaveLength(5);
+    tickTexts.forEach((text) => {
+      expect(text).toHaveAttribute("font-size", "14");
+      expect(text).toHaveAttribute("letter-spacing", "0.5em");
+    });
+  });
 });

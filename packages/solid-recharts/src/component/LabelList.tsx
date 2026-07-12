@@ -4,12 +4,16 @@
 // graphical item (Bar/Line/Area/Scatter) provides — a list of
 // CartesianLabelListEntry (each carries the point's trapezoid viewBox + value).
 //
+// POLAR path: RadialBar provides a PolarLabelListContext of PolarLabelListEntry
+// (each carries a polar sector viewBox); <Label> renders the curved arc label.
+// LabelList consumes whichever context is provided (cartesian preferred).
+//
 // Solid deviations / DEFERRALS (documented):
-//  - POLAR context (PolarLabelListContext) DEFERRED to the polar vertical.
 //  - context value carries an `Accessor<...entries>` (Solid context is fixed at
 //    provide-time; the accessor keeps the per-render entries reactive).
 //  - element `content` (React.cloneElement) DROPPED; function `content` kept.
 //  - ZIndexLayer / `fill`-passthrough deferred (Label forwards no per-label fill).
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { createContext, createMemo, For, omit, Show, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
@@ -23,7 +27,12 @@ import {
 import { Layer } from "../container/Layer";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 import { getValueByDataKey } from "../util/ChartUtils";
-import { CartesianViewBoxRequired, DataKey, TrapezoidViewBox } from "../util/types";
+import {
+  CartesianViewBoxRequired,
+  DataKey,
+  PolarViewBoxRequired,
+  TrapezoidViewBox,
+} from "../util/types";
 import { isNullish, isNumOrStr } from "../util/DataUtils";
 import { isRenderableText, type RenderableText } from "./Text";
 
@@ -45,15 +54,34 @@ export interface CartesianLabelListEntry extends LabelListEntry, TrapezoidViewBo
   parentViewBox?: CartesianViewBoxRequired;
 }
 
+/**
+ * Polar label-list entry (RadialBar / Pie): the viewBox is a polar sector, and
+ * <Label> renders the curved `recharts-radial-bar-label` along the arc.
+ */
+export interface PolarLabelListEntry extends LabelListEntry {
+  viewBox: PolarViewBoxRequired;
+  parentViewBox?: PolarViewBoxRequired;
+  clockWise?: boolean;
+}
+
 interface LabelListProps {
   id?: string;
   /** Class applied to each rendered label (recharts `className`); spread onto Label. */
   class?: string;
   /** Accessor to get each label's value. Ignored if `dataKey` is specified. */
-  valueAccessor?: (entry: CartesianLabelListEntry, index: number) => RenderableText;
+  valueAccessor?: (
+    entry: CartesianLabelListEntry | PolarLabelListEntry,
+    index: number,
+  ) => RenderableText;
+  /**
+   * The parameter to calculate the view box of label in radial charts. Accepted
+   * for recharts prop parity; like the reference, it is NOT forwarded to the
+   * per-entry Label (polar direction comes from the entry's viewBox).
+   */
+  clockWise?: boolean;
   /** How to extract each label's value from the data (overrides valueAccessor). */
   dataKey?: DataKey<unknown>;
-  /** A render function for custom label content (element form deferred). */
+  /** A render function for custom label content (element form is N/A — no cloneElement). */
   content?: LabelContentType;
   textBreakAll?: boolean;
   /** The position of label relative to the view box. */
@@ -66,7 +94,10 @@ interface LabelListProps {
   formatter?: LabelFormatter;
 }
 
-export type Props = Omit<JSX.TextSVGAttributes<SVGTextElement>, "children" | "class"> &
+export type Props = Omit<
+  CamelSvgProps<JSX.TextSVGAttributes<SVGTextElement>>,
+  "children" | "class"
+> &
   LabelListProps;
 
 /**
@@ -79,6 +110,12 @@ export type Props = Omit<JSX.TextSVGAttributes<SVGTextElement>, "children" | "cl
  */
 export type ImplicitLabelListType = boolean | LabelContentType | Props;
 
+/**
+ * LabelList props with the `position` key made explicit — recharts parity name.
+ * (Upstream homes this in polar/Pie; the port homes it next to the Props it derives from.)
+ */
+export type LabelListPropsWithPosition = Props & { position: Props["position"] };
+
 const defaultAccessor = (entry: LabelListEntry): RenderableText => {
   const raw = entry.value;
   // Range values arrive as arrays; the label shows the last element. Array.isArray
@@ -89,9 +126,9 @@ const defaultAccessor = (entry: LabelListEntry): RenderableText => {
   return isRenderableText(val) ? val : undefined;
 };
 
-const CartesianLabelListContext = createContext<
-  Accessor<ReadonlyArray<CartesianLabelListEntry> | undefined> | undefined
->(undefined);
+const CartesianLabelListContext = createContext<Accessor<
+  ReadonlyArray<CartesianLabelListEntry> | undefined
+> | null>(null);
 
 export function CartesianLabelListContextProvider(props: {
   value: Accessor<ReadonlyArray<CartesianLabelListEntry> | undefined>;
@@ -102,6 +139,17 @@ export function CartesianLabelListContextProvider(props: {
   );
 }
 
+const PolarLabelListContext = createContext<Accessor<
+  ReadonlyArray<PolarLabelListEntry> | undefined
+> | null>(null);
+
+export function PolarLabelListContextProvider(props: {
+  value: Accessor<ReadonlyArray<PolarLabelListEntry> | undefined>;
+  children: JSX.Element;
+}): JSX.Element {
+  return <PolarLabelListContext value={props.value}>{props.children}</PolarLabelListContext>;
+}
+
 /**
  * Renders a list of cartesian labels, one per entry provided by the surrounding
  * CartesianLabelListContext (set by the graphical item).
@@ -109,14 +157,18 @@ export function CartesianLabelListContextProvider(props: {
  * @consumes CartesianLabelListContext
  */
 export function LabelList(props: Props): JSX.Element {
-  const data = useContext(CartesianLabelListContext);
-  const entries = createMemo(() => {
-    const list = data?.();
+  const cartesianData = useContext(CartesianLabelListContext);
+  const polarData = useContext(PolarLabelListContext);
+  const entries = createMemo<
+    ReadonlyArray<CartesianLabelListEntry | PolarLabelListEntry> | undefined
+  >(() => {
+    const list = cartesianData?.() ?? polarData?.();
     return list != null && list.length > 0 ? list : undefined;
   });
   const others = omit(
     props,
     "valueAccessor",
+    "clockWise",
     "dataKey",
     "id",
     "textBreakAll",
@@ -127,7 +179,10 @@ export function LabelList(props: Props): JSX.Element {
     "formatter",
   );
 
-  const valueOf = (entry: CartesianLabelListEntry, index: number): RenderableText => {
+  const valueOf = (
+    entry: CartesianLabelListEntry | PolarLabelListEntry,
+    index: number,
+  ): RenderableText => {
     if (!isNullish(props.dataKey)) {
       const v = getValueByDataKey(entry.payload, props.dataKey);
       return isNumOrStr(v) ? v : undefined;

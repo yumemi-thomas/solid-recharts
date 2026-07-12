@@ -1,0 +1,53 @@
+export const meta = {
+  slug: "funnel",
+  title: "Funnel",
+  group: "cartesian",
+  description: "A funnel chart series component showing hierarchical data as stacked trapezoids.",
+  example: "funnel-basic",
+};
+
+# Funnel
+
+`Funnel` is a graphical series component for rendering funnel charts, which display a series of diminishing stages (like a sales pipeline). Each stage is drawn as a trapezoid, with width proportional to the data value.
+
+```tsx
+import { FunnelChart, Funnel, Tooltip } from "solid-recharts";
+
+<FunnelChart width={500} height={300} data={data}>
+  <Funnel dataKey="value" />
+  <Tooltip />
+</FunnelChart>;
+```
+
+<Example slug="funnel-basic" />
+
+## Props
+
+| Prop                | Type                        | Default      | Description                                        |
+| ------------------- | --------------------------- | ------------ | -------------------------------------------------- |
+| `dataKey`           | `string \| number`          | —            | Data key for the trapezoid width (value per stage) |
+| `nameKey`           | `string \| number`          | `"name"`     | Data key for stage names                           |
+| `fill`              | `string`                    | `"#808080"`  | Fill color                                         |
+| `stroke`            | `string`                    | `"#fff"`     | Outline color                                      |
+| `reversed`          | `boolean`                   | `false`      | Reverse the funnel direction (top → bottom)        |
+| `isAnimationActive` | `boolean \| "auto"`         | `"auto"`     | Enable enter/update animation                      |
+| `animationDuration` | `number`                    | `1500`       | Animation duration in milliseconds                 |
+| `lastShapeType`     | `"triangle" \| "rectangle"` | `"triangle"` | Shape of the last stage                            |
+| `label`             | `boolean \| object`         | `false`      | Render labels on trapezoids                        |
+| `shape`             | `function`                  | —            | Custom trapezoid renderer (function form)          |
+| `activeShape`       | `function`                  | —            | Custom renderer for the hovered trapezoid          |
+
+See the [recharts Funnel docs](https://recharts.org/en-US/api/Funnel) for the full prop matrix.
+
+## Notes
+
+- **Automatic layout**: Funnel does not use axes; it fills the chart container with automatically-sized trapezoids.
+- **Reversed**: set `reversed={true}` to flip the funnel (widest at the bottom).
+- **Custom shapes**: pass a function as `shape` to render custom trapezoid geometry; it receives the stage's geometry and data payload.
+- **Per-stage styling**: use `<Cell>` children to override `fill`/`stroke` per trapezoid, just like Bar or Pie.
+
+## See also
+
+- [FunnelChart](/docs/funnel-chart) — the chart container
+- [Cell](/docs/cell) — per-trapezoid fill/stroke overrides
+- [Tooltip](/docs/tooltip) — hover interaction

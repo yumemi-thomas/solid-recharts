@@ -1,0 +1,50 @@
+export const meta = {
+  slug: "reference-area",
+  title: "ReferenceArea",
+  group: "cartesian",
+  description: "Draws a shaded band between two data coordinates to highlight a region.",
+  example: "reference-lines",
+};
+
+# ReferenceArea
+
+`ReferenceArea` draws a rectangle spanning a range of data coordinates. Use it to shade regions, represent acceptable ranges, or highlight time periods.
+
+```tsx
+import { ReferenceArea, LineChart } from "solid-recharts";
+
+<LineChart data={data}>
+  <ReferenceArea y1={2000} y2={4000} fill="#ccc" fillOpacity={0.3} />
+  <ReferenceArea x1="Jan" x2="Mar" fill="#8884d8" fillOpacity={0.1} />
+</LineChart>;
+```
+
+<Example slug="reference-lines" />
+
+## Props
+
+| Prop          | Type                                      | Default     | Description                                             |
+| ------------- | ----------------------------------------- | ----------- | ------------------------------------------------------- |
+| `x1`          | `number \| string`                        | —           | Starting x-data coordinate; omit to extend to left edge |
+| `x2`          | `number \| string`                        | —           | Ending x-data coordinate; omit to extend to right edge  |
+| `y1`          | `number \| string`                        | —           | Starting y-data coordinate; omit to extend to top edge  |
+| `y2`          | `number \| string`                        | —           | Ending y-data coordinate; omit to extend to bottom edge |
+| `fill`        | `string`                                  | `"#ccc"`    | Fill color                                              |
+| `fillOpacity` | `number`                                  | `0.5`       | Fill transparency (0–1)                                 |
+| `stroke`      | `string`                                  | `"none"`    | Border color                                            |
+| `strokeWidth` | `number`                                  | `1`         | Border thickness in pixels                              |
+| `ifOverflow`  | `"discard" \| "hidden" \| "extendDomain"` | `"discard"` | Behavior when the area exits the chart area             |
+| `zIndex`      | `number`                                  | —           | Stacking order (higher renders on top)                  |
+
+## Notes
+
+- Omit `x1`/`x2` to extend to the full horizontal range; same for `y1`/`y2` and vertical.
+- Use `fillOpacity` (e.g., 0.2–0.4) to keep the area visible without obscuring data.
+- Set `stroke="none"` to remove the border; only the fill is visible.
+- `ifOverflow="hidden"` clips the area at the chart boundary.
+
+## See also
+
+- [ReferenceLine](/docs/reference-line) — a line at a coordinate
+- [ReferenceDot](/docs/reference-dot) — a circle at a point
+- [LineChart](/docs/line-chart) — the chart container

@@ -1,5 +1,7 @@
 import { describe, expect } from "vitest";
-import Decimal from "decimal.js-light";
+// Uses the lib's own DecimalLite (decimal.js-light replacement) so spec args
+// are the same Decimal type the implementation operates on.
+import Decimal from "../../../src/util/scale/util/DecimalLite";
 import { getDigitCount, rangeStep } from "../../../src/util/scale/util/arithmetic";
 
 describe("arithmetic", () => {

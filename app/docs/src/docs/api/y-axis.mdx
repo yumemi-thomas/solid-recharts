@@ -1,0 +1,60 @@
+export const meta = {
+  slug: "y-axis",
+  title: "YAxis",
+  group: "cartesian",
+  description:
+    "Renders the vertical axis of a cartesian chart with customizable domain and formatting.",
+  example: "axes-dual-y",
+};
+
+# YAxis
+
+`YAxis` renders the vertical axis of a cartesian chart. It is used to display numeric
+values, with customizable scale, domain, tick marks, and formatting. Multiple `YAxis`
+components can be added to compare series with different scales.
+
+```tsx
+import { LineChart, Line, XAxis, YAxis } from "solid-recharts";
+
+<LineChart width={500} height={300} data={data}>
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Line dataKey="uv" stroke="#82ca9d" />
+</LineChart>;
+```
+
+<Example slug="axes-dual-y" />
+
+## Props
+
+| Prop            | Type                                               | Default       | Description                                                      |
+| --------------- | -------------------------------------------------- | ------------- | ---------------------------------------------------------------- |
+| `orientation`   | `"left" \| "right"`                                | `"left"`      | Position on the left or right side of the chart                  |
+| `domain`        | `[number, number] \| ["auto", number] \| function` | `[0, "auto"]` | Min/max scale values; `"auto"`, `"dataMin"`, `"dataMax"` allowed |
+| `width`         | `number \| "auto"`                                 | `60`          | Fixed width, or `"auto"` to measure tick labels                  |
+| `yAxisId`       | `string \| number`                                 | `0`           | Unique identifier to bind series to this axis (via yAxisId)      |
+| `tickFormatter` | `(value) => string`                                | identity      | Function to format tick labels                                   |
+| `tickCount`     | `number`                                           | `5`           | Suggested number of ticks to render                              |
+| `label`         | `string \| object`                                 | —             | Axis title, or a `<Label>` child element                         |
+| `hide`          | `boolean`                                          | `false`       | Hides the axis, ticks, and labels                                |
+| `type`          | `"number" \| "category"`                           | `"number"`    | Scale type (numeric or categorical)                              |
+
+All other recharts `YAxis` props are supported; see the [recharts YAxis
+docs](https://recharts.org/en-US/api/YAxis) for the complete reference.
+
+## Notes
+
+- The `domain` prop accepts tuples like `[0, 100]` (fixed), `["auto", 100]` (auto min,
+  fixed max), or a function `([dataMin, dataMax]) => [newMin, newMax]` for dynamic
+  adjustment.
+- Use `width="auto"` to automatically measure the width based on tick label length.
+- To show multiple Y-axes with different scales, assign different `yAxisId` values and
+  bind each series (Line, Bar, etc.) to its axis via the matching `yAxisId`.
+- The `tickFormatter` lets you abbreviate large numbers (e.g.
+  `(v) => (v / 1000).toFixed(0) + "k"`).
+
+## See also
+
+- [XAxis](/docs/x-axis) — horizontal axis
+- [CartesianGrid](/docs/cartesian-grid) — background grid
+- [LineChart](/docs/line-chart) · [BarChart](/docs/bar-chart) · [AreaChart](/docs/area-chart)

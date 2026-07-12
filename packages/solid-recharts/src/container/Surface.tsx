@@ -1,3 +1,5 @@
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
+import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 import { omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
@@ -25,7 +27,7 @@ interface SurfaceOwnProps {
 // deviation. We Omit the wide SVG `class` so ours stays `string`, matching recharts and keeping the
 // native array `class` form typed.
 export type SurfaceProps = Omit<
-  JSX.SvgSVGAttributes<SVGSVGElement>,
+  CamelSvgProps<JSX.SvgSVGAttributes<SVGSVGElement>>,
   "viewBox" | "style" | "class"
 > &
   SurfaceOwnProps;
@@ -48,9 +50,11 @@ export const Surface = (props: SurfaceProps) => {
     "ref",
   );
 
+  // Parity with recharts Surface: the passthrough props go through the SVG
+  // filter (camelCase props → DOM attribute names), not a verbatim spread.
   return (
     <svg
-      {...rest}
+      {...svgPropertiesAndEvents({ ...rest })}
       class={["recharts-surface", props.class]}
       width={props.width}
       height={props.height}

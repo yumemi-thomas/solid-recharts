@@ -1,0 +1,57 @@
+export const meta = {
+  slug: "area",
+  title: "Area",
+  group: "cartesian",
+  description: "A filled area series component for cartesian charts with optional stacking.",
+  example: "area-stacked",
+};
+
+# Area
+
+`Area` is a graphical series component that renders a filled area under a line on a cartesian chart. It's similar to `Line` but with fill instead of just a stroke, and supports stacking for combined-area layouts.
+
+```tsx
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<AreaChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Area type="monotone" dataKey="value" fill="#82ca9d" stroke="#82ca9d" />
+</AreaChart>;
+```
+
+<Example slug="area-stacked" />
+
+## Props
+
+| Prop                | Type                               | Default     | Description                                        |
+| ------------------- | ---------------------------------- | ----------- | -------------------------------------------------- |
+| `dataKey`           | `string \| number \| func`         | —           | Data key or accessor for the area's values         |
+| `type`              | `string`                           | `"linear"`  | Curve interpolation: `"linear"`, `"monotone"`, etc |
+| `fill`              | `string`                           | `"#8884d8"` | Fill color                                         |
+| `fillOpacity`       | `number \| string`                 | `1`         | Fill transparency (0–1)                            |
+| `stroke`            | `string`                           | —           | Line stroke color                                  |
+| `strokeWidth`       | `number`                           | `1`         | Line thickness                                     |
+| `connectNulls`      | `boolean`                          | `false`     | Connect data points across null/undefined values   |
+| `stackId`           | `string`                           | —           | Stack areas with others sharing this id            |
+| `baseValue`         | `number \| "dataMin" \| "dataMax"` | `0`         | Base value for the area fill (bottom of the fill)  |
+| `dot`               | `boolean \| object`                | `false`     | Render dots at each point                          |
+| `label`             | `boolean \| object`                | `false`     | Render labels at each point                        |
+| `isAnimationActive` | `boolean \| "auto"`                | `"auto"`    | Enable enter/update animation                      |
+
+See the [recharts Area docs](https://recharts.org/en-US/api/Area) for the full prop matrix.
+
+## Notes
+
+- **Stacking**: pass the same `stackId` to multiple `Area` components to stack them (areas with different stack ids overlay).
+- **Range areas**: pass a function as `dataKey` that returns `[low, high]` instead of a single value; the area will span both values.
+- **Fill opacity**: use `fillOpacity` to control transparency without changing the base color.
+- **Base value**: set `baseValue` to align the fill to a specific value (e.g., `"dataMin"` for the minimum value in the data).
+
+## See also
+
+- [AreaChart](/docs/area-chart) — the chart container
+- [Bar](/docs/bar) — alternative stacking with bars
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) — axes

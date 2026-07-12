@@ -7,32 +7,40 @@
 // (recharts dropped it on CartesianAxis in 3.0); `viewBox` is accepted; a user
 // `textAnchor` overrides the orientation-derived one. The pure tick geometry helpers
 // (getTickLineCoord/getTickTextAnchor/getTickVerticalAnchor) are ported verbatim.
-// Deferred (documented): the getTicks interval/minTickGap thinning (all selected ticks
-// render — the ticks the selector already produces), ELEMENT-form `tick`/`label`
-// (Solid can't React.cloneElement an already-evaluated element to inject computed
-// x/y/payload — use the function form instead), ZIndexLayer, RenderedTicksReporter,
-// Y-axis auto-width. Solid deviations: forwardRef dropped; React CSSProperties n/a;
-// `className`→`class`.
+// Tick interval/minTickGap thinning is wired via getTicks() (string forms
+// preserveStart/preserveEnd/preserveStartEnd/equidistant* + numeric), with the
+// overlap viewBox taken from an explicit `viewBox` prop when given, else derived
+// from the axis box (its sizeKey dimension matches recharts' plot-area viewBox).
+// PERMANENT-N/A (by design, NOT deferred): ELEMENT-form `tick`/`label` (Solid can't
+// React.cloneElement an already-evaluated element to inject computed x/y/payload —
+// use the function form instead). Deferred: RenderedTicksReporter, Y-axis
+// auto-width. Solid deviations:
+// forwardRef dropped; React CSSProperties n/a; `className`→`class`.
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
+import { getTicks } from "./getTicks";
 import { Layer } from "../container/Layer";
 import {
   CartesianLabelContextProvider,
   CartesianLabelFromLabelProp,
   type ImplicitLabelType,
 } from "../component/Label";
-import { Text, TextAnchor, TextVerticalAnchor } from "../component/Text";
+import { Text, TextAnchor, TextVerticalAnchor, type Props as TextProps } from "../component/Text";
 import { isNullish, isNumber } from "../util/DataUtils";
 import {
+  type AxisInterval,
   type CartesianTickContentProps,
   CartesianTickItem,
   type CartesianViewBox,
+  type CartesianViewBoxRequired,
   Coordinate,
   RectangleCoordinate,
   type TickProp,
 } from "../util/types";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { XAxisOrientation, YAxisOrientation } from "../state/cartesianAxisSlice";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 
 export type Orientation = XAxisOrientation | YAxisOrientation;
 
@@ -135,8 +143,12 @@ export interface CartesianAxisProps {
   tickSize?: number;
   tickMargin?: number;
   mirror?: boolean;
+  /** When set, relocates the axis into that z-index portal (unset = inline). */
+  zIndex?: number;
   stroke?: string;
-  axisLine?: boolean;
+  strokeOpacity?: number | string;
+  /** Boolean toggles the axis line; an object both shows it and styles it (SVG props). @defaultValue true */
+  axisLine?: boolean | CamelSvgProps<JSX.LineSVGAttributes<SVGLineElement>>;
   tickLine?: boolean;
   // boolean is already covered by TickProp's JSX.Element (Solid's JSX.Element includes
   // boolean); the settings-object form is the only addition over recharts' TickProp.
@@ -154,7 +166,9 @@ export interface CartesianAxisProps {
   scale?: unknown;
   /** Overrides the orientation-derived `text-anchor` on each tick label. */
   textAnchor?: TextAnchor;
-  interval?: number | string;
+  interval?: AxisInterval;
+  /** Min px gap kept between rendered ticks during interval thinning. @defaultValue 5 */
+  minTickGap?: number;
   /** Axis name, forwarded to a function-form tick's props (default undefined). */
   name?: string;
   /** Tick label rotation, forwarded to a function-form tick's props. @defaultValue 0 */
@@ -163,11 +177,50 @@ export interface CartesianAxisProps {
   padding?: AxisLabelPadding;
   unit?: string | number;
   hide?: boolean;
+  /** Extra CSS class(es) joined onto the axis `<Layer>` (recharts: `className`). */
   class?: string;
+  /**
+   * Additional props merged into each tick `<Text>` element (recharts `tickTextProps`).
+   * Applied after the internally computed tick props, so they win.
+   */
+  tickTextProps?: TextProps;
+  /**
+   * Font size of the tick text. Also feeds the tick-width measurement used by the
+   * interval-thinning algorithm (recharts reads it from the DOM when unset; this
+   * port consumes the prop directly — there is no computed-style feedback loop).
+   */
+  fontSize?: number | string;
+  /** Letter spacing of the tick text; measured together with `fontSize`. */
+  letterSpacing?: number | string;
   /** Axis title — string/number/object/function/`true`, or a `<Label>` child. */
   label?: ImplicitLabelType;
+  /**
+   * Callback receiving the rendered axis Layer `<g>` element. YAxis uses it to measure
+   * the tick-value nodes for the `width="auto"` dynamic-width computation (recharts
+   * threads this through a `CartesianAxisRef.getCalculatedWidth`).
+   */
+  layerRef?: (el: SVGGElement) => void;
+  /** Per-tick pointer handlers, called props-first `(tickItem, index, event)`. */
+  onClick?: CartesianTickEventHandler<MouseEvent>;
+  onMouseEnter?: CartesianTickEventHandler<MouseEvent>;
+  onMouseLeave?: CartesianTickEventHandler<MouseEvent>;
+  onMouseOver?: CartesianTickEventHandler<MouseEvent>;
+  onMouseOut?: CartesianTickEventHandler<MouseEvent>;
+  onMouseMove?: CartesianTickEventHandler<MouseEvent>;
+  onMouseDown?: CartesianTickEventHandler<MouseEvent>;
+  onMouseUp?: CartesianTickEventHandler<MouseEvent>;
+  onTouchStart?: CartesianTickEventHandler<TouchEvent>;
+  onTouchMove?: CartesianTickEventHandler<TouchEvent>;
+  onTouchEnd?: CartesianTickEventHandler<TouchEvent>;
   children?: JSX.Element;
 }
+
+/** Props-first per-tick event handler: `(tickItem, index, event)` (recharts convention). */
+export type CartesianTickEventHandler<E extends Event> = (
+  data: CartesianTickItem,
+  index: number,
+  event: E,
+) => void;
 
 const cartesianAxisDefaults = {
   axisType: "xAxis",
@@ -180,6 +233,7 @@ const cartesianAxisDefaults = {
   mirror: false,
   tickSize: 6,
   tickMargin: 2,
+  minTickGap: 5,
 } as const satisfies Partial<CartesianAxisProps>;
 
 const AxisLine = (props: {
@@ -190,6 +244,9 @@ const AxisLine = (props: {
   orientation: Orientation;
   mirror: boolean;
   stroke: string;
+  strokeOpacity?: number | string;
+  /** Extra SVG props from an object-form `axisLine={{ ... }}`. */
+  extra?: CamelSvgProps<JSX.LineSVGAttributes<SVGLineElement>>;
 }): JSX.Element => {
   const coords = (): RectangleCoordinate => {
     const { x, y, width, height, orientation, mirror } = props;
@@ -211,11 +268,14 @@ const AxisLine = (props: {
       x2={coords().x2}
       y2={coords().y2}
       stroke={props.stroke}
+      stroke-opacity={props.strokeOpacity}
       fill="none"
       // recharts forwards the axis's own svg props (incl. `width`) onto the line via
       // `otherSvgProps`; mirror that with the canonical svg-prop spread (`width` is the
-      // attribute consumers read off the line element).
-      {...svgPropertiesNoEvents({ width: props.width })}
+      // attribute consumers read off the line element). An object-form `axisLine={{…}}`
+      // adds its own SVG props on top — run through the renamer so recharts-style
+      // camelCase (`strokeWidth`) becomes the kebab SVG attribute.
+      {...svgPropertiesNoEvents({ width: props.width, ...(props.extra ?? {}) })}
     />
   );
 };
@@ -243,13 +303,55 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
   const tickSettings = (): CartesianTickSettings | null =>
     isTickSettings(merged.tick) ? merged.tick : null;
 
-  const visibleTicks = createMemo(() => {
-    const interval = merged.interval;
-    if (typeof interval !== "number" || interval <= 0) {
-      return merged.ticks;
+  // The viewBox feeding getTickBoundaries: an explicit `viewBox` prop (the direct
+  // CartesianAxis API) wins; otherwise derive from the axis box. Only the sizeKey
+  // dimension is read by getTickBoundaries, and the axis box's sizeKey dimension
+  // equals recharts' plot-area viewBox (x-axis: x/width; y-axis: y/height).
+  const resolvedViewBox = (): CartesianViewBoxRequired => {
+    const vb = merged.viewBox;
+    if (vb != null && isNumber(vb.width) && isNumber(vb.height)) {
+      return { x: vb.x ?? 0, y: vb.y ?? 0, width: vb.width, height: vb.height };
     }
-    return merged.ticks.filter((_, index) => index % (interval + 1) === 0);
-  });
+    return { x: merged.x, y: merged.y, width: merged.width, height: merged.height };
+  };
+
+  // getStringSize expects computed-style strings (e.g. "14px"); coerce the numeric
+  // prop forms the way the browser would (recharts reads getComputedStyle values).
+  const fontSizeStyle = (): string | undefined =>
+    merged.fontSize == null
+      ? undefined
+      : typeof merged.fontSize === "number"
+        ? `${merged.fontSize}px`
+        : merged.fontSize;
+  const letterSpacingStyle = (): string | undefined =>
+    merged.letterSpacing == null
+      ? undefined
+      : typeof merged.letterSpacing === "number"
+        ? `${merged.letterSpacing}px`
+        : merged.letterSpacing;
+
+  const visibleTicks = createMemo<ReadonlyArray<CartesianTickItem>>(() =>
+    getTicks(
+      {
+        angle: merged.angle,
+        interval: merged.interval,
+        minTickGap: merged.minTickGap,
+        orientation: merged.orientation,
+        // getTicks early-returns [] when `tick` is falsy; tick-label and tick-line
+        // visibility are gated independently below (`tick` / `tickLine`), so force a
+        // truthy value here to keep thinning independent of whether labels render.
+        tick: true,
+        tickFormatter: merged.tickFormatter,
+        ticks: merged.ticks,
+        // getTicks measures `unit` as a string (width of the unit suffix); coerce the
+        // numeric form so it matches GetTicksInput's `string | undefined`.
+        unit: isNullish(merged.unit) ? undefined : String(merged.unit),
+        viewBox: resolvedViewBox(),
+      },
+      fontSizeStyle(),
+      letterSpacingStyle(),
+    ),
+  );
 
   const tickCoords = createMemo(() =>
     visibleTicks().map((entry, index) => ({
@@ -326,76 +428,114 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
 
   return (
     <Show when={!merged.hide}>
-      {/* recharts emits both the namespaced and the bare axis class (`recharts-yAxis yAxis`). */}
-      <Layer class={`recharts-cartesian-axis recharts-${merged.axisType} ${merged.axisType}`}>
-        <Show when={merged.axisLine}>
-          <AxisLine
-            x={merged.x}
-            y={merged.y}
-            width={merged.width}
-            height={merged.height}
-            orientation={merged.orientation}
-            mirror={merged.mirror}
-            stroke={strokeColor()}
-          />
-        </Show>
-        <g class={`recharts-cartesian-axis-ticks recharts-${merged.axisType}-ticks`}>
-          <For each={tickCoords()}>
-            {(item) => (
-              <Layer class="recharts-cartesian-axis-tick">
-                <Show when={merged.tickLine}>
-                  <line
-                    class="recharts-cartesian-axis-tick-line"
-                    x1={item.line.x1}
-                    y1={item.line.y1}
-                    x2={item.line.x2}
-                    y2={item.line.y2}
-                    stroke={strokeColor()}
-                    fill="none"
-                  />
-                </Show>
-                <Show when={merged.tick}>
-                  {/* Function-form tick: invoke with recharts' tick-content props.
+      <ZIndexLayer zIndex={merged.zIndex}>
+        {/* recharts emits both the namespaced and the bare axis class (`recharts-yAxis yAxis`);
+          a user `class` (recharts: XAxis/YAxis className) is appended last. */}
+        <Layer
+          ref={(el) => props.layerRef?.(el)}
+          class={[
+            `recharts-cartesian-axis recharts-${merged.axisType} ${merged.axisType}`,
+            merged.class,
+          ]
+            .filter((c): c is string => Boolean(c))
+            .join(" ")}
+        >
+          <Show when={merged.axisLine}>
+            <AxisLine
+              x={merged.x}
+              y={merged.y}
+              width={merged.width}
+              height={merged.height}
+              orientation={merged.orientation}
+              mirror={merged.mirror}
+              stroke={strokeColor()}
+              strokeOpacity={merged.strokeOpacity}
+              extra={typeof merged.axisLine === "object" ? merged.axisLine : undefined}
+            />
+          </Show>
+          <g class={`recharts-cartesian-axis-ticks recharts-${merged.axisType}-ticks`}>
+            <For each={tickCoords()}>
+              {(item) => (
+                <Layer class="recharts-cartesian-axis-tick">
+                  <Show when={merged.tickLine}>
+                    <line
+                      class="recharts-cartesian-axis-tick-line"
+                      x1={item.line.x1}
+                      y1={item.line.y1}
+                      x2={item.line.x2}
+                      y2={item.line.y2}
+                      stroke={strokeColor()}
+                      stroke-opacity={merged.strokeOpacity}
+                      fill="none"
+                    />
+                  </Show>
+                  <Show when={merged.tick}>
+                    {/* recharts wraps each tick label in its own `.recharts-cartesian-
+                      axis-tick-label` Layer carrying the per-tick events (adaptEventsOfChild,
+                      called props-first `(tickItem, index, event)`). */}
+                    <Layer
+                      class="recharts-cartesian-axis-tick-label"
+                      onClick={(e) => merged.onClick?.(item.entry, item.index, e)}
+                      onMouseEnter={(e) => merged.onMouseEnter?.(item.entry, item.index, e)}
+                      onMouseLeave={(e) => merged.onMouseLeave?.(item.entry, item.index, e)}
+                      onMouseOver={(e) => merged.onMouseOver?.(item.entry, item.index, e)}
+                      onMouseOut={(e) => merged.onMouseOut?.(item.entry, item.index, e)}
+                      onMouseMove={(e) => merged.onMouseMove?.(item.entry, item.index, e)}
+                      onMouseDown={(e) => merged.onMouseDown?.(item.entry, item.index, e)}
+                      onMouseUp={(e) => merged.onMouseUp?.(item.entry, item.index, e)}
+                      onTouchStart={(e) => merged.onTouchStart?.(item.entry, item.index, e)}
+                      onTouchMove={(e) => merged.onTouchMove?.(item.entry, item.index, e)}
+                      onTouchEnd={(e) => merged.onTouchEnd?.(item.entry, item.index, e)}
+                    >
+                      {/* Function-form tick: invoke with recharts' tick-content props.
                       Object-form tick (`{ class: "custom" }`): default <Text> with
                       the extra attrs merged in. Ternary (not <Show>) so the constant
                       branch doesn't trip STRICT_READ. ELEMENT-form tick is unsupported
                       (Solid can't clone-and-inject computed x/y into an evaluated node). */}
-                  {typeof merged.tick === "function" ? (
-                    merged.tick(tickContentProps(item))
-                  ) : (
-                    <Text
-                      class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]
-                        .filter(Boolean)
-                        .join(" ")}
-                      x={item.tick.x}
-                      y={item.tick.y}
-                      textAnchor={resolvedTextAnchor()}
-                      verticalAnchor={verticalAnchor()}
-                      stroke="none"
-                      fill={tickSettings()?.fill ?? strokeColor()}
-                    >
-                      {labelOf(item.entry, item.index)}
-                    </Text>
-                  )}
-                </Show>
-              </Layer>
-            )}
-          </For>
-        </g>
-        {/* Axis title: the `label` prop (string/number/object/fn) and any `<Label>`
+                      {typeof merged.tick === "function" ? (
+                        merged.tick(tickContentProps(item))
+                      ) : (
+                        <Text
+                          x={item.tick.x}
+                          y={item.tick.y}
+                          textAnchor={resolvedTextAnchor()}
+                          verticalAnchor={verticalAnchor()}
+                          stroke="none"
+                          fill={tickSettings()?.fill ?? strokeColor()}
+                          fontSize={merged.fontSize}
+                          letterSpacing={merged.letterSpacing}
+                          // `tickTextProps` wins over the computed tick props
+                          // (recharts spreads it last); the tick-value class stays
+                          // fixed after it, matching recharts' explicit className.
+                          {...(merged.tickTextProps ?? {})}
+                          class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          {labelOf(item.entry, item.index)}
+                        </Text>
+                      )}
+                    </Layer>
+                  </Show>
+                </Layer>
+              )}
+            </For>
+          </g>
+          {/* Axis title: the `label` prop (string/number/object/fn) and any `<Label>`
             child both position against the axis viewBox via CartesianLabelContext. */}
-        <CartesianLabelContextProvider
-          x={merged.x}
-          y={merged.y}
-          width={merged.width}
-          height={merged.height}
-          lowerWidth={merged.width}
-          upperWidth={merged.width}
-        >
-          <CartesianLabelFromLabelProp label={merged.label} />
-          {merged.children}
-        </CartesianLabelContextProvider>
-      </Layer>
+          <CartesianLabelContextProvider
+            x={merged.x}
+            y={merged.y}
+            width={merged.width}
+            height={merged.height}
+            lowerWidth={merged.width}
+            upperWidth={merged.width}
+          >
+            <CartesianLabelFromLabelProp label={merged.label} />
+            {merged.children}
+          </CartesianLabelContextProvider>
+        </Layer>
+      </ZIndexLayer>
     </Show>
   );
 };

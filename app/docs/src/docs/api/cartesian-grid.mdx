@@ -1,0 +1,62 @@
+export const meta = {
+  slug: "cartesian-grid",
+  title: "CartesianGrid",
+  group: "cartesian",
+  description: "Renders background grid lines and optional stripe fills in cartesian charts.",
+  example: "line-basic",
+};
+
+# CartesianGrid
+
+`CartesianGrid` renders the horizontal and vertical grid lines (and optionally background
+stripes) in cartesian charts. It automatically aligns with axis ticks or custom positions.
+
+```tsx
+import { LineChart, CartesianGrid, XAxis, YAxis } from "solid-recharts";
+
+<LineChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+</LineChart>;
+```
+
+<Example slug="line-basic" />
+
+## Props
+
+| Prop               | Type               | Default  | Description                                                |
+| ------------------ | ------------------ | -------- | ---------------------------------------------------------- |
+| `strokeDasharray`  | `string \| number` | `"none"` | Dash pattern, e.g. `"3 3"` for dashed lines                |
+| `stroke`           | `string`           | `"#ccc"` | Grid line color                                            |
+| `horizontal`       | `boolean`          | `true`   | Show or hide horizontal grid lines                         |
+| `vertical`         | `boolean`          | `true`   | Show or hide vertical grid lines                           |
+| `syncWithTicks`    | `boolean`          | `false`  | Align grid lines to axis tick positions (not just min/max) |
+| `fill`             | `string`           | `"none"` | Background fill color of the chart area                    |
+| `horizontalFill`   | `string[]`         | `[]`     | Colors for alternating horizontal stripes                  |
+| `verticalFill`     | `string[]`         | `[]`     | Colors for alternating vertical stripes                    |
+| `horizontalPoints` | `number[]`         | auto     | Custom y-coordinates for horizontal grid lines             |
+| `verticalPoints`   | `number[]`         | auto     | Custom x-coordinates for vertical grid lines               |
+| `xAxisId`          | `string \| number` | `0`      | XAxis to sync grid lines with                              |
+| `yAxisId`          | `string \| number` | `0`      | YAxis to sync grid lines with                              |
+
+All other recharts `CartesianGrid` props are supported; see the [recharts CartesianGrid
+docs](https://recharts.org/en-US/api/CartesianGrid) for the complete reference.
+
+## Notes
+
+- Without `syncWithTicks={true}`, grid lines are drawn at the axis domain min and max,
+  plus any extra tick positions beyond those bounds.
+- Set `syncWithTicks={true}` to draw grid lines only at axis tick positions.
+- Use `strokeDasharray="3 3"` to create a dashed line effect (values are SVG dash
+  length and space length).
+- `horizontalFill` and `verticalFill` accept arrays of colors that repeat in order.
+  A two-color array creates alternating stripes.
+- The grid layer is rendered behind the chart data; use the `zIndex` prop to adjust
+  if needed.
+
+## See also
+
+- [LineChart](/docs/line-chart) · [BarChart](/docs/bar-chart) · [AreaChart](/docs/area-chart)
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis)
+- [Reference lines](/docs/reference-line) — overlay lines at specific values

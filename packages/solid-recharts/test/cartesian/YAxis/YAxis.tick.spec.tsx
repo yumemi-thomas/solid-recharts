@@ -127,9 +127,9 @@ describe("YAxis tick", () => {
   });
 
   describe("custom tick components", () => {
-    // SKIP: parity gap — custom tick render functions/elements are deferred in this port
-    // (CartesianAxis renders only the built-in tick label; the `tick` element/function is
-    // not invoked, so neither the padding nor the prop-shape assertions can fire).
+    // SKIP — PERMANENT N/A: element-form tick (`tick={<CustomTick />}`). Solid JSX
+    // evaluates eagerly to DOM; there is no cloneElement to re-invoke the element
+    // with per-tick props. The function-form equivalent below is live.
     it.skip("should pass object padding to custom tick component", () => {
       const expectedPadding = { top: 20, bottom: 30 };
       expect.assertions(5);
@@ -147,7 +147,7 @@ describe("YAxis tick", () => {
       ));
     });
 
-    // SKIP: parity gap — custom tick render functions/elements deferred (see above).
+    // SKIP — PERMANENT N/A: element-form tick (see above).
     it.skip("should pass string padding to custom tick component", () => {
       const expectedPadding = "gap";
       expect.assertions(5);
@@ -182,7 +182,7 @@ describe("YAxis tick", () => {
       ));
     });
 
-    // SKIP: parity gap — custom tick render functions/elements deferred (see above).
+    // SKIP — PERMANENT N/A: element-form tick (see above).
     it.skip("should pass default padding when no padding is specified", () => {
       expect.assertions(5);
 
@@ -272,10 +272,7 @@ describe("YAxis tick", () => {
     });
   });
 
-  // SKIP: parity gap — tick thinning. recharts thins the overlapping `0` tick (default
-  // interval="preserveEnd"), rendering only `4`; this port renders all supplied ticks,
-  // so it emits both `0` and `4`.
-  it.skip("Render ticks of YAxis when specify ticks", () => {
+  it("Render ticks of YAxis when specify ticks", () => {
     const axisDomainSpy = vi.fn();
     const { container } = render(() => (
       <LineChart
@@ -301,11 +298,7 @@ describe("YAxis tick", () => {
     expect(axisDomainSpy).toHaveBeenLastCalledWith([0, 400]);
   });
 
-  // SKIP: parity gap — this port gates the whole axis Layer (including the axis line) on
-  // `axisRender()`, which is null when the axis has no resolvable domain (here dataKey="y"
-  // resolves to nothing), so the `.recharts-cartesian-axis-line` is not emitted. recharts
-  // always draws the axis line.
-  it.skip("Should render the axis line without any ticks", () => {
+  it("Should render the axis line without any ticks", () => {
     const spy = vi.fn();
     const barData = [{ day: "05-01" }, { day: "05-02" }];
     const { container } = render(() => (
@@ -324,14 +317,12 @@ describe("YAxis tick", () => {
     expectLastCalledWith(spy, undefined);
   });
 
-  // SKIP: parity gap — XAxis/YAxis have no `onClick` prop in this port (verified:
-  // `grep onClick src/cartesian/YAxis.tsx` is empty), so attaching onClick to the axis
-  // and clicking a tick is unportable.
-  it.skip("Should pass data, index, and event to the onClick event handler", () => {
+  // Per-tick events: YAxis forwards the props-first `(tickItem, index, event)` handlers
+  // to CartesianAxis, which attaches them to each tick-label Layer.
+  it("Should pass data, index, and event to the onClick event handler", () => {
     const onClickFn = vi.fn();
     const { container } = render(() => (
       <LineChart width={400} height={400} data={lineData}>
-        {/* @ts-expect-error onClick is not part of YAxisProps in this port */}
         <YAxis ticks={[0, 4]} onClick={onClickFn} />
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
@@ -414,4 +405,24 @@ describe("YAxis tick", () => {
       ]);
     },
   );
+
+  it("Forwards class, fontSize and letterSpacing to the rendered axis", () => {
+    const { container } = render(() => (
+      <LineChart width={600} height={300} data={lineData}>
+        <YAxis class="styled-axis" fontSize="0.8rem" letterSpacing={2} />
+        <Line dataKey="uv" />
+      </LineChart>
+    ));
+
+    const layer = container.querySelector(".recharts-yAxis");
+    expect(layer).not.toBeNull();
+    expect(layer).toHaveClass("styled-axis");
+
+    const tickTexts = container.querySelectorAll(".recharts-cartesian-axis-tick-value");
+    expect(tickTexts.length).toBeGreaterThan(0);
+    tickTexts.forEach((text) => {
+      expect(text).toHaveAttribute("font-size", "0.8rem");
+      expect(text).toHaveAttribute("letter-spacing", "2");
+    });
+  });
 });

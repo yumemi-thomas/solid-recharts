@@ -1,0 +1,70 @@
+export const meta = {
+  slug: "radial-bar",
+  title: "RadialBar",
+  group: "polar",
+  description: "A radial bar series with configurable angle range and styling.",
+  example: "radial-bar-basic",
+};
+
+# RadialBar
+
+`RadialBar` renders one sector per data entry as a colored bar, radiating from the center. Each bar spans from an inner to outer radius at an angle determined by the angle axis. Use inside a `RadarChart` with `PolarAngleAxis` and `PolarRadiusAxis`.
+
+```tsx
+import {
+  RadialBar,
+  RadarChart,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  PolarGrid,
+  ResponsiveContainer,
+} from "solid-recharts";
+
+<RadarChart data={data} layout="radial">
+  <PolarAngleAxis dataKey="name" />
+  <PolarRadiusAxis />
+  <RadialBar dataKey="value" fill="#8884d8" />
+</RadarChart>;
+```
+
+<Example slug="radial-bar-basic" />
+
+## Props
+
+| Prop                         | Type                            | Default  | Description                                              |
+| ---------------------------- | ------------------------------- | -------- | -------------------------------------------------------- |
+| `dataKey`                    | `string \| function`            | —        | Key or accessor to extract the bar height value          |
+| `name`                       | `string \| number`              | —        | Series name (shown in legend and tooltip)                |
+| `fill`                       | `string`                        | —        | Bar color                                                |
+| `fillOpacity`                | `number \| string`              | —        | Opacity of the bar fill (0–1)                            |
+| `stroke`                     | `string`                        | —        | Bar outline color                                        |
+| `background`                 | `boolean \| object \| function` | —        | Render a background sector behind each bar               |
+| `minAngle`                   | `number`                        | —        | Minimum angle width per bar (degrees)                    |
+| `label`                      | `boolean \| object \| function` | `false`  | Render labels on bars                                    |
+| `cornerRadius`               | `number \| string`              | —        | Corner radius for bar edges                              |
+| `activeShape`                | `object \| function`            | —        | Shape rendered on hover (merges props or calls function) |
+| `isAnimationActive`          | `boolean \| "auto"`             | `"auto"` | Animate bars on mount/data change                        |
+| `animationDuration`          | `number`                        | `1500`   | Animation duration in milliseconds                       |
+| `animationEasing`            | `string`                        | `"ease"` | Easing function name                                     |
+| `onClick`, `onMouseEnter`, … | `function`                      | —        | Per-bar event handlers, called `(barData, index, event)` |
+
+All other recharts `RadialBar` props are supported; see the
+[recharts RadialBar docs](https://recharts.org/en-US/api/RadialBar) for the full matrix.
+
+## Notes
+
+- `dataKey` is required and should reference a numeric field.
+- Bars animate from the center outward on first render.
+- Use `background={true}` to show a full-size sector behind each bar for context.
+- `label` can be a function: `label={(entry) => entry.value}`.
+- Use `<Cell>` children to override `fill`/`stroke` per bar.
+- Event handlers receive the bar data item, index, and native event.
+
+## See also
+
+- [RadarChart](/docs/radar-chart) — the container
+- [PolarAngleAxis](/docs/polar-angle-axis) · [PolarRadiusAxis](/docs/polar-radius-axis) — axes
+- [PolarGrid](/docs/polar-grid) — grid lines
+- [Tooltip](/docs/tooltip) — hover details
+- [Cell](/docs/cell) — per-bar styling
+- [Label](/docs/label) · [LabelList](/docs/label-list) — labels

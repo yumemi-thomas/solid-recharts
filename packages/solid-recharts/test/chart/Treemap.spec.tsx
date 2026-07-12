@@ -4,7 +4,7 @@
 // chart size is reported via an effect before the layout computes.
 import { describe, expect, it, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent, screen } from "../helper/render";
 import { Tooltip, Treemap, XAxis, YAxis } from "../../src";
 import { getTooltip, showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { treemapNodeChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
@@ -22,6 +22,7 @@ import {
 } from "../../src/context/chartLayoutContext";
 import { exampleTreemapData } from "../_data";
 import { assertNotNull } from "../helper/assertNotNull";
+import { mockTouchingElement } from "../helper/mockTouchingElement";
 
 const data = [
   {
@@ -62,25 +63,28 @@ describe("<Treemap />", () => {
     const { container } = render(() => <Treemap width={500} height={250} data={data} />);
     flush();
 
-    const rootRect = container.querySelector(".recharts-treemap-depth-0 > .recharts-rectangle");
+    const rootRect = container.querySelector(".recharts-treemap-depth-0 .recharts-rectangle");
     expect(rootRect).not.toBeNull();
     // The root rect spans the whole surface.
     expect(Number(rootRect!.getAttribute("width"))).toBeCloseTo(500, 0);
     expect(Number(rootRect!.getAttribute("height"))).toBeCloseTo(250, 0);
   });
 
-  it("fires onClick with the clicked node", () => {
+  it("fires onClick with the clicked leaf node (flat mode gates onClick to leaves)", () => {
     const onClick = vi.fn();
     const { container } = render(() => (
       <Treemap width={500} height={250} data={data} onClick={onClick} />
     ));
     flush();
 
-    // The first top-level node's rect (depth-1).
-    const rect = container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle")!;
-    fireEvent.click(rect);
+    // In flat mode recharts only fires onClick on leaf nodes. "A" has children, so
+    // click the leaf "B" rect (the 2nd depth-1 node in depth-first order).
+    const leafRect = container.querySelectorAll(
+      ".recharts-treemap-depth-1 .recharts-rectangle",
+    )[1]!;
+    fireEvent.click(leafRect);
     expect(onClick).toHaveBeenCalledTimes(1);
-    expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "A", depth: 1 });
+    expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "B", depth: 1 });
   });
 
   it("renders a custom node via the content render prop (replacing the default rect)", () => {
@@ -114,9 +118,503 @@ describe("<Treemap />", () => {
     ));
     flush();
 
-    fireEvent.click(container.querySelector("circle.custom-node[data-name='A']")!);
+    // Leaf "B" (flat mode gates onClick to leaves).
+    fireEvent.click(container.querySelector("circle.custom-node[data-name='B']")!);
     expect(onClick).toHaveBeenCalledTimes(1);
-    expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "A" });
+    expect(onClick.mock.calls[0]![0]).toMatchObject({ name: "B" });
+  });
+
+  it("renders 24 rectangles in simple (flat) TreemapChart", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+      />
+    ));
+    flush();
+
+    // root(1) + 20 top-level (A..T) + 3 nested (U,V,W under A) = 24.
+    expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(24);
+  });
+
+  it("renders 21 rectangles in nest TreemapChart (root + direct children only)", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    // root(1) + 20 top-level (A..T); nested U/V/W are NOT shown until you drill in.
+    expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(21);
+  });
+
+  it("uses the same drawing height for nest layout and surface", () => {
+    const chartHeight = 250;
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={chartHeight}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    const depth0Rect = container.querySelector(".recharts-treemap-depth-0 .recharts-rectangle");
+    assertNotNull(depth0Rect);
+    // nest mode subtracts the 30px breadcrumb strip.
+    expect(depth0Rect.getAttribute("height")).toBe(String(chartHeight - 30));
+  });
+});
+
+describe("<Treemap /> nest navigation", () => {
+  it("navigates through nested nodes correctly", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(21);
+    expect(container.querySelectorAll(".recharts-treemap-depth-1")).toHaveLength(20);
+
+    const nodeWithChildren = screen.getByText("A");
+    fireEvent.click(nodeWithChildren);
+    flush();
+
+    expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(4);
+    expect(container.querySelectorAll(".recharts-treemap-depth-1")).toHaveLength(3);
+    expect(container.querySelectorAll(".recharts-treemap-depth-1")[0]).toHaveTextContent("U");
+  });
+
+  it("breadcrumb navigation allows going back to root", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    const initialNodeCount = container.querySelectorAll(".recharts-rectangle").length;
+    expect(initialNodeCount).toBeGreaterThan(4);
+
+    fireEvent.click(screen.getByText("A"));
+    flush();
+
+    expect(container.querySelectorAll(".recharts-rectangle").length).toBeLessThan(initialNodeCount);
+
+    const breadcrumbWrapper = container.querySelector(".recharts-treemap-nest-index-wrapper");
+    expect(breadcrumbWrapper).toBeInTheDocument();
+
+    const rootBreadcrumb = breadcrumbWrapper?.querySelector(".recharts-treemap-nest-index-box");
+    expect(rootBreadcrumb).toBeInTheDocument();
+    assertNotNull(rootBreadcrumb);
+    fireEvent.click(rootBreadcrumb);
+    flush();
+
+    expect(container.querySelectorAll(".recharts-rectangle").length).toBe(initialNodeCount);
+  });
+
+  it("clicking the current root cell in nest mode does not drill repeatedly", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    fireEvent.click(screen.getByText("A"));
+    flush();
+
+    const breadcrumbCountBefore = container.querySelectorAll(
+      ".recharts-treemap-nest-index-box",
+    ).length;
+    const currentRootCell = container.querySelector(
+      ".recharts-treemap-depth-0 .recharts-rectangle",
+    );
+    assertNotNull(currentRootCell);
+
+    fireEvent.click(currentRootCell);
+    flush();
+
+    const breadcrumbCountAfter = container.querySelectorAll(
+      ".recharts-treemap-nest-index-box",
+    ).length;
+    expect(breadcrumbCountAfter).toBe(breadcrumbCountBefore);
+  });
+
+  it("does not render the drill-down arrow on the current root cell in nest mode", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    fireEvent.click(screen.getByText("A"));
+    flush();
+
+    const rootLayer = container.querySelector(".recharts-treemap-depth-0");
+    assertNotNull(rootLayer);
+    expect(rootLayer.querySelector(".recharts-polygon")).not.toBeInTheDocument();
+  });
+
+  it("renders custom nestIndexContent when provided as function", () => {
+    const customContent = vi.fn((item: TreemapNode, i: number) => (
+      <span data-testid={`breadcrumb-${i}`}>Custom: {item.name || "root"}</span>
+    ));
+
+    render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+        nestIndexContent={customContent}
+      />
+    ));
+    flush();
+
+    fireEvent.click(screen.getByText("A"));
+    flush();
+
+    expect(customContent).toHaveBeenCalled();
+    expect(screen.getByTestId("breadcrumb-0")).toBeInTheDocument();
+    expect(screen.getByTestId("breadcrumb-1")).toBeInTheDocument();
+  });
+
+  it("clicking leaf nodes in nest mode does not navigate", () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+        type="nest"
+      />
+    ));
+    flush();
+
+    const initialNodeCount = container.querySelectorAll(".recharts-rectangle").length;
+
+    fireEvent.click(screen.getByText("A"));
+    flush();
+
+    const nestedNodeCount = container.querySelectorAll(".recharts-rectangle").length;
+    expect(nestedNodeCount).toBeLessThan(initialNodeCount);
+
+    // "U" is a leaf — clicking it should not drill further.
+    fireEvent.click(screen.getByText("U"));
+    flush();
+
+    expect(container.querySelectorAll(".recharts-rectangle").length).toBe(nestedNodeCount);
+  });
+});
+
+describe("<Treemap /> mouse events", () => {
+  const mouseData = [
+    { name: "A", size: 24593 },
+    { name: "B", size: 1302 },
+    { name: "C", size: 652 },
+    { name: "D", size: 636 },
+    { name: "E", size: 6703 },
+  ];
+
+  it("renders a treemap with basic data", () => {
+    const { container } = render(() => (
+      <Treemap width={500} height={250} data={mouseData} nameKey="name" dataKey="size" />
+    ));
+    flush();
+
+    expect(container.querySelectorAll(".recharts-treemap-depth-1")).toHaveLength(mouseData.length);
+  });
+
+  it("should call onMouseEnter with correct arguments", () => {
+    const onMouseEnter = vi.fn();
+    const onMouseLeave = vi.fn();
+    const onClick = vi.fn();
+
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={mouseData}
+        nameKey="name"
+        dataKey="size"
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onClick={onClick}
+        isAnimationActive={false}
+      />
+    ));
+    flush();
+
+    const firstNode = container.querySelectorAll(".recharts-treemap-depth-1 g")[0]!;
+    expect(firstNode).toBeInTheDocument();
+
+    fireEvent.mouseEnter(firstNode);
+    expect(onMouseEnter).toHaveBeenCalledTimes(1);
+    expect(onMouseEnter.mock.calls[0]).toHaveLength(2);
+    const arg1 = onMouseEnter.mock.calls[0]![0];
+    const expectedTreemapNode: TreemapNode = {
+      id: expect.stringMatching(/^recharts-treemap-+/) as unknown as string,
+      width: 363,
+      height: 250,
+      name: "A",
+      size: 24593,
+      children: null,
+      value: 24593,
+      depth: 1,
+      index: 0,
+      tooltipIndex: "children[0]",
+      area: 90719.61872159594,
+      x: 0,
+      y: 0,
+      root: {
+        children: [
+          {
+            name: "A",
+            size: 24593,
+            children: null,
+            value: 24593,
+            depth: 1,
+            index: 0,
+            tooltipIndex: "children[0]",
+            area: 90719.61872159594,
+            x: 0,
+            y: 0,
+            width: 363,
+            height: 250,
+          },
+          {
+            name: "B",
+            size: 1302,
+            children: null,
+            value: 1302,
+            depth: 1,
+            index: 1,
+            tooltipIndex: "children[1]",
+            area: 4802.868441244172,
+            x: 363,
+            y: 0,
+            height: 70,
+            width: 69,
+          },
+          {
+            name: "C",
+            size: 652,
+            children: null,
+            value: 652,
+            depth: 1,
+            index: 2,
+            tooltipIndex: "children[2]",
+            area: 2405.1230596706605,
+            x: 432,
+            y: 0,
+            height: 70,
+            width: 34,
+          },
+          {
+            name: "D",
+            size: 636,
+            children: null,
+            value: 636,
+            depth: 1,
+            index: 3,
+            tooltipIndex: "children[3]",
+            area: 2346.1016348934663,
+            x: 466,
+            y: 0,
+            height: 70,
+            width: 34,
+          },
+          {
+            name: "E",
+            size: 6703,
+            children: null,
+            value: 6703,
+            depth: 1,
+            index: 4,
+            tooltipIndex: "children[4]",
+            area: 24726.28814259576,
+            x: 363,
+            y: 70,
+            height: 180,
+            width: 137,
+          },
+        ],
+        x: 0,
+        y: 0,
+        width: 500,
+        height: 250,
+        name: "",
+        value: 33886,
+        depth: 0,
+        index: 0,
+        tooltipIndex: "",
+      },
+    } as unknown as TreemapNode;
+    expect(arg1).toEqual(expectedTreemapNode);
+    const arg2 = onMouseEnter.mock.calls[0]![1];
+    expect(arg2.type).toBe("mouseenter");
+    expect(arg2.target).toBeInstanceOf(SVGElement);
+    expect(arg2.target.tagName).toBe("g");
+    expect(arg2.target.classList.toString()).toEqual("recharts-layer");
+
+    expect(onMouseLeave).not.toHaveBeenCalled();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("should call onMouseLeave when moving between nodes", () => {
+    const onMouseLeave = vi.fn();
+    const onMouseEnter = vi.fn();
+
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={mouseData}
+        nameKey="name"
+        dataKey="size"
+        onMouseLeave={onMouseLeave}
+        onMouseEnter={onMouseEnter}
+        isAnimationActive={false}
+      />
+    ));
+    flush();
+
+    const nodes = container.querySelectorAll(".recharts-treemap-depth-1 g");
+    expect(nodes[0]).toBeInTheDocument();
+    expect(nodes[1]).toBeInTheDocument();
+
+    fireEvent.mouseEnter(nodes[0]!);
+    expect(onMouseEnter).toHaveBeenCalledTimes(1);
+
+    fireEvent.mouseLeave(nodes[0]!);
+    expect(onMouseLeave).toHaveBeenCalledTimes(1);
+
+    fireEvent.mouseEnter(nodes[1]!);
+    expect(onMouseEnter).toHaveBeenCalledTimes(2);
+    expect(onMouseLeave).toHaveBeenCalledTimes(1);
+
+    expect(onMouseLeave.mock.calls[0]).toHaveLength(2);
+    const arg1 = onMouseLeave.mock.calls[0]![0];
+    expect(arg1).toMatchObject({
+      id: expect.stringMatching(/^recharts-treemap-+/),
+      name: "A",
+      depth: 1,
+      index: 0,
+      tooltipIndex: "children[0]",
+    });
+    const arg2 = onMouseLeave.mock.calls[0]![1];
+    expect(arg2.type).toBe("mouseleave");
+    expect(arg2.target).toBeInstanceOf(SVGElement);
+    expect(arg2.target.tagName).toBe("g");
+    expect(arg2.target.classList.toString()).toEqual("recharts-layer");
+  });
+
+  it("should call onClick with correct arguments", () => {
+    const onClick = vi.fn();
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={mouseData}
+        nameKey="name"
+        dataKey="size"
+        onClick={onClick}
+        isAnimationActive={false}
+      />
+    ));
+    flush();
+
+    const firstNode = container.querySelectorAll(".recharts-treemap-depth-1 g")[0]!;
+    expect(firstNode).toBeInTheDocument();
+
+    fireEvent.click(firstNode);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onClick.mock.calls[0]).toHaveLength(1);
+    const arg1 = onClick.mock.calls[0]![0];
+    expect(arg1).toMatchObject({
+      id: expect.stringMatching(/^recharts-treemap-+/),
+      name: "A",
+      depth: 1,
+      index: 0,
+      tooltipIndex: "children[0]",
+      value: 24593,
+      size: 24593,
+    });
+    expect(arg1.root).toMatchObject({ depth: 0, name: "", value: 33886, tooltipIndex: "" });
+  });
+
+  it("should not call touch event handlers", () => {
+    mockTouchingElement("0", "size");
+    const onTouchMove = vi.fn();
+    const onTouchEnd = vi.fn();
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={mouseData}
+        nameKey="name"
+        dataKey="size"
+        // @ts-expect-error Treemap does not fire external touch events; it activates Tooltip internally.
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        isAnimationActive={false}
+      />
+    ));
+    flush();
+
+    const firstNode = container.querySelectorAll(".recharts-treemap-depth-1 g")[0]!;
+    expect(firstNode).toBeInTheDocument();
+
+    fireEvent.touchMove(firstNode, { touches: [{ clientX: 200, clientY: 200 }] });
+    expect(onTouchMove).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -147,7 +645,7 @@ describe("with Tooltip trigger=hover", () => {
   // Layer's `onMouseEnter`; this port's helper fires a non-bubbling `mouseEnter` on the
   // inner element, which never reaches the Layer. Default content works because the
   // <Rectangle> itself carries the handler. Pure event-model divergence, not an impl gap.
-  it.skip("should display/hide Tooltip on mouse enter/leave when custom content is passed as a function", () => {
+  it("should display/hide Tooltip on mouse enter/leave when custom content is passed as a function", () => {
     const { container } = render(() => (
       <Treemap
         width={1000}

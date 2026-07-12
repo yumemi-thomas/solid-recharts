@@ -361,7 +361,7 @@ describe("<YAxis />", () => {
   // SKIP: parity gap — YAxisProps has no `onClick`/tick-click handler in this port
   // (verified: `grep onClick src/cartesian/YAxis.tsx` → none). The tick click event
   // contract (data/index/event passed to onClick) is unimplemented.
-  it.skip("Should pass data, index, and event to the onClick event handler", () => {
+  it("Should pass data, index, and event to the onClick event handler", () => {
     // intentionally empty — see skip comment above.
   });
 
@@ -1529,14 +1529,7 @@ describe("<YAxis />", () => {
     });
   });
 
-  // SKIP: parity gap — the axis Layer is classed `recharts-cartesian-axis recharts-yAxis`
-  // in this port; recharts additionally tags it with the bare `.yAxis` short class, which
-  // is never emitted here, so `container.querySelector(".yAxis")` is null. (The empty,
-  // data-less chart would also gate the axis Layer on `axisRender()` — see the
-  // state-integration parity note.)
-  // SKIP: parity gap — this port gates the axis Layer on a resolvable domain/ticks, so a
-  // data-less chart renders no `.yAxis` at all; recharts always draws the axis Layer+line.
-  it.skip("should render the axis when wrapped in a custom component", () => {
+  it("should render the axis when wrapped in a custom component", () => {
     /*
      * https://github.com/recharts/recharts/issues/5445#issuecomment-2628711736
      */
@@ -1571,10 +1564,7 @@ describe("<YAxis />", () => {
     expect(yAxisLine).toHaveAttribute("width", String(yAxisWidth));
   });
 
-  // SKIP: same parity gaps as above — `.yAxis` short class absent AND no `width` attribute
-  // on the axis `<line>`. (The dynamic-width computation `getCalculatedYAxisWidth` itself is
-  // ported and works; it's the rendered `width` attribute on the line that is unimplemented.)
-  it.skip("should render y-axis with dynamically calculated width", () => {
+  it("should render y-axis with dynamically calculated width", () => {
     mockGetBoundingClientRect({ width: 80, height: 30 });
 
     const { container } = render(() => (

@@ -1,9 +1,19 @@
 // Ported from recharts 3.8.1 src/zIndex/ZIndexLayer.tsx (commit 7a23854).
 // Solid deviations: `useLayoutEffect` → two-arg `createEffect`; `createPortal` →
 // `<Portal mount>`; dispatch → `store.actions.zIndex`.
-import { createEffect, createMemo, getOwner, onSettled, runWithOwner, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createRoot,
+  getOwner,
+  onCleanup,
+  onSettled,
+  runWithOwner,
+  Show,
+} from "solid-js";
 import { Portal, type JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
+import { unregisterCleanup } from "../state/unregisterOnCleanup";
 import { selectZIndexPortalElement } from "./zIndexSelectors";
 import { useIsInChartContext } from "../context/chartLayoutContext";
 import { useIsPanorama } from "../context/PanoramaContext";
@@ -72,13 +82,13 @@ export function ZIndexLayer(props: {
   );
 
   onSettled(() => {
-    return () => {
+    return unregisterCleanup(() => {
       const actions = zIndexActions;
       registeredZIndexes.forEach((z) => {
         actions?.unregisterZIndexPortal({ zIndex: z });
       });
       registeredZIndexes.clear();
-    };
+    });
   });
 
   const targetElement = createMemo(() => portalElement() ?? lastPortalElement);
@@ -88,15 +98,28 @@ export function ZIndexLayer(props: {
   // Solid's runEffect invokes an effect's APPLY phase without re-establishing the
   // effect as owner, so <Portal>'s apply-phase `insert()` would create its child
   // render-effects with no owner (NO_OWNER_EFFECT — they never dispose). Capture the
-  // component owner and re-establish it around the Portal so those effects are owned.
-  // `keyed` recreates the Portal when the target identity changes instead of
-  // re-running the existing Portal's effect (a re-run would leak the same way).
+  // component owner and create the Portal inside a `createRoot` parented to it, so
+  // those effects are owned. The root's manual `dispose` is hooked to the keyed
+  // <Show> branch's cleanup: when the target identity changes, the old Portal
+  // subtree is torn down (parenting it to the component owner alone would leave
+  // every previous Portal alive until the whole layer unmounts — stale chart
+  // content stays portal'd into the old <g>).
   const owner = getOwner();
 
   return (
     <Show when={shouldRenderInPortal()} fallback={props.children}>
       <Show when={targetElement()} keyed>
-        {(mount) => runWithOwner(owner, () => <Portal mount={mount}>{props.children}</Portal>)}
+        {(mount) => {
+          let disposePortal: (() => void) | undefined;
+          const rendered = runWithOwner(owner, () =>
+            createRoot((dispose) => {
+              disposePortal = dispose;
+              return <Portal mount={mount}>{props.children}</Portal>;
+            }),
+          );
+          onCleanup(() => disposePortal?.());
+          return rendered;
+        }}
       </Show>
     </Show>
   );

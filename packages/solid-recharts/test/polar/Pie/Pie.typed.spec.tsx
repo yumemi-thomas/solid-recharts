@@ -66,3 +66,13 @@ describe("Pie with strong typing", () => {
     });
   });
 });
+
+/*
+ * PERMANENT-N/A — vendored `Pie event handlers > getRelativeCoordinate` case.
+ * It asserts the handler `event` type is accepted by `getRelativeCoordinate`.
+ * In recharts the handler `e` is a React SyntheticEvent whose `currentTarget` is
+ * non-null (matching getRelativeCoordinate's `MousePointer`/`TouchPointer`). The
+ * Solid port wires native DOM events, whose `currentTarget` is `EventTarget | null`
+ * and so is NOT assignable to those pointer types without an unsafe cast (forbidden
+ * in src). The event models differ, so there is no faithful Solid equivalent.
+ */

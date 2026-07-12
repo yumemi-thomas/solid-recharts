@@ -6,7 +6,7 @@
 import type { JSX } from "@solidjs/web";
 import { isNullish } from "../util/DataUtils";
 import type { ActiveDotProps, ActiveDotType, DataKey } from "../util/types";
-import { svgPropertiesNoEventsFromUnknown } from "../util/svgPropertiesNoEvents";
+import { svgPropertiesNoEventsFromUnknownKeepCase } from "../util/svgPropertiesNoEvents";
 import type { TooltipIndex } from "../state/tooltipSlice";
 
 export interface PointType {
@@ -82,9 +82,15 @@ function renderActiveDot(activeDot: ActiveDotType, dotProps: ActiveDotProps): JS
   }
   // Default <Dot> uses <Show> internally, which trips STRICT_READ when this
   // layer mounts during tooltip effect-apply — render the circle directly instead.
+  // An object-form activeDot's `class`/`className` is dropped by the svg-prop
+  // renamer (it allowlists out `class`), so apply it explicitly here.
+  const customClass =
+    typeof activeDot === "object" && activeDot != null && "class" in activeDot
+      ? activeDot.class
+      : undefined;
   return (
     <circle
-      class="recharts-dot"
+      class={["recharts-dot", customClass]}
       cx={dotProps.cx}
       cy={dotProps.cy}
       r={dotProps.r}
@@ -111,7 +117,7 @@ export function renderActivePointsLayerFromState(
     stroke: "#fff",
     payload: state.point.payload,
     value: state.point.value,
-    ...svgPropertiesNoEventsFromUnknown(args.activeDot),
+    ...svgPropertiesNoEventsFromUnknownKeepCase(args.activeDot),
   };
   return (
     <g class={["recharts-layer", "recharts-active-dot"]} clip-path={args.clipPath}>

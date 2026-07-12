@@ -1,0 +1,54 @@
+export const meta = {
+  slug: "area-chart",
+  title: "AreaChart",
+  group: "charts",
+  description: "Cartesian chart container for one or more Area series.",
+  example: "area-stacked",
+};
+
+# AreaChart
+
+`AreaChart` is the cartesian container for [`Area`](/docs/area) series. It owns the
+chart's layout, scales, and interaction state; children like `XAxis`, `CartesianGrid`
+and `Tooltip` register themselves into it.
+
+```tsx
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<AreaChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Area type="monotone" dataKey="uv" stroke="#82ca9d" fill="#82ca9d" />
+</AreaChart>;
+```
+
+<Example slug="area-stacked" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per x position         |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `layout`                    | `"horizontal" \| "vertical"`   | `"horizontal"`   | Direction of the independent axis                   |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `syncId`                    | `string`                       | —                | Sync tooltip/brush across charts sharing the id     |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `AreaChart` props are supported; see the
+[recharts AreaChart docs](https://recharts.org/en-US/api/AreaChart) for the full matrix.
+
+## Notes
+
+- Multiple `Area` children share the same axes unless you give an `Area` its own
+  `xAxisId`/`yAxisId`.
+- Set `stackId` on two or more `Area` children to stack them vertically.
+- Set `syncId` on two charts to mirror tooltips and brushes between them.
+
+## See also
+
+- [Area](/docs/area) — the series component and its dot/label options
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis)
+- [ComposedChart](/docs/composed-chart) — mix areas with lines and bars

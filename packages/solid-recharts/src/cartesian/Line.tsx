@@ -1,11 +1,13 @@
-// Ported from recharts 3.8.1 src/cartesian/Line.tsx (commit 7a23854).
+// Ported from recharts 3.9.0 src/cartesian/Line.tsx.
 //
-// MINIMAL PORT — the payoff of the axis/scale vertical: a polyline drawn from data.
-// Deferred (documented stubs): ErrorBar, ActiveDots/dots, label, legend
-// payload registration, animation, ZIndexLayer, clip paths. (Tooltip payload
-// registration is wired — see SetTooltipEntrySettings below.) What remains is the
-// essential vertical: register the line as a graphical item (so the axis selectors
-// see its data), select its computed points, and draw a <Curve>.
+// FULLY WIRED: graphical-item registration, points selection, drawing (the
+// default <LineDrawShape>), dots + activeDot, labels, legend/tooltip payload
+// registration, ErrorBar context, clip paths, and animation on the v3.9 engine —
+// the entrance stroke-dasharray draw-in (via useAnimatedLineLength + LineDrawShape)
+// AND the data-change point morph (via <AnimatedItems> + defaultLineAnimateItems,
+// replacing the legacy <JavascriptAnimate> + manual prevPoints tracking).
+// zIndex relayering IS wired: the whole `.recharts-line` Layer is wrapped in
+// <ZIndexLayer> (default DefaultZIndexes.line = 400), matching recharts.
 //
 // Deviations:
 //   - `resolveDefaultProps` → `merge` (default props).
@@ -18,24 +20,35 @@
 //     `any`); the value comes from `getValueByDataKey`, which is genuinely
 //     untyped, and only x/y are needed to draw. It flows through `scale.map`
 //     (which accepts `unknown`) unchanged.
-import { createEffect, createMemo, createSignal, merge, onCleanup, Show, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, merge, Show, untrack } from "solid-js";
 import { useActiveTooltipDataPoints } from "../hooks";
 import { selectActiveTooltipIndex } from "../state/selectors/tooltipSelectors";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
-import { useAnimationId } from "../util/useAnimationId";
-import { JavascriptAnimate } from "../animation/JavascriptAnimate";
+import { AnimatedItems, type AnimationInterpolateFn } from "../animation/AnimatedItems";
+import { matchByIndex, type AnimationItem, type AnimationMatchByProp } from "../animation/matchBy";
+import type { MutableRef } from "../animation/useAnimationStartSnapshot";
+import { LineDrawShape, type LineDrawShapeProps } from "./LineDrawShape";
+import { useAnimatedLineLength } from "./useAnimatedLineLength";
 import type { EasingInput } from "../animation/easing";
 import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
 import { TooltipPayloadConfiguration } from "../state/tooltipSlice";
 import { SetLegendPayload } from "../state/SetLegendPayload";
 import { LegendPayload } from "../component/DefaultLegendContent";
+import type { Formatter } from "../component/DefaultTooltipContent";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
 import { useUniqueId } from "../util/useUniqueId";
 import { Layer } from "../container/Layer";
-import { Curve, CurveType, type CurveProps } from "../shape/Curve";
+import type { CurveType, CurveProps } from "../shape/Curve";
 import { Dots, isClipDot } from "../component/Dots";
+import {
+  type CartesianLabelListEntry,
+  CartesianLabelListContextProvider,
+  type ImplicitLabelListType,
+  LabelListFromLabelProp,
+} from "../component/LabelList";
+import type { TrapezoidViewBox } from "../util/types";
 import { getRadiusAndStrokeWidthFromDot } from "../util/getRadiusAndStrokeWidthFromDot";
 import { pickEventHandlers } from "../util/adaptEventHandlers";
 import { usePlotArea } from "../hooks";
@@ -48,12 +61,14 @@ import { AxisId } from "../state/cartesianAxisSlice";
 import { ChartData } from "../state/chartDataSlice";
 import {
   ActiveDotType,
+  ActiveShape,
   AnimationDuration,
   CartesianLayout,
   DataKey,
   DotType,
   LegendType,
   TickItem,
+  TooltipType,
 } from "../util/types";
 import {
   computeActivePointState,
@@ -64,6 +79,8 @@ import { interpolate, isNotNil, isNullish, noop } from "../util/DataUtils";
 import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export interface LinePointItem {
   readonly value: unknown;
@@ -163,6 +180,10 @@ export interface LineProps extends LineSvgProps {
   name?: string | number;
   /** Unit appended in the tooltip (recharts `unit` prop). */
   unit?: string | number | null;
+  /** `'none'` hides this series from the tooltip payload. */
+  tooltipType?: TooltipType;
+  /** Formats this Line's tooltip value; takes precedence over the Tooltip-level `formatter`. */
+  formatter?: Formatter;
   type?: CurveType;
   stroke?: string;
   strokeWidth?: number;
@@ -177,9 +198,16 @@ export interface LineProps extends LineSvgProps {
   animationBegin?: number;
   animationDuration?: AnimationDuration;
   animationEasing?: EasingInput;
-  label?: boolean;
+  onAnimationStart?: () => void;
+  onAnimationEnd?: () => void;
+  /** Custom per-frame interpolation for the line points (v3.9). */
+  animationInterpolateFn?: AnimationInterpolateFn<LinePointItem, CartesianLayout>;
+  /** How prev/next points are matched across data updates (v3.9). @defaultValue matchByIndex */
+  animationMatchBy?: AnimationMatchByProp<LinePointItem>;
+  label?: ImplicitLabelListType;
   legendType?: LegendType;
-  shape?: typeof Curve;
+  /** Custom line shape (function render-prop or props object). @defaultValue LineDrawShape */
+  shape?: ActiveShape<LineDrawShapeProps, SVGPathElement>;
   zIndex?: number;
   id?: string;
   class?: string;
@@ -187,39 +215,72 @@ export interface LineProps extends LineSvgProps {
   children?: JSX.Element;
 }
 
-// strokeDasharray "draw" helpers (ported verbatim from recharts Line). The curve
-// `d` is unchanged by animation; only stroke-dasharray reveals it progressively.
-const generateSimpleStrokeDasharray = (totalLength: number, length: number): string =>
-  `${length}px ${totalLength}px`;
-
-function repeatDash(lines: number[], count: number): number[] {
-  const linesUnit = lines.length % 2 !== 0 ? [...lines, 0] : lines;
-  const result: number[] = [];
-  for (let i = 0; i < count; ++i) {
-    result.push(...linesUnit);
-  }
-  return result;
-}
-
-const getStrokeDasharray = (length: number, totalLength: number, lines: number[]): string => {
-  const lineLength = lines.reduce((pre, next) => pre + next, 0);
-  if (!lineLength) {
-    return generateSimpleStrokeDasharray(totalLength, length);
-  }
-  const count = Math.floor(length / lineLength);
-  const remainLength = length % lineLength;
-  let remainLines: number[] = [];
-  for (let i = 0, sum = 0; i < lines.length; sum += lines[i] ?? 0, ++i) {
-    const lineValue = lines[i];
-    if (lineValue != null && sum + lineValue > remainLength) {
-      remainLines = [...lines.slice(0, i), remainLength - sum];
-      break;
+// Compute the average x-shift between matched pairs (prev → next): the overall
+// direction and magnitude of the data movement, used to extrapolate the entry/exit
+// position of added/removed points (recharts `averageShift`).
+function averageShift(items: ReadonlyArray<AnimationItem<LinePointItem>>): number {
+  let total = 0;
+  let count = 0;
+  for (const item of items) {
+    if (item.status === "matched" && item.prev.x != null && item.next.x != null) {
+      total += item.next.x - item.prev.x;
+      count++;
     }
   }
-  const emptyLines = remainLines.length % 2 === 0 ? [0, totalLength] : [totalLength];
-  return [...repeatDash(lines, count), ...remainLines, ...emptyLines]
-    .map((l) => `${l}px`)
-    .join(", ");
+  return count > 0 ? total / count : 0;
+}
+
+// Default per-frame interpolation for Line points (the `animationInterpolateFn`
+// the new AnimatedItems engine drives). Mirrors recharts 3.9 `defaultLineAnimateItems`:
+// matched points tween prev→next; added points enter from where they "would have
+// been" (extrapolated by the average shift); removed points exit by the same shift.
+// On first render returns [] — the entrance is driven by stroke-dasharray reveal.
+const defaultLineAnimateItems: AnimationInterpolateFn<LinePointItem, CartesianLayout> = (
+  items,
+  animationElapsedTime,
+) => {
+  if (items == null) {
+    return [];
+  }
+  if (animationElapsedTime === 1) {
+    return items.flatMap((item) => (item.status === "removed" ? [] : [item.next]));
+  }
+
+  const shift = averageShift(items);
+  const result: LinePointItem[] = [];
+
+  for (const item of items) {
+    if (item.status === "matched") {
+      result.push({
+        ...item.next,
+        x: interpolate(item.prev.x, item.next.x, animationElapsedTime),
+        y: interpolate(item.prev.y, item.next.y, animationElapsedTime),
+      });
+    } else if (item.status === "added") {
+      if (item.next.x != null) {
+        const entryX = item.next.x - shift;
+        result.push({
+          ...item.next,
+          x: interpolate(entryX, item.next.x, animationElapsedTime),
+          y: item.next.y,
+        });
+      } else {
+        result.push(item.next);
+      }
+    } else if (item.status === "removed") {
+      if (item.prev.x != null) {
+        const exitX = item.prev.x + shift;
+        result.push({
+          ...item.prev,
+          x: interpolate(item.prev.x, exitX, animationElapsedTime),
+          y: item.prev.y,
+        });
+      }
+      // else: removed items are simply dropped
+    }
+  }
+
+  return result;
 };
 
 const coerceErrorVal = (value: unknown): number[] | number | undefined => {
@@ -266,9 +327,11 @@ export const lineDefaultProps = {
   animationBegin: 0,
   animationDuration: 1500,
   animationEasing: "ease",
+  animationInterpolateFn: defaultLineAnimateItems,
+  animationMatchBy: matchByIndex,
   label: false,
   legendType: "line",
-  shape: Curve,
+  shape: LineDrawShape,
   zIndex: DefaultZIndexes.line,
 } as const;
 
@@ -306,7 +369,7 @@ export const Line = (props: LineProps): JSX.Element => {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
       prev = null;
@@ -328,9 +391,10 @@ export const Line = (props: LineProps): JSX.Element => {
       nameKey: undefined,
       name: getTooltipNameProp(merged.name, merged.dataKey),
       hide: merged.hide,
-      type: undefined,
+      type: merged.tooltipType,
       color: merged.stroke,
       unit: merged.unit,
+      formatter: merged.formatter,
       graphicalItemId: id,
     },
   }));
@@ -370,25 +434,101 @@ export const Line = (props: LineProps): JSX.Element => {
     },
   ]);
 
-  // Enter animation: the curve "draws" via stroke-dasharray (the `d` is UNCHANGED —
-  // only stroke-dasharray reveals the path progressively — so geometry specs are
-  // regression-safe). Keyed <Show> restarts on a new id (points changed).
+  // Entrance animation: the curve "draws" via stroke-dasharray (the `d` is morphed
+  // by AnimatedItems on a data change, but the entrance reveal itself is dash-only).
+  // The new v3.9 engine drives this through <AnimatedItems> + <LineDrawShape>:
+  //   - `previousItemsRef` holds the last visible point frame so a re-animation
+  //     (data change) tweens from where the line currently is (managed by
+  //     useAnimationStartSnapshot inside AnimatedItems).
+  //   - `useAnimatedLineLength` tracks the monotonically-growing visible length so a
+  //     mid-animation data change continues the dash from the furthest length drawn
+  //     (recharts' startingLengthRef / maxAnimatedLengthRef) and returns null once
+  //     full (no entrance dasharray needed).
+  //   - `totalLength` is measured off the rendered path (in an effect, NOT a ref —
+  //     refs fire before the dynamic `d` lands, where getTotalLength() is 0).
   const [totalLength, setTotalLength] = createSignal(0);
-  const measureCurve = (el: SVGPathElement): void => {
-    if (el.getTotalLength) {
-      try {
-        setTotalLength(el.getTotalLength() || 0);
-      } catch {
-        // getTotalLength can throw on detached/empty paths — ignore.
-      }
-    }
+  let curveEl: SVGPathElement | undefined;
+  const forwardPathRef = (el: SVGPathElement): void => {
+    curveEl = el;
   };
+  const previousPointsRef: MutableRef<ReadonlyArray<LinePointItem> | null | undefined> = {
+    current: null,
+  };
+  const animatedLineLength = useAnimatedLineLength();
+
   const activeTooltipIndex = useAppSelector(selectActiveTooltipIndex);
   const activeDataPoints = useActiveTooltipDataPoints();
 
-  const animationId = useAnimationId(() => points(), "recharts-line-");
   const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
   const plotArea = usePlotArea();
+  // Line is only ever horizontal | vertical (the render Show below cannot mount in
+  // any other layout); coerce for the AnimatedItems layout prop.
+  const cartesianLayout = (): CartesianLayout =>
+    layout() === "vertical" ? "vertical" : "horizontal";
+
+  // One LabelList entry per data point: a zero-size viewBox at the point's (x, y).
+  // recharts does not pass parentViewBox here (labels can escape) — mirrored.
+  const labelListEntries = createMemo<ReadonlyArray<CartesianLabelListEntry>>(() => {
+    const pts = points();
+    if (pts == null) {
+      return [];
+    }
+    return pts.map((point): CartesianLabelListEntry => {
+      const viewBox: TrapezoidViewBox = {
+        x: point.x ?? 0,
+        y: point.y ?? 0,
+        width: 0,
+        lowerWidth: 0,
+        upperWidth: 0,
+        height: 0,
+      };
+      return {
+        ...viewBox,
+        value: point.value,
+        payload: point.payload,
+        viewBox,
+        parentViewBox: undefined,
+        fill: undefined,
+      };
+    });
+  });
+  // Labels are hidden while the entrance animation runs and shown once it ends
+  // (matching recharts: showLabels = !isAnimating).
+  // ownedWrite: handleAnimationEnd also fires from the animation effect cleanup
+  // when a mid-animation chart is disposed (route/soft navigation) — a legal
+  // teardown write, not a write-in-computation bug.
+  const [showLabels, setShowLabels] = createSignal(true, { ownedWrite: true });
+  const labelContextEntries = createMemo(() => (showLabels() ? labelListEntries() : undefined));
+  const handleAnimationStart = (): void => {
+    props.onAnimationStart?.();
+    setShowLabels(false);
+  };
+  const handleAnimationEnd = (): void => {
+    props.onAnimationEnd?.();
+    setShowLabels(true);
+  };
+
+  // Measure on data change AND on animation start/end (showLabels flips): a
+  // data-change morph alters the path geometry per frame, so the length taken
+  // at the morph's first frame is the OLD curve's; re-measuring once the final
+  // frame committed (effects run after render effects in the flush) gives the
+  // settled dasharray the new curve's true length — mirroring recharts, which
+  // recomputes totalLength on the post-animation re-render.
+  createEffect(
+    () => ({ points: points(), showLabels: showLabels() }),
+    () => {
+      if (curveEl?.getTotalLength == null) {
+        return;
+      }
+      let length = 0;
+      try {
+        length = curveEl.getTotalLength() || 0;
+      } catch {
+        return; // getTotalLength can throw on detached/empty paths — keep the last value.
+      }
+      setTotalLength(length);
+    },
+  );
 
   // Raw user event handlers forwarded to the curve. recharts' StaticCurve spreads
   // `svgPropertiesAndEvents(others)` onto the curve and Curve rewraps them props-first
@@ -407,20 +547,26 @@ export const Line = (props: LineProps): JSX.Element => {
     dataPoints: activeDataPoints(),
   }));
   const curveClipPath = createMemo(() => (needClip() ? `url(#clipPath-${id})` : undefined));
-  const dashFor = (t: number): string | undefined => {
-    const len = untrack(totalLength);
-    const curLength = Math.min(interpolate(0, len, t), len);
-    const userDash = merged.strokeDasharray;
-    // Truthy check mirrors recharts (it branches on the raw prop; "auto" → active).
-    if (merged.isAnimationActive) {
-      if (userDash != null) {
-        const lines = `${userDash}`.split(/[,\s]+/gim).map((n) => parseFloat(n));
-        return getStrokeDasharray(curLength, len, lines);
-      }
-      return generateSimpleStrokeDasharray(len, curLength);
+  // recharts emits the plot-area width/height as raw DOM attributes on the curve
+  // path (the "Render 1 line" attr-set spec asserts them). SVG <path> has no typed
+  // width/height, so spread them as a plain object rather than typed JSX props.
+  const curveSizeAttrs = (): Record<string, number> => {
+    const area = plotArea();
+    if (area == null) {
+      return {};
     }
-    return userDash == null ? undefined : String(userDash);
+    return { width: area.width, height: area.height };
   };
+  // Guard for shouldUpdatePreviousRef: don't commit the previous-points ref before
+  // the SVG path length has been measured (recharts gates on `t > 0 && totalLength
+  // > 0`). totalLength() is read untracked — this is called from the animation
+  // render-prop where reactive subscription would be a write-in-computation.
+  const shouldUpdatePreviousRef = (animationElapsedTime: number): boolean =>
+    animationElapsedTime > 0 && untrack(totalLength) > 0;
+
+  // Whether to apply the entrance/draw shape (skip when a custom shape is supplied,
+  // mirroring recharts: a custom shape opts out of the built-in dasharray reveal).
+  const hasCustomShape = (): boolean => merged.shape !== LineDrawShape;
 
   return (
     <>
@@ -428,10 +574,12 @@ export const Line = (props: LineProps): JSX.Element => {
       <SetLegendPayload id={id} legendPayload={legendPayload()} />
       <Show when={!merged.hide && points()}>
         {(pts) => (
-          // `Layer` takes a single `class` string (it composes "recharts-layer"
-          // itself). Forwarding the user's `class` onto the line group is deferred.
-          <>
-            <Layer class="recharts-line">
+          // The line group carries "recharts-line" plus the user's `class`
+          // (recharts: clsx('recharts-line', className)). Wrapped in <ZIndexLayer>
+          // (default 400) so a `zIndex` prop relayers the whole line into its portal
+          // — recharts wraps the entire `.recharts-line` Layer in ZIndexLayer.
+          <ZIndexLayer zIndex={merged.zIndex}>
+            <Layer class={merged.class == null ? "recharts-line" : `recharts-line ${merged.class}`}>
               <Show when={needClip()}>
                 <defs>
                   <GraphicalItemClipPath
@@ -453,51 +601,94 @@ export const Line = (props: LineProps): JSX.Element => {
                   </Show>
                 </defs>
               </Show>
-              <Show when={animationId()} keyed>
-                {(animId) => (
-                  <JavascriptAnimate
-                    animationId={animId}
-                    duration={merged.animationDuration}
-                    easing={merged.animationEasing}
-                    isActive={merged.isAnimationActive}
-                    begin={merged.animationBegin}
-                  >
-                    {(t) => (
-                      <Curve
-                        class="recharts-line-curve"
-                        id={id}
-                        pathRef={measureCurve}
-                        points={untrack(pts)}
-                        type={merged.type}
-                        layout={layout()}
-                        connectNulls={merged.connectNulls}
-                        fill="none"
-                        stroke={merged.stroke}
-                        stroke-width={merged.strokeWidth}
-                        strokeDasharray={dashFor(t)}
-                        {...eventHandlers()}
-                        {...(curveClipPath() != null ? { "clip-path": curveClipPath() } : {})}
-                      />
-                    )}
-                  </JavascriptAnimate>
-                )}
-              </Show>
-              <Dots
-                points={pts()}
-                dot={merged.dot}
-                class="recharts-line-dots"
-                dotClass="recharts-line-dot"
-                dataKey={merged.dataKey}
-                needClip={needClip()}
-                clipPathId={id}
-                baseProps={{
-                  stroke: merged.stroke,
-                  "stroke-width": merged.strokeWidth,
-                  fill: merged.fill,
-                }}
-              />
+              <CartesianLabelListContextProvider value={labelContextEntries}>
+                <AnimatedItems
+                  animationInput={pts()}
+                  animationIdPrefix="recharts-line-"
+                  items={pts()}
+                  previousItemsRef={previousPointsRef}
+                  isAnimationActive={merged.isAnimationActive}
+                  animationBegin={merged.animationBegin}
+                  animationDuration={merged.animationDuration}
+                  animationEasing={merged.animationEasing}
+                  onAnimationStart={handleAnimationStart}
+                  onAnimationEnd={handleAnimationEnd}
+                  animationInterpolateFn={merged.animationInterpolateFn}
+                  animationMatchBy={merged.animationMatchBy}
+                  shouldUpdatePreviousRef={shouldUpdatePreviousRef}
+                  layout={cartesianLayout()}
+                >
+                  {(frame, animationElapsedTime, isEntrance) => {
+                    // Detect a data change (ref-compare) before measuring the visible
+                    // length, so a mid-animation data swap resumes the dash from the
+                    // furthest length already drawn — recharts does this in render via
+                    // useAnimatedLineLength's prevPointsRef compare.
+                    animatedLineLength.markDataChange(untrack(pts));
+                    // recharts: visibleLength is computed only while the animation is
+                    // active; once settled it is null so no entrance dasharray remains.
+                    const len = untrack(totalLength);
+                    const animationActive =
+                      untrack(showLabels) === false || animationElapsedTime < 1;
+                    const visibleLength = animationActive
+                      ? animatedLineLength.getVisibleLength(animationElapsedTime, len)
+                      : null;
+                    // recharts only draws the curve path when there is more than one
+                    // point (a single point is a lone dot, no line).
+                    const shapeProps = (): LineDrawShapeProps => ({
+                      class: "recharts-line-curve",
+                      id,
+                      points: frame,
+                      type: merged.type,
+                      layout: layout(),
+                      connectNulls: merged.connectNulls,
+                      fill: "none",
+                      stroke: merged.stroke,
+                      strokeWidth: merged.strokeWidth,
+                      strokeDasharray: merged.strokeDasharray,
+                      animationElapsedTime,
+                      isAnimating: animationActive,
+                      isEntrance: merged.animateNewValues ? isEntrance : false,
+                      visibleLength,
+                      forwardPathRef,
+                      ...eventHandlers(),
+                      ...curveSizeAttrs(),
+                      ...(curveClipPath() != null ? { clipPath: curveClipPath() } : {}),
+                    });
+                    const customShape = merged.shape;
+                    return (
+                      <>
+                        <Show when={frame.length > 1}>
+                          {hasCustomShape() && typeof customShape === "function" ? (
+                            customShape(shapeProps())
+                          ) : (
+                            <LineDrawShape {...shapeProps()} />
+                          )}
+                        </Show>
+                        {/* Dots live inside the animation frame (recharts StaticCurve
+                            renders them from stepData), so a data-change morph moves
+                            the dots with the curve. */}
+                        <Dots
+                          points={frame}
+                          dot={merged.dot}
+                          class="recharts-line-dots"
+                          dotClass="recharts-line-dot"
+                          dataKey={merged.dataKey}
+                          needClip={needClip()}
+                          clipPathId={id}
+                          baseProps={{
+                            stroke: merged.stroke,
+                            strokeWidth: merged.strokeWidth,
+                            fill: merged.fill,
+                          }}
+                        />
+                      </>
+                    );
+                  }}
+                </AnimatedItems>
+                <LabelListFromLabelProp label={merged.label} />
+              </CartesianLabelListContextProvider>
             </Layer>
-          </>
+          </ZIndexLayer>
         )}
       </Show>
       <>
@@ -540,7 +731,9 @@ export const Line = (props: LineProps): JSX.Element => {
             dataPointFormatter={lineErrorBarFormatter}
             errorBarOffset={0}
           >
-            {props.children}
+            <CartesianLabelListContextProvider value={labelContextEntries}>
+              {props.children}
+            </CartesianLabelListContextProvider>
           </SetErrorBarContext>
         )}
       </RegisterGraphicalItemId>

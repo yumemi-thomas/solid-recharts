@@ -28,7 +28,7 @@ function mergeShapeProps<PropsType extends object>(
   return { ...props, ...option };
 }
 
-/** Extracts a shape option's props (object form); element form is deferred. */
+/** Extracts a shape option's props (object form); element form is N/A (no cloneElement). */
 export function getPropsFromShapeOption<PropsType extends object>(
   option: Partial<PropsType>,
 ): Partial<PropsType> {

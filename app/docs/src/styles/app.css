@@ -1,0 +1,441 @@
+@import "tailwindcss";
+
+@theme {
+  /* Sampled directly from docs.solidjs.com — near-white with a hint of
+     cool blue. Text is pure black, links are vivid mid-blue. */
+  --color-bg: oklch(0.984 0.003 247.858);
+  --color-bg-elev: oklch(0.972 0.005 247.858);
+  --color-card: oklch(0.962 0.005 247.858);
+  --color-card-hover: oklch(0.945 0.008 247.858);
+  --color-border: oklch(0.912 0.008 247.858);
+  --color-border-strong: oklch(0.82 0.012 247.858);
+
+  --color-fg: #000;
+  --color-fg-muted: oklch(0.372 0.044 257.287);
+  --color-fg-dim: oklch(0.554 0.046 257.417);
+
+  --color-accent: oklch(0.488 0.243 264.376);
+  --color-accent-2: oklch(0.488 0.243 264.376);
+  --color-accent-deep: oklch(0.208 0.042 265.755);
+  --color-accent-3: oklch(0.55 0.18 145);
+  --color-accent-4: oklch(0.65 0.16 60);
+
+  /* Dark stage for example demos. */
+  --color-stage: #131726;
+  --color-stage-2: #08090f;
+
+  --font-sans:
+    "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-card: 8px;
+  --radius-stage: 14px;
+
+  --shadow-soft: 0 1px 0 rgb(0 0 0 / 0.03), 0 8px 18px -12px rgb(0 0 0 / 0.1);
+  --shadow-glow: 0 0 18px -4px rgb(50 100 220 / 0.3);
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --background-image-grad-rose: linear-gradient(135deg, #ff4d8d, #c44eff);
+  --background-image-grad-violet: linear-gradient(135deg, #7c5cff, #36b0ff);
+  --background-image-grad-mint: linear-gradient(135deg, #36e0c5, #4ad991);
+  --background-image-grad-amber: linear-gradient(135deg, #ffd166, #ff8a5b);
+  --background-image-grad-pink: linear-gradient(135deg, #ff5d9e, #ff9466);
+  --background-image-grad-night: linear-gradient(
+    160deg,
+    var(--color-stage) 0%,
+    var(--color-stage-2) 100%
+  );
+  --background-image-hero-glow: radial-gradient(
+    ellipse 70% 50% at 50% 0%,
+    rgb(46 98 212 / 0.08),
+    transparent 70%
+  );
+}
+
+/* ---- shadcn/ui tokens (Shadcn chart examples; new-york-v4 light palette) ----
+   Names that already exist in the docs theme (card, border, accent, …) are NOT
+   redefined — the docs values are close enough and stay authoritative. Chart
+   colors are raw vars (--chart-N) so example configs can use `var(--chart-N)`,
+   mirroring shadcn's globals.css. */
+/* ui.shadcn.com's default chart palette is the Tailwind blue scale
+   (--chart-1..5 = blue-300/500/600/700/800, same in light and dark).
+   Values inlined from tailwindcss/theme.css — the docs build tree-shakes
+   unused default-palette vars, so var(--color-blue-300) wouldn't resolve. */
+:root {
+  --chart-1: oklch(80.9% 0.105 251.813);
+  --chart-2: oklch(62.3% 0.214 259.815);
+  --chart-3: oklch(54.6% 0.245 262.881);
+  --chart-4: oklch(48.8% 0.243 264.376);
+  --chart-5: oklch(42.4% 0.199 265.638);
+}
+
+@theme {
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+  --color-card-foreground: oklch(0.145 0 0);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.145 0 0);
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-secondary: oklch(0.97 0 0);
+  --color-secondary-foreground: oklch(0.205 0 0);
+  --color-muted: oklch(0.97 0 0);
+  --color-muted-foreground: oklch(0.556 0 0);
+  --color-accent-foreground: oklch(0.205 0 0);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-input: oklch(0.922 0 0);
+  --color-ring: oklch(0.708 0 0);
+}
+
+@theme inline {
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+/* shadcn components use bare `border-*` utilities and rely on a global
+   base border-color. Scope that default to the shadcn card/chart subtrees
+   so the rest of the docs styling is untouched. */
+@layer base {
+  [data-slot="card"],
+  [data-slot="card"] *,
+  [data-slot="chart"],
+  [data-slot="chart"] * {
+    border-color: var(--color-border);
+  }
+
+  /* shadcn's light card surface is pure white; the docs' own --color-card is a
+     gray-blue. Re-scope the token inside shadcn cards so `bg-card` resolves to
+     white there (readability on the gallery stage) without touching docs UI. */
+  [data-slot="card"] {
+    --color-card: oklch(1 0 0);
+    --color-card-foreground: oklch(0.145 0 0);
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-sans);
+    font-feature-settings: "kern", "liga";
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    cursor: pointer;
+    font: inherit;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+    color: var(--color-fg);
+  }
+}
+
+@utility stage-grad {
+  background: linear-gradient(160deg, var(--color-bg-elev) 0%, var(--color-card) 100%);
+  color: var(--color-fg);
+}
+
+@utility hero-glow {
+  background: var(--background-image-hero-glow);
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@utility code-block {
+  font-family: var(--font-mono);
+  font-size: 0.78125rem;
+  line-height: 1.65;
+  color: var(--color-fg);
+  white-space: pre;
+  tab-size: 2;
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.shiki-host {
+  overflow: auto;
+}
+.shiki-host pre.shiki code {
+  font-family: inherit;
+  background: transparent;
+  white-space: normal;
+  display: block;
+}
+.shiki-host pre.shiki .line {
+  display: block;
+  white-space: pre;
+  min-height: 1.65em;
+}
+
+@media not (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 260ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  ::view-transition-old(root) {
+    animation-name: docs-fade-out;
+  }
+  ::view-transition-new(root) {
+    animation-name: docs-fade-in;
+  }
+}
+
+@keyframes docs-fade-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes docs-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* MDX prose. */
+.docs-prose {
+  color: var(--color-fg-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.docs-prose > *:first-child {
+  margin-top: 0;
+}
+.docs-prose h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.75rem, 3.4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--color-accent-deep);
+  line-height: 1.15;
+}
+.docs-prose h1 + p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--color-fg-muted);
+}
+.docs-prose h2 {
+  margin: 2.5rem 0 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-accent-deep);
+  line-height: 1.3;
+}
+.docs-prose h3 {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-accent-deep);
+}
+.docs-prose h4 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-accent-deep);
+}
+.docs-prose p {
+  margin: 1rem 0;
+  color: var(--color-fg-muted);
+}
+.docs-prose ul:not(.not-prose ul):not(.not-prose *),
+.docs-prose ol:not(.not-prose ol):not(.not-prose *) {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: var(--color-fg-muted);
+}
+.docs-prose ul:not(.not-prose ul):not(.not-prose *) {
+  list-style: disc;
+}
+.docs-prose ol:not(.not-prose ol):not(.not-prose *) {
+  list-style: decimal;
+}
+.docs-prose li:not(.not-prose li):not(.not-prose *) {
+  margin: 0.35rem 0;
+  padding-left: 0.25rem;
+}
+.docs-prose li::marker {
+  color: var(--color-border-strong);
+}
+
+.docs-prose .not-prose ul,
+.docs-prose .not-prose ol,
+.docs-prose .not-prose li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.docs-prose .not-prose p {
+  margin: 0;
+}
+
+.install-command-host pre.shiki {
+  margin: 0;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 0;
+  background: #fff !important;
+}
+
+.docs-prose strong {
+  color: var(--color-fg);
+  font-weight: 700;
+}
+.docs-prose em {
+  font-style: italic;
+}
+.docs-prose hr {
+  margin: 2.25rem 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+.docs-prose blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-accent);
+  background: color-mix(in oklab, var(--color-accent) 6%, transparent);
+  border-radius: 0 6px 6px 0;
+  color: var(--color-fg);
+}
+.docs-prose blockquote > p {
+  margin: 0;
+}
+.docs-prose a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-accent) 40%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+.docs-prose a:hover {
+  text-decoration-color: var(--color-accent);
+}
+.docs-prose table {
+  width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  border-top: 1px solid var(--color-fg);
+  border-bottom: 1px solid var(--color-fg);
+}
+.docs-prose th,
+.docs-prose td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.docs-prose th {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+  font-weight: 600;
+}
+.docs-prose td {
+  color: var(--color-fg-muted);
+}
+.docs-prose tr:last-child td {
+  border-bottom: 0;
+}
+
+.docs-prose code:not(.not-prose code):not(.not-prose *) {
+  border-radius: 4px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--color-accent);
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.docs-prose pre.shiki,
+.shiki-host pre.shiki {
+  position: relative;
+  margin: 0;
+  padding: 28px 32px;
+  border: 0;
+  border-radius: 0;
+  /* Let Shiki's inline `background-color` from the theme apply.
+     The wrapping figure provides the rounded surface, so the pre stays flush. */
+  overflow: auto;
+  scrollbar-width: thin;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  tab-size: 2;
+  -webkit-text-size-adjust: 100%;
+  font-variant-ligatures: none;
+}
+
+/* Bare MDX code fences (```ts ... ```) render as a top-level <pre.shiki>
+   with no wrapping figure. Solid mangles shiki's `background-color` inline
+   style (renders it camelCase, which browsers ignore), so set it ourselves. */
+.docs-prose > pre.shiki {
+  margin: 1.5rem 0;
+  padding: 28px 32px;
+  border-radius: 18px;
+  width: 100%;
+  background: #fff;
+}
+
+.docs-prose pre code:not(.not-prose code):not(.not-prose *),
+.shiki-host pre code {
+  display: block;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  white-space: normal;
+  font-weight: 400;
+}
+
+.docs-prose pre.shiki .line {
+  display: block;
+  white-space: pre;
+  min-height: 1.7em;
+}
+.docs-prose pre.shiki span {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}

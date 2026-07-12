@@ -3,6 +3,7 @@
 import { createEffect, createMemo, createSignal, For, onSettled } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
+import { unregisterCleanup } from "../state/unregisterOnCleanup";
 import { selectAllRegisteredZIndexes } from "./zIndexSelectors";
 
 function ZIndexSvgPortal(props: { zIndex: number; isPanorama: boolean }): JSX.Element {
@@ -31,12 +32,12 @@ function ZIndexSvgPortal(props: { zIndex: number; isPanorama: boolean }): JSX.El
   onSettled(() => {
     const zIndex = props.zIndex;
     const isPanorama = props.isPanorama;
-    return () => {
+    return unregisterCleanup(() => {
       zIndexActions?.unregisterZIndexPortalElement({
         zIndex,
         isPanorama,
       });
-    };
+    });
   });
 
   return <g tabindex={-1} class={`recharts-zIndex-layer_${props.zIndex}`} ref={setGRef} />;

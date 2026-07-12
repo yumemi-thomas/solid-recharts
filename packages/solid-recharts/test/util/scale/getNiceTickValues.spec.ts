@@ -1,6 +1,8 @@
 // Ported from recharts 3.8.1 test/util/scale/getNiceTickValues.spec.ts (commit 7a23854).
 import { describe } from "vitest";
-import Decimal from "decimal.js-light";
+// Uses the lib's own DecimalLite (decimal.js-light replacement) so spec args
+// are the same Decimal type the implementation operates on.
+import Decimal from "../../../src/util/scale/util/DecimalLite";
 import {
   calculateStep,
   getAdaptiveStep,

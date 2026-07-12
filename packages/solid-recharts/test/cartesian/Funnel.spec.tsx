@@ -55,6 +55,20 @@ describe("<Funnel />", () => {
     expect(container.getElementsByClassName("recharts-funnel-trapezoid")).toHaveLength(data.length);
   });
 
+  it("Renders each data row's `name` as an SVG attribute on the trapezoid path", () => {
+    const { container } = render(() => (
+      <FunnelChart width={500} height={500}>
+        <Funnel dataKey="value" data={data} isAnimationActive={false} />
+      </FunnelChart>
+    ));
+
+    const paths = container.querySelectorAll(".recharts-funnel-trapezoid path");
+    expect(paths).toHaveLength(data.length);
+    paths.forEach((path, i) => {
+      expect(path.getAttribute("name")).toBe(data[i]?.name);
+    });
+  });
+
   it("Don't render any Trapezoid when data is empty", () => {
     const { container } = render(() => (
       <FunnelChart width={500} height={500}>

@@ -9,12 +9,14 @@
 //  - The registered settings carry a generated `id` (proxy-safe removal — see
 //    referenceElementsSlice); recharts matches by object reference.
 //  - `clsx` → single `class` string (Layer takes one string).
-//  - DEFERRED: the `label` prop (component/Label not ported), `zIndex`/ZIndexLayer
-//    (renders in the default Layer), and the custom-element `shape` branch
-//    (React.cloneElement — Solid has no element-props introspection; the
-//    render-function and default-`<line>` branches are kept). `children` is not
-//    rendered (it depends on the CartesianLabelContext).
-import { createEffect, createMemo, merge, onCleanup, Show } from "solid-js";
+//  - The `label` prop IS wired (CartesianLabelFromLabelProp), and the line renders
+//    inside <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.line}>.
+//  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
+//    (React.cloneElement — Solid has no element-props introspection; use the
+//    render-function form; the default-`<line>` branch is kept). <Label> CHILDREN
+//    are not rendered (the `label` prop is).
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
+import { createEffect, createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
 import {
@@ -42,6 +44,9 @@ import { isWellBehavedNumber } from "../util/isWellBehavedNumber";
 import { BandPosition, RechartsScale } from "../util/scale/RechartsScale";
 import { CartesianScaleHelper, CartesianScaleHelperImpl } from "../util/scale/CartesianScaleHelper";
 import type { AxisId } from "../state/cartesianAxisSlice";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 /**
  * Single point that defines one end of a segment, in data space.
@@ -57,7 +62,12 @@ type ReferenceCoordinateValue = number | string;
 /** Orientation of the two cartesian axes (xAxis is top/bottom, yAxis is left/right). */
 type AxisOrientation = "top" | "bottom" | "left" | "right";
 
-/** Props of the inner `<line>` shape (after svg filtering + endpoint geometry). */
+/**
+ * Props of the inner `<line>` shape (after svg filtering + endpoint geometry).
+ * NOT wrapped in CamelSvgProps: this is a DOM-READY OUTPUT payload (built from
+ * svgPropertiesAndEvents, spread verbatim onto <line> / handed to `shape`
+ * functions), so its keys are the real kebab attribute names by design.
+ */
 export type LineShapeProps = Partial<JSX.LineSVGAttributes<SVGLineElement>> & {
   x1?: number;
   y1?: number;
@@ -87,6 +97,8 @@ export interface ReferenceLineProps<
   shape?: (props: LineShapeProps) => JSX.Element;
   /** A single label rendered along the line. @defaultValue false */
   label?: ImplicitLabelType;
+  /** Stacking order within the chart's z-index system. @defaultValue DefaultZIndexes.line */
+  zIndex?: number;
   class?: string;
   children?: JSX.Element;
 }
@@ -94,7 +106,7 @@ export interface ReferenceLineProps<
 export type Props<
   XValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
   YValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
-> = Omit<JSX.LineSVGAttributes<SVGLineElement>, "x" | "y" | "class" | "children"> &
+> = Omit<CamelSvgProps<JSX.LineSVGAttributes<SVGLineElement>>, "x" | "y" | "class" | "children"> &
   ReferenceLineProps<XValueType, YValueType>;
 
 const getHorizontalLineEndPoints = (
@@ -256,7 +268,7 @@ function ReportReferenceLine(props: ReferenceLineSettings): JSX.Element {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.referenceElements.removeLine(prev);
       prev = null;
@@ -272,11 +284,8 @@ const referenceLineDefaultProps = {
   yAxisId: 0,
   fill: "none",
   stroke: "#ccc",
-  // Kebab keys: our Props derive from JSX.LineSVGAttributes (Solid uses kebab for
-  // compound presentation attrs). svgPropertiesAndEvents now recognizes both kebab
-  // and camelCase keys and emits real SVG attribute names, so these forward correctly.
-  "fill-opacity": 1,
-  "stroke-width": 1,
+  fillOpacity: 1,
+  strokeWidth: 1,
   position: "middle",
   label: false,
 } as const satisfies Partial<Props>;
@@ -355,19 +364,21 @@ function ReferenceLineImpl(props: Props): JSX.Element {
   return (
     <Show when={rendered()}>
       {(r) => (
-        <Layer class="recharts-reference-line">
-          {renderLine(merged.shape, r().line)}
-          <CartesianLabelContextProvider
-            x={r().rect.x}
-            y={r().rect.y}
-            width={r().rect.width}
-            height={r().rect.height}
-            upperWidth={r().rect.width}
-            lowerWidth={r().rect.width}
-          >
-            <CartesianLabelFromLabelProp label={merged.label} />
-          </CartesianLabelContextProvider>
-        </Layer>
+        <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.line}>
+          <Layer class="recharts-reference-line">
+            {renderLine(merged.shape, r().line)}
+            <CartesianLabelContextProvider
+              x={r().rect.x}
+              y={r().rect.y}
+              width={r().rect.width}
+              height={r().rect.height}
+              upperWidth={r().rect.width}
+              lowerWidth={r().rect.width}
+            >
+              <CartesianLabelFromLabelProp label={merged.label} />
+            </CartesianLabelContextProvider>
+          </Layer>
+        </ZIndexLayer>
       )}
     </Show>
   );

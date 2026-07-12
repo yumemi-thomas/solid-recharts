@@ -4,13 +4,14 @@
 // settings into the cartesianAxis slice so Scatter can size its points by the z
 // value. Solid deviations: useLayoutEffect/prevRef → createEffect add/replace +
 // onCleanup remove (the XAxis/YAxis idiom); defaults via merge.
-import { createEffect, merge, onCleanup } from "solid-js";
+import { createEffect, merge } from "solid-js";
 import { useAppStore } from "../state/hooks";
 import { AxisId, ZAxisSettings } from "../state/cartesianAxisSlice";
 import { implicitZAxis } from "../state/selectors/axisSelectors";
 import { AxisDomain, DataKey, ScaleType } from "../util/types";
 import { AxisRange } from "../state/selectors/axisSelectors";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export interface ZAxisProps<DataPointType = unknown, DataValueType = unknown> {
   zAxisId?: AxisId;
@@ -68,7 +69,7 @@ export function ZAxis<DataPointType = unknown, DataValueType = unknown>(
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.cartesianAxis.removeZAxis(prev);
       prev = null;

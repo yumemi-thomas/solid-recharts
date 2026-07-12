@@ -1,11 +1,10 @@
 // Ported from recharts 3.8.1 src/chart/RechartsWrapper.tsx (commit 7a23854).
 //
-// RENDER-ONLY port. recharts' wrapper also wires up: mouse/keyboard/touch event
-// dispatch (4 middlewares), cross-chart synchronisation, scale reporting, the
-// ResizeObserver responsive-sizing divs, and tooltip/legend portals. NONE of
-// that is needed to render an empty chart's structure, and all of it depends on
-// unported units — so it is DEFERRED. This renders the `recharts-wrapper` div +
-// `ReportChartSize` (which drives the Surface dimensions) + children.
+// FULLY WIRED (the original render-only scaffold has since grown the real
+// behavior): mouse/keyboard/touch event dispatch, cross-chart synchronisation,
+// ResponsiveContainer-context sizing, and the tooltip/legend portal contexts.
+// Renders the `recharts-wrapper` div + `ReportChartSize` (which drives the
+// Surface dimensions) + children.
 import { createMemo, createSignal, flush, onCleanup, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { ReportChartSize } from "../context/chartLayoutContext";
@@ -35,6 +34,10 @@ import { isWellBehavedNumber } from "../util/isWellBehavedNumber";
 import type { ExternalMouseEvents } from "./types";
 import type { ChartStyle, Percent } from "../util/types";
 import type { ExternalEventActionPayload } from "../state/externalEventsMiddleware";
+import {
+  useBrushChartSynchronisation,
+  useSynchronisedEventsFromOtherCharts,
+} from "../synchronisation/useChartSynchronisation";
 
 export interface RechartsWrapperProps extends ExternalMouseEvents {
   children: JSX.Element;
@@ -103,6 +106,11 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
 
   const store = useAppStore();
   const responsiveContainerCalculations = useResponsiveContainerContext();
+
+  // Subscribe this chart to cross-chart synchronisation (tooltip + brush). No-op
+  // unless a syncId is set; creates the chart's event-emitter symbol.
+  useSynchronisedEventsFromOtherCharts();
+  useBrushChartSynchronisation();
 
   const width = (): number | Percent | undefined =>
     responsiveContainerCalculations != null && responsiveContainerCalculations.width > 0
@@ -331,6 +339,10 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
       clientY: event.clientY,
       currentTarget: event.currentTarget,
     });
+    // Solid 2.0 defers store propagation to a flush boundary; the external
+    // handler (dispatchExternalEvent) reads store.state synchronously, so flush
+    // the click-driven active-tooltip write first or the handler sees stale state.
+    flush();
     dispatchExternalMouseHandler(props.onClick, event);
   };
 

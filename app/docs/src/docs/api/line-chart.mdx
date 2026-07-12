@@ -1,0 +1,54 @@
+export const meta = {
+  slug: "line-chart",
+  title: "LineChart",
+  group: "charts",
+  description: "Cartesian chart container for one or more Line series.",
+  example: "line-basic",
+  order: 0,
+};
+
+# LineChart
+
+`LineChart` is the cartesian container for [`Line`](/docs/line) series. It owns the
+chart's layout, scales, and interaction state; children like `XAxis`, `CartesianGrid`
+and `Tooltip` register themselves into it.
+
+```tsx
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<LineChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+</LineChart>;
+```
+
+<Example slug="line-basic" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per x position         |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `layout`                    | `"horizontal" \| "vertical"`   | `"horizontal"`   | Direction of the independent axis                   |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `syncId`                    | `string`                       | —                | Sync tooltip/brush across charts sharing the id     |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `LineChart` props are supported; see the
+[recharts LineChart docs](https://recharts.org/en-US/api/LineChart) for the full matrix.
+
+## Notes
+
+- Multiple `Line` children share the same axes unless you give a `Line` its own
+  `xAxisId`/`yAxisId`.
+- Set `syncId` on two charts to mirror tooltips and brushes between them.
+
+## See also
+
+- [Line](/docs/line) — the series component and its dot/label options
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis)
+- [ComposedChart](/docs/composed-chart) — mix lines with bars and areas

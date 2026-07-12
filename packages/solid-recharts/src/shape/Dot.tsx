@@ -1,3 +1,5 @@
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
+import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 import { Show, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { isNumber } from "../util/DataUtils";
@@ -18,7 +20,7 @@ interface DotOwnProps {
 // (recharts' public prop is `className: string`). We Omit the wide SVG `class` so our
 // `class` stays `string`, matching recharts and keeping the native array `class` form typed.
 export type DotProps = Omit<
-  JSX.CircleSVGAttributes<SVGCircleElement>,
+  CamelSvgProps<JSX.CircleSVGAttributes<SVGCircleElement>>,
   "cx" | "cy" | "r" | "class"
 > &
   DotOwnProps;
@@ -36,7 +38,7 @@ export const Dot = (props: DotProps) => {
   return (
     <Show when={isNumber(props.cx) && isNumber(props.cy) && isNumber(props.r)}>
       <circle
-        {...rest}
+        {...svgPropertiesAndEvents({ ...rest })}
         class={["recharts-dot", props.class]}
         cx={props.cx}
         cy={props.cy}

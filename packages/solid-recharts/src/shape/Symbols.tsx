@@ -7,6 +7,7 @@
  * accessors; `clsx` → `class={[...]}`; `return null` → `<Show>`; the
  * `registerSymbol` static is attached via `Object.assign` (no `as`).
  */
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { Show, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
@@ -86,7 +87,10 @@ export interface InnerSymbolsProp {
   name?: string | number;
 }
 
-export type SymbolsProps = Omit<JSX.PathSVGAttributes<SVGPathElement>, "type" | "class"> &
+export type SymbolsProps = Omit<
+  CamelSvgProps<JSX.PathSVGAttributes<SVGPathElement>>,
+  "type" | "class"
+> &
   InnerSymbolsProp;
 
 const registerSymbol = (key: string, factory: D3SymbolType): void => {

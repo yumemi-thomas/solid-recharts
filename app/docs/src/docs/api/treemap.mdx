@@ -1,0 +1,56 @@
+export const meta = {
+  slug: "treemap",
+  title: "Treemap",
+  group: "charts",
+  description: "A hierarchical chart packing nodes into nested, area-proportional rectangles.",
+  example: "treemap-basic",
+};
+
+# Treemap
+
+`Treemap` is a self-contained hierarchical chart that packs a tree of data into nested
+rectangles. Each rectangle's area is proportional to its data value, making it easy to
+spot large and small items across hierarchies. It is not placed inside another chart
+container.
+
+```tsx
+import { Treemap, ResponsiveContainer } from "solid-recharts";
+
+<ResponsiveContainer width="100%" height="100%">
+  <Treemap data={data} dataKey="size" nameKey="name" />
+</ResponsiveContainer>;
+```
+
+<Example slug="treemap-basic" />
+
+## Props
+
+| Prop              | Type                 | Default        | Description                                           |
+| ----------------- | -------------------- | -------------- | ----------------------------------------------------- |
+| `data`            | `object[]`           | —              | Array of top-level nodes; each may have `children`    |
+| `dataKey`         | `string \| function` | `"value"`      | Key or function to read each node's numeric value     |
+| `nameKey`         | `string \| function` | `"name"`       | Key to read each node's name / label                  |
+| `width`, `height` | `number \| "%"`      | —              | Fixed size or percentage inside `ResponsiveContainer` |
+| `aspectRatio`     | `number`             | `0.5*φ` (~1.6) | Squarified layout aspect ratio target                 |
+| `type`            | `"flat" \| "nest"`   | `"flat"`       | Render the whole tree or nested drill-down mode       |
+| `nodeGap`         | `number`             | `0`            | Space between sibling rectangles                      |
+| `nodeInset`       | `number`             | `0`            | Padding inside each parent rectangle                  |
+
+All other recharts `Treemap` props are supported; see the
+[recharts Treemap docs](https://recharts.org/en-US/api/Treemap) for the full matrix.
+
+## Notes
+
+- **Data shape:** Each node can have a `children` property (array of child nodes). Leaf
+  nodes should have a numeric `dataKey` value; parent nodes' values are rolled up from
+  their children.
+- **Animation:** Entry animation is wired (nodes slide in from the left on mount). Update
+  animation is not yet ported and will be added in a future release.
+- **nest mode:** Set `type="nest"` to render an interactive treemap where clicking a
+  parent node drills in; a breadcrumb strip at the bottom navigates back up.
+- **Tooltip:** Treemap supports item-type tooltips; hover a rectangle to see its details.
+
+## See also
+
+- [ResponsiveContainer](/docs/responsive-container) — fluid sizing
+- [Tooltip](/docs/tooltip) — hover info

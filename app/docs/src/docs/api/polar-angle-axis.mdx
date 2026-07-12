@@ -1,0 +1,61 @@
+export const meta = {
+  slug: "polar-angle-axis",
+  title: "PolarAngleAxis",
+  group: "polar",
+  description:
+    "The angle (category) axis for polar charts, rendering ticks and labels around the center.",
+  example: "polar-custom-axes",
+};
+
+# PolarAngleAxis
+
+`PolarAngleAxis` defines the angle axis for a `RadarChart` or `PieChart`, positioning categories or numeric values around the chart's center. Each tick is rendered as a label (and optionally a line) at its angle.
+
+```tsx
+import { PolarAngleAxis, RadarChart, PolarGrid, Radar, PolarRadiusAxis } from "solid-recharts";
+
+<RadarChart data={data}>
+  <PolarGrid />
+  <PolarAngleAxis dataKey="category" />
+  <PolarRadiusAxis />
+  <Radar dataKey="value" />
+</RadarChart>;
+```
+
+<Example slug="polar-custom-axes" />
+
+## Props
+
+| Prop                         | Type                            | Default     | Description                                                    |
+| ---------------------------- | ------------------------------- | ----------- | -------------------------------------------------------------- |
+| `dataKey`                    | `string \| function`            | —           | Data field to use as category labels (required for most cases) |
+| `angle`                      | `number`                        | —           | Fixed angle to render the axis line (used with numeric data)   |
+| `angleAxisId`                | `string \| number`              | `0`         | Unique ID (use if multiple angle axes)                         |
+| `type`                       | `"number" \| "category"`        | auto        | Force numeric or categorical scale                             |
+| `tick`                       | `boolean \| object \| function` | `true`      | Render tick labels; object for style, function to customize    |
+| `tickFormatter`              | `function`                      | —           | Function to format tick labels: `(value, index) => string`     |
+| `tickLine`                   | `boolean`                       | `true`      | Show tick lines (short lines at each tick)                     |
+| `tickSize`                   | `number`                        | `8`         | Length of tick lines (px)                                      |
+| `axisLine`                   | `boolean \| object`             | `true`      | Show axis line; true = polygon/circle, false = hidden          |
+| `axisLineType`               | `"polygon" \| "circle"`         | `"polygon"` | Shape of axis line                                             |
+| `orientation`                | `"inner" \| "outer"`            | `"outer"`   | Position labels inside or outside the chart                    |
+| `onClick`, `onMouseEnter`, … | `function`                      | —           | Per-tick event handlers, called `(tickItem, index, event)`     |
+
+All other recharts `PolarAngleAxis` props are supported; see the
+[recharts PolarAngleAxis docs](https://recharts.org/en-US/api/PolarAngleAxis) for the full matrix.
+
+## Notes
+
+- `dataKey` extracts the label for each tick from your data (e.g. `dataKey="subject"`).
+- If `dataKey` is a function, it receives each data entry: `dataKey={(entry) => entry.label}`.
+- `tickFormatter` can transform labels: `tickFormatter={(value) => value.toUpperCase()}`.
+- `axisLineType="circle"` renders a circle; `"polygon"` renders a multi-sided shape (more common).
+- Use `tick={false}` to hide labels entirely.
+- Tick event handlers receive the tick item, index, and the native event.
+
+## See also
+
+- [RadarChart](/docs/radar-chart) — the container
+- [PolarRadiusAxis](/docs/polar-radius-axis) — the radius axis
+- [PolarGrid](/docs/polar-grid) — grid lines
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) — Cartesian axis equivalents

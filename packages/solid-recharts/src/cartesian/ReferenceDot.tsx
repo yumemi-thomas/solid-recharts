@@ -6,11 +6,13 @@
 // Solid deviations (documented):
 //  - resolveDefaultProps → `merge`; useEffect add/remove → createEffect + onCleanup.
 //  - The registered settings carry a generated `id` (proxy-safe removal).
-//  - DEFERRED: the `label` prop (component/Label not ported), `zIndex`/ZIndexLayer,
-//    the custom-element `shape` branch (React.cloneElement), and the per-dot mouse
-//    event callbacks (recharts forwards (dotProps, e) — wired with the Dot vertical's
-//    event plumbing later). `children` is not rendered (CartesianLabelContext).
-import { createEffect, createMemo, merge, onCleanup, Show } from "solid-js";
+//  - Mouse handlers are wrapped props-first (`(dotProps, e)`) on the default dot
+//    via adaptEventHandlers (recharts does this inside Dot; the port's Dot
+//    forwards raw delegated handlers).
+//  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
+//    (React.cloneElement — use the render-function form);
+//    `children` is not rendered (CartesianLabelContext).
+import { createEffect, createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
 import { Dot, type DotProps } from "../shape/Dot";
@@ -26,13 +28,33 @@ import { useAppSelector, useAppStore } from "../state/hooks";
 import { selectAxisScale } from "../state/selectors/axisSelectors";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useClipPathId } from "../container/ClipPathProvider";
-import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
+import { svgPropertiesAndEventsKeepCase } from "../util/svgPropertiesAndEvents";
+import { adaptEventHandlers } from "../util/adaptEventHandlers";
 import { useUniqueId } from "../util/useUniqueId";
 import type { AxisId } from "../state/cartesianAxisSlice";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { Coordinate } from "../util/types";
 import { CartesianScaleHelperImpl } from "../util/scale/CartesianScaleHelper";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 type ReferenceCoordinateValue = number | string;
+
+/**
+ * ReferenceDot mouse handlers are called props-first: `(dotProps, event)` (recharts parity).
+ * The event's `currentTarget` is the rendered `<circle>`, so the event satisfies
+ * `SVGMousePointer` and can be passed to {@link getRelativeCoordinate} directly.
+ */
+export type ReferenceDotEventHandler = (
+  dotProps: DotProps,
+  event: MouseEvent & { currentTarget: SVGCircleElement },
+) => void;
+
+/** Touch variant of {@link ReferenceDotEventHandler} — also called props-first. */
+export type ReferenceDotTouchEventHandler = (
+  dotProps: DotProps,
+  event: TouchEvent & { currentTarget: SVGCircleElement },
+) => void;
 
 export interface ReferenceDotProps<
   XValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
@@ -54,14 +76,57 @@ export interface ReferenceDotProps<
   shape?: (props: DotProps) => JSX.Element;
   /** A single label rendered around the dot. @defaultValue false */
   label?: ImplicitLabelType;
+  /** Stacking order within the chart's z-index system. @defaultValue DefaultZIndexes.scatter */
+  zIndex?: number;
   class?: string;
   children?: JSX.Element;
+  /** The customized event handler of click on the dot. */
+  onClick?: ReferenceDotEventHandler;
+  /** The customized event handler of mousedown on the dot. */
+  onMouseDown?: ReferenceDotEventHandler;
+  /** The customized event handler of mouseup on the dot. */
+  onMouseUp?: ReferenceDotEventHandler;
+  /** The customized event handler of mouseover on the dot. */
+  onMouseOver?: ReferenceDotEventHandler;
+  /** The customized event handler of mouseout on the dot. */
+  onMouseOut?: ReferenceDotEventHandler;
+  /** The customized event handler of mouseenter on the dot. */
+  onMouseEnter?: ReferenceDotEventHandler;
+  /** The customized event handler of mousemove on the dot. */
+  onMouseMove?: ReferenceDotEventHandler;
+  /** The customized event handler of mouseleave on the dot. */
+  onMouseLeave?: ReferenceDotEventHandler;
+  /** The customized event handler of touchstart on the dot. */
+  onTouchStart?: ReferenceDotTouchEventHandler;
+  /** The customized event handler of touchmove on the dot. */
+  onTouchMove?: ReferenceDotTouchEventHandler;
+  /** The customized event handler of touchend on the dot. */
+  onTouchEnd?: ReferenceDotTouchEventHandler;
 }
 
 export type Props<
   XValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
   YValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
-> = Omit<DotProps, "cx" | "cy" | "clipDot" | "class"> & ReferenceDotProps<XValueType, YValueType>;
+> = Omit<
+  DotProps,
+  | "cx"
+  | "cy"
+  | "clipDot"
+  | "class"
+  // Redeclared above with the recharts props-first `(dotProps, event)` signature.
+  | "onClick"
+  | "onMouseDown"
+  | "onMouseUp"
+  | "onMouseOver"
+  | "onMouseOut"
+  | "onMouseEnter"
+  | "onMouseMove"
+  | "onMouseLeave"
+  | "onTouchStart"
+  | "onTouchMove"
+  | "onTouchEnd"
+> &
+  ReferenceDotProps<XValueType, YValueType>;
 
 function ReportReferenceDot(props: ReferenceDotSettings): JSX.Element {
   const store = useAppStore();
@@ -91,7 +156,7 @@ function ReportReferenceDot(props: ReferenceDotSettings): JSX.Element {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.referenceElements.removeDot(prev);
       prev = null;
@@ -105,7 +170,14 @@ const renderDot = (option: Props["shape"], props: DotProps): JSX.Element => {
   if (typeof option === "function") {
     return option(props);
   }
-  return <Dot {...props} cx={props.cx} cy={props.cy} class="recharts-reference-dot-dot" />;
+  // recharts' Dot rewraps its event handlers props-first via adaptEventHandlers
+  // (a user's onClick is called `(dotProps, event)`); the port's Dot forwards raw
+  // delegated handlers, so the wrapping happens here on the default-dot branch
+  // (a custom `shape` receives the raw props, as in recharts).
+  const dotProps: DotProps = { ...props, class: "recharts-reference-dot-dot" };
+  return (
+    <Dot {...dotProps} {...(adaptEventHandlers(dotProps) ?? {})} cx={props.cx} cy={props.cy} />
+  );
 };
 
 const referenceDotDefaultProps = {
@@ -115,9 +187,8 @@ const referenceDotDefaultProps = {
   r: 10,
   fill: "#fff",
   stroke: "#ccc",
-  // Kebab keys: see ReferenceLine — compound presentation attrs use Solid's kebab form.
-  "fill-opacity": 1,
-  "stroke-width": 1,
+  fillOpacity: 1,
+  strokeWidth: 1,
   label: false,
 } as const satisfies Partial<Props>;
 
@@ -154,8 +225,8 @@ function ReferenceDotImpl(props: Props): JSX.Element {
     }
     const clipPath = merged.ifOverflow === "hidden" ? `url(#${clipPathId})` : undefined;
     return {
-      "clip-path": clipPath,
-      ...svgPropertiesAndEvents({ ...merged }),
+      clipPath,
+      ...svgPropertiesAndEventsKeepCase({ ...merged }),
       cx: c.x,
       cy: c.y,
       r: merged.r,
@@ -165,19 +236,21 @@ function ReferenceDotImpl(props: Props): JSX.Element {
   return (
     <Show when={dotProps()}>
       {(p) => (
-        <Layer class="recharts-reference-dot">
-          {renderDot(merged.shape, p())}
-          <CartesianLabelContextProvider
-            x={(p().cx ?? 0) - merged.r}
-            y={(p().cy ?? 0) - merged.r}
-            width={2 * merged.r}
-            height={2 * merged.r}
-            upperWidth={2 * merged.r}
-            lowerWidth={2 * merged.r}
-          >
-            <CartesianLabelFromLabelProp label={merged.label} />
-          </CartesianLabelContextProvider>
-        </Layer>
+        <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.scatter}>
+          <Layer class="recharts-reference-dot">
+            {renderDot(merged.shape, p())}
+            <CartesianLabelContextProvider
+              x={(p().cx ?? 0) - merged.r}
+              y={(p().cy ?? 0) - merged.r}
+              width={2 * merged.r}
+              height={2 * merged.r}
+              upperWidth={2 * merged.r}
+              lowerWidth={2 * merged.r}
+            >
+              <CartesianLabelFromLabelProp label={merged.label} />
+            </CartesianLabelContextProvider>
+          </Layer>
+        </ZIndexLayer>
       )}
     </Show>
   );

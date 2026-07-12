@@ -924,10 +924,7 @@ describe("numerical domain", () => {
       expectLastCalledWith(spy, [0, 180]);
     });
 
-    // SKIP: parity gap — multi-axis domain filtering by xAxisId (graphical-item data
-    // not partitioned per xAxisId in the Solid domain selector; both axes would share
-    // the merged domain and there is no per-axis tick partition).
-    it.skip("should only display domain of data with matching xAxisId", () => {
+    it("should only display domain of data with matching xAxisId", () => {
       const reduxDefaultDomainSpy = vi.fn();
       const reduxDomainSpyA = vi.fn();
       const reduxDomainSpyB = vi.fn();
@@ -942,7 +939,7 @@ describe("numerical domain", () => {
           <ExpectAxisDomain assert={reduxDomainSpyB} axisType="xAxis" axisId="xb" />
         </LineChart>
       ));
-      const allXAxes = container.querySelectorAll(".recharts-xAxis-tick-labels");
+      const allXAxes = container.querySelectorAll(".recharts-xAxis");
       expect(allXAxes).toHaveLength(2);
       expectXAxisTicks(allXAxes[0]!, [
         {
@@ -1003,8 +1000,7 @@ describe("numerical domain", () => {
       expect(reduxDomainSpyB).toHaveBeenLastCalledWith([0, 180]);
     });
 
-    // SKIP: parity gap — multi-axis domain filtering by xAxisId (see above).
-    it.skip("should only display domain of data with matching xAxisId, and dataMin dataMax domains", () => {
+    it("should only display domain of data with matching xAxisId, and dataMin dataMax domains", () => {
       const reduxDefaultDomainSpy = vi.fn();
       const reduxDomainSpyA = vi.fn();
       const reduxDomainSpyB = vi.fn();
@@ -1019,7 +1015,7 @@ describe("numerical domain", () => {
           <ExpectAxisDomain assert={reduxDomainSpyB} axisType="xAxis" axisId="xb" />
         </LineChart>
       ));
-      const allXAxes = container.querySelectorAll(".recharts-xAxis-tick-labels");
+      const allXAxes = container.querySelectorAll(".recharts-xAxis");
       expect(allXAxes).toHaveLength(2);
       expectXAxisTicks(allXAxes[0]!, [
         { textContent: "90", x: "5", y: "243" },
@@ -1318,9 +1314,7 @@ describe("numerical domain", () => {
       expectLastCalledWith(spy, [0, 171]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserveStart) not wired into
-    // CartesianAxis render (getTicks isn't applied); received renders all ticks.
-    it.skip("should attempt to show the ticks start with interval = preserveStart", () => {
+    it("should attempt to show the ticks start with interval = preserveStart", () => {
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
           <XAxis dataKey="x" type="number" interval="preserveStart" tickCount={20} />
@@ -1350,8 +1344,7 @@ describe("numerical domain", () => {
       ]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserveEnd) not wired.
-    it.skip("should attempt to show the ticks end with interval = preserveEnd", () => {
+    it("should attempt to show the ticks end with interval = preserveEnd", () => {
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
           <XAxis dataKey="x" type="number" interval="preserveEnd" tickCount={20} />
@@ -1381,8 +1374,7 @@ describe("numerical domain", () => {
       ]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (preserveStartEnd) not wired.
-    it.skip("should attempt to show the ticks start and end with interval = preserveStartEnd", () => {
+    it("should attempt to show the ticks start and end with interval = preserveStartEnd", () => {
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
           <XAxis dataKey="x" type="number" interval="preserveStartEnd" tickCount={20} />
@@ -1412,8 +1404,7 @@ describe("numerical domain", () => {
       ]);
     });
 
-    // SKIP: parity gap — string-interval tick thinning (equidistantPreserveStart) not wired.
-    it.skip("should do ... same thing as preserveStart? with interval = equidistantPreserveStart", () => {
+    it("should do ... same thing as preserveStart? with interval = equidistantPreserveStart", () => {
       const { container } = render(() => (
         <BarChart width={30} height={300} data={data}>
           <XAxis dataKey="x" type="number" interval="equidistantPreserveStart" tickCount={20} />

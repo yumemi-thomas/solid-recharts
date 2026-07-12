@@ -14,7 +14,7 @@
 // not yet ported). Only the tick OFFSET is tooltip-specific, so combineTicksOf-
 // TooltipAxis is ported verbatim. The public parameterized selectors (consumed by
 // <Tooltip>) are plain functions; memoization comes from useAppSelector.
-import sortBy from "es-toolkit/compat/sortBy";
+import { sortBy } from "../../util/collectionUtils";
 import { RechartsRootState } from "../store";
 import {
   AxisRange,
@@ -495,7 +495,7 @@ export const selectOrderedTooltipTicks = (
   state: RechartsRootState,
 ): ReadonlyArray<TickItem> | undefined => {
   const ticks = selectTooltipAxisTicks(state);
-  return ticks == null ? undefined : sortBy(ticks, (o: TickItem) => o.coordinate);
+  return ticks == null ? undefined : sortBy(ticks, [(o: TickItem) => o.coordinate]);
 };
 
 const combineActivePolarProps = (
@@ -636,3 +636,55 @@ export const selectActiveTooltipDataPoints = (
 export const selectActiveTooltipDataKey = (
   state: RechartsRootState,
 ): DataKey<unknown> | undefined => selectStoredTooltipInteractionState(state).dataKey;
+
+/** The active tooltip label (one of the chart-data values). Parameterless — reads tooltip settings from state. @since 3.0 */
+export const selectActiveTooltipLabel = (state: RechartsRootState): ActiveLabel =>
+  combineActiveLabel(selectTooltipAxisTicks(state), selectActiveTooltipIndex(state));
+
+/** Whether the tooltip is currently active. Parameterless — reads tooltip settings from state. @since 3.7 */
+export const selectTooltipIsActive = (state: RechartsRootState): boolean =>
+  selectStoredTooltipInteractionState(state).active;
+
+/** The active tooltip's cartesian coordinate. Parameterless — reads tooltip settings from state. @since 3.7 */
+export const selectActiveTooltipCoordinate = (state: RechartsRootState): Coordinate | undefined => {
+  const interaction = selectStoredTooltipInteractionState(state);
+  if (interaction.coordinate) {
+    return interaction.coordinate;
+  }
+  const tooltipEventType = selectTooltipEventType(state, state.tooltip.settings.shared);
+  return selectCoordinateForDefaultIndex(
+    state,
+    tooltipEventType,
+    state.tooltip.settings.trigger,
+    state.tooltip.settings.defaultIndex,
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Synchronisation accessors (consumed by useTooltipChartSynchronisation). Ported
+// from recharts 3.8.1 src/state/selectors/{selectors.ts,tooltipSelectors.ts}.
+// ---------------------------------------------------------------------------
+
+/** The dataKey of whatever interaction (axis/item × hover/click) is active. */
+export const selectTooltipDataKey = (
+  state: RechartsRootState,
+  tooltipEventType: TooltipEventType | undefined,
+  trigger: TooltipTrigger,
+): DataKey<unknown> | undefined => {
+  if (tooltipEventType == null) {
+    return undefined;
+  }
+  const tooltipState = selectTooltipState(state);
+  if (tooltipEventType === "axis") {
+    return trigger === "hover"
+      ? tooltipState.axisInteraction.hover.dataKey
+      : tooltipState.axisInteraction.click.dataKey;
+  }
+  return trigger === "hover"
+    ? tooltipState.itemInteraction.hover.dataKey
+    : tooltipState.itemInteraction.click.dataKey;
+};
+
+/** The graphicalItemId of the active interaction (for item-triggered tooltips). */
+export const selectActiveTooltipGraphicalItemId = (state: RechartsRootState): string | undefined =>
+  selectStoredTooltipInteractionState(state).graphicalItemId;

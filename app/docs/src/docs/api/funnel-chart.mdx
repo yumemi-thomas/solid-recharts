@@ -1,0 +1,48 @@
+export const meta = {
+  slug: "funnel-chart",
+  title: "FunnelChart",
+  group: "charts",
+  description: "Cartesian chart container for one or more Funnel series.",
+  example: "funnel-basic",
+};
+
+# FunnelChart
+
+`FunnelChart` is the cartesian container for [`Funnel`](/docs/funnel) series. It owns the
+chart's layout, scales, and interaction state; children like `Tooltip` and `Legend` register
+themselves into it.
+
+```tsx
+import { FunnelChart, Funnel, Tooltip } from "solid-recharts";
+
+<FunnelChart width={500} height={300}>
+  <Tooltip />
+  <Funnel dataKey="value" data={data} />
+</FunnelChart>;
+```
+
+<Example slug="funnel-basic" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `FunnelChart` props are supported; see the
+[recharts FunnelChart docs](https://recharts.org/en-US/api/FunnelChart) for the full matrix.
+
+## Notes
+
+- `FunnelChart` is a cartesian chart that does not use axes. It is compatible with
+  `Tooltip` and `Legend` children.
+- Use [`Funnel`](/docs/funnel) to render the series; it handles all trapezoid geometry
+  and event dispatch.
+
+## See also
+
+- [Funnel](/docs/funnel) — the series component
+- [Tooltip](/docs/tooltip) — hover info
+- [Legend](/docs/legend) — series legend

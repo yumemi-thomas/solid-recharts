@@ -84,6 +84,7 @@ function getWidthOrHeight(
 }
 
 function getDefaultPosition(
+  style: JSX.CSSProperties | undefined,
   props: {
     layout: LayoutType;
     align: HorizontalAlignmentType;
@@ -98,20 +99,28 @@ function getDefaultPosition(
   let hPos: JSX.CSSProperties = {};
   let vPos: JSX.CSSProperties = {};
 
-  if (align === "center" && layout === "vertical") {
-    hPos = { left: `${((chartWidth || 0) - box.width) / 2}px` };
-  } else {
-    hPos =
-      align === "right" ? { right: `${margin?.right || 0}px` } : { left: `${margin?.left || 0}px` };
+  // When the user's wrapperStyle already pins a horizontal/vertical edge, the
+  // computed position for that axis is skipped (recharts parity).
+  if (style == null || (style.left == null && style.right == null)) {
+    if (align === "center" && layout === "vertical") {
+      hPos = { left: `${((chartWidth || 0) - box.width) / 2}px` };
+    } else {
+      hPos =
+        align === "right"
+          ? { right: `${margin?.right || 0}px` }
+          : { left: `${margin?.left || 0}px` };
+    }
   }
 
-  if (verticalAlign === "middle") {
-    vPos = { top: `${((chartHeight || 0) - box.height) / 2}px` };
-  } else {
-    vPos =
-      verticalAlign === "bottom"
-        ? { bottom: `${margin?.bottom || 0}px` }
-        : { top: `${margin?.top || 0}px` };
+  if (style == null || (style.top == null && style.bottom == null)) {
+    if (verticalAlign === "middle") {
+      vPos = { top: `${((chartHeight || 0) - box.height) / 2}px` };
+    } else {
+      vPos =
+        verticalAlign === "bottom"
+          ? { bottom: `${margin?.bottom || 0}px` }
+          : { top: `${margin?.top || 0}px` };
+    }
   }
 
   return { ...hPos, ...vPos };
@@ -200,13 +209,19 @@ export const Legend = (props: LegendProps): JSX.Element => {
     }
     const w = chartWidth();
     const h = chartHeight();
+    const m = margin();
+    const maxWidth = (w ?? 0) - (m?.left ?? 0) - (m?.right ?? 0);
+    const widthOrHeight = getWidthOrHeight(merged.layout, merged.height, merged.width, maxWidth);
     return {
       position: "absolute",
-      width: toCssLength(merged.width),
-      height: toCssLength(merged.height),
+      // Matches recharts: a horizontal legend without an explicit width fills the
+      // available chart width (maxWidth) via getWidthOrHeight; otherwise "auto".
+      width: toCssLength(widthOrHeight?.width ?? merged.width),
+      height: toCssLength(widthOrHeight?.height ?? merged.height),
       ...getDefaultPosition(
+        merged.wrapperStyle,
         { layout: merged.layout, align: merged.align, verticalAlign: merged.verticalAlign },
-        margin(),
+        m,
         w ?? 0,
         h ?? 0,
         lastBoundingBox(),

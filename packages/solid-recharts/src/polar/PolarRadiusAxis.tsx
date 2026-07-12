@@ -6,13 +6,21 @@
 //
 // Solid deviations: `resolveDefaultProps`→`merge`; SetRadiusAxisSettings effect
 // → `createEffect`/`onCleanup` (add overwrites by id); `clsx`→joined string.
-// DEFERRED (documented): ZIndexLayer (plain <Layer>); `label` + PolarLabelContext
-// (the polar Label path is not ported); custom `tick` element/function (default
-// <Text> only); object `axisLine` presentation merge (boolean honored); events.
-import { createEffect, For, merge, onCleanup, Show } from "solid-js";
+// The axis `label` (title) IS wired via PolarLabelContext + PolarLabelFromLabelProp,
+// and the per-tick mouse handlers ARE wired (props-first `(tickItem, index, event)`).
+// FUNCTION-form `tick` IS wired (called with recharts' renderTickItem content props).
+// Object-form `axisLine` presentation merge IS wired (extra props restyle the
+// line; geometry stays computed). ZIndexLayer wrap IS wired (reference default
+// DefaultZIndexes.axis).
+// DEFERRED (documented): ELEMENT-form `tick` (Solid can't clone-and-inject
+// computed props into an evaluated node — use the function form instead).
+import { createEffect, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
+import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { Layer } from "../container/Layer";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { Text } from "../component/Text";
 import {
   type ImplicitLabelType,
@@ -38,6 +46,8 @@ import { selectPolarViewBox } from "../state/selectors/polarAxisSelectors";
 import { usePolarChartLayout } from "../context/chartLayoutContext";
 import { getAxisTypeBasedOnLayout } from "../util/getAxisTypeBasedOnLayout";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
+import type { PolarAxisLineObjectProps, PolarTickEventHandler } from "./PolarAngleAxis";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 type TickOrientation = "left" | "right" | "middle";
 
@@ -50,6 +60,18 @@ export interface PolarRadiusAxisProps<DataPointType = unknown, DataValueType = u
   /** Axis title; rendered via the polar Label path. */
   label?: ImplicitLabelType;
   angle?: number;
+  /** Per-tick pointer handlers, called props-first `(tickItem, index, event)`. */
+  onClick?: PolarTickEventHandler<MouseEvent>;
+  onMouseEnter?: PolarTickEventHandler<MouseEvent>;
+  onMouseLeave?: PolarTickEventHandler<MouseEvent>;
+  onMouseOver?: PolarTickEventHandler<MouseEvent>;
+  onMouseOut?: PolarTickEventHandler<MouseEvent>;
+  onMouseMove?: PolarTickEventHandler<MouseEvent>;
+  onMouseDown?: PolarTickEventHandler<MouseEvent>;
+  onMouseUp?: PolarTickEventHandler<MouseEvent>;
+  onTouchStart?: PolarTickEventHandler<TouchEvent>;
+  onTouchMove?: PolarTickEventHandler<TouchEvent>;
+  onTouchEnd?: PolarTickEventHandler<TouchEvent>;
   type?: AxisDomainTypeInput;
   dataKey?: DataKey<DataPointType, DataValueType>;
   domain?: AxisDomain;
@@ -61,10 +83,17 @@ export interface PolarRadiusAxisProps<DataPointType = unknown, DataValueType = u
     | CustomScaleDefinition<Date>;
   orientation?: TickOrientation;
   ticks?: ReadonlyArray<AxisTick>;
-  tick?: TickProp<unknown>;
+  /**
+   * Tick labels: boolean toggles the default `<Text>`; a function is called per
+   * tick with {@link PolarRadiusTickContentProps} (recharts' renderTickItem props).
+   * ELEMENT form is unsupported (Solid cannot clone-and-inject computed props).
+   */
+  tick?: TickProp<PolarRadiusTickContentProps>;
   tickCount?: number;
   tickFormatter?: (value: unknown, index: number) => string;
-  axisLine?: boolean;
+  /** The axis line: boolean toggles it; an object supplies extra presentation
+   * props merged onto the `<line>` (recharts SVGProps form). */
+  axisLine?: boolean | PolarAxisLineObjectProps;
   allowDecimals?: boolean;
   allowDuplicatedCategory?: boolean;
   allowDataOverflow?: boolean;
@@ -74,6 +103,8 @@ export interface PolarRadiusAxisProps<DataPointType = unknown, DataValueType = u
   name?: string;
   stroke?: string;
   hide?: boolean;
+  /** Z-index layering (reference default: DefaultZIndexes.axis). */
+  zIndex?: number;
   class?: string;
 }
 
@@ -117,13 +148,49 @@ const getTickTextAnchor = (orientation: TickOrientation): "start" | "end" | "mid
   }
 };
 
-interface RadiusTickProps {
+/**
+ * The props a PolarRadiusAxis passes to a function-form `tick` renderer, matching
+ * the object recharts' renderTickItem builds (axis svg props + anchor + geometry).
+ */
+export interface PolarRadiusTickContentProps {
+  x: number;
+  y: number;
+  cx: number;
+  cy: number;
+  angle: number;
+  orientation: TickOrientation;
+  index: number;
+  payload: TickItem;
+  textAnchor: "start" | "end" | "middle";
+  /** recharts rotates the tick text by `90 - angle` around (x, y). */
+  transform: string;
+  stroke: string;
+  fill: string | undefined;
+}
+
+/** Per-tick mouse handlers PolarRadiusAxis forwards onto each tick `<Layer>`. */
+export interface PolarRadiusAxisTickEvents {
+  onClick?: PolarTickEventHandler<MouseEvent>;
+  onMouseEnter?: PolarTickEventHandler<MouseEvent>;
+  onMouseLeave?: PolarTickEventHandler<MouseEvent>;
+  onMouseOver?: PolarTickEventHandler<MouseEvent>;
+  onMouseOut?: PolarTickEventHandler<MouseEvent>;
+  onMouseMove?: PolarTickEventHandler<MouseEvent>;
+  onMouseDown?: PolarTickEventHandler<MouseEvent>;
+  onMouseUp?: PolarTickEventHandler<MouseEvent>;
+  onTouchStart?: PolarTickEventHandler<TouchEvent>;
+  onTouchMove?: PolarTickEventHandler<TouchEvent>;
+  onTouchEnd?: PolarTickEventHandler<TouchEvent>;
+}
+
+interface RadiusTickProps extends PolarRadiusAxisTickEvents {
   entry: TickItem;
   index: number;
   cx: number;
   cy: number;
   angle: number;
   orientation: TickOrientation;
+  tick: TickProp<PolarRadiusTickContentProps>;
   stroke: string | undefined;
   tickFormatter: ((value: unknown, index: number) => string) | undefined;
 }
@@ -140,19 +207,53 @@ const RadiusAxisTick = (props: RadiusTickProps): JSX.Element => {
     return isNumOrStr(props.entry.value) ? props.entry.value : String(props.entry.value);
   };
   return (
-    <Layer class="recharts-polar-radius-axis-tick">
-      <Text
-        class="recharts-polar-radius-axis-tick-value"
-        stroke="none"
-        fill={props.stroke}
-        x={coord().x}
-        y={coord().y}
-        // recharts rotates the tick text itself by `90 - angle` around (x, y).
-        angle={90 - props.angle}
-        textAnchor={getTickTextAnchor(props.orientation)}
-      >
-        {value()}
-      </Text>
+    <Layer
+      class="recharts-polar-radius-axis-tick"
+      onClick={(e) => props.onClick?.(props.entry, props.index, e)}
+      onMouseEnter={(e) => props.onMouseEnter?.(props.entry, props.index, e)}
+      onMouseLeave={(e) => props.onMouseLeave?.(props.entry, props.index, e)}
+      onMouseOver={(e) => props.onMouseOver?.(props.entry, props.index, e)}
+      onMouseOut={(e) => props.onMouseOut?.(props.entry, props.index, e)}
+      onMouseMove={(e) => props.onMouseMove?.(props.entry, props.index, e)}
+      onMouseDown={(e) => props.onMouseDown?.(props.entry, props.index, e)}
+      onMouseUp={(e) => props.onMouseUp?.(props.entry, props.index, e)}
+      onTouchStart={(e) => props.onTouchStart?.(props.entry, props.index, e)}
+      onTouchMove={(e) => props.onTouchMove?.(props.entry, props.index, e)}
+      onTouchEnd={(e) => props.onTouchEnd?.(props.entry, props.index, e)}
+    >
+      {/* Function-form tick: call with recharts' tick-content props. Ternary (not
+        <Show>) so the constant branch doesn't trip STRICT_READ. ELEMENT-form is
+        unsupported (Solid can't clone-and-inject computed props into an evaluated
+        node) — use the function form instead. */}
+      {typeof props.tick === "function" ? (
+        props.tick({
+          x: coord().x,
+          y: coord().y,
+          cx: props.cx,
+          cy: props.cy,
+          angle: props.angle,
+          orientation: props.orientation,
+          index: props.index,
+          payload: props.entry,
+          textAnchor: getTickTextAnchor(props.orientation),
+          transform: `rotate(${90 - props.angle}, ${coord().x}, ${coord().y})`,
+          stroke: "none",
+          fill: props.stroke,
+        })
+      ) : (
+        <Text
+          class="recharts-polar-radius-axis-tick-value"
+          stroke="none"
+          fill={props.stroke}
+          x={coord().x}
+          y={coord().y}
+          // recharts rotates the tick text itself by `90 - angle` around (x, y).
+          angle={90 - props.angle}
+          textAnchor={getTickTextAnchor(props.orientation)}
+        >
+          {value()}
+        </Text>
+      )}
     </Layer>
   );
 };
@@ -187,7 +288,11 @@ export function PolarRadiusAxis<DataPointType = unknown, DataValueType = unknown
         allowDecimals: merged.allowDecimals,
         tickCount: merged.tickCount,
         ticks: merged.ticks,
-        tick: merged.tick,
+        // DEVIATION: the settings slice shares the cartesian tick renderer type,
+        // so a polar function-form renderer is recorded as `true` (presence only —
+        // the renderer itself stays local to this component's render; no selector
+        // reads the function back out of the store).
+        tick: typeof merged.tick === "function" ? true : merged.tick,
         niceTicks: merged.niceTicks,
       };
     },
@@ -200,7 +305,7 @@ export function PolarRadiusAxis<DataPointType = unknown, DataValueType = unknown
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.polarAxis.removeRadiusAxis(prev);
       prev = null;
@@ -250,48 +355,67 @@ export function PolarRadiusAxis<DataPointType = unknown, DataValueType = unknown
   return (
     <Show when={renderData()}>
       {(rd) => (
-        <Layer class={axisClass()}>
-          <Show when={merged.axisLine}>
-            <line
-              class="recharts-polar-radius-axis-line"
-              fill="none"
-              stroke={merged.stroke}
-              x1={axisLineCoords(rd()).x1}
-              y1={axisLineCoords(rd()).y1}
-              x2={axisLineCoords(rd()).x2}
-              y2={axisLineCoords(rd()).y2}
-            />
-          </Show>
-          <Show when={merged.tick}>
-            <Layer class="recharts-polar-radius-axis-ticks">
-              <For each={rd().ticks}>
-                {(entry, i) => (
-                  <RadiusAxisTick
-                    entry={entry}
-                    index={i()}
-                    cx={rd().cx}
-                    cy={rd().cy}
-                    angle={merged.angle}
-                    orientation={merged.orientation}
-                    stroke={merged.stroke}
-                    tickFormatter={merged.tickFormatter}
-                  />
-                )}
-              </For>
-            </Layer>
-          </Show>
-          <PolarLabelContextProvider
-            cx={rd().cx}
-            cy={rd().cy}
-            startAngle={merged.angle}
-            endAngle={merged.angle}
-            innerRadius={minTickCoordinate(rd().ticks)}
-            outerRadius={maxTickCoordinate(rd().ticks)}
-            clockWise={false}
-          >
-            <PolarLabelFromLabelProp label={merged.label} />
-          </PolarLabelContextProvider>
-        </Layer>
+        // ZIndexLayer INSIDE the gate <Show> (a Portal must not get a reactive
+        // Show child — see Bar). Reference default = DefaultZIndexes.axis.
+        <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.axis}>
+          <Layer class={axisClass()}>
+            <Show when={merged.axisLine}>
+              {/* Object-form axisLine: extra presentation props merged AFTER the
+                defaults but BEFORE the coords (reference order — restyle, not
+                reposition). Kebab via the canonical helper (intrinsic <line>). */}
+              <line
+                class="recharts-polar-radius-axis-line"
+                fill="none"
+                stroke={merged.stroke}
+                {...(typeof merged.axisLine === "object" && merged.axisLine != null
+                  ? svgPropertiesNoEvents({ ...merged.axisLine })
+                  : {})}
+                x1={axisLineCoords(rd()).x1}
+                y1={axisLineCoords(rd()).y1}
+                x2={axisLineCoords(rd()).x2}
+                y2={axisLineCoords(rd()).y2}
+              />
+            </Show>
+            <Show when={merged.tick}>
+              <Layer class="recharts-polar-radius-axis-ticks">
+                <For each={rd().ticks}>
+                  {(entry, i) => (
+                    <RadiusAxisTick
+                      entry={entry}
+                      index={i()}
+                      cx={rd().cx}
+                      cy={rd().cy}
+                      angle={merged.angle}
+                      orientation={merged.orientation}
+                      tick={merged.tick}
+                      stroke={merged.stroke}
+                      tickFormatter={merged.tickFormatter}
+                      onClick={props.onClick}
+                      onMouseEnter={props.onMouseEnter}
+                      onMouseLeave={props.onMouseLeave}
+                      onMouseOver={props.onMouseOver}
+                      onMouseOut={props.onMouseOut}
+                      onMouseMove={props.onMouseMove}
+                      onMouseDown={props.onMouseDown}
+                      onMouseUp={props.onMouseUp}
+                    />
+                  )}
+                </For>
+              </Layer>
+            </Show>
+            <PolarLabelContextProvider
+              cx={rd().cx}
+              cy={rd().cy}
+              startAngle={merged.angle}
+              endAngle={merged.angle}
+              innerRadius={minTickCoordinate(rd().ticks)}
+              outerRadius={maxTickCoordinate(rd().ticks)}
+              clockWise={false}
+            >
+              <PolarLabelFromLabelProp label={merged.label} />
+            </PolarLabelContextProvider>
+          </Layer>
+        </ZIndexLayer>
       )}
     </Show>
   );

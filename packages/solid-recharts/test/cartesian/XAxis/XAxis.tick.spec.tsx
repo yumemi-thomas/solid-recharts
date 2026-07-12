@@ -127,9 +127,9 @@ describe("XAxis tick", () => {
   });
 
   describe("custom tick components", () => {
-    // SKIP: parity gap — custom tick render functions/elements are deferred in this port
-    // (CartesianAxis renders only the built-in tick label; the `tick` element/function is
-    // not invoked, so neither the padding nor the prop-shape assertions can fire).
+    // SKIP — PERMANENT N/A: element-form tick (`tick={<CustomTick />}`). Solid JSX
+    // evaluates eagerly to DOM; there is no cloneElement to re-invoke the element
+    // with per-tick props. The function-form equivalents below are live.
     it.skip("should pass object padding to custom tick component", () => {
       const expectedPadding = { left: 20, right: 30 };
       expect.assertions(6);
@@ -147,7 +147,7 @@ describe("XAxis tick", () => {
       ));
     });
 
-    // SKIP: parity gap — custom tick render functions/elements deferred (see above).
+    // SKIP — PERMANENT N/A: element-form tick (see above).
     it.skip("should pass string padding to custom tick component", () => {
       const expectedPadding = "gap";
       expect.assertions(6);
@@ -165,16 +165,17 @@ describe("XAxis tick", () => {
       ));
     });
 
-    // SKIP: function-tick render WORKS (per-call props/padding are correct, as the
-    // identical YAxis.tick tests confirm); only the CALL-COUNT assertion fails — Solid
-    // re-invokes the tick renderer on the x-axis's extra layout-settle pass (6→12), a
-    // render-count coupling this port drops (cf. toHaveBeenCalledTimes elsewhere).
-    it.skip("should pass padding to function-based custom tick", () => {
+    // Deviation from the verbatim spec: recharts invokes the tick renderer once
+    // per tick (6×); Solid renders an extra provisional pass before the axis
+    // offset settles (12×, see the TextProps case below), so the per-call
+    // `expect.assertions(6)` count is replaced by collect-and-assert-every —
+    // the padding VALUE is asserted on every invocation, both passes.
+    it("should pass padding to function-based custom tick", () => {
       const expectedPadding = { left: 15, right: 25 };
-      expect.assertions(6);
+      const seenPaddings: unknown[] = [];
 
       const customTickFunction = (props: XAxisTickContentProps): JSX.Element => {
-        expect(props.padding).toEqual(expectedPadding);
+        seenPaddings.push(props.padding);
         return <text>Function Tick</text>;
       };
 
@@ -184,9 +185,12 @@ describe("XAxis tick", () => {
           <Line type="monotone" dataKey="uv" stroke="#ff7300" />
         </LineChart>
       ));
+
+      expect(seenPaddings.length).toBeGreaterThanOrEqual(6);
+      seenPaddings.forEach((p) => expect(p).toEqual(expectedPadding));
     });
 
-    // SKIP: parity gap — custom tick render functions/elements deferred (see above).
+    // SKIP — PERMANENT N/A: element-form tick (see above).
     it.skip("should pass default padding when no padding is specified", () => {
       expect.assertions(6);
 
@@ -203,11 +207,13 @@ describe("XAxis tick", () => {
       ));
     });
 
-    // SKIP: function-tick render WORKS (per-call props/padding are correct, as the
-    // identical YAxis.tick tests confirm); only the CALL-COUNT assertion fails — Solid
-    // re-invokes the tick renderer on the x-axis's extra layout-settle pass (6→12), a
-    // render-count coupling this port drops (cf. toHaveBeenCalledTimes elsewhere).
-    it.skip("should pass all TextProps and index and payload to custom tick component", () => {
+    // Deviation from the verbatim spec (6 calls → 12): Solid registers axis
+    // settings in a deferred effect, so the first pass renders ticks with a
+    // provisional offset (y=8) and the settled pass re-invokes the renderer with
+    // the final geometry (y=373). recharts dispatches synchronously mid-render
+    // and only ever does the settled pass. The vendor's call 1..6 assertions are
+    // therefore checked against our settled calls 7..12 — same values.
+    it("should pass all TextProps and index and payload to custom tick component", () => {
       const myCustomTick: Mock = vi.fn<(props: XAxisTickContentProps) => JSX.Element>();
 
       render(() => (
@@ -217,10 +223,11 @@ describe("XAxis tick", () => {
         </LineChart>
       ));
 
-      expect(myCustomTick).toHaveBeenCalledTimes(6);
-      expectNthCalledWith(myCustomTick, 1, {
+      expect(myCustomTick).toHaveBeenCalledTimes(12);
+      expectNthCalledWith(myCustomTick, 7, {
         angle: 0,
-        className: "recharts-xAxis xAxis recharts-cartesian-axis-tick-value",
+        // Deviation: `class` (Solid grammar), not recharts `className`.
+        class: "recharts-xAxis xAxis recharts-cartesian-axis-tick-value",
         fill: "#666",
         height: 30,
         index: 0,
@@ -248,9 +255,10 @@ describe("XAxis tick", () => {
         y: 373,
       });
 
-      expectNthCalledWith(myCustomTick, 2, {
+      expectNthCalledWith(myCustomTick, 8, {
         angle: 0,
-        className: "recharts-xAxis xAxis recharts-cartesian-axis-tick-value",
+        // Deviation: `class` (Solid grammar), not recharts `className`.
+        class: "recharts-xAxis xAxis recharts-cartesian-axis-tick-value",
         fill: "#666",
         height: 30,
         index: 1,
@@ -310,11 +318,7 @@ describe("XAxis tick", () => {
     expect(axisDomainSpy).toHaveBeenLastCalledWith([0, 1, 2, 3, 4, 5]);
   });
 
-  // SKIP: parity gap — this port gates the whole axis Layer (including the axis line) on
-  // `axisRender()`, which is null when the axis has no resolvable domain (here dataKey="y"
-  // resolves to nothing), so the `.recharts-cartesian-axis-line` is not emitted. recharts
-  // always draws the axis line.
-  it.skip("Should render the axis line without any ticks", () => {
+  it("Should render the axis line without any ticks", () => {
     const spy = vi.fn();
     const barData = [{ day: "05-01" }, { day: "05-02" }];
     const { container } = render(() => (
@@ -333,14 +337,12 @@ describe("XAxis tick", () => {
     expectLastCalledWith(spy, undefined);
   });
 
-  // SKIP: parity gap — XAxis/YAxis have no `onClick` prop in this port (verified:
-  // `grep onClick src/cartesian/XAxis.tsx` is empty), so attaching onClick to the axis
-  // and clicking a tick is unportable.
-  it.skip("Should pass data, index, and event to the onClick event handler", () => {
+  // Per-tick events: XAxis forwards the props-first `(tickItem, index, event)` handlers
+  // to CartesianAxis, which attaches them to each tick-label Layer.
+  it("Should pass data, index, and event to the onClick event handler", () => {
     const onClickFn = vi.fn();
     const { container } = render(() => (
       <LineChart width={400} height={400} data={lineData}>
-        {/* @ts-expect-error onClick is not part of XAxisProps in this port */}
         <XAxis ticks={[0, 4]} onClick={onClickFn} />
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
@@ -468,4 +470,24 @@ describe("XAxis tick", () => {
       ]);
     },
   );
+
+  it("Forwards class, fontSize and letterSpacing to the rendered axis", () => {
+    const { container } = render(() => (
+      <LineChart width={600} height={300} data={lineData}>
+        <XAxis dataKey="name" class="styled-axis" fontSize={11} letterSpacing="1px" />
+        <Line dataKey="uv" />
+      </LineChart>
+    ));
+
+    const layer = container.querySelector(".recharts-xAxis");
+    expect(layer).not.toBeNull();
+    expect(layer).toHaveClass("styled-axis");
+
+    const tickTexts = container.querySelectorAll(".recharts-cartesian-axis-tick-value");
+    expect(tickTexts.length).toBeGreaterThan(0);
+    tickTexts.forEach((text) => {
+      expect(text).toHaveAttribute("font-size", "11");
+      expect(text).toHaveAttribute("letter-spacing", "1px");
+    });
+  });
 });

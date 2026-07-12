@@ -11,9 +11,14 @@ globalThis._SOLID_DEV_ = true;
 globalThis.__DEV__ = true;
 
 // Ported from vendor/recharts-reference/test/vitest.setup.ts — fake rAF/cAF so
-// mouseEventsMiddleware throttleDelay:'raf' settles synchronously in tests.
+// mouseEventsMiddleware throttleDelay:'raf' settles synchronously in tests. We ALSO
+// fake `performance` so `performance.now()` shares the faked clock with the faked
+// rAF timestamp: RequestAnimationFrameTimeoutController compares the rAF `now`
+// against a `performance.now()` start time, and a real-vs-faked clock mismatch made
+// CSS-transition animations reschedule rAF forever under `vi.runAllTimers()` (the
+// 10000-timer infinite-loop guard). Aligning the clocks lets animated charts settle.
 vi.useFakeTimers({
-  toFake: ["requestAnimationFrame", "cancelAnimationFrame"],
+  toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"],
 });
 
 // @ts-expect-error — testing-library user-event checks the `jest` global

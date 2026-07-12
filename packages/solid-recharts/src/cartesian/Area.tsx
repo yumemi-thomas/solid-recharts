@@ -1,32 +1,55 @@
-// Ported from recharts 3.8.1 src/cartesian/Area.tsx (commit 7a23854).
+// Ported from recharts 3.9.0 src/cartesian/Area.tsx (commit 7a23854 base).
 //
-// MINIMAL PORT — a 3rd graphical item, reusing the Line/axis spine: it computes
-// points like a Line plus a baseLine, and draws a filled <Curve>.
-// Deferred (documented): range areas (scalar values → flat numeric baseLine),
-// activeDot, labels, ZIndexLayer, clip. (Stacks, animation, dots — boolean /
-// props-object / function-form render prop — tooltip + legend registration are
-// wired.)
+// A graphical item reusing the Line/axis spine: it computes points like a Line
+// plus a baseLine, and draws a filled <Curve>.
+// FULLY WIRED: range areas, activeDot, labels, clip, stacks, dots (boolean /
+// props-object / function-form), tooltip + legend registration, and animation
+// — migrated to the v3.9 engine (AnimatedItems + AnimationController). The
+// entrance clip-reveal now lives in AreaRevealShape (the default `shape`); the
+// data-change morph is driven by the AnimatedItems interpolation fn.
 // Solid deviations: `resolveDefaultProps`→`merge`; effect-dispatch
-// registration components → `createEffect` add/replace + `onCleanup` (Line idiom).
-import { createEffect, createMemo, merge, onCleanup, Show, untrack } from "solid-js";
+// registration components → `createEffect` add/replace + `onCleanup` (Line idiom);
+// React `useRef` prev-frame state → plain `{ current }` MutableRef objects driven
+// by AnimatedItems/useAnimationStartSnapshot.
+import { createEffect, createMemo, createSignal, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
-import { useAnimationId } from "../util/useAnimationId";
-import { JavascriptAnimate } from "../animation/JavascriptAnimate";
+import { AnimatedItems, type AnimationInterpolateFn } from "../animation/AnimatedItems";
+import {
+  matchAnimationItems,
+  matchByIndex,
+  type AnimationItem,
+  type AnimationMatchByProp,
+} from "../animation/matchBy";
+import { useAnimationStartSnapshot, type MutableRef } from "../animation/useAnimationStartSnapshot";
 import type { EasingInput } from "../animation/easing";
-import { isWellBehavedNumber } from "../util/isWellBehavedNumber";
 import { noop } from "../util/DataUtils";
 import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
 import { TooltipPayloadConfiguration } from "../state/tooltipSlice";
 import { SetLegendPayload } from "../state/SetLegendPayload";
 import { LegendPayload } from "../component/DefaultLegendContent";
+import type { Formatter } from "../component/DefaultTooltipContent";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
 import { useUniqueId } from "../util/useUniqueId";
 import { Layer } from "../container/Layer";
-import { Curve, CurveType, type CurveProps } from "../shape/Curve";
-import { pickEventHandlers } from "../util/adaptEventHandlers";
-import { Dots } from "../component/Dots";
+import { type CurveType, type CurveProps, type BaseLineType } from "../shape/Curve";
+import { Shape } from "../util/ActiveShapeUtils";
+import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
+import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
+import { Dots, isClipDot } from "../component/Dots";
+import { getRadiusAndStrokeWidthFromDot } from "../util/getRadiusAndStrokeWidthFromDot";
+import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
+import { usePlotArea } from "../hooks";
+import {
+  type CartesianLabelListEntry,
+  CartesianLabelListContextProvider,
+  type ImplicitLabelListType,
+  LabelListFromLabelProp,
+} from "../component/LabelList";
+import type { ActiveShape, TrapezoidViewBox } from "../util/types";
 import { selectArea } from "../state/selectors/areaSelectors";
 import { AreaSettings } from "../state/types/AreaSettings";
 import { AxisId } from "../state/cartesianAxisSlice";
@@ -38,6 +61,7 @@ import {
   CartesianLayout,
   DataKey,
   DotType,
+  LegendType,
   NullableCoordinate,
   TickItem,
   TooltipType,
@@ -48,11 +72,14 @@ import {
 } from "../component/ActivePoints";
 import { useActiveTooltipDataPoints } from "../hooks";
 import { selectActiveTooltipIndex } from "../state/selectors/tooltipSelectors";
+import { selectChartName } from "../state/selectors/rootPropsSelectors";
 import { getCateCoordinateOfLine, getTooltipNameProp, getValueByDataKey } from "../util/ChartUtils";
-import { isNumber } from "../util/DataUtils";
+import { interpolate, isNan, isNullish, isNumber } from "../util/DataUtils";
 import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
 import { StackDataPoint } from "../util/stacks/stackTypes";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { AreaRevealShape, type AreaRevealShapeProps } from "./AreaRevealShape";
 
 function getLegendItemColor(
   stroke: string | undefined,
@@ -151,12 +178,23 @@ export function computeArea({
   const baseValue = getBaseValue(layout, chartBaseValue, itemBaseValue, xAxis, yAxis);
   const isHorizontalLayout = layout === "horizontal";
 
-  // Range areas (where dataKey already returns a [min, max] tuple) are still
-  // deferred; we handle the scalar and stacked paths.
+  // Range areas: when the dataKey returns a [low, high] tuple, the band spans
+  // those two values (rather than baseValue→value), so `isRange` flips on and the
+  // lower bound feeds the per-point baseLine below (recharts computeArea L1034).
+  let isRange = false;
   const points: ReadonlyArray<AreaPointItem> = displayedData.map((entry, index): AreaPointItem => {
-    const valueAsArray: ReadonlyArray<unknown> = hasStack
-      ? (stackedData?.[dataStartIndex + index] ?? [])
-      : [baseValue, getValueByDataKey(entry, dataKey)];
+    let valueAsArray: ReadonlyArray<unknown>;
+    if (hasStack) {
+      valueAsArray = stackedData?.[dataStartIndex + index] ?? [];
+    } else {
+      const rawValue = getValueByDataKey(entry, dataKey);
+      if (Array.isArray(rawValue)) {
+        valueAsArray = rawValue;
+        isRange = true;
+      } else {
+        valueAsArray = [baseValue, rawValue];
+      }
+    }
     const value1 = valueAsArray[1] ?? null;
     const isBreakPoint =
       value1 == null || (hasStack && !connectNulls && getValueByDataKey(entry, dataKey) == null);
@@ -180,7 +218,7 @@ export function computeArea({
   // Stacked areas get a per-point baseLine (the lower bound of each stack
   // segment); unstacked areas get a flat numeric baseline.
   let baseLine: number | ReadonlyArray<AreaPointItem>;
-  if (hasStack) {
+  if (hasStack || isRange) {
     baseLine = points.map((entry): AreaPointItem => {
       const low = entry.value != null ? entry.value[0] : null;
       if (isHorizontalLayout) {
@@ -200,12 +238,11 @@ export function computeArea({
     baseLine = (isHorizontalLayout ? yAxis.scale.map(baseValue) : xAxis.scale.map(baseValue)) ?? 0;
   }
 
-  return { points, baseLine, isRange: false };
+  return { points, baseLine, isRange };
 }
 
 // SVG props (incl. event handlers) the Area forwards onto its fill <Curve>, minus
-// the ones Area computes itself or redeclares below. Mirrors recharts' Area Props
-// so `<Area onClick={...} />` and other path attributes/events type-check.
+// the ones Area computes itself or redeclares below.
 type AreaSvgProps = Omit<
   CurveProps,
   | "points"
@@ -235,6 +272,8 @@ export interface AreaProps extends AreaSvgProps {
   unit?: string | number;
   /** Tooltip entry type (recharts only supports `'none'`). */
   tooltipType?: TooltipType;
+  /** Formats this Area's tooltip value; takes precedence over the Tooltip-level `formatter`. */
+  formatter?: Formatter;
   type?: CurveType;
   stroke?: string;
   strokeWidth?: number;
@@ -251,21 +290,53 @@ export interface AreaProps extends AreaSvgProps {
    */
   dot?: DotType;
   activeDot?: ActiveDotType;
+  /**
+   * Labels drawn at each point on the area's top line. boolean / props-object /
+   * custom render function (function form). @defaultValue false
+   */
+  label?: ImplicitLabelListType;
   stackId?: StackId;
+  /** Legend icon type. @defaultValue 'line' */
+  legendType?: LegendType;
   isAnimationActive?: boolean | "auto";
   animationBegin?: number;
   animationDuration?: AnimationDuration;
   animationEasing?: EasingInput;
+  /** Custom per-frame interpolation for the area points (v3.9). */
+  animationInterpolateFn?: AnimationInterpolateFn<AreaPointItem, CartesianLayout>;
+  /** How prev/next points are matched across data updates (v3.9). @defaultValue matchByIndex */
+  animationMatchBy?: AnimationMatchByProp<AreaPointItem>;
+  /**
+   * Custom area shape (function form / props object). Defaults to AreaRevealShape,
+   * the built-in entrance clip-reveal animation. @defaultValue AreaRevealShape
+   */
+  shape?: ActiveShape<AreaRevealShapeProps, SVGPathElement>;
+  /** Fired when the enter/update animation starts. */
+  onAnimationStart?: () => void;
+  /** Fired when the enter/update animation completes. */
+  onAnimationEnd?: () => void;
+  /**
+   * Z-Index of this component and its children; the higher, the more on top.
+   * @defaultValue 100 (DefaultZIndexes.area)
+   */
+  zIndex?: number;
   id?: string;
   class?: string;
 }
 
+// Typed so the `as const` defaults object carries `shape` as `ActiveShape` (not the
+// narrowed component signature) — mirrors Bar's `defaultBarShape`, avoids a cast.
+const defaultAreaShape: ActiveShape<AreaRevealShapeProps, SVGPathElement> = AreaRevealShape;
+
 export const areaDefaultProps = {
   activeDot: true,
   connectNulls: false,
+  dot: false,
   fill: "#3182bd",
   fillOpacity: 0.6,
   hide: false,
+  label: false,
+  legendType: "line",
   stroke: "#3182bd",
   strokeWidth: 1,
   xAxisId: 0,
@@ -275,84 +346,68 @@ export const areaDefaultProps = {
   animationBegin: 0,
   animationDuration: 1500,
   animationEasing: "ease",
+  animationMatchBy: matchByIndex,
+  // `animationInterpolateFn` intentionally omitted here — it's optional and the
+  // consumer falls back to `defaultAreaAnimateItems` (defined below) via `??`.
+  shape: defaultAreaShape,
+  zIndex: DefaultZIndexes.area,
 } as const;
 
-// Enter-animation clip-reveal rects (ported from recharts Area ClipRect). The
-// area's `d` is unchanged; an alpha-scaled rect clips it for a progressive reveal.
 type AreaBaseLine = number | ReadonlyArray<AreaPointItem>;
 
-function HorizontalClipRect(props: {
-  alpha: number;
-  points: ReadonlyArray<AreaPointItem>;
-  baseLine: AreaBaseLine;
-  strokeWidth: number | string | undefined;
-}): JSX.Element {
-  const startX = (): number | null => props.points[0]?.x ?? null;
-  const endX = (): number | null => props.points[props.points.length - 1]?.x ?? null;
-  const geom = (): { x: number; width: number; height: number } | null => {
-    const sx = startX();
-    const ex = endX();
-    if (!isWellBehavedNumber(sx) || !isWellBehavedNumber(ex)) {
-      return null;
+// Default per-frame interpolation for Area points (the `animationInterpolateFn`
+// the new AnimatedItems engine drives). Mirrors recharts 3.9
+// `defaultAreaAnimateItems`: matched points tween between prev/next; added points
+// snap to their final position (the clip-path reveal handles the entrance); removed
+// points are dropped. t=1 returns the target identity so settled renders match.
+const defaultAreaAnimateItems: AnimationInterpolateFn<AreaPointItem, CartesianLayout> = (
+  items,
+  animationElapsedTime,
+) => {
+  if (items == null) {
+    // First render: clip-path animation handles the reveal.
+    return [];
+  }
+  if (animationElapsedTime === 1) {
+    return items.flatMap((item) => (item.status === "removed" ? [] : [item.next]));
+  }
+  return items.flatMap((item): AreaPointItem[] => {
+    if (item.status === "matched") {
+      return [
+        {
+          ...item.next,
+          x: interpolate(item.prev.x, item.next.x, animationElapsedTime),
+          y: interpolate(item.prev.y, item.next.y, animationElapsedTime),
+        },
+      ];
     }
-    const width = props.alpha * Math.abs(sx - ex);
-    let maxY = Math.max(...props.points.map((e) => e.y ?? 0));
-    if (isNumber(props.baseLine)) {
-      maxY = Math.max(props.baseLine, maxY);
-    } else if (props.baseLine.length > 0) {
-      maxY = Math.max(...props.baseLine.map((e) => e.y ?? 0), maxY);
+    if (item.status === "added") {
+      // Return the final position without interpolating so the clip-path
+      // entrance reveal (AreaRevealShape) can do the initial animation.
+      return [item.next];
     }
-    if (!isNumber(maxY)) {
-      return null;
-    }
-    return {
-      x: sx < ex ? sx : sx - width,
-      width,
-      height: Math.floor(maxY + (props.strokeWidth ? parseInt(`${props.strokeWidth}`, 10) : 1)),
-    };
-  };
-  return (
-    <Show when={geom()}>
-      {(g) => <rect x={g().x} y={0} width={g().width} height={g().height} />}
-    </Show>
-  );
-}
+    // removed: drop
+    return [];
+  });
+};
 
-function VerticalClipRect(props: {
-  alpha: number;
-  points: ReadonlyArray<AreaPointItem>;
-  baseLine: AreaBaseLine;
-  strokeWidth: number | string | undefined;
-}): JSX.Element {
-  const startY = (): number | null => props.points[0]?.y ?? null;
-  const endY = (): number | null => props.points[props.points.length - 1]?.y ?? null;
-  const geom = (): { y: number; width: number; height: number } | null => {
-    const sy = startY();
-    const ey = endY();
-    if (!isWellBehavedNumber(sy) || !isWellBehavedNumber(ey)) {
-      return null;
-    }
-    const height = props.alpha * Math.abs(sy - ey);
-    let maxX = Math.max(...props.points.map((e) => e.x ?? 0));
-    if (isNumber(props.baseLine)) {
-      maxX = Math.max(props.baseLine, maxX);
-    } else if (props.baseLine.length > 0) {
-      maxX = Math.max(...props.baseLine.map((e) => e.x ?? 0), maxX);
-    }
-    if (!isNumber(maxX)) {
-      return null;
-    }
-    return {
-      y: sy < ey ? sy : sy - height,
-      width: Math.floor(maxX + (props.strokeWidth ? parseInt(`${props.strokeWidth}`, 10) : 1)),
-      height,
-    };
-  };
-  return (
-    <Show when={geom()}>
-      {(g) => <rect x={0} y={g().y} width={g().width} height={g().height} />}
-    </Show>
-  );
+// The scalar baseLine morphs as a number (NaN/nullish animates toward 0, reference
+// parity). Per-point (array) baseLines flow through the same animationInterpolateFn
+// as the points (see AreaWithAnimation below).
+function interpolateScalarBaseLine(
+  baseLine: BaseLineType | undefined,
+  prevBaseLine: BaseLineType | undefined,
+  animationElapsedTime: number,
+): BaseLineType {
+  if (isNumber(baseLine)) {
+    const previousNumberBaseLine = isNumber(prevBaseLine) ? prevBaseLine : undefined;
+    return interpolate(previousNumberBaseLine, baseLine, animationElapsedTime);
+  }
+  if (isNullish(baseLine) || isNan(baseLine)) {
+    const previousNumberBaseLine = isNumber(prevBaseLine) ? prevBaseLine : undefined;
+    return interpolate(previousNumberBaseLine, 0, animationElapsedTime);
+  }
+  return baseLine;
 }
 
 export const Area = (props: AreaProps): JSX.Element => {
@@ -395,7 +450,7 @@ export const Area = (props: AreaProps): JSX.Element => {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
       prev = null;
@@ -418,25 +473,48 @@ export const Area = (props: AreaProps): JSX.Element => {
       name: getTooltipNameProp(merged.name, merged.dataKey),
       hide: merged.hide,
       type: merged.tooltipType,
-      color: merged.stroke,
+      color: getLegendItemColor(merged.stroke, merged.fill),
       unit: merged.unit,
+      formatter: merged.formatter,
       graphicalItemId: id,
     },
   }));
 
   // Legend payload entry for this area (color = stroke, like recharts' getLegendItemColor).
+  // `payload` mirrors recharts' resolved Area props (built explicitly — spreading the
+  // Solid merge() proxy would leak a MERGE_SOURCE symbol).
   const legendPayload = createMemo<ReadonlyArray<LegendPayload>>(() => [
     {
       inactive: merged.hide,
       dataKey: merged.dataKey,
-      type: "line",
-      color: merged.stroke,
+      type: merged.legendType,
+      color: getLegendItemColor(merged.stroke, merged.fill),
       value: getTooltipNameProp(merged.name, merged.dataKey),
+      payload: {
+        activeDot: merged.activeDot,
+        animationBegin: merged.animationBegin,
+        animationDuration: merged.animationDuration,
+        animationEasing: merged.animationEasing,
+        connectNulls: merged.connectNulls,
+        dataKey: merged.dataKey,
+        dot: merged.dot,
+        fill: merged.fill,
+        fillOpacity: merged.fillOpacity,
+        hide: merged.hide,
+        isAnimationActive: merged.isAnimationActive,
+        label: merged.label,
+        legendType: merged.legendType,
+        name: getTooltipNameProp(merged.name, merged.dataKey),
+        stroke: merged.stroke,
+        strokeWidth: merged.strokeWidth,
+        type: merged.type,
+        xAxisId: merged.xAxisId,
+        yAxisId: merged.yAxisId,
+        zIndex: merged.zIndex,
+      },
     },
   ]);
 
-  // Enter animation: a clip-rect grows to reveal the area (the `d` is UNCHANGED,
-  // so geometry specs are regression-safe). Keyed <Show> restarts on a new id.
   const activeTooltipIndex = useAppSelector(selectActiveTooltipIndex);
   const activeDataPoints = useActiveTooltipDataPoints();
   const tooltipActive = createMemo(() => ({
@@ -444,132 +522,287 @@ export const Area = (props: AreaProps): JSX.Element => {
     dataPoints: activeDataPoints(),
   }));
 
-  const animationId = useAnimationId(() => area(), "recharts-area-");
-  const animClipId = useUniqueId("recharts-area-clip");
+  // Clip path: recharts wraps the curves in a Layer clipped to the plot area when
+  // an axis has allowDataOverflow (needClip); the clipPath id is the area's id.
+  const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
+  const plotArea = usePlotArea();
+  const curveClipPath = createMemo(() => (needClip() ? `url(#clipPath-${id})` : undefined));
+
+  // recharts only renders <Area> inside AreaChart / ComposedChart (historical). The
+  // item still REGISTERS as a graphical item in any chart; only the curves are gated.
+  const chartName = useAppSelector(selectChartName);
+  const chartSupportsArea = createMemo(
+    () => chartName() === "AreaChart" || chartName() === "ComposedChart",
+  );
+
+  // When dots are NOT clipped to their bounding box (clipDot false), recharts emits
+  // a wider `clipPath-dots-` rect (plot area expanded by the dot size); clipDot true
+  // reuses the graphical-item clip path.
+  const dotsClip = (): { clipDot: boolean; dotSize: number } => {
+    const { r, strokeWidth } = getRadiusAndStrokeWidthFromDot(merged.dot ?? false);
+    return { clipDot: isClipDot(merged.dot ?? false), dotSize: r * 2 + strokeWidth };
+  };
+
+  // One LabelList entry per data point: a zero-size viewBox at the point's (x, y).
+  const labelListEntries = createMemo<ReadonlyArray<CartesianLabelListEntry>>(() => {
+    const computed = area();
+    if (computed == null) {
+      return [];
+    }
+    return computed.points.map((point): CartesianLabelListEntry => {
+      const viewBox: TrapezoidViewBox = {
+        x: point.x ?? 0,
+        y: point.y ?? 0,
+        width: 0,
+        lowerWidth: 0,
+        upperWidth: 0,
+        height: 0,
+      };
+      return {
+        ...viewBox,
+        value: point.value,
+        payload: point.payload,
+        viewBox,
+        parentViewBox: undefined,
+        fill: undefined,
+      };
+    });
+  });
+  // Labels are hidden while the entrance/update animation runs, shown once it ends.
+  // ownedWrite: handleAnimationEnd also fires from the driver's effect cleanup when
+  // a mid-animation chart is disposed (route/soft navigation) — a legal teardown.
+  const [showLabels, setShowLabels] = createSignal(true, { ownedWrite: true });
+  const labelContextEntries = createMemo(() => (showLabels() ? labelListEntries() : undefined));
+  const handleAnimationStart = (): void => {
+    setShowLabels(false);
+    props.onAnimationStart?.();
+  };
+  const handleAnimationEnd = (): void => {
+    setShowLabels(true);
+    props.onAnimationEnd?.();
+  };
+
+  // Per-frame prev geometry (recharts' previousPointsRef / previousBaselineRef):
+  // plain `{ current }` refs (NOT signals) driven by AnimatedItems +
+  // useAnimationStartSnapshot — they survive the keyed remount that starts each
+  // animation without themselves triggering renders.
+  const previousPointsRef: MutableRef<ReadonlyArray<AreaPointItem> | null> = { current: null };
+  const previousBaselineRef: MutableRef<AreaBaseLine | undefined> = { current: undefined };
+
+  const cartesianLayout = (): CartesianLayout =>
+    layout() === "vertical" ? "vertical" : "horizontal";
+  const interpolateFn = (): AnimationInterpolateFn<AreaPointItem, CartesianLayout> =>
+    merged.animationInterpolateFn ?? defaultAreaAnimateItems;
+
+  // Mirrors recharts' AreaWithAnimation: a separate snapshot tracks the baseLine
+  // so an interrupted animation resumes its baseLine from the in-flight value.
+  const baseLineSnapshot = useAnimationStartSnapshot<AreaBaseLine | undefined>(
+    () => area(),
+    previousBaselineRef,
+  );
+
+  // Renders the area shape (default AreaRevealShape, or a custom `shape`) at the
+  // given interpolated geometry. recharts' StaticArea: only draws when there is
+  // more than one point; the dots render regardless.
+  const renderShape = (
+    stepPoints: ReadonlyArray<AreaPointItem>,
+    stepBaseLine: AreaBaseLine | undefined,
+    isRange: boolean,
+    animationElapsedTime: number,
+    isAnimating: boolean,
+    isEntrance: boolean,
+  ): JSX.Element => {
+    const propsWithEvents = svgPropertiesAndEvents({ ...props });
+    const curveProps: AreaRevealShapeProps = {
+      ...propsWithEvents,
+      id,
+      points: stepPoints,
+      connectNulls: merged.connectNulls,
+      type: merged.type,
+      baseLine: stepBaseLine,
+      layout: cartesianLayout(),
+      stroke: merged.stroke,
+      fill: merged.fill,
+      fillOpacity: merged.fillOpacity,
+      strokeWidth: merged.strokeWidth,
+      isRange,
+      animationElapsedTime,
+      isAnimating,
+      isEntrance,
+    };
+    return (
+      <>
+        {stepPoints.length > 1 ? (
+          <Layer clipPath={curveClipPath()}>
+            <Shape<AreaRevealShapeProps, SVGPathElement>
+              option={merged.shape}
+              DefaultShape={AreaRevealShape}
+              shapeProps={curveProps}
+            />
+          </Layer>
+        ) : null}
+        <Dots
+          points={stepPoints}
+          dot={merged.dot ?? false}
+          class="recharts-area-dots"
+          dotClass="recharts-area-dot"
+          dataKey={merged.dataKey}
+          needClip={needClip()}
+          clipPathId={id}
+          baseProps={svgPropertiesNoEvents({
+            stroke: merged.stroke,
+            strokeWidth: merged.strokeWidth,
+            fill: merged.fill,
+            fillOpacity: merged.fillOpacity,
+          })}
+        />
+      </>
+    );
+  };
+
   return (
     <>
       <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
       <SetLegendPayload id={id} legendPayload={legendPayload()} />
-      <Show when={!merged.hide && area()}>
+      <Show when={chartSupportsArea() && !merged.hide && area()}>
         {(computed) => (
-          <>
-            <Layer class="recharts-area">
-              <Show when={animationId()} keyed>
-                {(animId) => (
-                  <JavascriptAnimate
-                    animationId={animId}
-                    duration={merged.animationDuration}
-                    easing={merged.animationEasing}
-                    isActive={merged.isAnimationActive}
-                    begin={merged.animationBegin}
-                  >
-                    {(t) => {
-                      const active = untrack(() => merged.isAnimationActive);
-                      const curve = (
-                        <Curve
-                          class="recharts-area-area"
-                          points={computed().points}
-                          baseLine={computed().baseLine}
-                          type={merged.type}
-                          layout={layout()}
-                          connectNulls={merged.connectNulls}
-                          fill={merged.fill}
-                          fill-opacity={merged.fillOpacity}
-                          stroke="none"
-                          {...pickEventHandlers(props)}
+          // Wrapped in <ZIndexLayer> (default 100) so a `zIndex` prop relayers the
+          // whole area (curve + dots + active points) into its portal — recharts
+          // wraps the entire `.recharts-area` Layer + ActivePoints in ZIndexLayer.
+          <ZIndexLayer zIndex={merged.zIndex}>
+            <Layer class={merged.class ? `recharts-area ${merged.class}` : "recharts-area"}>
+              <Show when={needClip()}>
+                <defs>
+                  <GraphicalItemClipPath
+                    clipPathId={id}
+                    xAxisId={merged.xAxisId}
+                    yAxisId={merged.yAxisId}
+                  />
+                  <Show when={!dotsClip().clipDot && plotArea()}>
+                    {(pa) => (
+                      <clipPath id={`clipPath-dots-${id}`}>
+                        <rect
+                          x={pa().x - dotsClip().dotSize / 2}
+                          y={pa().y - dotsClip().dotSize / 2}
+                          width={pa().width + dotsClip().dotSize}
+                          height={pa().height + dotsClip().dotSize}
                         />
-                      );
-                      // recharts draws the stroke as a separate top-edge curve
-                      // (`.recharts-area-curve`) over the fill, only when stroke !== 'none'.
-                      const strokeCurve =
-                        merged.stroke !== "none" ? (
-                          <Curve
-                            class="recharts-area-curve"
-                            points={computed().points}
-                            type={merged.type}
-                            layout={layout()}
-                            connectNulls={merged.connectNulls}
-                            fill="none"
-                            stroke={merged.stroke}
-                            stroke-width={merged.strokeWidth}
-                          />
-                        ) : null;
-                      const shapes = (
-                        <>
-                          {curve}
-                          {strokeCurve}
-                        </>
-                      );
-                      if (!active) {
-                        return shapes;
-                      }
-                      return (
-                        <>
-                          <defs>
-                            <clipPath id={animClipId}>
-                              <Show
-                                when={untrack(layout) === "vertical"}
-                                fallback={
-                                  <HorizontalClipRect
-                                    alpha={t}
-                                    points={computed().points}
-                                    baseLine={computed().baseLine}
-                                    strokeWidth={merged.strokeWidth}
-                                  />
-                                }
-                              >
-                                <VerticalClipRect
-                                  alpha={t}
-                                  points={computed().points}
-                                  baseLine={computed().baseLine}
-                                  strokeWidth={merged.strokeWidth}
-                                />
-                              </Show>
-                            </clipPath>
-                          </defs>
-                          <g clip-path={`url(#${animClipId})`}>{shapes}</g>
-                        </>
-                      );
-                    }}
-                  </JavascriptAnimate>
-                )}
+                      </clipPath>
+                    )}
+                  </Show>
+                </defs>
               </Show>
-              <Dots
-                points={computed().points}
-                dot={merged.dot ?? false}
-                class="recharts-area-dots"
-                dotClass="recharts-area-dot"
-                dataKey={merged.dataKey}
-                baseProps={{
-                  stroke: merged.stroke,
-                  "stroke-width": merged.strokeWidth,
-                  fill: merged.fill,
-                  "fill-opacity": merged.fillOpacity,
-                }}
-              />
+              <CartesianLabelListContextProvider value={labelContextEntries}>
+                <AnimatedItems
+                  animationInput={computed()}
+                  animationIdPrefix="recharts-area-"
+                  items={computed().points}
+                  previousItemsRef={previousPointsRef}
+                  isAnimationActive={merged.isAnimationActive}
+                  animationBegin={merged.animationBegin}
+                  animationDuration={merged.animationDuration}
+                  animationEasing={merged.animationEasing}
+                  onAnimationStart={handleAnimationStart}
+                  onAnimationEnd={handleAnimationEnd}
+                  animationInterpolateFn={interpolateFn()}
+                  animationMatchBy={merged.animationMatchBy}
+                  layout={cartesianLayout()}
+                >
+                  {(stepPoints, animationElapsedTime, isEntrance) => {
+                    const target = computed();
+                    const baseLine = target.baseLine;
+                    const prevBaseLine = baseLineSnapshot.startValue();
+                    // The baseLine morphs alongside the points. A per-point (array)
+                    // baseLine flows through the SAME interpolation fn (matched on the
+                    // same strategy); a scalar baseLine interpolates linearly. t=1
+                    // returns the target identity; the entrance frame keeps the scalar
+                    // baseLine fixed (the clip-reveal handles the entrance reveal).
+                    let stepBaseLine: AreaBaseLine | undefined;
+                    if (animationElapsedTime === 1) {
+                      stepBaseLine = baseLine;
+                    } else if (typeof baseLine !== "number") {
+                      let baseLineItems: ReadonlyArray<AnimationItem<AreaPointItem>> | null;
+                      if (typeof prevBaseLine !== "number" && prevBaseLine != null) {
+                        baseLineItems = matchAnimationItems(
+                          prevBaseLine,
+                          baseLine,
+                          merged.animationMatchBy,
+                        );
+                      } else {
+                        baseLineItems = matchAnimationItems(
+                          null,
+                          baseLine,
+                          merged.animationMatchBy,
+                        );
+                      }
+                      stepBaseLine = interpolateFn()(
+                        baseLineItems,
+                        animationElapsedTime,
+                        cartesianLayout(),
+                      );
+                    } else {
+                      stepBaseLine = isEntrance
+                        ? baseLine
+                        : interpolateScalarBaseLine(baseLine, prevBaseLine, animationElapsedTime);
+                    }
+                    baseLineSnapshot.syncStepValue(
+                      stepBaseLine,
+                      animationElapsedTime,
+                      animationElapsedTime > 0,
+                    );
+                    // recharts' useAnimationStartSnapshot refreshes the frozen
+                    // start value at t=1, so its `isEntrance` flips false on the
+                    // settled frame. Our snapshot memo doesn't refresh at t=1, so
+                    // we mirror the observable result: the settled (t=1) frame is
+                    // never an entrance (the reveal clip is gone there anyway).
+                    const effectiveIsEntrance = isEntrance && animationElapsedTime < 1;
+                    return renderShape(
+                      stepPoints,
+                      stepBaseLine,
+                      target.isRange,
+                      animationElapsedTime,
+                      !showLabels() || animationElapsedTime < 1,
+                      effectiveIsEntrance,
+                    );
+                  }}
+                </AnimatedItems>
+                <LabelListFromLabelProp label={merged.label} />
+              </CartesianLabelListContextProvider>
               {(() => {
-                const pts = computed().points;
                 const t = tooltipActive();
-                const state = computeActivePointState({
-                  points: pts,
-                  activeTooltipIndex: t.index,
-                  activeDataPoints: t.dataPoints,
-                  activeDot: merged.activeDot,
-                  mainColor: getLegendItemColor(merged.stroke, merged.fill),
-                  itemDataKey: merged.dataKey,
-                });
-                if (state == null) {
-                  return null;
-                }
-                return renderActivePointsLayerFromState(state, {
-                  points: pts,
-                  activeDot: merged.activeDot,
-                  mainColor: getLegendItemColor(merged.stroke, merged.fill),
-                  itemDataKey: merged.dataKey,
-                });
+                const renderActiveLayer = (
+                  layerPoints: ReadonlyArray<AreaPointItem>,
+                ): JSX.Element => {
+                  const state = computeActivePointState({
+                    points: layerPoints,
+                    activeTooltipIndex: t.index,
+                    activeDataPoints: t.dataPoints,
+                    activeDot: merged.activeDot,
+                    mainColor: getLegendItemColor(merged.stroke, merged.fill),
+                    itemDataKey: merged.dataKey,
+                  });
+                  if (state == null) {
+                    return null;
+                  }
+                  return renderActivePointsLayerFromState(state, {
+                    points: layerPoints,
+                    activeDot: merged.activeDot,
+                    mainColor: getLegendItemColor(merged.stroke, merged.fill),
+                    itemDataKey: merged.dataKey,
+                  });
+                };
+                // Range areas activate a dot on BOTH the high edge (points) and the
+                // low edge (baseLine) — recharts renders two <ActivePoints>.
+                const bl = computed().baseLine;
+                return (
+                  <>
+                    {renderActiveLayer(computed().points)}
+                    {computed().isRange && Array.isArray(bl) ? renderActiveLayer(bl) : null}
+                  </>
+                );
               })()}
             </Layer>
-          </>
+          </ZIndexLayer>
         )}
       </Show>
     </>

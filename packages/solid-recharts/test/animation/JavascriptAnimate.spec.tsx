@@ -1,24 +1,21 @@
-// Tier-B port of recharts' JavascriptAnimate timing/progress specs.
+// Tier-B behavioral spec for JavascriptAnimate on the v3.9 engine.
 //
-// The recharts specs assert React render COUNTS (how many times the function
-// child was called) via a 4-class mock-manager hierarchy + `act`/`rerender` —
-// all coupled to React's render cycle, which has no Solid equivalent (Solid
-// components run once; the function child re-invokes via a reactive JSX
-// binding, on a different cadence). So this validates the engine's behavioral
-// contract instead, golden-anchored to recharts: the child receives t=0 first
-// and t=1 once the animation completes, and an inactive animation jumps to t=1.
-// It drives the REAL `createAnimateManager` with the ported `MockTimeoutController`.
+// recharts' originals assert React render COUNTS via a mock-manager hierarchy +
+// `act`/`rerender` — coupled to React's render cycle, no Solid equivalent (Solid
+// components run once; the function child re-invokes via a reactive JSX binding).
+// So this validates the engine's behavioral contract instead, golden-anchored to
+// recharts: the child receives t=0 first and t=1 once the animation completes, and
+// an inactive animation jumps straight to t=1. It drives the REAL engine via the
+// injected MockControllerAnimationManager (deterministic, no requestAnimationFrame).
 import { describe, it, expect, vi } from "vitest";
 import { flush } from "solid-js";
 import { render } from "../helper/render";
 import { JavascriptAnimate } from "../../src/animation/JavascriptAnimate";
-import { createAnimateManager } from "../../src/animation/AnimationManager";
-import { MockTimeoutController } from "./mockTimeoutController";
+import { MockControllerAnimationManager } from "./mockControllerAnimationManager";
 
 describe("JavascriptAnimate", () => {
   it("calls the child with t=0 initially and t=1 once the animation completes", async () => {
-    const controller = new MockTimeoutController();
-    const manager = createAnimateManager(controller);
+    const manager = new MockControllerAnimationManager("1");
     const child = vi.fn((_t: number): null => null);
 
     render(() => (
@@ -27,7 +24,7 @@ describe("JavascriptAnimate", () => {
         easing="linear"
         duration={500}
         begin={0}
-        animationManager={manager}
+        animationController={manager.factory}
       >
         {child}
       </JavascriptAnimate>
@@ -36,25 +33,30 @@ describe("JavascriptAnimate", () => {
 
     expect(child).toHaveBeenCalledWith(0);
 
-    await controller.flushAllTimeouts();
+    await manager.completeAnimation();
     flush();
 
     expect(child).toHaveBeenLastCalledWith(1);
   });
 
   it("jumps straight to t=1 when isActive is false", () => {
-    const controller = new MockTimeoutController();
-    const manager = createAnimateManager(controller);
+    const manager = new MockControllerAnimationManager("1");
     const child = vi.fn((_t: number): null => null);
 
     render(() => (
-      <JavascriptAnimate animationId="1" isActive={false} duration={500} animationManager={manager}>
+      <JavascriptAnimate
+        animationId="1"
+        isActive={false}
+        duration={500}
+        animationController={manager.factory}
+      >
         {child}
       </JavascriptAnimate>
     ));
     flush();
 
     expect(child).toHaveBeenLastCalledWith(1);
-    expect(controller.getCallbacksCount()).toBe(0);
+    // Inactive → the controller is never invoked, so nothing is animating.
+    expect(manager.isAnimating()).toBe(false);
   });
 });

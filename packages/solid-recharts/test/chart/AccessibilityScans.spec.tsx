@@ -5,24 +5,32 @@
 // @testing-library/react -> the repo's local testing-library at ../helper/render.
 //
 // The reference spec's PRIMARY assertion in every case is
-// `expect((await axe(container)).violations).toEqual([])`, which depends on the
-// `vitest-axe` / `axe-core` packages. Those packages are NOT installed in this
-// repo, so the static a11y-violation scan cannot run. Ported here are only the
-// cases that carry a SECONDARY, framework-independent assertion: the root-SVG
-// `role="application"` attribute (and its absence under
-// `accessibilityLayer={false}`), plus the Scatter point geometry. Cases whose
-// ONLY assertion is the axe scan (Sankey, Sunburst, Treemap, and the combined
-// tooltip/legend/axes/brush/grid/margins chart) are intentionally not ported —
-// they would be assertion-less without `axe`.
+// `expect((await axe(container, AXE_OPTIONS)).violations).toEqual([])` (axe-core static a11y
+// scan). With `vitest-axe`/`axe-core` now installed, every case runs the real
+// scan, plus the framework-independent secondary assertions (root-SVG
+// `role="application"` / its absence, Scatter point geometry). The previously
+// deferred families (combined tooltip/legend/axes/brush/grid chart, Sankey,
+// Sunburst, Treemap) are ported here.
+//
+// `color-contrast` is DISABLED below: it is empirically `inapplicable` under
+// jsdom (no layout/visibility model → axe cannot determine rendered text or its
+// background, even with the `canvas` package), so it can never produce a verdict
+// here. Contrast (and real geometry) must be validated by a browser-based axe
+// run (Playwright + @axe-core/playwright). Every OTHER axe rule — ARIA validity,
+// roles, accessible names, structure, duplicate ids, etc. — runs for real.
 import { flush } from "solid-js";
 import { describe, expect, test } from "vitest";
+import { axe } from "vitest-axe";
 import {
   Area,
   AreaChart,
   Bar,
   BarChart,
+  Brush,
+  CartesianGrid,
   Funnel,
   FunnelChart,
+  Legend,
   Line,
   LineChart,
   Pie,
@@ -31,99 +39,138 @@ import {
   RadarChart,
   RadialBar,
   RadialBarChart,
+  Sankey,
   Scatter,
   ScatterChart,
+  SunburstChart,
   Tooltip,
+  Treemap,
   XAxis,
   YAxis,
 } from "../../src";
-import { PageData as data } from "../_data";
+import {
+  PageData as data,
+  exampleSankeyData,
+  exampleSunburstData,
+  exampleTreemapData,
+} from "../_data";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { render } from "../helper/render";
 
+const AXE_OPTIONS = { rules: { "color-contrast": { enabled: false } } } as const;
+
 describe("Static scanning for accessibility markup issues", () => {
-  test("Area chart", () => {
-    render(() => (
+  test("Area chart", async () => {
+    const { container } = render(() => (
       <AreaChart width={100} height={50} data={data}>
         <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
       </AreaChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("chart with accessibilityLayer", () => {
-    render(() => (
+  test("chart with accessibilityLayer", async () => {
+    const { container } = render(() => (
       <AreaChart width={100} height={50} data={data} accessibilityLayer>
         <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
       </AreaChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("chart with accessibilityLayer=false", () => {
-    render(() => (
+  test("chart with accessibilityLayer=false", async () => {
+    const { container } = render(() => (
       <AreaChart width={100} height={50} data={data} accessibilityLayer={false}>
         <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
       </AreaChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).not.toHaveAttribute("role");
   });
 
-  test("Bar chart", () => {
-    render(() => (
+  test("Chart with tooltip, legend, axes, brush, grid, margins", async () => {
+    const { container } = render(() => (
+      <AreaChart
+        width={100}
+        height={50}
+        data={data}
+        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+      >
+        <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
+        <Tooltip />
+        <Legend />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <CartesianGrid stroke="#f5f5f5" />
+        <Brush />
+      </AreaChart>
+    ));
+    flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
+  });
+
+  test("Bar chart", async () => {
+    const { container } = render(() => (
       <BarChart width={100} height={50} data={data}>
         <Bar dataKey="uv" fill="#ff7300" />
       </BarChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("Funnel chart", () => {
-    render(() => (
+  test("Funnel chart", async () => {
+    const { container } = render(() => (
       <FunnelChart width={500} height={300}>
         <Funnel dataKey="value" data={data} />
       </FunnelChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("Line chart", () => {
-    render(() => (
+  test("Line chart", async () => {
+    const { container } = render(() => (
       <LineChart width={400} height={400} data={data}>
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("Pie chart", () => {
-    render(() => (
+  test("Pie chart", async () => {
+    const { container } = render(() => (
       <PieChart width={800} height={400}>
         <Pie dataKey="value" data={[data[0]]} cx={200} cy={200} outerRadius={80} fill="#ff7300" />
       </PieChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("Radar chart", () => {
-    render(() => (
+  test("Radar chart", async () => {
+    const { container } = render(() => (
       <RadarChart cx={300} cy={250} outerRadius={150} width={600} height={500} data={data}>
         <Radar dataKey="value" />
       </RadarChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("Radial bar chart", () => {
-    render(() => (
+  test("Radial bar chart", async () => {
+    const { container } = render(() => (
       <RadialBarChart
         width={500}
         height={300}
@@ -138,10 +185,19 @@ describe("Static scanning for accessibility markup issues", () => {
       </RadialBarChart>
     ));
     flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
 
-  test("Scatter chart", () => {
+  test("Sankey chart", async () => {
+    const { container } = render(() => (
+      <Sankey width={1000} height={500} data={exampleSankeyData} />
+    ));
+    flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
+  });
+
+  test("Scatter chart", async () => {
     const { container } = render(() => (
       <ScatterChart width={400} height={400}>
         <XAxis dataKey="uv" name="stature" unit="cm" />
@@ -201,6 +257,30 @@ describe("Static scanning for accessibility markup issues", () => {
         width: "9.0270333367641",
       },
     ]);
+    expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
+  });
+
+  test("Sunburst", async () => {
+    const { container } = render(() => (
+      <SunburstChart width={500} height={500} data={exampleSunburstData} />
+    ));
+    flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
+  });
+
+  test("Treemap", async () => {
+    const { container } = render(() => (
+      <Treemap
+        width={500}
+        height={250}
+        data={exampleTreemapData}
+        isAnimationActive={false}
+        nameKey="name"
+        dataKey="value"
+      />
+    ));
+    flush();
+    expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
   });
 });

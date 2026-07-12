@@ -1,0 +1,69 @@
+export const meta = {
+  slug: "label-list",
+  title: "LabelList",
+  group: "general",
+  description: "Render labels for each data point in a series.",
+};
+
+# LabelList
+
+`LabelList` renders a label for each data point in a series (Bar, Line, Area, Pie, etc).
+It receives the list of point positions and values from the parent graphical item via
+context, so you nest it inside the series component.
+
+```tsx
+import { BarChart, Bar, LabelList } from "solid-recharts";
+
+<BarChart width={500} height={300} data={data}>
+  <Bar dataKey="value" fill="#8884d8">
+    <LabelList dataKey="value" position="top" />
+  </Bar>
+</BarChart>;
+```
+
+<Example slug="bar-labels" />
+
+## Props
+
+| Prop            | Type                                 | Default    | Description                                  |
+| --------------- | ------------------------------------ | ---------- | -------------------------------------------- |
+| `dataKey`       | `string \| number`                   | —          | Extract label value from data via this key   |
+| `position`      | position enum (see Label docs)       | `"middle"` | Placement relative to each point             |
+| `offset`        | `number`                             | `5`        | Distance from each point in pixels           |
+| `formatter`     | `(value) => string`                  | —          | Transform each label value before rendering  |
+| `content`       | `(props) => JSX.Element`             | —          | Render function for custom label content     |
+| `valueAccessor` | `(entry, index) => string \| number` | —          | Custom function to get label value per point |
+| `angle`         | `number`                             | `0`        | Rotation in degrees (applied to all labels)  |
+| `textBreakAll`  | `boolean`                            | `false`    | Break text at character boundaries           |
+| `class`         | `string`                             | —          | CSS class applied to each label              |
+
+## Usage
+
+Add `<LabelList>` as a direct child of a series component:
+
+```tsx
+<Bar dataKey="uv" fill="#82ca9d">
+  <LabelList dataKey="uv" position="top" />
+</Bar>
+```
+
+Or use the implicit `label` prop on the series:
+
+```tsx
+<Bar dataKey="uv" label={{ dataKey: "uv", position: "top" }} />
+```
+
+## Notes
+
+- `LabelList` only works inside a series component; it reads the label context from
+  the parent (Bar, Line, Area, Scatter, Pie, RadialBar, etc).
+- If `dataKey` is provided, it extracts the value from the data object; otherwise use
+  `valueAccessor` for custom logic.
+- The `content` render prop is called once per data point; return JSX to customize.
+- Works automatically in polar charts (Pie, RadialBar) for curved arc labels.
+
+## See also
+
+- [Label](/docs/label) — single positioned label
+- [Text](/docs/text) — low-level text rendering
+- [Bar](/docs/bar) · [Line](/docs/line) · [Area](/docs/area) — series with label support

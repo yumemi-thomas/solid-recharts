@@ -8,6 +8,8 @@ import type { Props as LabelProps } from "../../src/component/Label";
 import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
 import { assertNotNull } from "../helper/assertNotNull";
 import { render, screen } from "../helper/render";
+import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
+import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";
 
 const data = [
   { name: "Page A", uv: 400, pv: 2400, amt: 2400 },
@@ -366,6 +368,31 @@ describe("<Label />", () => {
 
           expect(label.textContent).toEqual("label,from,array");
         });
+
+        it("should render label when given content prop", () => {
+          // @ts-expect-error typescript says that array of strings is not allowed as content, and indeed it does not render anything
+          const { container } = renderLabelWithContent(array);
+          flush();
+
+          expect(container.textContent).toEqual("");
+        });
+      });
+
+      // recharts' "React function component" block: a component as content is
+      // invoked (and may run hooks). In the Solid port a function-form `content`
+      // is the function itself, so a "component" content reduces to the same path.
+      // PERMANENT-N/A: the children/value cases serialize the component source via
+      // React.Children semantics ("() => {"); the Solid renderer invokes a function
+      // child instead, so only the content case is portable.
+      describe("function component", () => {
+        const MyComp = () => <>label from component 1</>;
+
+        it("should render label when given content prop", () => {
+          const { container } = renderLabelWithContent(MyComp);
+          flush();
+
+          expect(container.textContent).toEqual("label from component 1");
+        });
       });
     });
 
@@ -521,7 +548,7 @@ describe("<Label />", () => {
     expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
   });
 
-  it.skip("Renders label by label props with animation disabled", () => {
+  it("Renders label by label props with animation disabled", () => {
     const { container } = render(() => (
       <LineChart
         width={400}
@@ -533,7 +560,6 @@ describe("<Label />", () => {
           type="monotone"
           dataKey="uv"
           stroke="#ff7300"
-          // @ts-expect-error Line label object support is still deferred in this Solid port.
           label={{ position: "center" }}
           isAnimationActive={false}
         />
@@ -545,26 +571,58 @@ describe("<Label />", () => {
     expect(screen.getByText(/400/i)).toBeInTheDocument();
   });
 
-  it.skip("Renders label by label props with animation enabled", () => {
+  it("Renders label by label props with animation enabled", () => {
+    const manager = new MockProgressAnimationManager("label-anim");
     const { container } = render(() => (
-      <LineChart
-        width={400}
-        height={400}
-        data={data}
-        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-      >
-        {/* @ts-expect-error Line label object support is still deferred in this Solid port. */}
-        <Line type="monotone" dataKey="uv" stroke="#ff7300" label={{ position: "center" }} />
-      </LineChart>
+      <AnimationControllerProvider value={manager.factory}>
+        <LineChart
+          width={400}
+          height={400}
+          data={data}
+          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+        >
+          <Line type="monotone" dataKey="uv" stroke="#ff7300" label={{ position: "center" }} />
+        </LineChart>
+      </AnimationControllerProvider>
     ));
     flush();
-
-    expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
-    expect(screen.getByText(/400/i)).toBeInTheDocument();
+    // Labels are hidden during the entrance animation; drive it to completion so they show.
+    return manager.completeAnimation().then(() => {
+      flush();
+      expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
+      expect(screen.getByText(/400/i)).toBeInTheDocument();
+    });
   });
 
   describe("in PieChart", () => {
     describe("with custom content function", () => {
+      it("should pass the correct props to the content function when position=center", () => {
+        const contentFn = vi.fn();
+        render(() => (
+          <PieChart height={100} width={200}>
+            <Label value="text" position="center" content={contentFn} />
+          </PieChart>
+        ));
+        flush();
+
+        expect(contentFn).toHaveBeenLastCalledWith({
+          viewBox: {
+            height: 90,
+            width: 190,
+            lowerWidth: 190,
+            upperWidth: 190,
+            x: 5,
+            y: 5,
+          },
+          angle: 0,
+          value: "text",
+          textBreakAll: false,
+          position: "center",
+          offset: 5,
+          zIndex: DefaultZIndexes.label,
+        });
+      });
+
       it("should pass the correct props to the content function when position=insideEnd", () => {
         const contentFn = vi.fn();
         render(() => (

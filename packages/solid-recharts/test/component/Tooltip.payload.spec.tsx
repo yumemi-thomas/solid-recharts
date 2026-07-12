@@ -407,6 +407,11 @@ const SunburstChartTestCase: TooltipPayloadTestCase = {
 const TreemapTestCase: TooltipPayloadTestCase = {
   name: "Treemap",
   Wrapper: (props) => (
+    // isAnimationActive={false} (like the Pie/Funnel cases above): Treemap now
+    // honours the animation props, and the real CSSTransitionAnimate manager keeps
+    // rescheduling rAF under `vi.runAllTimers()` (the showTooltip helper) — a fake-
+    // timer artifact, not a runtime issue (real rAF settles). Disable it for the
+    // hover assertion, matching this file's other animated charts.
     <Treemap
       width={400}
       height={400}

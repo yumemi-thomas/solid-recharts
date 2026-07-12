@@ -1,0 +1,49 @@
+export const meta = {
+  slug: "reference-line",
+  title: "ReferenceLine",
+  group: "cartesian",
+  description: "Draws a line at a fixed data coordinate to highlight a threshold or target.",
+  example: "reference-lines",
+};
+
+# ReferenceLine
+
+`ReferenceLine` draws a horizontal, vertical, or diagonal line at a data coordinate. Use it to annotate the chart with thresholds, targets, or other important values.
+
+```tsx
+import { ReferenceLine, LineChart } from "solid-recharts";
+
+<LineChart data={data}>
+  <ReferenceLine y={3000} stroke="#ff7300" label="Target" />
+  <ReferenceLine x="Jan" stroke="#ccc" />
+</LineChart>;
+```
+
+<Example slug="reference-lines" />
+
+## Props
+
+| Prop              | Type                                      | Default     | Description                                 |
+| ----------------- | ----------------------------------------- | ----------- | ------------------------------------------- |
+| `x`               | `number \| string`                        | —           | Vertical line at this x-data coordinate     |
+| `y`               | `number \| string`                        | —           | Horizontal line at this y-data coordinate   |
+| `segment`         | `[[x?, y?], [x?, y?]]`                    | —           | Diagonal line between two data coordinates  |
+| `stroke`          | `string`                                  | `"#ccc"`    | Line color                                  |
+| `strokeWidth`     | `number`                                  | `1`         | Line thickness in pixels                    |
+| `strokeDasharray` | `string`                                  | —           | Dash pattern (e.g., `"5 5"`)                |
+| `label`           | `string \| boolean \| ReactNode`          | `false`     | Text label rendered along the line          |
+| `ifOverflow`      | `"discard" \| "hidden" \| "extendDomain"` | `"discard"` | Behavior when the line exits the chart area |
+| `zIndex`          | `number`                                  | —           | Stacking order (higher renders on top)      |
+
+## Notes
+
+- Only `y` (horizontal) or `x` (vertical) can be set alone; `segment` requires both endpoints.
+- Set `strokeDasharray="5 5"` for dashed lines.
+- `label` can be a string, boolean, or component — string labels render centered on the line.
+- `ifOverflow="hidden"` clips the line at the chart boundary; `"extendDomain"` expands axes if needed.
+
+## See also
+
+- [ReferenceDot](/docs/reference-dot) — a circle at a data point
+- [ReferenceArea](/docs/reference-area) — a shaded band between two coordinates
+- [LineChart](/docs/line-chart) — the chart container

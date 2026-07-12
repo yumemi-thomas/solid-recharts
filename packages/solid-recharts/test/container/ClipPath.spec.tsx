@@ -187,7 +187,7 @@ describe("clip paths", () => {
           margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
           data={PageData}
         >
-          <Line dataKey="uv" dot={{ "stroke-width": 13, clipDot: false }} />
+          <Line dataKey="uv" dot={{ strokeWidth: 13, clipDot: false }} />
           <YAxis allowDataOverflow />
         </LineChart>
       ));
@@ -446,6 +446,157 @@ describe("clip paths", () => {
       ));
       const area = container.querySelector(".recharts-area");
       expect(selectAllClipPaths(area)).toHaveLength(0);
+    });
+
+    it("should clip in X dimension if xAxis has allowDataOverflow = true", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="pv" />
+          <XAxis allowDataOverflow />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      const allClipPaths = selectAllClipPaths(area);
+      expect(allClipPaths).toHaveLength(2);
+      const clip0 = allClipPaths[0];
+      assertNotNull(clip0);
+      expectClipPathDimensions(clip0, {
+        height: "830",
+        width: "379",
+        x: "99",
+        y: "-196.5",
+      });
+    });
+
+    it("should clip in Y dimension if yAxis has allowDataOverflow = true", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="pv" />
+          <YAxis allowDataOverflow />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      const allClipPaths = selectAllClipPaths(area);
+      expect(allClipPaths).toHaveLength(2);
+      const clip0 = allClipPaths[0];
+      assertNotNull(clip0);
+      expectClipPathDimensions(clip0, {
+        height: "445",
+        width: "638",
+        x: "-0.5",
+        y: "11",
+      });
+    });
+
+    it("should clip in both dimensions if both axes have allowDataOverflow = true", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="pv" />
+          <XAxis allowDataOverflow />
+          <YAxis allowDataOverflow />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      const allClipPaths = selectAllClipPaths(area);
+      expect(allClipPaths).toHaveLength(2);
+      const clip0 = allClipPaths[0];
+      assertNotNull(clip0);
+      expectClipPathDimensions(clip0, {
+        height: "415",
+        width: "319",
+        x: "159",
+        y: "11",
+      });
+    });
+
+    it("should render another clipPath when dot has clipDot = false", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="uv" dot={{ clipDot: false }} />
+          <YAxis allowDataOverflow />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      const allClipPaths = selectAllClipPaths(area);
+      expect(allClipPaths).toHaveLength(3);
+      const clip1 = allClipPaths[1];
+      assertNotNull(clip1);
+      expectClipPathDimensions(clip1, {
+        height: "453",
+        width: "327",
+        x: "155",
+        y: "7",
+      });
+    });
+
+    it("should change the dimensions of the second clipPath based on strokeWidth", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="uv" dot={{ strokeWidth: 13, clipDot: false }} />
+          <YAxis allowDataOverflow />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      const allClipPaths = selectAllClipPaths(area);
+      expect(allClipPaths).toHaveLength(3);
+      const clip1 = allClipPaths[1];
+      assertNotNull(clip1);
+      expectClipPathDimensions(clip1, {
+        height: "464",
+        width: "338",
+        x: "149.5",
+        y: "1.5",
+      });
+    });
+
+    it("should change the dimensions of the second clipPath based on r", () => {
+      const { container } = render(() => (
+        <AreaChart
+          width={500}
+          height={500}
+          margin={{ top: 11, right: 22, bottom: 44, left: 99 }}
+          data={PageData}
+        >
+          <Area dataKey="uv" dot={{ r: 5, clipDot: false }} />
+          <YAxis allowDataOverflow />
+        </AreaChart>
+      ));
+      const area = container.querySelector(".recharts-area");
+      const allClipPaths = selectAllClipPaths(area);
+      expect(allClipPaths).toHaveLength(3);
+      const clip1 = allClipPaths[1];
+      assertNotNull(clip1);
+      expectClipPathDimensions(clip1, {
+        height: "457",
+        width: "331",
+        x: "153",
+        y: "5",
+      });
     });
   });
 });

@@ -4,11 +4,10 @@
 // the cartesian bar-position machinery (combineBarSizeList / combineAllBarPositions
 // / combineBarPosition) keyed by the polar axes.
 //
-// DEFERRED (documented): STACKS — `selectPolarStackedData` returns undefined, so
-// `computeRadialBarDataItems` takes the non-stacked path (`value = [baseValue, v]`).
-// The stack-group chain (selectStackedRadialBars/selectPolarStackedData) lands with
-// the stacked-RadialBar sub-vertical. `selectRadialBarLegendPayload` (per-row legend)
-// IS wired here.
+// STACKS wired (reference selectStackedRadialBars → selectPolarCombinedStackedData →
+// selectStackGroups → selectPolarStackedData, inlined into selectRadialBarSectors):
+// stacked RadialBars sharing a stackId render adjacent arcs from the shared d3 stack
+// series. `selectRadialBarLegendPayload` (per-row legend) IS wired here.
 import { RechartsRootState } from "../store";
 import { AxisId } from "../cartesianAxisSlice";
 import { ChartData } from "../chartDataSlice";
@@ -38,7 +37,8 @@ import {
   selectRootMaxBarSize,
 } from "./rootPropsSelectors";
 import { PolarGraphicalItemSettings } from "../graphicalItemsSlice";
-import { selectUnfilteredPolarItems } from "./polarSelectors";
+import { selectPolarStackGroups, selectUnfilteredPolarItems } from "./polarSelectors";
+import { combineStackedData } from "./combiners/combineStackedData";
 import { isNullish, isNumOrStr } from "../../util/DataUtils";
 import { combineBarSizeList } from "./combiners/combineBarSizeList";
 import { combineAllBarPositions } from "./combiners/combineAllBarPositions";
@@ -247,8 +247,6 @@ export const selectRadialBarSectors = (
   const baseValue = selectBaseValue(state, radiusAxisId, angleAxisId);
   const polarViewBox = selectPolarViewBox(state);
   const pos = selectPolarBarPosition(state, radiusAxisId, angleAxisId, radialBarSettings);
-  // Stacks deferred → no stacked data.
-  const stackedData = undefined;
 
   if (
     settings == null ||
@@ -263,6 +261,19 @@ export const selectRadialBarSectors = (
   ) {
     return [];
   }
+  // Stack chain (reference selectPolarStackedData): the polar stack groups on the
+  // numeric axis (radius axis in centric layout, angle axis in radial layout) →
+  // this item's stack series.
+  const stackAxisType = layout === "centric" ? ("radiusAxis" as const) : ("angleAxis" as const);
+  const stackAxisId = layout === "centric" ? radiusAxisId : angleAxisId;
+  const stackedData = combineStackedData(
+    selectPolarStackGroups(state, stackAxisType, stackAxisId),
+    settings,
+  );
+  const numericAxis = layout === "centric" ? radiusAxis : angleAxis;
+  const stackedDomain: ReadonlyArray<unknown> | null =
+    stackedData != null ? numericAxis.scale.domain() : null;
+
   const { dataKey, minPointSize } = settings;
   const { cx, cy, startAngle, endAngle } = polarViewBox;
   const displayedData: ChartData = chartData.slice(dataStartIndex, dataEndIndex + 1);
@@ -283,7 +294,7 @@ export const selectRadialBarSectors = (
     radiusAxis,
     radiusAxisTicks,
     stackedData,
-    stackedDomain: null,
+    stackedDomain,
     startAngle,
     cells,
   });

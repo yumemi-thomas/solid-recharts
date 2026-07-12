@@ -48,6 +48,18 @@ describe("<Line />", () => {
     expectLines(container, [{ d: "M5,86.667L127.5,86.667L250,86.667L372.5,86.667L495,86.667" }]);
   });
 
+  it("Forwards the user `class` onto the line group (recharts clsx('recharts-line', className))", () => {
+    const { container } = render(() => (
+      <LineChart width={500} height={500}>
+        <Line isAnimationActive={false} data={data} dataKey="y" class="my-line" />
+      </LineChart>
+    ));
+
+    const group = container.querySelector(".recharts-line");
+    expect(group).not.toBeNull();
+    expect(group?.getAttribute("class")).toContain("recharts-line my-line");
+  });
+
   it("Does not fall into infinite loop if strokeDasharray is 0", () => {
     const { container } = render(() => (
       <LineChart width={500} height={500}>
@@ -433,6 +445,26 @@ describe("<Line />", () => {
           unit: undefined,
           value: 50,
         },
+      ]);
+    });
+  });
+
+  describe("Tooltip integration with tooltipType", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <LineChart width={100} height={100}>
+        <Line data={data} dataKey="y" tooltipType="none" isAnimationActive={false} />
+        {props.children}
+      </LineChart>
+    ));
+
+    it("should forward tooltipType as the payload entry type", () => {
+      const { spy } = renderTestCase((state) => selectTooltipPayload(state, "axis", "hover", "0"));
+      expectLastCalledWith(spy, [
+        expect.objectContaining({
+          dataKey: "y",
+          type: "none",
+          value: 50,
+        }),
       ]);
     });
   });

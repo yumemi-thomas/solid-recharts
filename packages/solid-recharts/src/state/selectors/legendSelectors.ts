@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/state/selectors/legendSelectors.ts (commit 7a23854).
 // Deviation: payload is stored as `{ id, items }[]` (proxy-safe ids) so the flat
 // selector flatMaps `items` rather than `flat(1)`-ing a 2D array.
-import sortBy from "es-toolkit/compat/sortBy";
+import { sortBy } from "../../util/collectionUtils";
 import { RechartsRootState } from "../store";
 import { LegendSettings } from "../legendSlice";
 import { LegendItemSorter, LegendPayload } from "../../component/DefaultLegendContent";

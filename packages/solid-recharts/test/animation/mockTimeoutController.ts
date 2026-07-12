@@ -13,17 +13,43 @@ import {
  * Mock implementation of TimeoutController for testing purposes.
  * This does not use requestAnimationFrame and allows for manual control of timeouts.
  */
+type MockTimeoutControllerConfig = {
+  /**
+   * The mock controller will never allow more than this number of timeouts at once.
+   */
+  timeoutLimit?: number;
+};
+
 export class MockTimeoutController implements TimeoutController {
   private timeouts: Array<{ callback: CallbackType; delay: number | undefined }> = [];
 
   private cancelledFramesCount = 0;
 
+  private readonly config: MockTimeoutControllerConfig;
+
+  constructor(config: MockTimeoutControllerConfig = {}) {
+    this.config = config;
+  }
+
   setTimeout(callback: CallbackType, delay?: number): CancelableTimeout {
-    this.timeouts.push({ callback, delay });
+    /*
+     * We store a COPY of the callback instead of the callback itself, so that consumers
+     * which track cancellations by identity (like the real
+     * RequestAnimationFrameTimeoutController, which tracks requestIds) are exercised
+     * correctly rather than passing by accident.
+     */
+    const copy: CallbackType = (now: number) => callback(now);
+    if (this.config.timeoutLimit != null && this.timeouts.length >= this.config.timeoutLimit) {
+      throw new Error(
+        `Timeout queue has size ${this.timeouts.length} which is more than the allowed ${this.config.timeoutLimit}`,
+      );
+    }
+
+    this.timeouts.push({ callback: copy, delay });
 
     // Return a cancelable timeout function
     return () => {
-      this.removeTimeout(callback);
+      this.removeTimeout(copy);
       this.cancelledFramesCount++;
     };
   }

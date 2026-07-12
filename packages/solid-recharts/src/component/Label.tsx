@@ -15,6 +15,7 @@
 //    Text's string props; Label forwards position + anchors + angle + class only.
 //  - context value carries an `Accessor<TrapezoidViewBox>` (Solid context is fixed
 //    at provide-time; the accessor keeps the box reactive).
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { createContext, createMemo, merge, omit, Show, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
@@ -54,7 +55,7 @@ export type LabelFormatter = (label: RenderableText) => RenderableText;
 interface LabelProps {
   /** The box of viewing area. Used for positioning; falls back to context. */
   viewBox?: ViewBox | TrapezoidViewBox;
-  parentViewBox?: CartesianViewBoxRequired;
+  parentViewBox?: CartesianViewBoxRequired | PolarViewBoxRequired;
   /** Customize how content is serialized before rendering (returns renderable text). */
   formatter?: LabelFormatter;
   /** The label value; can also be set via children. */
@@ -66,7 +67,7 @@ interface LabelProps {
   /** The label value; can also be set via the `value` prop. */
   children?: RenderableText;
   class?: string;
-  /** A render function for custom label content (element form is deferred). */
+  /** A render function for custom label content (element form is N/A — no cloneElement). */
   content?: LabelContentType;
   /** @defaultValue false */
   textBreakAll?: boolean;
@@ -79,7 +80,10 @@ interface LabelProps {
   zIndex?: number;
 }
 
-export type Props = Omit<JSX.TextSVGAttributes<SVGTextElement>, "viewBox" | "class" | "children"> &
+export type Props = Omit<
+  CamelSvgProps<JSX.TextSVGAttributes<SVGTextElement>>,
+  "viewBox" | "class" | "children"
+> &
   LabelProps;
 
 export type ImplicitLabelType =
@@ -278,11 +282,15 @@ export function Label(outerProps: Props): JSX.Element {
     if (isNullish(props.value) && isNullish(props.children)) {
       return null;
     }
+    // The Cartesian position helper only uses a Cartesian parentViewBox; a polar
+    // entry's parentViewBox (carrying `cx`) is irrelevant in this branch.
+    const parentViewBox =
+      props.parentViewBox != null && "cx" in props.parentViewBox ? undefined : props.parentViewBox;
     const pos = getCartesianPosition({
       viewBox: vb,
       position: props.position,
       offset: props.offset,
-      parentViewBox: props.parentViewBox,
+      parentViewBox,
       clamp: true,
     });
     const svgProps: Record<string, unknown> = {
@@ -369,9 +377,14 @@ export function Label(outerProps: Props): JSX.Element {
 
   // Custom content render-prop. Compute its args as DATA (the function + the props it
   // receives); the <Show> below invokes it inline so this memo never returns JSX.
-  // (Element-form `content` is deferred — Solid has no cloneElement.)
+  // (Element-form `content` is N/A by design — Solid has no cloneElement.)
   const customLabel = createMemo(() => {
-    const vb = polarViewBox() ?? viewBox();
+    // recharts: a `position="center"` label resolves against the CARTESIAN viewBox
+    // even inside a polar chart (PieChart center label), otherwise polar wins.
+    const vb =
+      props.position === "center"
+        ? (viewBox() ?? cartesianViewBox())
+        : (polarViewBox() ?? viewBox() ?? cartesianViewBox());
     const content = props.content;
     if (vb == null || typeof content !== "function") {
       return undefined;
@@ -408,6 +421,7 @@ export function Label(outerProps: Props): JSX.Element {
         {(d) => (
           <ZIndexLayer zIndex={props.zIndex}>
             <Text
+              {...textSvgProps()}
               class={d().class}
               x={d().attrs.x}
               y={d().attrs.y}

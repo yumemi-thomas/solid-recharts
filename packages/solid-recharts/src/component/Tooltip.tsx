@@ -39,6 +39,7 @@ import {
   selectIsTooltipActive,
   selectTooltipPayload,
 } from "../state/selectors/tooltipSelectors";
+import { useTooltipChartSynchronisation } from "../synchronisation/useChartSynchronisation";
 
 export type TooltipContentProps = TooltipProps & {
   label?: string | number;
@@ -119,7 +120,8 @@ function renderContent(content: ContentType | undefined, props: TooltipContentPr
   }
   if (content != null) {
     // Deviation: React clones the element and injects props; Solid has no
-    // cloneElement, so a provided element renders as-is (prop injection deferred).
+    // cloneElement, so a provided element renders as-is (prop injection is N/A
+    // by design — use the function form for injected props).
     return content;
   }
   return (
@@ -194,6 +196,17 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
   const finalLabel = (): string | number | undefined =>
     tooltipEventType() === "axis" ? labelFromState() : undefined;
 
+  // Emit cross-chart tooltip sync events when this chart's active tooltip
+  // changes (no-op unless a syncId is set). Mirrors recharts' Tooltip call.
+  useTooltipChartSynchronisation(
+    tooltipEventType,
+    resolvedTrigger,
+    coordinate,
+    finalLabel,
+    () => activeState()?.activeIndex ?? undefined,
+    finalIsActive,
+  );
+
   const finalPayload = createMemo<TooltipPayload>(() => {
     if (!finalIsActive()) {
       return emptyPayload;
@@ -231,16 +244,39 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
       </Show>
       <Show when={viewBox() && tooltipEventType() && portal()}>
         {(mount) => {
+          // Built as a plain object (spreading the Solid merge() proxy leaks a
+          // MERGE_SOURCE symbol into the bag handed to a function-form `content`).
           const contentProps = (): TooltipContentProps => ({
-            ...merged,
-            // merge() leaves explicit `undefined`; React defaultProps would still apply defaults.
-            itemSorter: props.itemSorter ?? defaultTooltipProps.itemSorter,
-            payload: finalPayload(),
-            label: finalLabel(),
+            accessibilityLayer: accessibilityLayer(),
             active: finalIsActive(),
             activeIndex: activeState()?.activeIndex ?? undefined,
+            allowEscapeViewBox: merged.allowEscapeViewBox,
+            animationDuration: merged.animationDuration,
+            animationEasing: merged.animationEasing,
+            axisId: merged.axisId,
+            content: merged.content,
+            contentStyle: merged.contentStyle,
             coordinate: coordinate(),
-            accessibilityLayer: accessibilityLayer(),
+            cursor: merged.cursor,
+            filterNull: merged.filterNull,
+            formatter: merged.formatter,
+            includeHidden: merged.includeHidden,
+            isAnimationActive: merged.isAnimationActive,
+            // merge() leaves explicit `undefined`; React defaultProps would still apply defaults.
+            itemSorter: props.itemSorter ?? defaultTooltipProps.itemSorter,
+            itemStyle: merged.itemStyle,
+            label: finalLabel(),
+            labelStyle: merged.labelStyle,
+            labelFormatter: merged.labelFormatter,
+            offset: merged.offset,
+            payload: finalPayload(),
+            payloadUniqBy: merged.payloadUniqBy,
+            position: merged.position,
+            reverseDirection: merged.reverseDirection,
+            separator: merged.separator,
+            trigger: merged.trigger,
+            useTranslate3d: merged.useTranslate3d,
+            wrapperStyle: merged.wrapperStyle,
           });
           return (
             <Portal mount={mount()}>

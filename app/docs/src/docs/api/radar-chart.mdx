@@ -1,0 +1,52 @@
+export const meta = {
+  slug: "radar-chart",
+  title: "RadarChart",
+  group: "charts",
+  description: "Polar chart container for Radar series with angle and radius axes.",
+  example: "radar-basic",
+};
+
+# RadarChart
+
+`RadarChart` is the polar container for [`Radar`](/docs/radar) series. It owns the
+chart's layout, scales, and interaction state; children like `PolarAngleAxis`, `PolarRadiusAxis` and `Radar` register themselves into it.
+
+```tsx
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "solid-recharts";
+
+<RadarChart data={data} width={500} height={300}>
+  <PolarGrid strokeDasharray="3 3" />
+  <PolarAngleAxis dataKey="subject" />
+  <PolarRadiusAxis />
+  <Radar dataKey="value" stroke="#8884d8" fill="#8884d8" />
+</RadarChart>;
+```
+
+<Example slug="radar-basic" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per angle position     |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `syncId`                    | `string`                       | —                | Sync tooltip across charts sharing the id           |
+| `cx`, `cy`                  | `number \| string`             | `"50%"`          | Center position of the radar                        |
+| `startAngle`, `endAngle`    | `number`                       | `90`, `-270`     | Angle range swept by the radar                      |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `RadarChart` props are supported; see the
+[recharts RadarChart docs](https://recharts.org/en-US/api/RadarChart) for the full matrix.
+
+## Notes
+
+- The default `layout` is `"centric"`, positioning the radar at the chart center.
+- Multiple `Radar` children render overlaid on the same polar grid.
+- Use `PolarAngleAxis` and `PolarRadiusAxis` to label the angle and radius dimensions.
+
+## See also
+
+- [Radar](/docs/radar) — the series component and its dot/label options
+- [PolarAngleAxis](/docs/polar-angle-axis) · [PolarRadiusAxis](/docs/polar-radius-axis)
+- [Tooltip](/docs/tooltip) · [Legend](/docs/legend)

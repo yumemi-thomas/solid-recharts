@@ -7,8 +7,10 @@ import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { Brush, Line, LineChart, XAxis, YAxis } from "../../src";
 import {
   useCartesianScale,
+  useXAxisInverseDataSnapScale,
   useXAxisInverseScale,
   useXAxisScale,
+  useYAxisInverseDataSnapScale,
   useYAxisInverseScale,
   useYAxisScale,
 } from "../../src/hooks";
@@ -130,6 +132,69 @@ describe("axis scale hooks", () => {
     it("should return an inverse scale function", () => {
       const { spy } = renderTestCase(useYAxisInverseScale);
       expect(typeof spy.mock.calls.at(-1)?.[0]).toBe("function");
+    });
+  });
+
+  describe("useXAxisInverseDataSnapScale", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <LineChart width={500} height={300} data={PageData}>
+        <Line dataKey="uv" />
+        <XAxis dataKey="name" />
+        {props.children}
+      </LineChart>
+    ));
+
+    it("should return an inverse scale function", () => {
+      const { spy } = renderTestCase(useXAxisInverseDataSnapScale);
+      expect(typeof spy.mock.calls.at(-1)?.[0]).toBe("function");
+    });
+
+    it("should snap a pixel coordinate to the closest data point", () => {
+      const { spy: scaleSpy } = renderTestCase(useXAxisScale);
+      const scaleFunction = scaleSpy.mock.calls.at(-1)?.[0];
+      const { spy: snapSpy } = renderTestCase(useXAxisInverseDataSnapScale);
+      const snapFunction = snapSpy.mock.calls.at(-1)?.[0];
+      expect(scaleFunction).toBeDefined();
+      expect(snapFunction).toBeDefined();
+      if (scaleFunction && snapFunction) {
+        const pixelForPageC = scaleFunction("Page C");
+        expect(pixelForPageC).toBeDefined();
+        // Exactly on the point, and slightly off it, both snap to the point.
+        expect(snapFunction(pixelForPageC ?? 0)).toBe("Page C");
+        expect(snapFunction((pixelForPageC ?? 0) + 1)).toBe("Page C");
+      }
+    });
+  });
+
+  describe("useYAxisInverseDataSnapScale", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <LineChart width={500} height={300} data={PageData}>
+        <Line dataKey="uv" />
+        {props.children}
+      </LineChart>
+    ));
+
+    it("should return an inverse scale function", () => {
+      const { spy } = renderTestCase(useYAxisInverseDataSnapScale);
+      expect(typeof spy.mock.calls.at(-1)?.[0]).toBe("function");
+    });
+
+    it("should snap a pixel coordinate to the closest data point value", () => {
+      const { spy: scaleSpy } = renderTestCase(useYAxisScale);
+      const scaleFunction = scaleSpy.mock.calls.at(-1)?.[0];
+      const { spy: snapSpy } = renderTestCase(useYAxisInverseDataSnapScale);
+      const snapFunction = snapSpy.mock.calls.at(-1)?.[0];
+      expect(scaleFunction).toBeDefined();
+      expect(snapFunction).toBeDefined();
+      if (scaleFunction && snapFunction) {
+        // 290 sits between the data points 278 and 300 (uv values); 300 is closer.
+        const pixelBetween = scaleFunction(290);
+        expect(pixelBetween).toBeDefined();
+        expect(snapFunction(pixelBetween ?? 0)).toBe(300);
+        // Snapping returns data-point values, never interpolated ones.
+        const pixelNear278 = scaleFunction(280);
+        expect(snapFunction(pixelNear278 ?? 0)).toBe(278);
+      }
     });
   });
 

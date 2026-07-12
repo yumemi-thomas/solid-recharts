@@ -1,9 +1,9 @@
 // Ported from recharts 3.8.1 src/component/DefaultTooltipContent.tsx (commit 7a23854).
 //
 // The type half seeded the tooltip slice/selectors early; the component lands now.
-// Deviations: `Payload` does NOT extend `Omit<SVGProps<SVGElement>, 'name'>` and
-// drops the per-entry `formatter` (the prop-level `formatter` still applies — a
-// per-entry override returns with the SVG-prop surface); `any` → `unknown`,
+// Deviations: `Payload` does NOT extend `Omit<SVGProps<SVGElement>, 'name'>`
+// (the per-entry `formatter` is populated from the graphical items' `formatter`
+// prop and wins over the prop-level one, per v3.9.1); `any` → `unknown`,
 // `ReactNode` → `Element`, `CSSProperties` → `JSX.CSSProperties`; `className` →
 // `class`, `clsx(...)` → `class={[...]}` array form (no clsx dep); `React.isValid-
 // Element` check dropped (Solid renders an Element or a string uniformly).

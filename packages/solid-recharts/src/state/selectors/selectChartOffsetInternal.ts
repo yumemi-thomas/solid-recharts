@@ -56,7 +56,7 @@ function selectBottomAxesOffset(state: RechartsRootState): number {
 
 // recharts reads `state.brush.height`; the brush slice is now wired (default 0),
 // so a chart without a Brush still contributes nothing here.
-const selectBrushHeight = (state: RechartsRootState): number => state.brush.height;
+export const selectBrushHeight = (state: RechartsRootState): number => state.brush.height;
 
 export const selectChartOffsetInternal = (state: RechartsRootState): ChartOffsetInternal => {
   const chartWidth = selectChartWidth(state);

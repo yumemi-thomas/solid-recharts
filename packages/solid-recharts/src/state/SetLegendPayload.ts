@@ -5,11 +5,12 @@
 // explicit `id` prop (the graphical item's id) keys the entry so replace/remove are
 // proxy-safe (recharts matches the array by reference, which Solid stores break).
 // `SetPolarLegendPayload` lands with the polar vertical. Returns nothing.
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppStore } from "./hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { LegendPayload } from "../component/DefaultLegendContent";
+import { unregisterOnCleanup } from "./unregisterOnCleanup";
 
 export function SetLegendPayload(props: {
   id: string;
@@ -38,7 +39,7 @@ export function SetLegendPayload(props: {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prevId != null && store != null) {
       store.actions.legend.removeLegendPayload({ id: prevId, items: [] });
       prevId = null;

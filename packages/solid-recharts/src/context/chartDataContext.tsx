@@ -9,6 +9,7 @@ import { createEffect, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { ChartData } from "../state/chartDataSlice";
 import { useAppSelector, useAppStore } from "../state/hooks";
+import { unregisterCleanup } from "../state/unregisterOnCleanup";
 import { RechartsRootState } from "../state/store";
 import { useIsPanorama } from "./PanoramaContext";
 
@@ -31,9 +32,9 @@ export const ChartDataContextProvider = (props: {
         return undefined;
       }
       store?.actions.chartData.setChartData(chartData);
-      return () => {
+      return unregisterCleanup(() => {
         store?.actions.chartData.setChartData(undefined);
-      };
+      });
     },
   );
 
@@ -47,9 +48,9 @@ export const SetComputedData = (props: { computedData: unknown }): JSX.Element =
     () => props.computedData,
     (computedData) => {
       store?.actions.chartData.setComputedData(computedData);
-      return () => {
+      return unregisterCleanup(() => {
         store?.actions.chartData.setChartData(undefined);
-      };
+      });
     },
   );
 

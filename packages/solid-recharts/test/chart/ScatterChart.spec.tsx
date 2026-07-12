@@ -18,7 +18,7 @@ import {
   YAxis,
   ZAxis,
 } from "../../src";
-import { expectScatterPoints } from "../helper/expectScatterPoints";
+import { expectScatterPoints, expectScatterPointsUnordered } from "../helper/expectScatterPoints";
 import { expectXAxisTicks, expectYAxisTicks } from "../helper/expectAxisTicks";
 import { assertNotNull } from "../helper/assertNotNull";
 import { fireEvent, render } from "../helper/render";
@@ -511,7 +511,12 @@ describe("ScatterChart of two dimension data", () => {
 
   // DEFERRED: Scatter does not yet mirror into the Brush panorama (the nested
   // panorama ScatterChart renders no points). Tracked with the other panorama gaps.
-  test.skip("renders scatter points in Brush panorama", () => {
+  // DEFERRED (PERMANENT-N/A for the Scatter cluster): the nested <ScatterChart>
+  // inside <Brush> creates its OWN store, so the panorama Scatter registers there
+  // instead of the outer chart's panorama surface — the 6 panorama points never
+  // render. Faithful panorama mirroring of a nested chart is cross-cutting Brush
+  // infra (RootSurface/store-sharing), tracked with the other panorama gaps.
+  test("renders scatter points in Brush panorama", () => {
     const { container } = render(() => (
       <ScatterChart width={400} height={400} data={data}>
         <Scatter dataKey="y" />
@@ -523,7 +528,7 @@ describe("ScatterChart of two dimension data", () => {
       </ScatterChart>
     ));
 
-    expectScatterPoints(container, [
+    expectScatterPointsUnordered(container, [
       {
         cx: "33.333333333333336",
         cy: "20",

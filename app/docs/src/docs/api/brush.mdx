@@ -1,0 +1,56 @@
+export const meta = {
+  slug: "brush",
+  title: "Brush",
+  group: "cartesian",
+  description: "Draggable control to pan and zoom the chart data window.",
+  example: "brush-basic",
+};
+
+# Brush
+
+`Brush` is an interactive control rendered below the plot area. Users drag the start and end handles (travellers) or the slide area to move the data window. This re-filters all graphical items to show only the selected range, making it easy to explore large datasets.
+
+```tsx
+import { Brush, LineChart } from "solid-recharts";
+
+<LineChart data={data}>
+  <Brush dataKey="month" height={30} />
+</LineChart>;
+```
+
+<Example slug="brush-basic" />
+
+## Props
+
+| Prop             | Type                           | Default     | Description                                     |
+| ---------------- | ------------------------------ | ----------- | ----------------------------------------------- |
+| `dataKey`        | `string \| number \| function` | —           | Data field to label the brush ticks (optional)  |
+| `height`         | `number`                       | `40`        | Brush height in pixels                          |
+| `x`              | `number`                       | chart left  | Explicit left position                          |
+| `y`              | `number`                       | below plot  | Explicit top position                           |
+| `width`          | `number`                       | chart width | Explicit width                                  |
+| `travellerWidth` | `number`                       | `5`         | Handle width in pixels                          |
+| `startIndex`     | `number`                       | `0`         | Initial data start index                        |
+| `endIndex`       | `number`                       | last index  | Initial data end index                          |
+| `gap`            | `number`                       | `1`         | Index snapping step                             |
+| `fill`           | `string`                       | `"#fff"`    | Slide background color                          |
+| `stroke`         | `string`                       | `"#666"`    | Border and handle color                         |
+| `dy`             | `number`                       | `0`         | Extra vertical offset (pixels)                  |
+| `onChange`       | `(next) => void`               | —           | Fired while dragging: `{startIndex, endIndex}`  |
+| `onDragEnd`      | `(next) => void`               | —           | Fired at drag release                           |
+| `alwaysShowText` | `boolean`                      | `false`     | Always show start/end tick labels               |
+| `children`       | `JSX.Element`                  | —           | Panorama: graphical items to preview (optional) |
+
+## Notes
+
+- Brush syncs with `syncId` on the chart; see [LineChart](/docs/line-chart) for cross-chart linking.
+- `dataKey` labels the traveller ticks; omit to show indices.
+- `children` (panorama) renders a mini chart inside the brush showing the full data range — useful for previewing excluded data. Pass `<Line>`, `<Bar>`, etc.
+- `onChange` fires during drag; `onDragEnd` fires once at drag release.
+- Keyboard (arrow keys) and touch (swipe) input are supported.
+
+## See also
+
+- [LineChart](/docs/line-chart) — the chart container and syncId linking
+- [BarChart](/docs/bar-chart) — works with any chart type
+- [ResponsiveContainer](/docs/responsive-container) — fluid sizing

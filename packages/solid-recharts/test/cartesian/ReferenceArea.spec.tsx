@@ -41,6 +41,28 @@ describe("<ReferenceArea />", () => {
     { name: "201112", uv: 4.3, pv: 0 },
   ];
 
+  test("Render 1 rect in ReferenceArea", () => {
+    const { container } = render(() => (
+      <BarChart
+        width={1100}
+        height={250}
+        barGap={2}
+        barSize={6}
+        data={data}
+        margin={{ top: 20, right: 60, bottom: 0, left: 20 }}
+      >
+        <XAxis dataKey="name" orientation="top" />
+        <YAxis tickCount={7} orientation="right" />
+        <Bar dataKey="uv" />
+        <ReferenceArea x1="201106" x2="201110" fill="#666" label="201106" />
+        <ReferenceArea y1={0} y2={2} fill="#666" label="201106" />
+      </BarChart>
+    ));
+    flush();
+    expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(2);
+    expect(container.querySelectorAll(".recharts-label")).toHaveLength(2);
+  });
+
   it("should render nothing if neither XAxis not Bar are present", () => {
     const { container } = render(() => (
       <BarChart
@@ -315,8 +337,8 @@ describe("<ReferenceArea />", () => {
             x2="201110"
             fill="#666"
             radius={20}
-            stroke-width={3}
-            fill-opacity={0.7}
+            strokeWidth={3}
+            fillOpacity={0.7}
             stroke="yellow"
           />
         </BarChart>
@@ -351,7 +373,7 @@ describe("<ReferenceArea />", () => {
             fill="#666"
             shape={() => <g data-testid="my-custom-shape" />}
             radius={10}
-            stroke-width={3}
+            strokeWidth={3}
           />
         </BarChart>
       ));
@@ -373,19 +395,19 @@ describe("<ReferenceArea />", () => {
             fill="#666"
             shape={spy}
             radius={10}
-            stroke-width={3}
+            strokeWidth={3}
           />
         </BarChart>
       ));
       flush();
       expect(spy).toHaveBeenLastCalledWith({
-        "clip-path": undefined,
+        clipPath: undefined,
         fill: "#666",
-        "fill-opacity": 0.5,
+        fillOpacity: 0.5,
         height: 160,
         radius: 10,
         stroke: "none",
-        "stroke-width": 3,
+        strokeWidth: 3,
         width: 59.09090909090909,
         x: 112.27272727272728,
         x1: "201106",
@@ -607,6 +629,35 @@ describe("<ReferenceArea />", () => {
       flush();
 
       expect(areaSpy).toHaveBeenLastCalledWith([]);
+    });
+  });
+
+  describe("multiple axes", () => {
+    // The port resolves the x/y scales per-axis via selectAxisScale(state, axis,
+    // xAxisId/yAxisId, …). A reference area targeting a non-default axis id must map
+    // through THAT axis' scale: y1..y2 = 120..180 lives inside the "right" domain
+    // (0..200) but is out of range of the default "left" domain (0..20), so with
+    // ifOverflow="discard" (default) only the correctly-targeted area survives.
+    const multiAxisData = [
+      { name: "A", pv: 10, uv: 100 },
+      { name: "B", pv: 20, uv: 200 },
+    ];
+
+    it("should map the reference area through the targeted axis' scale", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={400} data={multiAxisData}>
+          <XAxis dataKey="name" />
+          <YAxis yAxisId="left" />
+          <YAxis yAxisId="right" orientation="right" />
+          <Bar dataKey="pv" yAxisId="left" />
+          <Bar dataKey="uv" yAxisId="right" />
+          <ReferenceArea y1={120} y2={180} yAxisId="right" fill="#666" />
+          <ReferenceArea y1={120} y2={180} yAxisId="left" fill="#f00" />
+        </BarChart>
+      ));
+      flush();
+      // Only the area targeting the "right" axis (domain 0..200) is in range.
+      expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(1);
     });
   });
 });

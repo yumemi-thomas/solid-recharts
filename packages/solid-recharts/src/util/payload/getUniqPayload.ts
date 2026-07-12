@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/util/payload/getUniqPayload.ts (commit 7a23854).
 // Pure util — no framework surface — so behavior is byte-identical to recharts.
 
-import uniqBy from "es-toolkit/compat/uniqBy";
+import { uniqBy } from "../collectionUtils";
 
 type UniqueFunc<T> = (entry: T) => unknown;
 

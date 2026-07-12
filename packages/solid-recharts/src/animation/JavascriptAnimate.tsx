@@ -1,27 +1,29 @@
-// Ported from recharts 3.8.1 src/animation/JavascriptAnimate.tsx (commit 7a23854).
+// Ported from recharts 3.9.0 src/animation/JavascriptAnimate.tsx.
 //
-// Solid 2.0 port of a React render-prop animation driver. Deviations:
+// Solid 2.0 port of the JavaScript render-prop animation driver, on the v3.9 engine
+// (JavascriptAnimation handle + injectable AnimationController). Deviations:
 //   - `resolveDefaultProps` → per-prop `?? default` accessors.
-//   - `useState` → `createSignal`; `useRef` → a closure variable.
-//   - `usePrefersReducedMotion()` now returns an Accessor → call it.
-//   - the two `useEffect`s → two-arg `createEffect(compute, apply)`; the
-//     animation-start effect returns its cleanup from the apply phase.
-//   - `return children(style.t)` → a reactive `{props.children(style().t)}` so
-//     the function child is re-invoked with the new time each frame (Solid
-//     components run once, so the reactivity lives in the JSX expression).
+//   - `useState` → `createSignal`; the two `useEffect`s → two-arg
+//     `createEffect(compute, apply)`; the start effect returns its cleanup.
+//   - `usePrefersReducedMotion()` returns an Accessor → call it.
+//   - `return children(Number(style))` → a reactive `{props.children(...)}` so the
+//     function child re-runs each frame (Solid components run once).
+// This is the same driver `AnimatedItems` uses; standalone consumers are the shape
+// update-tweens (`Rectangle`, `Trapezoid`).
 import { createSignal, createEffect, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { noop } from "../util/DataUtils";
-import configUpdate from "./configUpdate";
-import { configEasing, type EasingInput } from "./easing";
-import { type AnimationManager } from "./AnimationManager";
-import { useAnimationManager } from "./useAnimationManager";
+import { createEasingFunction, type EasingInput } from "./easing";
 import { Global } from "../util/Global";
 import { usePrefersReducedMotion } from "../util/usePrefersReducedMotion";
+import { JavascriptAnimation } from "./AnimationHandle";
+import { RequestAnimationFrameTimeoutController } from "./timeoutController";
+import type { AnimationController } from "./AnimationController";
+import { useAnimationController } from "./useAnimationController";
 
 interface JavascriptAnimateProps {
   animationId: string;
-  animationManager?: AnimationManager;
+  animationController?: AnimationController;
   duration?: number;
   begin?: number;
   easing?: EasingInput;
@@ -32,12 +34,8 @@ interface JavascriptAnimateProps {
   children: (time: number) => JSX.Element;
 }
 
-type TimeAsObject = {
-  t: number;
-};
-
-const from: TimeAsObject = { t: 0 };
-const to: TimeAsObject = { t: 1 };
+const from = 0;
+const to = 1;
 
 export function JavascriptAnimate(props: JavascriptAnimateProps): JSX.Element {
   const duration = (): number => props.duration ?? 1000;
@@ -55,9 +53,9 @@ export function JavascriptAnimate(props: JavascriptAnimateProps): JSX.Element {
     return active === "auto" ? !Global.isSsr && !prefersReducedMotion() : active;
   };
 
-  const animationManager = useAnimationManager(props.animationId, props.animationManager);
+  const animationController = useAnimationController(props.animationController);
 
-  const [style, setStyle] = createSignal<TimeAsObject>(untrack(() => (isActive() ? from : to)));
+  const [style, setStyle] = createSignal<number | string>(untrack(() => (isActive() ? from : to)));
 
   // When the animation is not active, jump straight to the final state.
   createEffect(
@@ -77,46 +75,33 @@ export function JavascriptAnimate(props: JavascriptAnimateProps): JSX.Element {
       duration: duration(),
       easing: easing(),
       begin: begin(),
+      animationId: props.animationId,
       onAnimationStart: onAnimationStart(),
       onAnimationEnd: onAnimationEnd(),
-      animationManager,
+      controller: animationController,
     }),
     (deps) => {
       if (!deps.active || !deps.canBegin) {
         return undefined;
       }
-
-      const startAnimation = configUpdate<TimeAsObject>(
+      const easingFunction = createEasingFunction(deps.easing);
+      if (easingFunction == null) {
+        return undefined;
+      }
+      const timeoutController = new RequestAnimationFrameTimeoutController();
+      const animation = new JavascriptAnimation({
+        animationId: deps.animationId,
+        easing: easingFunction,
+        animationDuration: deps.duration,
+        animationBegin: deps.begin,
+        onAnimationStart: deps.onAnimationStart,
+        onAnimationEnd: deps.onAnimationEnd,
         from,
         to,
-        configEasing(deps.easing),
-        deps.duration,
-        setStyle,
-        deps.animationManager.getTimeoutController(),
-      );
-
-      let stopJSAnimation: (() => void) | null = null;
-      const onAnimationActive = (): void => {
-        stopJSAnimation = startAnimation();
-      };
-
-      deps.animationManager.start([
-        deps.onAnimationStart,
-        deps.begin,
-        onAnimationActive,
-        deps.duration,
-        deps.onAnimationEnd,
-      ]);
-
-      return () => {
-        deps.animationManager.stop();
-        if (stopJSAnimation) {
-          stopJSAnimation();
-        }
-        deps.onAnimationEnd();
-      };
+      });
+      return deps.controller(timeoutController, animation, setStyle);
     },
   );
 
-  return <>{props.children(style().t)}</>;
+  return <>{props.children(Number(style()))}</>;
 }

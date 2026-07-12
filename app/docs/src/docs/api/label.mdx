@@ -1,0 +1,55 @@
+export const meta = {
+  slug: "label",
+  title: "Label",
+  group: "general",
+  description: "A positioned text label for axes, reference elements, and custom content.",
+};
+
+# Label
+
+`Label` renders a single text label positioned in the chart's coordinate system. It's
+used by axes to display tick and axis labels, by reference elements (ReferenceLine,
+ReferenceDot, ReferenceArea), and can be nested inside series for inline labels.
+
+```tsx
+import { LineChart, Line, Label } from "solid-recharts";
+
+<LineChart width={500} height={300} data={data}>
+  <Line dataKey="value">
+    <Label value="Peak" position="top" offset={10} />
+  </Line>
+</LineChart>;
+```
+
+<Example slug="bar-labels" />
+
+## Props
+
+| Prop           | Type                                                              | Default    | Description                                |
+| -------------- | ----------------------------------------------------------------- | ---------- | ------------------------------------------ |
+| `value`        | `string \| number`                                                | —          | Label text (or set via `children`)         |
+| `position`     | `"top"` \| `"bottom"` \| `"left"` \| `"right"` \| `"center"` etc. | `"middle"` | Placement relative to the element          |
+| `offset`       | `number`                                                          | `5`        | Distance from the element in pixels        |
+| `angle`        | `number`                                                          | `0`        | Rotation in degrees                        |
+| `formatter`    | `(value) => string`                                               | —          | Transform the label value before rendering |
+| `content`      | `(props) => JSX.Element`                                          | —          | Render function for custom label content   |
+| `textBreakAll` | `boolean`                                                         | `false`    | Break text at character boundaries         |
+| `class`        | `string`                                                          | —          | CSS class applied to the label             |
+| `children`     | `string \| number`                                                | —          | Alternative to `value` prop                |
+
+Valid `position` values: `"top"`, `"bottom"`, `"left"`, `"right"`, `"inside"`, `"outside"`,
+`"insideLeft"`, `"insideRight"`, `"insideTop"`, `"insideBottom"`, `"center"`, `"centerTop"`,
+`"centerBottom"`, `"middle"`, or an object `{ x: number, y: number }` for absolute placement.
+
+## Notes
+
+- Label is often implicit — pass `label={true}` to a `<Line>` or `<Bar>` to show
+  default labels, or `label={<Label position="top" />}` to customize.
+- The `content` render prop receives full label props; return any JSX element.
+- Works in both cartesian (LineChart, BarChart) and polar (PieChart, RadarChart) contexts.
+
+## See also
+
+- [Text](/docs/text) — low-level text rendering with wrapping
+- [LabelList](/docs/label-list) — labels for multiple data points
+- [Bar](/docs/bar) · [Line](/docs/line) — series components with label support

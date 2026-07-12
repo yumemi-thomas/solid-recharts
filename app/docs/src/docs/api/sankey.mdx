@@ -1,0 +1,69 @@
+export const meta = {
+  slug: "sankey",
+  title: "Sankey",
+  group: "charts",
+  description: "A flow diagram showing how quantities flow between nodes.",
+  example: "sankey-basic",
+};
+
+# Sankey
+
+`Sankey` is a self-contained flow diagram that visualizes how quantities split, merge,
+and flow between stages. Nodes (rectangles) are connected by value-weighted ribbons,
+conveying the magnitude and direction of each flow. It is not placed inside another chart
+container.
+
+```tsx
+import { Sankey, ResponsiveContainer, Tooltip } from "solid-recharts";
+
+const data = {
+  nodes: [{ name: "A" }, { name: "B" }, { name: "C" }],
+  links: [
+    { source: 0, target: 1, value: 100 },
+    { source: 1, target: 2, value: 80 },
+  ],
+};
+
+<ResponsiveContainer width="100%" height="100%">
+  <Sankey data={data}>
+    <Tooltip />
+  </Sankey>
+</ResponsiveContainer>;
+```
+
+<Example slug="sankey-basic" />
+
+## Props
+
+| Prop              | Type                  | Default          | Description                                           |
+| ----------------- | --------------------- | ---------------- | ----------------------------------------------------- |
+| `data`            | `{ nodes, links }`    | —                | Nodes array + links array (source/target indices)     |
+| `width`, `height` | `number \| "%"`       | —                | Fixed size or percentage inside `ResponsiveContainer` |
+| `margin`          | `{ top, right, ...}`  | `{ 5, 5, 5, 5 }` | Space around the plot area                            |
+| `nodeWidth`       | `number`              | `10`             | Width of each node rectangle (in pixels)              |
+| `nodePadding`     | `number`              | `10`             | Vertical space between nodes at the same depth        |
+| `linkCurvature`   | `number`              | `0.5`            | Bezier curve tension (0 = straight, 1 = max curve)    |
+| `align`           | `"left" \| "justify"` | `"justify"`      | Horizontal alignment of nodes                         |
+| `verticalAlign`   | `"top" \| "justify"`  | `"justify"`      | Vertical alignment within columns                     |
+
+All other recharts `Sankey` props are supported; see the
+[recharts Sankey docs](https://recharts.org/en-US/api/Sankey) for the full matrix.
+
+## Notes
+
+- **Data shape:** `nodes` is an array of `{ name, ... }` objects. `links` is an array of
+  `{ source, target, value }` where `source` and `target` are node array indices.
+- **Node names:** The `nameKey` prop (default: `"name"`) reads the node label from the
+  node object.
+- **Link width:** Each ribbon's thickness is proportional to its `value`.
+- **Tooltip:** Sankey supports item-type tooltips on nodes and links. Hovering a node or
+  link displays its details, including the flow value.
+- **Custom renderers:** Use the `node` and `link` props (function form) to render custom
+  node/link graphics instead of the defaults.
+- **Handlers:** `onMouseEnter`, `onMouseLeave`, and `onClick` receive the item
+  (`NodeProps` or `LinkProps`) and element type (`"node"` or `"link"`).
+
+## See also
+
+- [ResponsiveContainer](/docs/responsive-container) — fluid sizing
+- [Tooltip](/docs/tooltip) — hover info

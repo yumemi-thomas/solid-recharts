@@ -4,11 +4,12 @@
 // on change) + onCleanup (remove), the same effect-dispatch idiom Line/Bar/Area
 // use for their graphical-item registration. Returns null (renders nothing) — it
 // exists purely to register the item's tooltip payload entry in the store.
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppStore } from "./hooks";
 import { TooltipPayloadConfiguration } from "./tooltipSlice";
 import { useIsPanorama } from "../context/PanoramaContext";
+import { unregisterOnCleanup } from "./unregisterOnCleanup";
 
 export function SetTooltipEntrySettings(props: {
   tooltipEntrySettings: TooltipPayloadConfiguration;
@@ -34,7 +35,7 @@ export function SetTooltipEntrySettings(props: {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.tooltip.removeTooltipEntrySettings(prev);
       prev = null;

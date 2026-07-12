@@ -11,10 +11,12 @@
 //    (relying on JS `null`→0 arithmetic coercion in rectWithPoints). We make that
 //    explicit with `?? 0`, keeping it typed (no assertions). The isInRange discard
 //    check still uses the nullable coordinates.
-//  - DEFERRED: the `label` prop (component/Label not ported), `zIndex`/ZIndexLayer,
-//    and the custom-element `shape` branch (React.cloneElement). `children` is not
-//    rendered (CartesianLabelContext).
-import { createEffect, createMemo, merge, onCleanup, Show } from "solid-js";
+//  - The `label` prop IS wired (CartesianLabelFromLabelProp), and the rect renders
+//    inside <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.area}>.
+//  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
+//    (React.cloneElement — use the render-function form). <Label>
+//    CHILDREN are not rendered (the `label` prop is).
+import { createEffect, createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
 import {
@@ -31,12 +33,15 @@ import { useAppSelector, useAppStore } from "../state/hooks";
 import { selectAxisScale } from "../state/selectors/axisSelectors";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useClipPathId } from "../container/ClipPathProvider";
-import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
+import { svgPropertiesAndEventsKeepCase } from "../util/svgPropertiesAndEvents";
 import { useUniqueId } from "../util/useUniqueId";
 import { RectanglePosition } from "../util/types";
 import { RechartsScale } from "../util/scale/RechartsScale";
 import { CartesianScaleHelperImpl } from "../util/scale/CartesianScaleHelper";
 import type { AxisId } from "../state/cartesianAxisSlice";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 type ReferenceCoordinateValue = number | string;
 
@@ -62,6 +67,8 @@ export interface ReferenceAreaProps<
   shape?: (props: RectangleProps) => JSX.Element;
   /** A single label rendered inside the area. @defaultValue false */
   label?: ImplicitLabelType;
+  /** Stacking order within the chart's z-index system. @defaultValue DefaultZIndexes.area */
+  zIndex?: number;
   class?: string;
   children?: JSX.Element;
 }
@@ -144,7 +151,7 @@ function ReportReferenceArea(props: ReferenceAreaSettings): JSX.Element {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.referenceElements.removeArea(prev);
       prev = null;
@@ -161,9 +168,8 @@ const referenceAreaDefaultProps = {
   radius: 0,
   fill: "#ccc",
   stroke: "none",
-  // Kebab keys: see ReferenceLine — compound presentation attrs use Solid's kebab form.
-  "fill-opacity": 0.5,
-  "stroke-width": 1,
+  fillOpacity: 0.5,
+  strokeWidth: 1,
   label: false,
 } as const satisfies Partial<Props>;
 
@@ -206,8 +212,8 @@ function ReferenceAreaImpl(props: Props): JSX.Element {
     }
     const clipPath = merged.ifOverflow === "hidden" ? `url(#${clipPathId})` : undefined;
     return {
-      "clip-path": clipPath,
-      ...svgPropertiesAndEvents({ ...merged }),
+      clipPath,
+      ...svgPropertiesAndEventsKeepCase({ ...merged }),
       ...(r ?? {}),
     };
   });
@@ -215,23 +221,25 @@ function ReferenceAreaImpl(props: Props): JSX.Element {
   return (
     <Show when={rectProps()}>
       {(p) => (
-        <Layer class="recharts-reference-area">
-          {renderRect(merged.shape, p())}
-          <Show when={rect()}>
-            {(box) => (
-              <CartesianLabelContextProvider
-                x={box().x}
-                y={box().y}
-                width={box().width}
-                height={box().height}
-                upperWidth={box().width}
-                lowerWidth={box().width}
-              >
-                <CartesianLabelFromLabelProp label={merged.label} />
-              </CartesianLabelContextProvider>
-            )}
-          </Show>
-        </Layer>
+        <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.area}>
+          <Layer class="recharts-reference-area">
+            {renderRect(merged.shape, p())}
+            <Show when={rect()}>
+              {(box) => (
+                <CartesianLabelContextProvider
+                  x={box().x}
+                  y={box().y}
+                  width={box().width}
+                  height={box().height}
+                  upperWidth={box().width}
+                  lowerWidth={box().width}
+                >
+                  <CartesianLabelFromLabelProp label={merged.label} />
+                </CartesianLabelContextProvider>
+              )}
+            </Show>
+          </Layer>
+        </ZIndexLayer>
       )}
     </Show>
   );

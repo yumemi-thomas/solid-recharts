@@ -1,0 +1,57 @@
+export const meta = {
+  slug: "line",
+  title: "Line",
+  group: "cartesian",
+  description:
+    "A graphical series component for rendering line charts with customizable curves and dots.",
+  example: "line-dashed",
+};
+
+# Line
+
+`Line` is a graphical series component that renders a line (polyline) on a cartesian chart. It's typically used inside a `LineChart` container alongside axes and other components.
+
+```tsx
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<LineChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Line type="monotone" dataKey="value" stroke="#82ca9d" />
+</LineChart>;
+```
+
+<Example slug="line-dashed" />
+
+## Props
+
+| Prop                | Type                       | Default     | Description                                                     |
+| ------------------- | -------------------------- | ----------- | --------------------------------------------------------------- |
+| `dataKey`           | `string \| number \| func` | —           | Data key or accessor for the line's values                      |
+| `type`              | `string`                   | `"linear"`  | Curve interpolation: `"linear"`, `"monotone"`, `"natural"`, etc |
+| `stroke`            | `string`                   | `"#8884d8"` | Line color                                                      |
+| `strokeWidth`       | `number`                   | `1`         | Line thickness                                                  |
+| `strokeDasharray`   | `string \| number`         | —           | Dashed pattern (e.g., `"5 5"`)                                  |
+| `connectNulls`      | `boolean`                  | `false`     | Connect data points across null/undefined values                |
+| `dot`               | `boolean \| object`        | `true`      | Render dots at each point; `true` uses default, `false` hides   |
+| `activeDot`         | `boolean \| object`        | `true`      | Dot appearance on hover; `false` disables                       |
+| `label`             | `boolean \| object`        | `false`     | Render labels at each point                                     |
+| `isAnimationActive` | `boolean \| "auto"`        | `"auto"`    | Enable enter/update animation                                   |
+
+See the [recharts Line docs](https://recharts.org/en-US/api/Line) for the full prop matrix.
+
+## Notes
+
+- **Curve types**: common types are `"linear"`, `"monotone"`, `"natural"`, and `"step"`; see the [d3-shape](https://github.com/d3/d3-shape) docs for the complete list.
+- **Dashed lines**: pass a dash pattern as a string (e.g., `"5 5"` for 5-unit dashes with 5-unit gaps).
+- **Custom dots**: set `dot={{ r: 4 }}` to customize the radius; use `dot={false}` to hide them entirely.
+- **Multiple lines**: each `Line` shares the chart's axes unless you assign it a unique `xAxisId`/`yAxisId`.
+
+## See also
+
+- [LineChart](/docs/line-chart) — the chart container
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) — axes
+- [CartesianGrid](/docs/cartesian-grid) — background grid
+- [Label](/docs/label) — custom point labels

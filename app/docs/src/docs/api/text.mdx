@@ -1,0 +1,52 @@
+export const meta = {
+  slug: "text",
+  title: "Text",
+  group: "general",
+  description: "SVG text component with width-aware wrapping and scaling.",
+};
+
+# Text
+
+`Text` is a low-level SVG `<text>` component that handles word wrapping, scaling to fit,
+and multiline layout. It's used internally by axes and labels, but also exported for
+custom tick labels, axis labels, and other text rendering.
+
+```tsx
+import { Text } from "solid-recharts";
+
+<Text x={0} y={0} width={100} textAnchor="middle" scaleToFit>
+  Custom axis tick label
+</Text>;
+```
+
+## Props
+
+| Prop              | Type                                        | Default     | Description                                          |
+| ----------------- | ------------------------------------------- | ----------- | ---------------------------------------------------- |
+| `x`, `y`          | `number`                                    | —           | SVG coordinates                                      |
+| `width`, `height` | `number \| string`                          | —           | Container dimensions; enables word wrapping when set |
+| `textAnchor`      | `"start" \| "middle" \| "end" \| "inherit"` | `"start"`   | Horizontal alignment                                 |
+| `verticalAnchor`  | `"start" \| "middle" \| "end"`              | `"end"`     | Vertical alignment                                   |
+| `angle`           | `number`                                    | `0`         | Rotation in degrees                                  |
+| `scaleToFit`      | `boolean`                                   | `false`     | Shrink/stretch text to fit width                     |
+| `breakAll`        | `boolean`                                   | `false`     | Break at character boundaries (not just words)       |
+| `maxLines`        | `number`                                    | —           | Maximum lines before truncation                      |
+| `lineHeight`      | `number \| string`                          | `"1em"`     | Line spacing                                         |
+| `capHeight`       | `number \| string`                          | `"0.71em"`  | Cap height for vertical centering                    |
+| `fill`            | `string`                                    | `"#808080"` | Text color                                           |
+| `class`           | `string`                                    | —           | CSS class (applied as `recharts-text`)               |
+| `children`        | `string \| number`                          | —           | Text content                                         |
+
+All SVG text attributes (e.g. `dx`, `dy`, `fontFamily`, `fontSize`) are supported.
+
+## Notes
+
+- Text is positioned absolutely; parent must define the `<svg>` or chart context.
+- When `width` is set, text wraps automatically; `maxLines` truncates with "…".
+- `scaleToFit` resizes the entire text block to fit the width, rather than wrapping.
+- Use `verticalAnchor="middle"` with `capHeight` to center text vertically.
+
+## See also
+
+- [Label](/docs/label) — positioned text labels for charts
+- [LabelList](/docs/label-list) — multiple labels per series

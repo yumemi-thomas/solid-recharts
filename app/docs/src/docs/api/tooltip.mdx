@@ -1,0 +1,56 @@
+export const meta = {
+  slug: "tooltip",
+  title: "Tooltip",
+  group: "general",
+  description: "Floating box showing the active data values on hover or click.",
+  example: "tooltip-custom",
+};
+
+# Tooltip
+
+`Tooltip` displays a floating box with the values from the active data point. It appears on hover (by default), keyboard navigation, or on click depending on the `trigger` prop.
+
+```tsx
+import { LineChart, Line, XAxis, YAxis, Tooltip } from "solid-recharts";
+
+<LineChart data={data}>
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Line dataKey="uv" stroke="#8884d8" />
+</LineChart>;
+```
+
+<Example slug="tooltip-custom" />
+
+## Props
+
+| Prop             | Type                                    | Default   | Description                                                                |
+| ---------------- | --------------------------------------- | --------- | -------------------------------------------------------------------------- |
+| `content`        | `JSX.Element \| (props) => JSX.Element` | —         | Custom component to render tooltip content; receives `TooltipContentProps` |
+| `formatter`      | `(value, name) => string \| [str, str]` | —         | Format each payload entry's value                                          |
+| `labelFormatter` | `(label) => string`                     | —         | Format the tooltip label (categorical axis name)                           |
+| `itemSorter`     | `string \| (a, b) => number`            | `"name"`  | Sort payload entries by `"name"`, `"value"`, or custom function            |
+| `filterNull`     | `boolean`                               | `true`    | Hide entries with `null` or `undefined` values                             |
+| `cursor`         | `boolean \| CursorDefinition`           | `true`    | Show a highlight line/shape at the active point                            |
+| `shared`         | `boolean`                               | `true`    | Show all series' values at once (false = active series only)               |
+| `trigger`        | `"hover" \| "click"`                    | `"hover"` | Activation mode                                                            |
+| `defaultIndex`   | `number`                                | —         | Initial active point before user interaction                               |
+| `offset`         | `number \| { x, y }`                    | `10`      | Distance from the trigger point to the tooltip box                         |
+| `position`       | `{ x, y }`                              | —         | Fixed position (overrides automatic positioning)                           |
+| `wrapperStyle`   | `JSX.CSSProperties`                     | `{}`      | Styles for the tooltip wrapper div                                         |
+
+## Notes
+
+- `content` is called with `TooltipContentProps` (label, payload array, coordinate, active, etc.). Define it as a function: `content={(props) => <CustomTooltip {...props} />}`.
+- `payload` is an array of entries (one per series); each entry has `value`, `name`, `dataKey`, `fill`/`stroke`.
+- `itemSorter` accepts `"name"` (alphabetical), `"value"` (by numeric value), or a comparator function `(a, b) => -1|0|1`.
+- `filterNull` applies after `itemSorter`; set to `false` to show all entries.
+- `shared={true}` (default) shows all series at one tooltip; `shared={false}` shows only the active series.
+- `trigger="click"` requires mouse/touch events to toggle the tooltip on/off.
+
+## See also
+
+- [Legend](/docs/legend) — legend entries can sync with tooltip via `onClick`
+- [LineChart](/docs/line-chart) — primary chart using tooltips
+- [Composed Chart](/docs/composed-chart) — multiple series with shared tooltip

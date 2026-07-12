@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { RadialBar, RadialBarChart } from "../../../src";
+import type { RadialBarDataItem } from "../../../src";
+import { getRelativeCoordinate, RadialBar, RadialBarChart } from "../../../src";
 import { render } from "../../helper/render";
 
 type ExampleDataPoint = {
@@ -62,5 +63,70 @@ describe("RadialBar with strong typing", () => {
         </RadialBarChart>
       ));
     });
+  });
+});
+
+// Ported from the reference RadialBar.typed.spec "RadialBar event handlers" case,
+// golden-anchored via `@ts-expect-error` (the Bar.typed convention). Provenance: the
+// React reference passes a recharts pointer event to each handler and expects
+// getRelativeCoordinate(e) to type-check with NO error. The port's RadialBar handler
+// 3rd arg is a raw DOM `MouseEvent | TouchEvent`, whose `currentTarget` is
+// `EventTarget | null` — NOT assignable to getRelativeCoordinate's
+// `HTMLElementTarget | SVGElementTarget`. So each call below is a genuine Solid type
+// error and is annotated.
+describe("RadialBar event handlers", () => {
+  it("should NOT allow calling getRelativeCoordinate with the raw DOM event Solid passes to a RadialBar handler", () => {
+    return (
+      <RadialBarChart data={data} width={400} height={400}>
+        <RadialBar
+          dataKey="value"
+          isAnimationActive={false}
+          onClick={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseDown={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseUp={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseMove={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseLeave={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseOver={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseOut={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onMouseEnter={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onTouchStart={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onTouchMove={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+          onTouchEnd={(_data: RadialBarDataItem, _i: number, e) => {
+            // @ts-expect-error Solid passes a raw DOM event, not a recharts pointer
+            getRelativeCoordinate(e);
+          }}
+        />
+      </RadialBarChart>
+    );
   });
 });

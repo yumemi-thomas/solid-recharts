@@ -158,7 +158,8 @@ export const DefaultLegendContent = (props: Props): JSX.Element => {
 
   const labelStyleOf = (entry: LegendPayload): JSX.CSSProperties => ({
     ...merged.labelStyle,
-    color: entry.inactive ? merged.inactiveColor : (entry.color ?? merged.labelStyle?.color),
+    // recharts parity: an explicit labelStyle.color wins over the entry color.
+    color: entry.inactive ? merged.inactiveColor : (merged.labelStyle?.color ?? entry.color),
   });
 
   return (
@@ -183,6 +184,7 @@ export const DefaultLegendContent = (props: Props): JSX.Element => {
                   height={merged.iconSize}
                   viewBox={{ x: 0, y: 0, width: SIZE, height: SIZE }}
                   style={svgStyle}
+                  aria-label={entry.value == null ? "legend icon" : `${entry.value} legend icon`}
                 >
                   <LegendIcon
                     data={entry}

@@ -6,6 +6,7 @@
  * SVG `class` so the array form typechecks); destructuring defaults → `?? 0`
  * accessors; `clsx` → `class={[...]}`; `return null` → `<Show>`.
  */
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { Show, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { isNumber } from "../util/DataUtils";
@@ -27,7 +28,8 @@ interface CrossOwnProps {
   class?: string;
 }
 
-export type CrossProps = Omit<JSX.PathSVGAttributes<SVGPathElement>, "class"> & CrossOwnProps;
+export type CrossProps = Omit<CamelSvgProps<JSX.PathSVGAttributes<SVGPathElement>>, "class"> &
+  CrossOwnProps;
 
 const getPath = (
   x: number,

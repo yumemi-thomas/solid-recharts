@@ -23,7 +23,7 @@ import { useAppSelector } from "../../../src/state/hooks";
 import { BarSettings } from "../../../src/state/types/BarSettings";
 import { fireEvent, render } from "../../helper/render";
 import { assertZIndexLayerOrder } from "../../helper/assertZIndexLayerOrder";
-import { expectActiveBars, expectBars, getAllBars } from "../../helper/expectBars";
+import { expectActiveBars, expectBars, getAllBarPaths, getAllBars } from "../../helper/expectBars";
 import { expectLabels } from "../../helper/expectLabel";
 import { svgPropertiesAndEvents } from "../../../src/util/svgPropertiesAndEvents";
 import type { Props as LabelProps } from "../../../src/component/Label";
@@ -42,6 +42,7 @@ import {
   showTooltipOnCoordinate,
 } from "../../component/Tooltip/tooltipTestHelpers";
 import {
+  selectActiveTooltipDataKey,
   selectActiveTooltipIndex,
   selectTooltipAxisTicks,
 } from "../../../src/state/selectors/tooltipSelectors";
@@ -134,6 +135,24 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
         y: "86.6667",
       },
     ]);
+  });
+
+  it(`should render rounded rectangles when radius is set`, () => {
+    const { container } = renderChart(() => (
+      <ChartElement layout="horizontal" data={data}>
+        <Bar isAnimationActive={false} dataKey="value" radius={8} />
+      </ChartElement>
+    ));
+
+    const paths = container.querySelectorAll(
+      ".recharts-bar .recharts-bar-rectangle path.recharts-rectangle",
+    );
+    expect(paths.length).toBe(5);
+    paths.forEach((p) => {
+      expect(p.getAttribute("radius")).toBe("8");
+      // A rounded bar replaces the straight `h/v` corners with arc commands.
+      expect(p.getAttribute("d")).toContain("A 8,8");
+    });
   });
 
   it(`should render rectangles when wrapped in custom Component`, () => {
@@ -1883,6 +1902,55 @@ describe("Bar events", () => {
     );
   });
 
+  it("should fire onMouseMove, onMouseDown and onMouseUp events on a bar", () => {
+    const handleMouseMove = vi.fn();
+    const handleMouseDown = vi.fn();
+    const handleMouseUp = vi.fn();
+
+    const { container } = renderChart(() => (
+      <BarChart width={200} height={200} layout="horizontal" data={data}>
+        <Bar
+          isAnimationActive={false}
+          dataKey="value"
+          onMouseMove={handleMouseMove}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+        />
+      </BarChart>
+    ));
+
+    // move/down/up ride the rectangle path itself (the reference's wrapping-g
+    // attachment is bubble-equivalent for these events) — fire on the path.
+    const bars = getAllBarPaths(container);
+
+    fireEvent.mouseMove(bars[1]!, { clientX: 10, clientY: 10 });
+    expect(handleMouseMove).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(
+      handleMouseMove,
+      expect.objectContaining({ label: "test2", originalDataIndex: 1, value: 200 }),
+      1,
+      expect.any(Object),
+    );
+
+    fireEvent.mouseDown(bars[1]!);
+    expect(handleMouseDown).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(
+      handleMouseDown,
+      expect.objectContaining({ label: "test2", originalDataIndex: 1, value: 200 }),
+      1,
+      expect.any(Object),
+    );
+
+    fireEvent.mouseUp(bars[1]!);
+    expect(handleMouseUp).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(
+      handleMouseUp,
+      expect.objectContaining({ label: "test2", originalDataIndex: 1, value: 200 }),
+      1,
+      expect.any(Object),
+    );
+  });
+
   it("should fire onTouchMove and onTouchEnd events when touching a bar", () => {
     const handleTouchMove = vi.fn();
     const handleTouchEnd = vi.fn();
@@ -1905,6 +1973,84 @@ describe("Bar events", () => {
       handleTouchMove,
       expect.objectContaining({ label: "test1", originalDataIndex: 0, value: 100 }),
       0,
+      expect.any(Object),
+    );
+  });
+});
+
+// Regression: the item-dispatch hooks used to receive `dataKey`/handlers BY VALUE
+// from an untracked component-body read — a signal-driven dataKey tripped
+// STRICT_READ_UNTRACKED (the global diagnostics guard fails this test if it
+// fires) and the dispatched payload's activeDataKey went stale. The hooks now
+// take getters and read at event time.
+describe("Bar with a signal-driven dataKey", () => {
+  const dualKeyData = [
+    { label: "test1", value: 100, value2: 500 },
+    { label: "test2", value: 200, value2: 400 },
+    { label: "test3", value: 300, value2: 300 },
+  ];
+
+  it("re-renders the bars and dispatches the fresh dataKey after the signal changes", () => {
+    const [barDataKey, setBarDataKey] = createSignal<string>("value");
+    const handleClick = vi.fn();
+    const activeDataKeySpy = vi.fn();
+
+    function ActiveDataKeySpy(): JSX.Element {
+      const activeDataKey = useAppSelector(selectActiveTooltipDataKey);
+      createEffect(
+        () => activeDataKey(),
+        (dk) => {
+          activeDataKeySpy(dk);
+        },
+      );
+      return null;
+    }
+
+    const { container } = renderChart(() => (
+      <BarChart width={200} height={200} layout="horizontal" data={dualKeyData}>
+        <Bar isAnimationActive={false} dataKey={barDataKey()} onClick={handleClick} />
+        {/* shared={false} → item-type tooltip, so the item dispatch's activeDataKey
+            lands in the stored interaction state the spy reads. */}
+        <Tooltip shared={false} />
+        <ActiveDataKeySpy />
+      </BarChart>
+    ));
+
+    const before = Array.from(getAllBarPaths(container)).map((bar) => bar.getAttribute("d"));
+    expect(before).toHaveLength(dualKeyData.length);
+
+    // Exercise the item-dispatch path while the dataKey comes from a signal.
+    showTooltipOnCoordinate(getAllBars(container)[0]!, undefined, { clientX: 10, clientY: 10 });
+    flush();
+    expect(activeDataKeySpy).toHaveBeenLastCalledWith("value");
+    fireEvent.click(getAllBars(container)[0]!);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+    expectLastCalledWith(
+      handleClick,
+      expect.objectContaining({ value: 100 }),
+      0,
+      expect.any(Object),
+    );
+
+    setBarDataKey("value2");
+    flush();
+
+    // The chart re-rendered against the new dataKey…
+    const after = Array.from(getAllBarPaths(container)).map((bar) => bar.getAttribute("d"));
+    expect(after).toHaveLength(dualKeyData.length);
+    expect(after).not.toEqual(before);
+
+    // …and a fresh interaction dispatches the NEW dataKey (the by-value hook
+    // captured the mount-time "value" forever).
+    showTooltipOnCoordinate(getAllBars(container)[1]!, undefined, { clientX: 11, clientY: 11 });
+    flush();
+    expect(activeDataKeySpy).toHaveBeenLastCalledWith("value2");
+    fireEvent.click(getAllBars(container)[1]!);
+    expect(handleClick).toHaveBeenCalledTimes(2);
+    expectLastCalledWith(
+      handleClick,
+      expect.objectContaining({ value: 400 }),
+      1,
       expect.any(Object),
     );
   });

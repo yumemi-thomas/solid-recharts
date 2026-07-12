@@ -12,8 +12,9 @@
 //   - "renders 2 grid lines in an empty chart": self-generated edge coordinates.
 //   - "...to the background" cases: the `rect.recharts-cartesian-grid-bg` rect.
 //   - "uses offset.width and offset.height when width and height are NaN".
-import { describe, expect, it, test, vi } from "vitest";
+import { describe, expect, it, type Mock, test, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { render } from "../helper/render";
 import {
   CartesianGrid,
@@ -30,11 +31,19 @@ import {
   Line,
   Tooltip,
 } from "../../src";
-import type { Margin } from "../../src/util/types";
+import type { ChartOffsetInternal, Margin } from "../../src/util/types";
+import type {
+  AxisPropsForCartesianGridTicksGeneration,
+  GridLineTypeFunctionProps,
+  HorizontalCoordinatesGenerator,
+  VerticalCoordinatesGenerator,
+} from "../../src/cartesian/CartesianGrid";
 import { assertNotNull } from "../helper/assertNotNull";
 import { pageData } from "../_data";
 import { selectAxisScale } from "../../src/state/selectors/axisSelectors";
 import { useAppSelector } from "../../src/state/hooks";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
 
 const allChartsThatSupportCartesianGrid = [
   { ChartElement: AreaChart, testName: "AreaElement" },
@@ -329,6 +338,12 @@ describe.each(allChartsThatSupportCartesianGrid)(
   ({ ChartElement }) => {
     describe("when horizontalPoints and verticalPoints are set explicitly", () => {
       const horizontalPoints = [10, 20, 30, 100, 400];
+      /**
+       * JavaScript produces numbers like this when multiplying floats, for example:
+       * 1.1 * 1.1 * 100
+       * 1.1 * 2.1 * 100
+       */
+      const floatingPointPrecisionExamples = [121.0000000000002, 231.0000000000005];
       const verticalPoints = [100, 200, 300, 400];
 
       const chartMargin: Margin = {
@@ -336,6 +351,16 @@ describe.each(allChartsThatSupportCartesianGrid)(
         left: 12,
         right: 13,
         top: 14,
+      };
+
+      const expectedOffset: ChartOffsetInternal = {
+        bottom: 11,
+        brushBottom: 11,
+        height: 175,
+        left: 12,
+        right: 13,
+        top: 14,
+        width: 275,
       };
 
       const exampleCartesianGridDimensions = {
@@ -713,6 +738,1364 @@ describe.each(allChartsThatSupportCartesianGrid)(
               .soft(container.querySelectorAll(".recharts-cartesian-grid-vertical line"))
               .toHaveLength(verticalPoints.length);
           });
+        });
+
+        describe("horizontalCoordinatesGenerator", () => {
+          it("should render lines that the generator returns", () => {
+            const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([3, 4]);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
+            expect(allLines).toHaveLength(2);
+            expect.soft(allLines[0]).toHaveAttribute("x", "1");
+            expect.soft(allLines[0]).toHaveAttribute("x1", "1");
+            expect.soft(allLines[0]).toHaveAttribute("x2", "301");
+            expect.soft(allLines[0]).toHaveAttribute("y", "2");
+            expect.soft(allLines[0]).toHaveAttribute("y1", "3");
+            expect.soft(allLines[0]).toHaveAttribute("y2", "3");
+            expect.soft(allLines[1]).toHaveAttribute("x", "1");
+            expect.soft(allLines[1]).toHaveAttribute("x1", "1");
+            expect.soft(allLines[1]).toHaveAttribute("x2", "301");
+            expect.soft(allLines[1]).toHaveAttribute("y", "2");
+            expect.soft(allLines[1]).toHaveAttribute("y1", "4");
+            expect.soft(allLines[1]).toHaveAttribute("y2", "4");
+          });
+
+          it("if both horizontalCoordinatesGenerator and horizontalPoints are present then horizontalPoints win", () => {
+            const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([1, 2]);
+            expect(horizontalPoints.length).not.toBe(2);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                  horizontalPoints={horizontalPoints}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(horizontalCoordinatesGenerator).not.toHaveBeenCalled();
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
+            expect(allLines).toHaveLength(horizontalPoints.length);
+          });
+
+          it("should pass props to the generator", () => {
+            const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([]);
+            render(() => (
+              <ChartElement width={300} height={200} margin={chartMargin}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+            const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
+              angle: 0,
+              interval: "preserveEnd",
+              minTickGap: 5,
+              orientation: "left",
+              tick: true,
+              tickFormatter: undefined,
+              unit: undefined,
+              axisType: "yAxis",
+              categoricalDomain: undefined,
+              duplicateDomain: undefined,
+              isCategorical: false,
+              niceTicks: undefined,
+              range: [189, 14],
+              realScaleType: "linear",
+              scale: undefined,
+              tickCount: 5,
+              ticks: undefined,
+              type: "number",
+            };
+            expectLastCalledWith(
+              horizontalCoordinatesGenerator,
+              {
+                yAxis: expectedYAxis,
+                width: 300,
+                height: 200,
+                offset: expectedOffset,
+              },
+              false,
+            );
+          });
+
+          it(`should set syncWithTicks=true, and ticks=horizontalValues, when horizontalValues is provided, even if the explicit syncWithTicks is false`, () => {
+            const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([]);
+            render(() => (
+              <ChartElement width={300} height={200} margin={chartMargin}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                  syncWithTicks={false}
+                  horizontalValues={["a", "b"]}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+            const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
+              angle: 0,
+              interval: "preserveEnd",
+              minTickGap: 5,
+              orientation: "left",
+              tick: true,
+              tickFormatter: undefined,
+              unit: undefined,
+              axisType: "yAxis",
+              categoricalDomain: undefined,
+              duplicateDomain: undefined,
+              isCategorical: false,
+              niceTicks: undefined,
+              range: [189, 14],
+              realScaleType: "linear",
+              scale: undefined,
+              tickCount: 5,
+              ticks: ["a", "b"],
+              type: "number",
+            };
+            expect(horizontalCoordinatesGenerator).toHaveBeenCalledWith(
+              {
+                yAxis: expectedYAxis,
+                width: 300,
+                height: 200,
+                offset: expectedOffset,
+              },
+              true,
+            );
+          });
+
+          test.each([true, false, undefined])(
+            "should set syncWithTicks as %s when horizontalValues is provided but is empty",
+            (syncWithTicks) => {
+              const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+                .fn()
+                .mockReturnValue([]);
+              render(() => (
+                <ChartElement width={300} height={200} margin={chartMargin}>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                    syncWithTicks={syncWithTicks}
+                    horizontalValues={[]}
+                  />
+                </ChartElement>
+              ));
+              flush();
+
+              expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+              const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
+                angle: 0,
+                interval: "preserveEnd",
+                minTickGap: 5,
+                orientation: "left",
+                tick: true,
+                tickFormatter: undefined,
+                unit: undefined,
+                axisType: "yAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                isCategorical: false,
+                niceTicks: undefined,
+                range: [189, 14],
+                realScaleType: "linear",
+                scale: undefined,
+                tickCount: 5,
+                ticks: undefined,
+                type: "number",
+              };
+              expectLastCalledWith(
+                horizontalCoordinatesGenerator,
+                {
+                  yAxis: expectedYAxis,
+                  width: 300,
+                  height: 200,
+                  offset: expectedOffset,
+                },
+                Boolean(syncWithTicks),
+              );
+            },
+          );
+
+          test.each([true, false, undefined])(
+            "should pass props to the generator when syncWithTicks is %s",
+            (syncWithTicks) => {
+              const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+                .fn()
+                .mockReturnValue([]);
+              render(() => (
+                <ChartElement width={300} height={200} margin={chartMargin}>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                    syncWithTicks={syncWithTicks}
+                  />
+                </ChartElement>
+              ));
+              flush();
+
+              expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+              const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
+                angle: 0,
+                interval: "preserveEnd",
+                minTickGap: 5,
+                orientation: "left",
+                tick: true,
+                tickFormatter: undefined,
+                unit: undefined,
+                axisType: "yAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                isCategorical: false,
+                niceTicks: undefined,
+                range: [189, 14],
+                realScaleType: "linear",
+                scale: undefined,
+                tickCount: 5,
+                ticks: undefined,
+                type: "number",
+              };
+              expectLastCalledWith(
+                horizontalCoordinatesGenerator,
+                {
+                  yAxis: expectedYAxis,
+                  width: 300,
+                  height: 200,
+                  offset: expectedOffset,
+                },
+                Boolean(syncWithTicks),
+              );
+            },
+          );
+
+          test.each([
+            { gen: [] },
+            { gen: null },
+            { gen: undefined },
+            { gen: "some random string" },
+            { gen: NaN },
+          ])("should render nothing if the generator returns $gen", ({ gen }) => {
+            const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue(gen);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
+            expect(allLines).toHaveLength(0);
+          });
+
+          it("should generate its own ticks if neither horizontalPoints nor horizontalCoordinatesGenerator are provided", () => {
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid x={0} y={0} width={500} height={500} />
+              </ChartElement>
+            ));
+            flush();
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
+            expect(allLines).toHaveLength(2);
+            expect.soft(allLines[0]).toHaveAttribute("x", "0");
+            expect.soft(allLines[0]).toHaveAttribute("x1", "0");
+            expect.soft(allLines[0]).toHaveAttribute("x2", "500");
+            expect.soft(allLines[0]).toHaveAttribute("y", "0");
+            expect.soft(allLines[0]).toHaveAttribute("y1", "5");
+            expect.soft(allLines[0]).toHaveAttribute("y2", "5");
+            expect.soft(allLines[1]).toHaveAttribute("x", "0");
+            expect.soft(allLines[1]).toHaveAttribute("x1", "0");
+            expect.soft(allLines[1]).toHaveAttribute("x2", "500");
+            expect.soft(allLines[1]).toHaveAttribute("y", "0");
+            expect.soft(allLines[1]).toHaveAttribute("y1", "495");
+            expect.soft(allLines[1]).toHaveAttribute("y2", "495");
+          });
+        });
+
+        describe("verticalCoordinatesGenerator", () => {
+          it("should render lines that the generator returns", () => {
+            const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([3, 4]);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
+            expect(allLines).toHaveLength(2);
+            expect.soft(allLines[0]).toHaveAttribute("x", "1");
+            expect.soft(allLines[0]).toHaveAttribute("x1", "3");
+            expect.soft(allLines[0]).toHaveAttribute("x2", "3");
+            expect.soft(allLines[0]).toHaveAttribute("y", "2");
+            expect.soft(allLines[0]).toHaveAttribute("y1", "2");
+            expect.soft(allLines[0]).toHaveAttribute("y2", "202");
+            expect.soft(allLines[1]).toHaveAttribute("x", "1");
+            expect.soft(allLines[1]).toHaveAttribute("x1", "4");
+            expect.soft(allLines[1]).toHaveAttribute("x2", "4");
+            expect.soft(allLines[1]).toHaveAttribute("y", "2");
+            expect.soft(allLines[1]).toHaveAttribute("y1", "2");
+            expect.soft(allLines[1]).toHaveAttribute("y2", "202");
+          });
+
+          it("if both verticalCoordinatesGenerator and verticalPoints are present then verticalPoints wins", () => {
+            const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([1, 2]);
+            expect(verticalPoints.length).not.toBe(2);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                  verticalPoints={verticalPoints}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(verticalCoordinatesGenerator).not.toHaveBeenCalled();
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
+            expect(allLines).toHaveLength(verticalPoints.length);
+          });
+
+          it("should pass props to the generator", () => {
+            const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([]);
+            render(() => (
+              <ChartElement width={300} height={200} margin={chartMargin}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+            const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
+              angle: 0,
+              axisType: "xAxis",
+              categoricalDomain: undefined,
+              duplicateDomain: undefined,
+              interval: "preserveEnd",
+              isCategorical: true,
+              minTickGap: 5,
+              niceTicks: undefined,
+              orientation: "bottom",
+              range: [12, 287],
+              realScaleType: expect.any(String),
+              scale: undefined,
+              tick: true,
+              tickCount: 5,
+              tickFormatter: undefined,
+              ticks: undefined,
+              type: "category",
+              unit: undefined,
+            };
+            expectLastCalledWith(
+              verticalCoordinatesGenerator,
+              {
+                xAxis: expectedXAxis,
+                width: 300,
+                height: 200,
+                offset: expectedOffset,
+              },
+              false,
+            );
+          });
+
+          it(`should set syncWithTicks=true, and ticks=verticalValues, when verticalValues is provided, even if the explicit syncWithTicks is false`, () => {
+            const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([]);
+            render(() => (
+              <ChartElement width={300} height={200} margin={chartMargin}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                  syncWithTicks={false}
+                  verticalValues={["a", "b"]}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+            const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
+              angle: 0,
+              axisType: "xAxis",
+              categoricalDomain: undefined,
+              duplicateDomain: undefined,
+              interval: "preserveEnd",
+              isCategorical: true,
+              minTickGap: 5,
+              niceTicks: undefined,
+              orientation: "bottom",
+              range: [12, 287],
+              realScaleType: expect.any(String),
+              scale: undefined,
+              tick: true,
+              tickCount: 5,
+              tickFormatter: undefined,
+              ticks: ["a", "b"],
+              type: "category",
+              unit: undefined,
+            };
+            expect(verticalCoordinatesGenerator).toHaveBeenCalledWith(
+              {
+                xAxis: expectedXAxis,
+                width: 300,
+                height: 200,
+                offset: expectedOffset,
+              },
+              true,
+            );
+          });
+
+          test.each([true, false, undefined])(
+            "should set syncWithTicks as %s when horizontalValues is provided but is empty",
+            (syncWithTicks) => {
+              const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+                .fn()
+                .mockReturnValue([]);
+              render(() => (
+                <ChartElement width={300} height={200} margin={chartMargin}>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                    syncWithTicks={syncWithTicks}
+                    horizontalValues={[]}
+                  />
+                </ChartElement>
+              ));
+              flush();
+
+              expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+              const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
+                angle: 0,
+                axisType: "xAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                interval: "preserveEnd",
+                isCategorical: true,
+                minTickGap: 5,
+                niceTicks: undefined,
+                orientation: "bottom",
+                range: [12, 287],
+                realScaleType: expect.any(String),
+                scale: undefined,
+                tick: true,
+                tickCount: 5,
+                tickFormatter: undefined,
+                ticks: undefined,
+                type: "category",
+                unit: undefined,
+              };
+              expectLastCalledWith(
+                verticalCoordinatesGenerator,
+                {
+                  xAxis: expectedXAxis,
+                  width: 300,
+                  height: 200,
+                  offset: expectedOffset,
+                },
+                Boolean(syncWithTicks),
+              );
+            },
+          );
+
+          test.each([true, false, undefined])(
+            "should pass props to the generator when syncWithTicks is %s",
+            (syncWithTicks) => {
+              const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+                .fn()
+                .mockReturnValue([]);
+              render(() => (
+                <ChartElement width={300} height={200} margin={chartMargin}>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                    syncWithTicks={syncWithTicks}
+                  />
+                </ChartElement>
+              ));
+              flush();
+
+              expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+              const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
+                angle: 0,
+                axisType: "xAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                interval: "preserveEnd",
+                isCategorical: true,
+                minTickGap: 5,
+                niceTicks: undefined,
+                orientation: "bottom",
+                range: [12, 287],
+                realScaleType: expect.any(String),
+                scale: undefined,
+                tick: true,
+                tickCount: 5,
+                tickFormatter: undefined,
+                ticks: undefined,
+                type: "category",
+                unit: undefined,
+              };
+              expectLastCalledWith(
+                verticalCoordinatesGenerator,
+                {
+                  xAxis: expectedXAxis,
+                  width: 300,
+                  height: 200,
+                  offset: expectedOffset,
+                },
+                Boolean(syncWithTicks),
+              );
+            },
+          );
+
+          test.each([
+            { gen: [] },
+            { gen: null },
+            { gen: undefined },
+            { gen: "some random string" },
+            { gen: NaN },
+          ])("should render nothing if the generator returns $gen", ({ gen }) => {
+            const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue(gen);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
+            expect(allLines).toHaveLength(0);
+          });
+
+          it("should generate its own ticks if neither verticalPoints nor verticalCoordinatesGenerator are provided", () => {
+            const { container } = render(() => (
+              <LineChart width={500} height={500}>
+                <CartesianGrid {...exampleCartesianGridDimensions} />
+              </LineChart>
+            ));
+            flush();
+
+            const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
+            expect(allLines).toHaveLength(2);
+            expect.soft(allLines[0]).toHaveAttribute("x", "1");
+            expect.soft(allLines[0]).toHaveAttribute("x1", "5");
+            expect.soft(allLines[0]).toHaveAttribute("x2", "5");
+            expect.soft(allLines[0]).toHaveAttribute("y", "2");
+            expect.soft(allLines[0]).toHaveAttribute("y1", "2");
+            expect.soft(allLines[0]).toHaveAttribute("y2", "202");
+            expect.soft(allLines[1]).toHaveAttribute("x", "1");
+            expect.soft(allLines[1]).toHaveAttribute("x1", "495");
+            expect.soft(allLines[1]).toHaveAttribute("x2", "495");
+            expect.soft(allLines[1]).toHaveAttribute("y", "2");
+            expect.soft(allLines[1]).toHaveAttribute("y1", "2");
+            expect.soft(allLines[1]).toHaveAttribute("y2", "202");
+          });
+        });
+
+        describe("horizontal as a function", () => {
+          it("should pass props, add default stroke, and then render result of the function", () => {
+            // Solid JSX in value position is a LIVE DOM node, so mockReturnValue would
+            // return the same node every call (DOM inserts it once). mockImplementation
+            // builds a fresh node per call — the Solid equivalent of React's element-as-data.
+            const horizontal = vi.fn(
+              (_p: GridLineTypeFunctionProps) =>
+                (<g data-testid="my_mock_line" />) as unknown as JSX.Element,
+            );
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  horizontal={horizontal}
+                />
+              </ChartElement>
+            ));
+            flush();
+            expect(horizontal).toHaveBeenCalledTimes(horizontalPoints.length);
+
+            const expectedProps: GridLineTypeFunctionProps = {
+              stroke: "#ccc",
+              syncWithTicks: false,
+              fill: "none",
+              height: 200,
+              width: 300,
+              vertical: true,
+              horizontalFill: [],
+              horizontalPoints,
+              verticalFill: [],
+              verticalPoints,
+              horizontal,
+              key: expect.stringMatching(/line-[0-9]/),
+              x: 1,
+              y: 2,
+              x1: 1,
+              x2: 301,
+              y1: expect.any(Number),
+              y2: expect.any(Number),
+              index: expect.any(Number),
+              zIndex: DefaultZIndexes.grid,
+              offset: {
+                bottom: 5,
+                brushBottom: 5,
+                height: 490,
+                left: 5,
+                right: 5,
+                top: 5,
+                width: 490,
+              },
+              xAxis: {
+                angle: 0,
+                axisType: "xAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                interval: "preserveEnd",
+                isCategorical: true,
+                minTickGap: 5,
+                niceTicks: undefined,
+                orientation: "bottom",
+                range: [5, 495],
+                realScaleType: expect.any(String),
+                scale: undefined,
+                tick: true,
+                tickCount: 5,
+                tickFormatter: undefined,
+                ticks: undefined,
+                type: "category",
+                unit: undefined,
+              },
+              yAxis: {
+                angle: 0,
+                axisType: "yAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                interval: "preserveEnd",
+                isCategorical: false,
+                minTickGap: 5,
+                niceTicks: undefined,
+                orientation: "left",
+                range: [495, 5],
+                realScaleType: "linear",
+                scale: undefined,
+                tick: true,
+                tickCount: 5,
+                tickFormatter: undefined,
+                ticks: undefined,
+                type: "number",
+                unit: undefined,
+              },
+            };
+            expect(horizontal).toHaveBeenCalledWith(expectedProps);
+
+            expect(container.querySelectorAll("[data-testid=my_mock_line]")).toHaveLength(
+              horizontalPoints.length,
+            );
+          });
+        });
+
+        describe("vertical as a function", () => {
+          it("should pass props, add default stroke, and then render result of the function", () => {
+            // See note above: fresh node per call (Solid JSX is a live DOM node).
+            const vertical = vi.fn(
+              (_p: GridLineTypeFunctionProps) =>
+                (<g data-testid="my_mock_line" />) as unknown as JSX.Element,
+            );
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  vertical={vertical}
+                />
+              </ChartElement>
+            ));
+            flush();
+            expect(vertical).toHaveBeenCalledTimes(verticalPoints.length);
+
+            const expectedProps: GridLineTypeFunctionProps = {
+              stroke: "#ccc",
+              syncWithTicks: false,
+              fill: "none",
+              height: 200,
+              width: 300,
+              horizontal: true,
+              horizontalFill: [],
+              horizontalPoints,
+              verticalFill: [],
+              verticalPoints,
+              vertical,
+              key: expect.stringMatching(/line-[0-9]/),
+              x: 1,
+              y: 2,
+              x1: expect.any(Number),
+              x2: expect.any(Number),
+              y1: 2,
+              y2: 202,
+              index: expect.any(Number),
+              zIndex: DefaultZIndexes.grid,
+              offset: {
+                bottom: 5,
+                brushBottom: 5,
+                height: 490,
+                left: 5,
+                right: 5,
+                top: 5,
+                width: 490,
+              },
+              xAxis: {
+                angle: 0,
+                axisType: "xAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                interval: "preserveEnd",
+                isCategorical: true,
+                minTickGap: 5,
+                niceTicks: undefined,
+                orientation: "bottom",
+                range: [5, 495],
+                realScaleType: expect.any(String),
+                scale: undefined,
+                tick: true,
+                tickCount: 5,
+                tickFormatter: undefined,
+                ticks: undefined,
+                type: "category",
+                unit: undefined,
+              },
+              yAxis: {
+                angle: 0,
+                axisType: "yAxis",
+                categoricalDomain: undefined,
+                duplicateDomain: undefined,
+                interval: "preserveEnd",
+                isCategorical: false,
+                minTickGap: 5,
+                niceTicks: undefined,
+                orientation: "left",
+                range: [495, 5],
+                realScaleType: "linear",
+                scale: undefined,
+                tick: true,
+                tickCount: 5,
+                tickFormatter: undefined,
+                ticks: undefined,
+                type: "number",
+                unit: undefined,
+              },
+            };
+            expect(vertical).toHaveBeenCalledWith(expectedProps);
+
+            expect(container.querySelectorAll("[data-testid=my_mock_line]")).toHaveLength(
+              verticalPoints.length,
+            );
+          });
+        });
+      });
+
+      describe("stripes", () => {
+        const emptyFillCases: { fill: string[] | undefined }[] = [
+          { fill: [] },
+          { fill: undefined },
+        ];
+
+        describe("horizontal stripes", () => {
+          test.each([true, undefined])(
+            "should render horizontal stripes if horizontal prop = %s",
+            (horizontal) => {
+              const extraSpaceAtTheTopOfChart = 7;
+              const { container } = render(() => (
+                <svg>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    height={Math.max(...horizontalPoints) + extraSpaceAtTheTopOfChart}
+                    verticalPoints={verticalPoints}
+                    horizontalPoints={horizontalPoints}
+                    horizontalFill={["red", "green"]}
+                    fillOpacity="20%"
+                    horizontal={horizontal}
+                  />
+                </svg>
+              ));
+              flush();
+              const allStripes = container.querySelectorAll(
+                ".recharts-cartesian-gridstripes-horizontal rect",
+              );
+              expect(allStripes).toHaveLength(horizontalPoints.length + 1);
+
+              for (let i = 0; i < allStripes.length; i++) {
+                const element = allStripes[i];
+                expect.soft(element).toHaveAttribute("x", "1");
+                expect.soft(element).toHaveAttribute("stroke", "none");
+                expect.soft(element).toHaveAttribute("fill-opacity", "20%");
+                expect.soft(element).toHaveClass("recharts-cartesian-grid-bg");
+              }
+
+              expect(allStripes[0]).toHaveAttribute("fill", "red");
+              expect(allStripes[0]).toHaveAttribute("y", "0");
+              expect(allStripes[0]).toHaveAttribute("height", "10");
+
+              expect(allStripes[1]).toHaveAttribute("fill", "green");
+              expect(allStripes[1]).toHaveAttribute("y", "10");
+              expect(allStripes[1]).toHaveAttribute("height", "10");
+
+              expect(allStripes[2]).toHaveAttribute("fill", "red");
+              expect(allStripes[2]).toHaveAttribute("y", "20");
+              expect(allStripes[2]).toHaveAttribute("height", "10");
+
+              expect(allStripes[3]).toHaveAttribute("fill", "green");
+              expect(allStripes[3]).toHaveAttribute("y", "30");
+              expect(allStripes[3]).toHaveAttribute("height", "70");
+
+              expect(allStripes[4]).toHaveAttribute("fill", "red");
+              expect(allStripes[4]).toHaveAttribute("y", "100");
+              expect(allStripes[4]).toHaveAttribute("height", "300");
+
+              expect(allStripes[5]).toHaveAttribute("fill", "green");
+              expect(allStripes[5]).toHaveAttribute("y", "400");
+              expect(allStripes[5]).toHaveAttribute(
+                "height",
+                String(extraSpaceAtTheTopOfChart + exampleCartesianGridDimensions.y),
+              );
+            },
+          );
+
+          it("should render stripes defined by horizontalCoordinatesGenerator", () => {
+            const horizontalCoordinatesGenerator: Mock<HorizontalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([1, 2]);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  horizontalCoordinatesGenerator={horizontalCoordinatesGenerator}
+                  horizontalFill={["red", "green"]}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+
+            const allLines = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allLines).toHaveLength(3);
+          });
+
+          it("should not render anything if horizontal=false", () => {
+            const extraSpaceAtTheTopOfChart = 1;
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  height={Math.max(...horizontalPoints) + extraSpaceAtTheTopOfChart}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  horizontalFill={["red", "green"]}
+                  fillOpacity="20%"
+                  horizontal={false}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(0);
+          });
+
+          test.each(emptyFillCases)(
+            "should render nothing if horizontalFill is $fill",
+            ({ fill }) => {
+              const { container } = render(() => (
+                <svg>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    height={Math.max(...horizontalPoints) + 1}
+                    verticalPoints={verticalPoints}
+                    horizontalPoints={horizontalPoints}
+                    horizontalFill={fill}
+                  />
+                </svg>
+              ));
+              flush();
+              const allStripes = container.querySelectorAll(
+                ".recharts-cartesian-gridstripes-horizontal rect",
+              );
+              expect(allStripes).toHaveLength(0);
+            },
+          );
+
+          it("should leave out the stripe at the beginning if the smallest horizontalPoints happens to be exactly at position y", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  y={Math.min(...horizontalPoints)}
+                  height={Math.max(...horizontalPoints) + 1}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  horizontalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(horizontalPoints.length);
+          });
+
+          it("render the stripe at the beginning if the smallest horizontalPoints is smaller than position y", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  y={Math.min(...horizontalPoints) - 1}
+                  height={Math.max(...horizontalPoints) + 1}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  horizontalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(horizontalPoints.length + 1);
+          });
+
+          it("removes the one stripe at the end if it would render outside of the Grid", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  y={0}
+                  height={Math.max(...horizontalPoints) - 1}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  horizontalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(horizontalPoints.length);
+          });
+
+          it("removes still only one stripe even if all of them render outside of the grid", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  height={1}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={horizontalPoints}
+                  horizontalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(horizontalPoints.length);
+          });
+
+          it("should round horizontalPoints [https://github.com/recharts/recharts/pull/3075]", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  x={0}
+                  y={0}
+                  width={500}
+                  height={500}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={floatingPointPrecisionExamples}
+                  horizontalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(floatingPointPrecisionExamples.length + 1);
+
+            expect.soft(allStripes[0]).toHaveAttribute("height", "121");
+            expect.soft(allStripes[1]).toHaveAttribute("height", "110");
+            expect.soft(allStripes[2]).toHaveAttribute("height", "269");
+          });
+
+          it("should ignore stripes that have computed height 0", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalPoints={verticalPoints}
+                  horizontalPoints={[10, 20, 10, 500]}
+                  horizontalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-horizontal rect",
+            );
+            expect(allStripes).toHaveLength(3);
+
+            expect.soft(allStripes[0]).toHaveAttribute("height", "10");
+            expect.soft(allStripes[0]).toHaveAttribute("y", "0");
+
+            expect.soft(allStripes[1]).toHaveAttribute("height", "10");
+            expect.soft(allStripes[1]).toHaveAttribute("y", "10");
+
+            expect.soft(allStripes[2]).toHaveAttribute("height", "480");
+            expect.soft(allStripes[2]).toHaveAttribute("y", "20");
+          });
+        });
+
+        describe("vertical stripes", () => {
+          test.each([true, undefined])(
+            "should render vertical stripes if vertical prop = %s",
+            (vertical) => {
+              const extraSpaceAtTheEndOfChart = 7;
+              const { container } = render(() => (
+                <svg>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    width={Math.max(...verticalPoints) + extraSpaceAtTheEndOfChart}
+                    verticalPoints={verticalPoints}
+                    verticalFill={["red", "green"]}
+                    fillOpacity="20%"
+                    vertical={vertical}
+                  />
+                </svg>
+              ));
+              flush();
+              const allStripes = container.querySelectorAll(
+                ".recharts-cartesian-gridstripes-vertical rect",
+              );
+              expect(allStripes).toHaveLength(verticalPoints.length + 1);
+
+              for (let i = 0; i < allStripes.length; i++) {
+                const element = allStripes[i];
+                expect.soft(element).toHaveAttribute("y", "2");
+                expect.soft(element).toHaveAttribute("height", "200");
+                expect.soft(element).toHaveAttribute("stroke", "none");
+                expect.soft(element).toHaveAttribute("fill-opacity", "20%");
+                expect.soft(element).toHaveClass("recharts-cartesian-grid-bg");
+              }
+
+              expect.soft(allStripes[0]).toHaveAttribute("fill", "red");
+              expect.soft(allStripes[0]).toHaveAttribute("x", "0");
+              expect.soft(allStripes[0]).toHaveAttribute("width", "100");
+
+              expect.soft(allStripes[1]).toHaveAttribute("fill", "green");
+              expect.soft(allStripes[1]).toHaveAttribute("x", "100");
+              expect.soft(allStripes[1]).toHaveAttribute("width", "100");
+
+              expect.soft(allStripes[2]).toHaveAttribute("fill", "red");
+              expect.soft(allStripes[2]).toHaveAttribute("x", "200");
+              expect.soft(allStripes[2]).toHaveAttribute("width", "100");
+
+              expect.soft(allStripes[3]).toHaveAttribute("fill", "green");
+              expect.soft(allStripes[3]).toHaveAttribute("x", "300");
+              expect.soft(allStripes[3]).toHaveAttribute("width", "100");
+
+              expect.soft(allStripes[4]).toHaveAttribute("fill", "red");
+              expect.soft(allStripes[4]).toHaveAttribute("x", "400");
+              expect
+                .soft(allStripes[4])
+                .toHaveAttribute(
+                  "width",
+                  String(extraSpaceAtTheEndOfChart + exampleCartesianGridDimensions.x),
+                );
+            },
+          );
+
+          it("should render stripes defined by verticalCoordinatesGenerator", () => {
+            const verticalCoordinatesGenerator: Mock<VerticalCoordinatesGenerator> = vi
+              .fn()
+              .mockReturnValue([1, 2]);
+            const { container } = render(() => (
+              <ChartElement width={500} height={500}>
+                <CartesianGrid
+                  x={0}
+                  y={0}
+                  width={500}
+                  height={500}
+                  verticalCoordinatesGenerator={verticalCoordinatesGenerator}
+                  verticalFill={["red", "green"]}
+                />
+              </ChartElement>
+            ));
+            flush();
+
+            expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
+
+            const allLines = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allLines).toHaveLength(3);
+          });
+
+          it("should not render anything if vertical=false", () => {
+            const extraSpaceAtTheTopOfChart = 1;
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  width={Math.max(...verticalPoints) + extraSpaceAtTheTopOfChart}
+                  verticalPoints={verticalPoints}
+                  verticalFill={["red", "green"]}
+                  fillOpacity="20%"
+                  vertical={false}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(0);
+          });
+
+          test.each(emptyFillCases)(
+            "should render nothing if verticalFill is $fill",
+            ({ fill }) => {
+              const { container } = render(() => (
+                <svg>
+                  <CartesianGrid
+                    {...exampleCartesianGridDimensions}
+                    width={Math.max(...verticalPoints) + 1}
+                    verticalPoints={verticalPoints}
+                    verticalFill={fill}
+                  />
+                </svg>
+              ));
+              flush();
+              const allStripes = container.querySelectorAll(
+                ".recharts-cartesian-gridstripes-vertical rect",
+              );
+              expect(allStripes).toHaveLength(0);
+            },
+          );
+
+          it("should leave out the stripe at the beginning if the smallest verticalPoints happens to be exactly at position x", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  x={Math.min(...verticalPoints)}
+                  width={Math.max(...verticalPoints) + 1}
+                  verticalPoints={verticalPoints}
+                  verticalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(verticalPoints.length);
+          });
+
+          it("render the stripe at the beginning if the smallest verticalPoints is smaller than position x", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  x={Math.min(...verticalPoints) - 1}
+                  width={Math.max(...verticalPoints) + 1}
+                  verticalPoints={verticalPoints}
+                  verticalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(verticalPoints.length + 1);
+          });
+
+          it("removes the one stripe at the end if it would render outside of the Grid", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  width={Math.max(...verticalPoints) - 1}
+                  verticalPoints={verticalPoints}
+                  verticalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(verticalPoints.length);
+          });
+
+          it("removes still only one stripe even if all of them render outside of the grid", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  width={1}
+                  verticalPoints={verticalPoints}
+                  verticalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(verticalPoints.length);
+          });
+
+          it("should round verticalPoints [https://github.com/recharts/recharts/pull/3075]", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  x={0}
+                  y={0}
+                  width={500}
+                  height={500}
+                  verticalPoints={floatingPointPrecisionExamples}
+                  verticalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(floatingPointPrecisionExamples.length + 1);
+            for (let i = 0; i < allStripes.length; i++) {
+              const stripe = allStripes[i];
+              expect(stripe).toHaveAttribute("height", "500");
+            }
+
+            expect.soft(allStripes[0]).toHaveAttribute("width", "121");
+            expect.soft(allStripes[1]).toHaveAttribute("width", "110");
+            expect.soft(allStripes[2]).toHaveAttribute("width", "269");
+          });
+
+          it("should ignore stripes that have computed width 0", () => {
+            const { container } = render(() => (
+              <svg>
+                <CartesianGrid
+                  {...exampleCartesianGridDimensions}
+                  verticalPoints={[10, 20, 10, 500]}
+                  verticalFill={["red", "green"]}
+                />
+              </svg>
+            ));
+            flush();
+            const allStripes = container.querySelectorAll(
+              ".recharts-cartesian-gridstripes-vertical rect",
+            );
+            expect(allStripes).toHaveLength(3);
+
+            expect.soft(allStripes[0]).toHaveAttribute("width", "10");
+            expect.soft(allStripes[0]).toHaveAttribute("height", "200");
+            expect.soft(allStripes[0]).toHaveAttribute("x", "0");
+            expect.soft(allStripes[0]).toHaveAttribute("y", "2");
+
+            expect.soft(allStripes[1]).toHaveAttribute("width", "10");
+            expect.soft(allStripes[1]).toHaveAttribute("height", "200");
+            expect.soft(allStripes[1]).toHaveAttribute("x", "10");
+            expect.soft(allStripes[1]).toHaveAttribute("y", "2");
+
+            expect.soft(allStripes[2]).toHaveAttribute("width", "480");
+            expect.soft(allStripes[2]).toHaveAttribute("height", "200");
+            expect.soft(allStripes[2]).toHaveAttribute("x", "20");
+            expect.soft(allStripes[2]).toHaveAttribute("y", "2");
+          });
+        });
+      });
+
+      describe("offset prop", () => {
+        it("should not pass the offset prop anywhere", () => {
+          const { container } = render(() => (
+            <ChartElement width={500} height={500}>
+              <CartesianGrid
+                {...exampleCartesianGridDimensions}
+                verticalPoints={verticalPoints}
+                horizontalPoints={horizontalPoints}
+              />
+            </ChartElement>
+          ));
+          flush();
+          const allElements = container.querySelectorAll("*");
+          expect(allElements.length).toBeGreaterThan(0);
+          for (let i = 0; i < allElements.length; i++) {
+            const element = allElements[0];
+            expect(element).not.toHaveAttribute("offset");
+          }
         });
       });
     });

@@ -1,0 +1,64 @@
+export const meta = {
+  slug: "x-axis",
+  title: "XAxis",
+  group: "cartesian",
+  description:
+    "Renders horizontal or vertical axis labels and ticks for categorical or numeric data.",
+  example: "axes-custom-ticks",
+};
+
+# XAxis
+
+`XAxis` renders the horizontal axis of a cartesian chart (or vertical, if the chart
+layout is vertical). It can display categorical labels or numeric ticks, with customizable
+formatting and tick intervals.
+
+```tsx
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "solid-recharts";
+
+<BarChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="month" angle={-45} />
+  <YAxis />
+  <Bar dataKey="value" fill="#8884d8" />
+</BarChart>;
+```
+
+<Example slug="axes-custom-ticks" />
+
+## Props
+
+| Prop            | Type                                                            | Default        | Description                                                         |
+| --------------- | --------------------------------------------------------------- | -------------- | ------------------------------------------------------------------- |
+| `dataKey`       | `string \| function`                                            | —              | The key (or accessor function) for the data field to plot           |
+| `type`          | `"number" \| "category"`                                        | auto-detected  | Scale type: categorical or numeric                                  |
+| `domain`        | `[number, number] \| [string, string]`                          | auto           | Min/max values for numeric domains                                  |
+| `ticks`         | `number[] \| string[]`                                          | auto-generated | Explicit tick positions/labels to render                            |
+| `tickFormatter` | `(value) => string`                                             | identity       | Function to format tick labels, e.g. abbreviating thousands to "4k" |
+| `tickCount`     | `number`                                                        | `5`            | Suggested number of ticks (for numeric axes)                        |
+| `interval`      | `number \| "preserveStartEnd" \| "equidistantPreserveStartEnd"` | `0`            | Tick sampling strategy                                              |
+| `angle`         | `number`                                                        | `0`            | Rotation angle in degrees for tick labels                           |
+| `hide`          | `boolean`                                                       | `false`        | Hides the axis, ticks, and labels                                   |
+| `xAxisId`       | `string \| number`                                              | `0`            | Unique identifier to bind series to this axis (via xAxisId)         |
+| `label`         | `string \| object`                                              | —              | Axis title, or a `<Label>` child element                            |
+
+All other recharts `XAxis` props are supported; see the [recharts XAxis
+docs](https://recharts.org/en-US/api/XAxis) for the complete reference.
+
+## Notes
+
+- When `type` is omitted, it defaults to `"category"` for text values and `"number"`
+  for numeric values.
+- The `tickFormatter` is applied only to the rendered labels, not to the underlying
+  scale calculations.
+- Use `xAxisId` to bind multiple series (`Line`, `Bar`, etc.) to the same axis when
+  you have more than one X-axis.
+- `allowDataOverflow` allows the axis to extend beyond the data min/max.
+- Use `angle` with `textAnchor="end"` and an increased `height` to avoid label overlap
+  on rotated ticks.
+
+## See also
+
+- [YAxis](/docs/y-axis) — vertical axis with similar configuration
+- [CartesianGrid](/docs/cartesian-grid) — background grid lines
+- [LineChart](/docs/line-chart) · [BarChart](/docs/bar-chart)

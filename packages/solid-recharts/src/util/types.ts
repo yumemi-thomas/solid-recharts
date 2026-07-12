@@ -174,6 +174,12 @@ export interface CartesianChartProps<DataPointType = unknown> extends ExternalMo
   style?: ChartStyle;
   cursor?: string;
   id?: string;
+  /** ARIA role applied to the chart `<svg>` (overrides the accessibilityLayer default). */
+  role?: string;
+  /** tabindex applied to the chart `<svg>` (overrides the accessibilityLayer default). */
+  tabIndex?: number;
+  /** A chart-level dataKey (used by some charts as the implicit series key). */
+  dataKey?: DataKey<DataPointType>;
   children?: JSX.Element;
   // Reported into rootProps (UpdatableChartOptions):
   accessibilityLayer?: boolean;
@@ -212,6 +218,12 @@ export interface PolarChartProps<DataPointType = unknown> extends ExternalMouseE
   style?: ChartStyle;
   cursor?: string;
   id?: string;
+  /** ARIA role applied to the chart `<svg>` (overrides the accessibilityLayer default). */
+  role?: string;
+  /** tabindex applied to the chart `<svg>` (overrides the accessibilityLayer default). */
+  tabIndex?: number;
+  /** A chart-level dataKey (used by some charts as the implicit series key). */
+  dataKey?: DataKey<DataPointType>;
   children?: JSX.Element;
   // Polar geometry (reported into polarOptions):
   cx?: number | string;
@@ -577,6 +589,26 @@ export interface CartesianTickContentProps {
 }
 
 /**
+ * recharts parity names: upstream splits the tick-content props into a base type
+ * plus X/Y variants that narrow `orientation`/`padding`. The port keeps ONE merged
+ * {@link CartesianTickContentProps}; these aliases re-expose the upstream names
+ * (with the X/Y orientation narrowing) for migration-friendly imports.
+ */
+export type BaseTickContentProps = Omit<CartesianTickContentProps, "orientation" | "padding">;
+
+/** recharts parity name — {@link CartesianTickContentProps} narrowed to an X axis. */
+export type XAxisTickContentProps = BaseTickContentProps & {
+  orientation: "top" | "bottom";
+  padding: CartesianTickContentProps["padding"];
+};
+
+/** recharts parity name — {@link CartesianTickContentProps} narrowed to a Y axis. */
+export type YAxisTickContentProps = BaseTickContentProps & {
+  orientation: "left" | "right";
+  padding: CartesianTickContentProps["padding"];
+};
+
+/**
  * Formats a tick value for display. Deviation: recharts homes this in
  * `cartesian/CartesianAxis`; that component is deferred, so the type lives here
  * (its natural util home) and CartesianAxis can re-export it when ported.
@@ -646,6 +678,33 @@ export type ActiveDotProps = DotProps & {
 // raw-element constituent is dropped — `boolean | render-fn | props-object` is
 // cleanly discriminable by `typeof`.
 export type DotType = boolean | ((props: DotItemDotProps) => Element) | Partial<DotProps>;
+
+/**
+ * Animation metadata forwarded to custom chart shapes (v3.9).
+ *
+ * These props let a shape react to the current animation state without needing
+ * to know how its parent chart component computes the animated geometry.
+ *
+ * @since 3.9
+ */
+export interface ShapeAnimationProps {
+  /**
+   * Normalized animation progress time in the approximately `[0, 1]` range.
+   * 0 = start of animation, 1 = end of animation. It already includes easing,
+   * so a custom Bézier curve may push it slightly out of range.
+   */
+  animationElapsedTime?: number;
+  /**
+   * Whether the parent chart element is currently animating.
+   */
+  isAnimating?: boolean;
+  /**
+   * Whether the current animation pass is the initial entrance animation.
+   * Some components have different "first render" and "data update" animations;
+   * this tracks which one is running.
+   */
+  isEntrance?: boolean;
+}
 
 /**
  * A customizable shape prop. Deviation: recharts' first constituent is a

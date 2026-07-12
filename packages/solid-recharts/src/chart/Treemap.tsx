@@ -10,14 +10,22 @@
 // `renderNode` → a recursive <TreemapNodeView> component (props-only reads, so no
 // STRICT_READ); `es-toolkit get` → a tooltip-index path getter.
 // Custom `content` (FUNCTION form: `(node) => JSX`) IS wired — replaces the default
-// rect+label per node. DEFERRED: nesting / drill-down (type="nest", currentRoot,
-// nestIndex), animation (CSSTransitionAnimate), the element form of `content`, the
-// per-node name-fit text sizing nuances, responsive sizing.
-import { createMemo, For, merge, Show } from "solid-js";
+// rect+label per node. type="nest" drill-down IS wired (currentRoot/nestIndex modelled
+// as a signal-backed drill stack; breadcrumb strip + drill arrow). Node enter animation
+// IS wired: each node slides in from the left via CSSTransitionAnimate (transform), with
+// the animated style on the recreated depth layer and a stable pre-created `body` so the
+// rect's handlers/refs survive the per-frame re-renders. ResponsiveContainer sizing
+// works via the wrapper context (the reference itself hardcodes responsive={false}
+// on its wrapper). DEFERRED: the element form of `content` & `nestIndexContent`,
+// per-node name-fit text sizing nuances.
+import { createMemo, createSignal, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Surface } from "../container/Surface";
 import { Layer } from "../container/Layer";
 import { Rectangle } from "../shape/Rectangle";
+import { Polygon } from "../shape/Polygon";
+import { CSSTransitionAnimate } from "../animation/CSSTransitionAnimate";
+import type { EasingInput } from "../animation/easing";
 import { RechartsWrapper } from "./RechartsWrapper";
 import { RechartsStoreProvider } from "../state/RechartsStoreProvider";
 import { ReportChartMargin, useChartHeight, useChartWidth } from "../context/chartLayoutContext";
@@ -45,6 +53,12 @@ import type {
 } from "../util/types";
 
 const NODE_VALUE_KEY = "value";
+const NEST_INDEX_HEIGHT = 30;
+
+// In 'nest' mode the breadcrumb strip steals 30px off the bottom of the drawing
+// surface (recharts getTreemapRenderHeight).
+const getTreemapRenderHeight = (height: number, type: "flat" | "nest"): number =>
+  type === "nest" ? height - NEST_INDEX_HEIGHT : height;
 
 export interface TreemapDataType {
   children?: ReadonlyArray<TreemapDataType>;
@@ -131,7 +145,8 @@ export const computeNode = ({
   nestedActiveTooltipIndex,
 }: {
   depth: number;
-  node: TreemapDataType;
+  // Raw data OR an already-computed node (nest drill-in recomputes from a TreemapNode).
+  node: TreemapDataType | TreemapNode;
   index: number;
   dataKey: DataKey<unknown>;
   nameKey: DataKey<unknown>;
@@ -139,7 +154,7 @@ export const computeNode = ({
 }): TreemapNode => {
   const currentTooltipIndex =
     depth === 0 ? "" : addToTreemapNodeIndex(index, nestedActiveTooltipIndex);
-  const children = node.children;
+  const children: ReadonlyArray<TreemapDataType | TreemapNode> | null | undefined = node.children;
   const computedChildren =
     children && children.length > 0
       ? children.map((child, i) =>
@@ -383,6 +398,12 @@ const squarify = (
   };
 };
 
+/**
+ * recharts parity name for the Treemap `content` prop. The port supports the
+ * function form only (the upstream element form is a React cloneElement pattern).
+ */
+export type TreemapContentType = (node: TreemapNode) => JSX.Element;
+
 export interface TreemapProps extends EventThrottlingProps {
   class?: string;
   /** Top-level nodes; wrapped as the children of an implicit root that fills the chart. */
@@ -396,11 +417,22 @@ export interface TreemapProps extends EventThrottlingProps {
   nodeInset?: number;
   nodeGap?: number;
   isAnimationActive?: boolean | "auto";
+  isUpdateAnimationActive?: boolean | "auto";
+  animationBegin?: number;
+  animationDuration?: number;
+  animationEasing?: EasingInput;
   fill?: string;
   stroke?: string;
   colorPanel?: ReadonlyArray<string>;
+  /**
+   * 'flat' (default) renders the whole tree. 'nest' renders an interactive nested
+   * treemap: clicking a parent drills in, and a breadcrumb strip navigates back up.
+   */
+  type?: "flat" | "nest";
+  /** Custom breadcrumb-cell renderer for nest mode (function form). */
+  nestIndexContent?: (item: TreemapNode, i: number) => JSX.Element;
   /** Custom node renderer (function form). When set, replaces the default rect+label. */
-  content?: (node: TreemapNode) => JSX.Element;
+  content?: TreemapContentType;
   onMouseEnter?: (node: TreemapNode, e: MousePointer) => void;
   onMouseLeave?: (node: TreemapNode, e: MousePointer) => void;
   onClick?: (node: TreemapNode) => void;
@@ -416,6 +448,12 @@ export const treemapDefaultProps = {
   nodeInset: 0,
   nodeGap: 0,
   responsive: false,
+  type: "flat",
+  isAnimationActive: "auto",
+  isUpdateAnimationActive: "auto",
+  animationBegin: 0,
+  animationDuration: 1500,
+  animationEasing: "linear",
 } as const satisfies Partial<TreemapProps>;
 
 const treemapOptions: ChartOptions = {
@@ -456,47 +494,136 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
     return w != null && h != null ? { width: w, height: h } : undefined;
   };
 
-  // The fully-laid-out tree, recomputed on size / data / layout-param change.
+  // Layout a (raw) node as a depth-0 root filling the drawing surface.
+  const layoutFrom = (
+    node: TreemapDataType | TreemapNode,
+    d: { width: number; height: number },
+    nestedActiveTooltipIndex: TooltipIndex | undefined,
+  ): TreemapNode => {
+    // A computed TreemapNode is also valid input to computeNode (it reads name /
+    // value / children) — recharts drills in by recomputing from the clicked node.
+    const root = computeNode({
+      depth: 0,
+      node: {
+        ...node,
+        x: 0,
+        y: 0,
+        width: d.width,
+        height: getTreemapRenderHeight(d.height, merged.type),
+      },
+      index: 0,
+      dataKey: merged.dataKey,
+      nameKey: merged.nameKey,
+      nestedActiveTooltipIndex,
+    });
+    return squarify(root, merged.aspectRatio, merged.nodeInset, merged.nodeGap);
+  };
+
+  // nest-mode drill stack: each entry is the raw node we computed a root from, plus
+  // the nestedActiveTooltipIndex it carried. nestStack[0] is the implicit top root.
+  type NestEntry = {
+    node: TreemapDataType | TreemapNode;
+    nestedActiveTooltipIndex: TooltipIndex | undefined;
+  };
+  const topEntry = (): NestEntry => ({
+    node: { children: merged.data },
+    nestedActiveTooltipIndex: undefined,
+  });
+  const [nestStack, setNestStack] = createSignal<NestEntry[]>([topEntry()]);
+  const currentEntry = (): NestEntry => {
+    const stack = nestStack();
+    return stack[stack.length - 1] ?? topEntry();
+  };
+
+  // The fully-laid-out tree for the *current* drill root, recomputed on
+  // size / data / layout-param / drill change.
   const formatRoot = createMemo<TreemapNode | null>(() => {
     const d = dims();
     if (d == null) {
       return null;
     }
-    const root = computeNode({
-      depth: 0,
-      node: { children: merged.data, x: 0, y: 0, width: d.width, height: d.height },
-      index: 0,
-      dataKey: merged.dataKey,
-      nameKey: merged.nameKey,
-      nestedActiveTooltipIndex: undefined,
-    });
-    return squarify(root, merged.aspectRatio, merged.nodeInset, merged.nodeGap);
+    const entry = currentEntry();
+    return layoutFrom(entry.node, d, entry.nestedActiveTooltipIndex);
+  });
+
+  // Breadcrumb entries (computed roots), one per drill level.
+  const nestIndex = createMemo<TreemapNode[]>(() => {
+    const d = dims();
+    if (d == null || merged.type !== "nest") {
+      return [];
+    }
+    return nestStack().map((entry) => layoutFrom(entry.node, d, entry.nestedActiveTooltipIndex));
   });
 
   // Flat render descriptors with fill/stroke BAKED IN, so the <For> callback reads
-  // only the For-item (no accessor/prop reads → no STRICT_READ).
-  const renderNodes = createMemo<Array<{ node: TreemapNode; fill: string; stroke: string }>>(() => {
+  // only the For-item (no accessor/prop reads → no STRICT_READ). In nest mode only
+  // the current root + its direct children render (recharts' isCurrentRootChild gate).
+  const renderNodes = createMemo<
+    Array<{ node: TreemapNode; fill: string; stroke: string; isLeaf: boolean; arrow: boolean }>
+  >(() => {
     const panel = merged.colorPanel ?? COLOR_PANEL;
     const stroke = merged.stroke ?? "#fff";
-    return flattenNodes(formatRoot()).map((node) => ({
+    const root = formatRoot();
+    const nest = merged.type === "nest";
+    const nodes = nest
+      ? root == null
+        ? []
+        : [root, ...(root.children ?? [])]
+      : flattenNodes(root);
+    return nodes.map((node) => ({
       node,
       fill: node.depth < 2 ? (panel[node.index % panel.length] ?? "#000") : "rgba(255,255,255,0)",
       stroke,
+      isLeaf: !node.children || node.children.length === 0,
+      // drill-down arrow on nest children that have their own children.
+      arrow:
+        nest &&
+        node.depth > 0 &&
+        node.width > 10 &&
+        node.height > 10 &&
+        node.children != null &&
+        node.children.length > 0,
     }));
+  });
+
+  // Augment a node with `id` + `root` (the current computed root) for user handlers,
+  // matching recharts' renderNode `{ ...node, root }` plus the registered item id.
+  const withRoot = (node: TreemapNode): TreemapNode => ({
+    ...node,
+    id: props.id,
+    root: formatRoot() ?? undefined,
   });
 
   const activeCoordinate = (node: TreemapNode): Coordinate => ({
     x: node.x + node.width / 2,
     y: node.y + node.height / 2,
   });
-  const onUserMouseEnter = (node: TreemapNode, e: MousePointer): void => {
-    merged.onMouseEnter?.(node, e);
+  const onUserMouseEnter = (node: TreemapNode, isLeaf: boolean, e: MousePointer): void => {
+    if (isLeaf || merged.type === "nest") {
+      merged.onMouseEnter?.(withRoot(node), e);
+    }
   };
-  const onUserMouseLeave = (node: TreemapNode, e: MousePointer): void => {
-    merged.onMouseLeave?.(node, e);
+  const onUserMouseLeave = (node: TreemapNode, isLeaf: boolean, e: MousePointer): void => {
+    if (isLeaf || merged.type === "nest") {
+      merged.onMouseLeave?.(withRoot(node), e);
+    }
   };
-  const onUserClick = (node: TreemapNode): void => {
-    merged.onClick?.(node);
+  // nest drill-in: clicking a non-root node with children recomputes the root from
+  // it. depth === 0 is the current root cell, which must not drill again.
+  const onNestClick = (node: TreemapNode): void => {
+    if (merged.type === "nest" && node.depth > 0 && node.children && node.children.length > 0) {
+      setNestStack((stack) => [...stack, { node, nestedActiveTooltipIndex: node.tooltipIndex }]);
+    }
+  };
+  const onUserClick = (node: TreemapNode, isLeaf: boolean): void => {
+    onNestClick(node);
+    if (isLeaf || merged.type === "nest") {
+      merged.onClick?.(withRoot(node));
+    }
+  };
+  // Breadcrumb click: slice the stack back to that level.
+  const onNestIndexClick = (i: number): void => {
+    setNestStack((stack) => stack.slice(0, i + 1));
   };
   const onItemMouseEnter = (node: TreemapNode): void => {
     store?.actions.tooltip.setActiveMouseOverItemIndex({
@@ -548,6 +675,7 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
   // Captured once (a render prop rarely changes); reading it in the <For> callback
   // would be an untracked prop read.
   const content = merged.content;
+  const nestIndexContent = merged.nestIndexContent;
 
   const handleTouchMove = (event: TouchEvent): void => {
     const touch = event.touches[0];
@@ -581,54 +709,138 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
   return (
     <Show when={dims()}>
       {(d) => (
-        <Surface width={d().width} height={d().height} onTouchMove={handleTouchMove}>
-          <Layer class={layerClass()}>
-            <For each={renderNodes()}>
-              {(item) => (
-                <Layer
-                  class={`recharts-treemap-depth-${item.node.depth}`}
-                  onMouseEnter={(e) => {
-                    onUserMouseEnter(item.node, e);
-                    // jsdom does not bubble mouseenter from the rect; layer enter drives tooltips.
-                    onItemMouseEnter(item.node);
-                  }}
-                  onMouseLeave={(e) => onUserMouseLeave(item.node, e)}
-                  onClick={() => onUserClick(item.node)}
-                >
-                  {content ? (
-                    content(item.node)
-                  ) : (
-                    <>
-                      <Rectangle
-                        fill={item.fill}
-                        stroke={item.stroke}
-                        x={item.node.x}
-                        y={item.node.y}
-                        width={item.node.width}
-                        height={item.node.height}
-                        data-recharts-item-index={item.node.tooltipIndex}
-                        data-recharts-item-id={props.id}
-                        onMouseEnter={() => onItemMouseEnter(item.node)}
-                        onClick={() => onItemClick(item.node)}
-                      />
-                      {item.node.width > 20 && item.node.height > 20 ? (
-                        <text
-                          x={item.node.x + 8}
-                          y={item.node.y + item.node.height / 2 + 7}
-                          font-size="14"
+        <>
+          <Surface
+            width={d().width}
+            height={getTreemapRenderHeight(d().height, merged.type)}
+            onTouchMove={handleTouchMove}
+          >
+            <Layer class={layerClass()}>
+              <For each={renderNodes()}>
+                {(item) => {
+                  // The interactive node body (handler layer + rect/label, or custom
+                  // content) is created ONCE. recharts slides each node in from the
+                  // left (transform translate(-x-width,0)→translate(0,0)); the animated
+                  // style lives on the recreated depth layer while `body` keeps a stable
+                  // DOM identity (Solid moves it, doesn't recreate) — so the rect's
+                  // handlers/refs survive the per-frame re-renders. isActive=false renders
+                  // the settled transform statically.
+                  const body = (
+                    // The inner layer (plain recharts-layer g) carries the handlers —
+                    // recharts' TreemapItem structure, `.recharts-treemap-depth-N g`.
+                    <Layer
+                      onMouseEnter={(e) => {
+                        onUserMouseEnter(item.node, item.isLeaf, e);
+                        // jsdom does not bubble mouseenter from the rect; layer enter drives tooltips.
+                        onItemMouseEnter(item.node);
+                      }}
+                      // mouseenter does not bubble, so function-form custom content (whose
+                      // user element carries no handler) wouldn't activate the tooltip.
+                      // mousemove DOES bubble up from the child to this layer → drive the
+                      // item tooltip here too (idempotent with the default rect's handler).
+                      onMouseMove={() => onItemMouseEnter(item.node)}
+                      onMouseLeave={(e) => onUserMouseLeave(item.node, item.isLeaf, e)}
+                      onClick={() => onUserClick(item.node, item.isLeaf)}
+                    >
+                      {content ? (
+                        content(item.node)
+                      ) : (
+                        <>
+                          <Rectangle
+                            fill={item.fill}
+                            stroke={item.stroke}
+                            x={item.node.x}
+                            y={item.node.y}
+                            width={item.node.width}
+                            height={item.node.height}
+                            data-recharts-item-index={item.node.tooltipIndex}
+                            data-recharts-item-id={props.id}
+                            onMouseEnter={() => onItemMouseEnter(item.node)}
+                            onClick={() => onItemClick(item.node)}
+                          />
+                          {item.arrow ? (
+                            <Polygon
+                              points={[
+                                { x: item.node.x + 2, y: item.node.y + item.node.height / 2 },
+                                { x: item.node.x + 6, y: item.node.y + item.node.height / 2 + 3 },
+                                { x: item.node.x + 2, y: item.node.y + item.node.height / 2 + 6 },
+                              ]}
+                            />
+                          ) : null}
+                          {item.node.width > 20 && item.node.height > 20 ? (
+                            <text
+                              x={item.node.x + 8}
+                              y={item.node.y + item.node.height / 2 + 7}
+                              font-size="14"
+                            >
+                              {item.node.name}
+                            </text>
+                          ) : null}
+                        </>
+                      )}
+                    </Layer>
+                  );
+                  return (
+                    <CSSTransitionAnimate
+                      animationId={`treemap-${props.id}-${item.node.tooltipIndex}`}
+                      from={`translate(${-item.node.x - item.node.width}px, 0px)`}
+                      to="translate(0px, 0px)"
+                      attributeName="transform"
+                      begin={merged.animationBegin}
+                      easing={
+                        typeof merged.animationEasing === "string"
+                          ? merged.animationEasing
+                          : undefined
+                      }
+                      isActive={merged.isAnimationActive}
+                      duration={merged.animationDuration}
+                    >
+                      {(style) => (
+                        <Layer
+                          class={`recharts-treemap-depth-${item.node.depth}`}
+                          style={{
+                            transform: style.transform,
+                            transition: style.transition,
+                            "transform-origin": `${item.node.x}px ${item.node.y}px`,
+                          }}
                         >
-                          {item.node.name}
-                        </text>
-                      ) : null}
-                    </>
-                  )}
-                </Layer>
-              )}
-            </For>
-          </Layer>
-          <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
-          {merged.children}
-        </Surface>
+                          {body}
+                        </Layer>
+                      )}
+                    </CSSTransitionAnimate>
+                  );
+                }}
+              </For>
+            </Layer>
+            <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
+            {merged.children}
+          </Surface>
+          {merged.type === "nest" ? (
+            <div
+              class="recharts-treemap-nest-index-wrapper"
+              style={{ "margin-top": "8px", "text-align": "center" }}
+            >
+              <For each={nestIndex()}>
+                {(item, i) => (
+                  <div
+                    class="recharts-treemap-nest-index-box"
+                    style={{
+                      cursor: "pointer",
+                      display: "inline-block",
+                      padding: "0 7px",
+                      background: "#000",
+                      color: "#fff",
+                      "margin-right": "3px",
+                    }}
+                    onClick={() => onNestIndexClick(i())}
+                  >
+                    {nestIndexContent ? nestIndexContent(item, i()) : item.name || "root"}
+                  </div>
+                )}
+              </For>
+            </div>
+          ) : null}
+        </>
       )}
     </Show>
   );

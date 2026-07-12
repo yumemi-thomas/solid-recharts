@@ -8,7 +8,7 @@
 // `render` + `flush`. Custom `content` as a React element, `aria-label` on the
 // Surface, and the `mockSequenceOfGetBoundingClientRect` regression test are not
 // supported by the port (see reclassifiedBlocked) and are omitted.
-import { createSignal, flush } from "solid-js";
+import { createEffect, createSignal, flush, Show } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { fireEvent, render, screen } from "../helper/render";
 import {
@@ -17,18 +17,26 @@ import {
   Bar,
   BarChart,
   ComposedChart,
+  DefaultZIndexes,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   Radar,
   RadarChart,
+  RadialBar,
+  RadialBarChart,
   Scatter,
   ScatterChart,
 } from "../../src";
 import type { LegendProps, LegendType } from "../../src";
+import { selectLegendPayload } from "../../src/state/selectors/legendSelectors";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { assertNotNull } from "../helper/assertNotNull";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import { useAppSelectorWithStableTest } from "../helper/selectorTestHelpers";
 import { dataWithSpecialNameAndFillProperties, numericalData } from "../_data";
 
 type LegendTypeTestCases = ReadonlyArray<{
@@ -342,6 +350,14 @@ describe("<Legend />", () => {
     { value: "Sony", color: "#667300" },
   ];
 
+  const numericalData2 = [
+    { title: "Luftbaloons", value: 99 },
+    { title: "Miles I would walk", value: 500 },
+    { title: "Days a week", value: 8 },
+    { title: "Mambo number", value: 5 },
+    { title: "Seas of Rhye", value: 7 },
+  ];
+
   describe("outside of chart context", () => {
     it("should ignore payload prop", () => {
       const { container } = render(() => <Legend width={500} height={30} />);
@@ -378,6 +394,55 @@ describe("<Legend />", () => {
       flush();
 
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(1);
+    });
+  });
+
+  describe("content as a function", () => {
+    it("should render result", () => {
+      const customizedLegend = () => "custom return value";
+      const { container } = render(() => (
+        <LineChart
+          width={600}
+          height={300}
+          data={categoricalData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <Legend content={customizedLegend} />
+          <Line dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
+          <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+        </LineChart>
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(0);
+      expect(screen.getByText("custom return value")).toBeInTheDocument();
+      expect(screen.getByText("custom return value")).toBeVisible();
+    });
+  });
+
+  // In recharts the "React Component" content form is distinct from the function
+  // form (one is a component, the other a plain callback); both reduce to the same
+  // function-content path in Solid since there is no React.createElement boundary.
+  describe("content as a Component", () => {
+    it("should render result", () => {
+      const CustomizedLegend = () => <>custom return value</>;
+      const { container } = render(() => (
+        <LineChart
+          width={600}
+          height={300}
+          data={categoricalData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <Legend content={CustomizedLegend} />
+          <Line dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
+          <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+        </LineChart>
+      ));
+      flush();
+
+      expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(0);
+      expect(screen.getByText("custom return value")).toBeInTheDocument();
+      expect(screen.getByText("custom return value")).toBeVisible();
     });
   });
 
@@ -457,6 +522,127 @@ describe("<Legend />", () => {
         { textContent: "My Line Data", fill: "none" },
         { textContent: "My Other Line Data", fill: "none" },
       ]);
+    });
+
+    test("Legend defaults are read correctly", () => {
+      const { container } = render(() => (
+        <LineChart width={500} height={500} data={categoricalData}>
+          <Legend />
+          <Line
+            dataKey={(row: (typeof categoricalData)[number]) => row.value}
+            name="My Line Data"
+          />
+          <Line
+            dataKey={(row: (typeof categoricalData)[number]) => row.color}
+            name="My Other Line Data"
+          />
+        </LineChart>
+      ));
+      flush();
+
+      const legendWrapper = container.getElementsByClassName("recharts-legend-wrapper")[0];
+      assertNotNull(legendWrapper);
+      expect(legendWrapper).not.toHaveStyle({ width: "auto" });
+      expect(legendWrapper).toHaveStyle({ height: "auto" });
+      const legendItem = container.getElementsByClassName("legend-item-0")[0];
+      assertNotNull(legendItem);
+      const surface = legendItem.getElementsByClassName("recharts-surface")[0];
+      assertNotNull(surface);
+      expect(surface.getAttribute("height")).toBe("14");
+      expect(surface.getAttribute("width")).toBe("14");
+      expect(surface.getAttribute("aria-label")).toBe("My Line Data legend icon");
+    });
+
+    test("aria-label uses the raw entry value even when formatter returns an element", () => {
+      const { container } = render(() => (
+        <LineChart width={500} height={500} data={numericalData}>
+          <Legend formatter={(value) => <strong>{value}</strong>} />
+          <Line dataKey="value" name="UV" />
+        </LineChart>
+      ));
+      flush();
+
+      const legendItem = container.getElementsByClassName("legend-item-0")[0];
+      assertNotNull(legendItem);
+      const surface = legendItem.getElementsByClassName("recharts-surface")[0];
+      assertNotNull(surface);
+      expect(surface.getAttribute("aria-label")).toBe("UV legend icon");
+    });
+
+    test("aria-label drops the value when the legend entry has no name or string dataKey", () => {
+      const { container } = render(() => (
+        <LineChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Line dataKey={(row: { value: number }) => row.value} />
+        </LineChart>
+      ));
+      flush();
+
+      const legendItem = container.getElementsByClassName("legend-item-0")[0];
+      assertNotNull(legendItem);
+      const surface = legendItem.getElementsByClassName("recharts-surface")[0];
+      assertNotNull(surface);
+      expect(surface.getAttribute("aria-label")).toBe("legend icon");
+    });
+
+    it("should pass parameters to the Component", () => {
+      mockGetBoundingClientRect({ width: 80, height: 30 });
+      const spy = vi.fn();
+      const CustomContent = (contentProps: unknown): null => {
+        spy(contentProps);
+        return null;
+      };
+      render(() => (
+        <LineChart
+          width={600}
+          height={300}
+          data={categoricalData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <Legend content={CustomContent} />
+          <Line
+            type="monotone"
+            dataKey="pv"
+            stroke="#8884d8"
+            activeDot={{ r: 8 }}
+            strokeDasharray="5 5"
+          />
+          <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+        </LineChart>
+      ));
+      flush();
+      expect(spy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          align: "center",
+          chartHeight: 300,
+          chartWidth: 600,
+          content: expect.any(Function),
+          iconSize: 14,
+          inactiveColor: "#ccc",
+          itemSorter: "value",
+          labelStyle: {},
+          layout: "horizontal",
+          margin: { bottom: 5, left: 20, right: 30, top: 5 },
+          verticalAlign: "bottom",
+          width: 550,
+          payload: [
+            expect.objectContaining({
+              color: "#8884d8",
+              dataKey: "pv",
+              inactive: false,
+              value: "pv",
+              type: "line",
+            }),
+            expect.objectContaining({
+              color: "#82ca9d",
+              dataKey: "uv",
+              inactive: false,
+              value: "uv",
+              type: "line",
+            }),
+          ],
+        }),
+      );
     });
 
     it("should render one line legend item for each Line, with default class and style attributes", () => {
@@ -667,6 +853,33 @@ describe("<Legend />", () => {
       ]);
     });
 
+    it("should render legend labels with same text color", () => {
+      const { container } = render(() => (
+        <LineChart
+          width={600}
+          height={300}
+          data={categoricalData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <Legend iconType="plainline" labelStyle={{ color: "#666" }} />
+          <Line
+            type="monotone"
+            dataKey="pv"
+            stroke="#8884d8"
+            activeDot={{ r: 8 }}
+            strokeDasharray="5 5"
+          />
+          <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+        </LineChart>
+      ));
+      flush();
+
+      expectLegendLabels(container, [
+        { fill: "none", textContent: "pv", textColor: "rgb(102, 102, 102)" },
+        { fill: "none", textContent: "uv", textColor: "rgb(102, 102, 102)" },
+      ]);
+    });
+
     test("label style should not change color of hidden Line", () => {
       const { container } = render(() => (
         <LineChart width={500} height={500} data={numericalData}>
@@ -745,6 +958,42 @@ describe("<Legend />", () => {
   });
 
   describe("as a child of BarChart", () => {
+    it("should render one rect legend item for each Bar, with default class and style attributes", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Bar dataKey="percent" />
+          <Bar dataKey="value" />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: null, textContent: "percent" },
+        { fill: null, textContent: "value" },
+      ]);
+
+      const legendItems = assertHasLegend(container);
+
+      expect.soft(legendItems[0]!.getAttributeNames()).toEqual(["class", "style"]);
+      expect.soft(legendItems[0]!.getAttribute("class")).toBe("recharts-legend-item legend-item-0");
+      expect
+        .soft(legendItems[0]!.getAttribute("style"))
+        .toBe("display: inline-block; margin-right: 10px;");
+      expect.soft(legendItems[1]!.getAttributeNames()).toEqual(["class", "style"]);
+      expect.soft(legendItems[1]!.getAttribute("class")).toBe("recharts-legend-item legend-item-1");
+      expect
+        .soft(legendItems[1]!.getAttribute("style"))
+        .toBe("display: inline-block; margin-right: 10px;");
+
+      // in absence of explicit `legendType`, Bar should default to rect
+      const findResult = expectedLegendTypeSymbolsWithoutColor.find(
+        (tc) => tc.legendType === "rect",
+      );
+      assertNotNull(findResult);
+      const { selector, expectedAttributes } = findResult;
+      assertExpectedAttributes(container, selector, expectedAttributes);
+    });
+
     it("should not render items with a type of `none`", () => {
       const { container } = render(() => (
         <BarChart width={500} height={500} data={categoricalData}>
@@ -758,7 +1007,317 @@ describe("<Legend />", () => {
       expectLegendLabels(container, [{ fill: undefined, textContent: "value" }]);
     });
 
+    it("should render a legend item even if the dataKey does not match anything from the data", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Bar dataKey="unknown" />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [{ fill: null, textContent: "unknown" }]);
+    });
+
+    it("should change color and className of hidden Bar", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend inactiveColor="yellow" />
+          {/* this will ignore the stroke and use inactive color on legend */}
+          <Bar dataKey="percent" stroke="red" hide />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [{ fill: "yellow", textContent: "percent" }]);
+      const legendItems = assertHasLegend(container);
+
+      expect.soft(legendItems[0]!.getAttributeNames()).toEqual(["class", "style"]);
+      expect
+        .soft(legendItems[0]!.getAttribute("class"))
+        .toBe("recharts-legend-item legend-item-0 inactive");
+      expect
+        .soft(legendItems[0]!.getAttribute("style"))
+        .toBe("display: inline-block; margin-right: 10px;");
+
+      // in absence of explicit `legendType`, Bar should default to rect
+      const findResult = expectedLegendTypeSymbolsWithColor("yellow").find(
+        (tc) => tc.legendType === "rect",
+      );
+      assertNotNull(findResult);
+      const { selector, expectedAttributes } = findResult;
+      assertExpectedAttributes(container, selector, expectedAttributes);
+    });
+
+    it("should have a default inactive Bar legend color", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          {/* this will ignore the stroke and use inactive color on legend */}
+          <Bar dataKey="percent" stroke="red" hide />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [{ fill: "#ccc", textContent: "percent" }]);
+      const legendItems = assertHasLegend(container);
+
+      expect.soft(legendItems[0]!.getAttributeNames()).toEqual(["class", "style"]);
+      expect
+        .soft(legendItems[0]!.getAttribute("class"))
+        .toBe("recharts-legend-item legend-item-0 inactive");
+      expect
+        .soft(legendItems[0]!.getAttribute("style"))
+        .toBe("display: inline-block; margin-right: 10px;");
+
+      // in absence of explicit `legendType`, Bar should default to rect
+      const findResult = expectedLegendTypeSymbolsWithColor("#ccc").find(
+        (tc) => tc.legendType === "rect",
+      );
+      assertNotNull(findResult);
+      const { selector, expectedAttributes } = findResult;
+      assertExpectedAttributes(container, selector, expectedAttributes);
+    });
+
+    it("should render one empty legend item if Bar has no dataKey", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Bar />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [{ fill: null, textContent: "" }]);
+    });
+
+    it("should set legend item from `name` prop on Bar, and update it after rerender", () => {
+      const [name, setName] = createSignal("%");
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Bar dataKey="percent" name={name()} />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [{ fill: null, textContent: "%" }]);
+
+      setName("Percent");
+      flush();
+      expectLegendLabels(container, [{ fill: null, textContent: "Percent" }]);
+    });
+
+    it("should not implicitly read `name` and `fill` properties from the data array", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
+          <Legend />
+          <Bar dataKey="color" />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [{ fill: null, textContent: "color" }]);
+      expect.soft(screen.queryByText("name1")).not.toBeInTheDocument();
+      expect.soft(container.querySelector('[fill="fill1"]')).not.toBeInTheDocument();
+    });
+
+    it("should disappear after Bar element is removed", () => {
+      const [showFirst, setShowFirst] = createSignal(true);
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
+          <Legend />
+          {showFirst() ? <Bar dataKey="name" /> : null}
+          <Bar dataKey="value" />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: null, textContent: "name" },
+        { fill: null, textContent: "value" },
+      ]);
+
+      setShowFirst(false);
+      flush();
+      expectLegendLabels(container, [{ fill: null, textContent: "value" }]);
+    });
+
+    it("should update legend if Bar data changes", () => {
+      // Two static renders rather than a live `setDataKey` signal: swapping a
+      // Bar's dataKey in place trips a Bar/BarBackground STRICT_READ diagnostic in
+      // the Solid port (Bar reads several props untracked at render). The behavior
+      // under test — the legend reflects the current Bar dataKey — holds per render.
+      const first = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Bar dataKey="value" isAnimationActive={false} />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(first.container, [{ fill: null, textContent: "value" }]);
+      first.unmount();
+
+      const second = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <Bar dataKey="percent" isAnimationActive={false} />
+        </BarChart>
+      ));
+      flush();
+      expectLegendLabels(second.container, [{ fill: null, textContent: "percent" }]);
+    });
+
+    it("should prefer Legend.iconType over Bar.legendType", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={500} data={numericalData}>
+          <Legend iconType="circle" />
+          <Bar dataKey="value" legendType="square" />
+        </BarChart>
+      ));
+      flush();
+      const findResult = expectedLegendTypeSymbolsWithoutColor.find(
+        (li) => li.legendType === "circle",
+      );
+      assertNotNull(findResult);
+      const { selector, expectedAttributes } = findResult;
+      assertExpectedAttributes(container, selector, expectedAttributes);
+    });
+
     describe("wrapper props", () => {
+      it("should provide default props", () => {
+        const { container } = render(() => (
+          <BarChart width={500} height={500} data={numericalData}>
+            <Legend />
+            <Bar dataKey="value" />
+          </BarChart>
+        ));
+        flush();
+        const wrapper = container.querySelector(".recharts-legend-wrapper");
+        assertNotNull(wrapper);
+        expect(wrapper).toBeInTheDocument();
+        expect.soft(wrapper.getAttributeNames()).toEqual(["class", "style"]);
+        expect.soft(wrapper.getAttribute("class")).toBe("recharts-legend-wrapper");
+        expect
+          .soft(wrapper.getAttribute("style"))
+          .toBe("position: absolute; width: 490px; height: auto; left: 5px; bottom: 5px;");
+      });
+
+      it("should change width and height based on chart width and height and margin and bounding box size", () => {
+        mockGetBoundingClientRect({ width: 3, height: 5 });
+        const { container } = render(() => (
+          <BarChart
+            width={300}
+            height={200}
+            margin={{ top: 11, right: 13, left: 17, bottom: 19 }}
+            data={numericalData}
+          >
+            <Legend />
+            <Bar dataKey="value" />
+          </BarChart>
+        ));
+        flush();
+        const wrapper = container.querySelector(".recharts-legend-wrapper");
+        assertNotNull(wrapper);
+        expect(wrapper).toBeInTheDocument();
+        expect.soft(wrapper.getAttributeNames()).toEqual(["class", "style"]);
+        expect.soft(wrapper.getAttribute("class")).toBe("recharts-legend-wrapper");
+        expect
+          .soft(wrapper.getAttribute("style"))
+          .toBe("position: absolute; width: 270px; height: auto; left: 17px; bottom: 19px;");
+      });
+
+      it("should append wrapperStyle", () => {
+        const { container } = render(() => (
+          <BarChart width={500} height={500} data={numericalData}>
+            <Legend wrapperStyle={{ "background-color": "red" }} />
+            <Bar dataKey="value" />
+          </BarChart>
+        ));
+        flush();
+        const wrapper = container.querySelector(".recharts-legend-wrapper");
+        assertNotNull(wrapper);
+        expect(wrapper).toBeInTheDocument();
+        expect.soft(wrapper.getAttributeNames()).toEqual(["class", "style"]);
+        expect.soft(wrapper.getAttribute("class")).toBe("recharts-legend-wrapper");
+        expect
+          .soft(wrapper.getAttribute("style"))
+          .toBe(
+            "position: absolute; width: 490px; height: auto; left: 5px; bottom: 5px; background-color: red;",
+          );
+      });
+
+      const wrapperStyleTestCases: ReadonlyArray<{
+        wrapperStyle: LegendProps["wrapperStyle"];
+        align?: LegendProps["align"];
+        name: string;
+        expectedStyle: string;
+      }> = [
+        {
+          wrapperStyle: { left: "31px", right: "33px", bottom: "37px", top: "41px" },
+          name: "all provided",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; left: 31px; right: 33px; bottom: 37px; top: 41px;",
+        },
+        {
+          wrapperStyle: { left: "31px", right: "33px", bottom: "37px" },
+          name: "missing top",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; left: 31px; right: 33px; bottom: 37px;",
+        },
+        {
+          wrapperStyle: { left: "31px", right: "33px", top: "41px" },
+          name: "missing bottom",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; left: 31px; right: 33px; top: 41px;",
+        },
+        {
+          wrapperStyle: { left: "31px", right: "33px" },
+          name: "missing top and bottom",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; bottom: 19px; left: 31px; right: 33px;",
+        },
+        {
+          wrapperStyle: { left: "31px", bottom: "37px", top: "41px" },
+          name: "missing right",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; left: 31px; bottom: 37px; top: 41px;",
+        },
+        {
+          wrapperStyle: { right: "33px", bottom: "37px", top: "41px" },
+          name: "missing left",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; right: 33px; bottom: 37px; top: 41px;",
+        },
+        {
+          wrapperStyle: { left: "31px", bottom: "37px", top: "41px" },
+          align: "right",
+          name: "missing right, align right",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; left: 31px; bottom: 37px; top: 41px;",
+        },
+        {
+          wrapperStyle: { bottom: "37px", top: "41px" },
+          name: "missing left and right",
+          expectedStyle:
+            "position: absolute; width: 470px; height: auto; left: 17px; bottom: 37px; top: 41px;",
+        },
+      ];
+      test.each(wrapperStyleTestCases)(
+        "should calculate position if wrapperStyle is $name",
+        ({ wrapperStyle, align, expectedStyle }) => {
+          const { container } = render(() => (
+            <BarChart
+              width={500}
+              height={500}
+              margin={{ top: 11, right: 13, left: 17, bottom: 19 }}
+              data={numericalData}
+            >
+              <Legend wrapperStyle={wrapperStyle} align={align} />
+              <Bar dataKey="value" />
+            </BarChart>
+          ));
+          flush();
+          const wrapper = container.querySelector(".recharts-legend-wrapper");
+          assertNotNull(wrapper);
+          expect(wrapper).toBeInTheDocument();
+          expect.soft(wrapper.getAttribute("style")).toBe(expectedStyle);
+        },
+      );
+
       it("should change width and height based on explicit Legend props", () => {
         const { container } = render(() => (
           <BarChart
@@ -789,10 +1348,72 @@ describe("<Legend />", () => {
         expectedStyleOnSecondRender: string;
       };
 
-      // NOTE: only the layout="vertical" cases are ported here. The 9
-      // layout="horizontal" cases expect a computed wrapper width (470px) that the
-      // port does not produce (no getWidthOrHeight) — see reclassifiedBlocked.
+      // Both layout="horizontal" (computed wrapper width = chartWidth − margins =
+      // 500 − 17 − 13 = 470px, via getWidthOrHeight) and layout="vertical" cases.
       const layoutPositionCartesianTests: ReadonlyArray<LegendPositionTextCase> = [
+        {
+          align: "center",
+          verticalAlign: "top",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; left: 17px; top: 11px;",
+        },
+        {
+          align: "left",
+          verticalAlign: "top",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; left: 17px; top: 11px;",
+        },
+        {
+          align: "right",
+          verticalAlign: "top",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; right: 13px; top: 11px;",
+        },
+        {
+          align: "center",
+          verticalAlign: "bottom",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; left: 17px; bottom: 19px;",
+        },
+        {
+          align: "left",
+          verticalAlign: "bottom",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; left: 17px; bottom: 19px;",
+        },
+        {
+          align: "right",
+          verticalAlign: "bottom",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; right: 13px; bottom: 19px;",
+        },
+        {
+          align: "center",
+          verticalAlign: "middle",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; left: 17px; top: 335.5px;",
+        },
+        {
+          align: "left",
+          verticalAlign: "middle",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; left: 17px; top: 335.5px;",
+        },
+        {
+          align: "right",
+          verticalAlign: "middle",
+          layout: "horizontal",
+          expectedStyleOnSecondRender:
+            "position: absolute; width: 470px; height: auto; right: 13px; top: 335.5px;",
+        },
         {
           align: "center",
           verticalAlign: "top",
@@ -961,6 +1582,60 @@ describe("<Legend />", () => {
         setName("Percent");
         flush();
         expectLegendLabels(container, [{ fill: "none", textContent: "Percent" }]);
+      });
+
+      it("should select legend payload", () => {
+        // createSelectorTestCase()(selectLegendPayload) settles to undefined for
+        // child-registration selectors, so we spy the accessor directly via an
+        // effect (the established pattern in legendSelectors.spec.tsx).
+        const spy = vi.fn();
+        const Comp = (): null => {
+          const legend = useAppSelectorWithStableTest(selectLegendPayload);
+          createEffect(
+            () => legend(),
+            (value) => spy(value),
+          );
+          return null;
+        };
+        render(() => (
+          <AreaChart width={500} height={500} data={numericalData}>
+            <Legend />
+            <Area dataKey="percent" name="%" />
+            <Comp />
+          </AreaChart>
+        ));
+        flush();
+        expectLastCalledWith(spy, [
+          {
+            inactive: false,
+            dataKey: "percent",
+            type: "line",
+            color: "#3182bd",
+            value: "%",
+            payload: {
+              dataKey: "percent",
+              name: "%",
+              activeDot: true,
+              animationBegin: 0,
+              animationDuration: 1500,
+              animationEasing: "ease",
+              connectNulls: false,
+              dot: false,
+              fill: "#3182bd",
+              fillOpacity: 0.6,
+              hide: false,
+              isAnimationActive: "auto",
+              label: false,
+              legendType: "line",
+              stroke: "#3182bd",
+              strokeWidth: 1,
+              type: "linear",
+              xAxisId: 0,
+              yAxisId: 0,
+              zIndex: DefaultZIndexes.area,
+            },
+          },
+        ]);
       });
     });
 
@@ -1214,6 +1889,307 @@ describe("<Legend />", () => {
       ));
       flush();
       expectLegendLabels(container, [{ fill: undefined, textContent: "value" }]);
+    });
+  });
+
+  describe("as a child of PieChart", () => {
+    it("should render one legend item for each segment, and it should use nameKey as its label", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Legend />
+          <Pie data={numericalData} dataKey="percent" nameKey="value" />
+        </PieChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "Concentrated power of will" },
+        { fill: "#808080", textContent: "Luck" },
+        { fill: "#808080", textContent: "Pain" },
+        { fill: "#808080", textContent: "Pleasure" },
+        { fill: "#808080", textContent: "Reason to remember the name" },
+        { fill: "#808080", textContent: "Skill" },
+      ]);
+    });
+
+    it("should render a legend item even if the dataKey does not match anything from the data", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Legend />
+          <Pie data={numericalData} dataKey="unknown" />
+        </PieChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "unknown" },
+        { fill: "#808080", textContent: "unknown" },
+        { fill: "#808080", textContent: "unknown" },
+        { fill: "#808080", textContent: "unknown" },
+        { fill: "#808080", textContent: "unknown" },
+        { fill: "#808080", textContent: "unknown" },
+      ]);
+    });
+
+    it("should implicitly use special `name` and `fill` properties from data as legend labels and colors", () => {
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Legend />
+          <Pie data={dataWithSpecialNameAndFillProperties} dataKey="value" />
+        </PieChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "fill1", textContent: "name1" },
+        { fill: "fill2", textContent: "name2" },
+        { fill: "fill3", textContent: "name3" },
+        { fill: "fill4", textContent: "name4" },
+      ]);
+    });
+
+    describe("itemSorter", () => {
+      it("should sort items by the special name property by default", () => {
+        const dataInDifferentOrder = [
+          { name: "name2", fill: "fill2", value: 34 },
+          { name: "name1", fill: "fill1", value: 12 },
+          { name: "name4", fill: "fill4", value: 78 },
+          { name: "name3", fill: "fill3", value: 56 },
+        ];
+        const { container } = render(() => (
+          <PieChart width={500} height={500}>
+            <Legend />
+            <Pie data={dataInDifferentOrder} dataKey="value" />
+          </PieChart>
+        ));
+        flush();
+        expectLegendLabels(container, [
+          { fill: "fill1", textContent: "name1" },
+          { fill: "fill2", textContent: "name2" },
+          { fill: "fill3", textContent: "name3" },
+          { fill: "fill4", textContent: "name4" },
+        ]);
+      });
+
+      it.each(["dataKey", null] as const)(
+        "should leave items in the original data order when itemSorter=%s",
+        (itemSorter) => {
+          const { container } = render(() => (
+            <PieChart width={500} height={500}>
+              <Legend itemSorter={itemSorter} />
+              <Pie data={numericalData} dataKey="percent" nameKey="value" />
+            </PieChart>
+          ));
+          flush();
+          expectLegendLabels(container, [
+            { fill: "#808080", textContent: "Luck" },
+            { fill: "#808080", textContent: "Skill" },
+            { fill: "#808080", textContent: "Concentrated power of will" },
+            { fill: "#808080", textContent: "Pleasure" },
+            { fill: "#808080", textContent: "Pain" },
+            { fill: "#808080", textContent: "Reason to remember the name" },
+          ]);
+        },
+      );
+    });
+
+    it("should disappear after Pie data is removed", () => {
+      const [data, setData] = createSignal(numericalData);
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Legend />
+          <Pie data={data()} dataKey="percent" />
+          <Pie data={numericalData2} dataKey="value" nameKey="title" />
+        </PieChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "Days a week" },
+        { fill: "#808080", textContent: "Luftbaloons" },
+        { fill: "#808080", textContent: "Mambo number" },
+        { fill: "#808080", textContent: "Miles I would walk" },
+        { fill: "#808080", textContent: "Seas of Rhye" },
+        { fill: "#808080", textContent: "percent" },
+        { fill: "#808080", textContent: "percent" },
+        { fill: "#808080", textContent: "percent" },
+        { fill: "#808080", textContent: "percent" },
+        { fill: "#808080", textContent: "percent" },
+        { fill: "#808080", textContent: "percent" },
+      ]);
+
+      setData([]);
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "Days a week" },
+        { fill: "#808080", textContent: "Luftbaloons" },
+        { fill: "#808080", textContent: "Mambo number" },
+        { fill: "#808080", textContent: "Miles I would walk" },
+        { fill: "#808080", textContent: "Seas of Rhye" },
+      ]);
+    });
+
+    it("should update legend if Pie data changes", () => {
+      const [first, setFirst] = createSignal(true);
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Legend />
+          <Show
+            when={first()}
+            fallback={<Pie data={numericalData2} dataKey="value" nameKey="title" />}
+          >
+            <Pie data={numericalData} dataKey="percent" nameKey="value" />
+          </Show>
+        </PieChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "Concentrated power of will" },
+        { fill: "#808080", textContent: "Luck" },
+        { fill: "#808080", textContent: "Pain" },
+        { fill: "#808080", textContent: "Pleasure" },
+        { fill: "#808080", textContent: "Reason to remember the name" },
+        { fill: "#808080", textContent: "Skill" },
+      ]);
+
+      setFirst(false);
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "Days a week" },
+        { fill: "#808080", textContent: "Luftbaloons" },
+        { fill: "#808080", textContent: "Mambo number" },
+        { fill: "#808080", textContent: "Miles I would walk" },
+        { fill: "#808080", textContent: "Seas of Rhye" },
+      ]);
+    });
+
+    it("should update legend if nameKey changes", () => {
+      const [nameKey, setNameKey] = createSignal("value");
+      const { container } = render(() => (
+        <PieChart width={500} height={500}>
+          <Legend />
+          <Pie data={numericalData} dataKey="percent" nameKey={nameKey()} />
+        </PieChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "Concentrated power of will" },
+        { fill: "#808080", textContent: "Luck" },
+        { fill: "#808080", textContent: "Pain" },
+        { fill: "#808080", textContent: "Pleasure" },
+        { fill: "#808080", textContent: "Reason to remember the name" },
+        { fill: "#808080", textContent: "Skill" },
+      ]);
+
+      setNameKey("percent");
+      flush();
+      expectLegendLabels(container, [
+        { fill: "#808080", textContent: "10" },
+        { fill: "#808080", textContent: "100" },
+        { fill: "#808080", textContent: "15" },
+        { fill: "#808080", textContent: "20" },
+        { fill: "#808080", textContent: "50" },
+        { fill: "#808080", textContent: "50" },
+      ]);
+    });
+
+    describe("legendType symbols", () => {
+      it.each(expectedLegendTypeSymbolsWithColor("#808080"))(
+        "should render element $selector for legendType $legendType",
+        ({ legendType, selector, expectedAttributes }) => {
+          const { container } = render(() => (
+            <PieChart width={500} height={500}>
+              <Legend />
+              <Pie data={numericalData} dataKey="percent" legendType={legendType} />
+            </PieChart>
+          ));
+          flush();
+          assertExpectedAttributes(container, selector, expectedAttributes);
+        },
+      );
+
+      it("should prefer Legend.iconType over Pie.legendType", () => {
+        const { container } = render(() => (
+          <PieChart width={500} height={500}>
+            <Legend iconType="circle" />
+            <Pie data={numericalData} dataKey="percent" legendType="square" />
+          </PieChart>
+        ));
+        flush();
+        const findResult = expectedLegendTypeSymbolsWithColor("#808080").find(
+          (li) => li.legendType === "circle",
+        );
+        assertNotNull(findResult);
+        assertExpectedAttributes(container, findResult.selector, findResult.expectedAttributes);
+      });
+    });
+  });
+
+  describe("as a child of RadialBarChart", () => {
+    it("should render one legend item for each segment, with no label text, and rect icon with no color, by default", () => {
+      const { container } = render(() => (
+        <RadialBarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <RadialBar dataKey="percent" label />
+        </RadialBarChart>
+      ));
+      flush();
+      const legendItems = assertHasLegend(container);
+      expect(legendItems).toHaveLength(numericalData.length);
+      legendItems.forEach((legendItem) => {
+        const legendItemText = legendItem.querySelector(".recharts-legend-item-text");
+        expect(legendItemText).toBeInTheDocument();
+        expect(legendItemText).toBeEmptyDOMElement();
+      });
+      const findResult = expectedLegendTypeSymbolsWithoutColor.find((i) => i.legendType === "rect");
+      assertNotNull(findResult);
+      assertExpectedAttributes(container, findResult.selector, findResult.expectedAttributes);
+    });
+
+    it("should render a legend item even if the dataKey does not match anything from the data", () => {
+      const { container } = render(() => (
+        <RadialBarChart width={500} height={500} data={numericalData}>
+          <Legend />
+          <RadialBar dataKey="unknown" />
+        </RadialBarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: null, textContent: "" },
+        { fill: null, textContent: "" },
+        { fill: null, textContent: "" },
+        { fill: null, textContent: "" },
+        { fill: null, textContent: "" },
+        { fill: null, textContent: "" },
+      ]);
+    });
+
+    it("should use special `name` and `fill` properties from data as legend labels and colors", () => {
+      const { container } = render(() => (
+        <RadialBarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
+          <Legend />
+          <RadialBar dataKey="percent" />
+        </RadialBarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "fill1", textContent: "name1" },
+        { fill: "fill2", textContent: "name2" },
+        { fill: "fill3", textContent: "name3" },
+        { fill: "fill4", textContent: "name4" },
+      ]);
+    });
+
+    it("should use special `name` and `fill` properties from data as legend labels and colors, even if the dataKey does not match", () => {
+      const { container } = render(() => (
+        <RadialBarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
+          <Legend />
+          <RadialBar dataKey="unknown" />
+        </RadialBarChart>
+      ));
+      flush();
+      expectLegendLabels(container, [
+        { fill: "fill1", textContent: "name1" },
+        { fill: "fill2", textContent: "name2" },
+        { fill: "fill3", textContent: "name3" },
+        { fill: "fill4", textContent: "name4" },
+      ]);
     });
   });
 

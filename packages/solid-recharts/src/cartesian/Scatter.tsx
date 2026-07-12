@@ -1,26 +1,36 @@
 // Ported from recharts 3.8.1 src/cartesian/Scatter.tsx (commit 7a23854).
 //
 // MINIMAL PORT — a point cloud: one <Symbols> per data point at (cx, cy), sized
-// from the (optional) Z axis. Deferred (documented): activeShape / element-form
-// shape, ZIndexLayer, and mirroring into the Brush panorama. (Animation, Cells —
+// from the (optional) Z axis. Deferred (documented): element-form shape and
+// mirroring into the Brush panorama. zIndex relayering IS wired: the whole
+// `.recharts-scatter` Layer is wrapped in <ZIndexLayer> (default
+// DefaultZIndexes.scatter = 600). (Animation, Cells —
 // per-point fill/stroke/class via <Cell> children — the function-form custom
 // `shape` render prop, ErrorBar, labels, clip, and ScatterLine (the connecting
 // joint/fitting line) are wired.) Solid deviations:
 // resolveDefaultProps→merge; effect-dispatch registration → createEffect/onCleanup;
 // the `@ts-expect-error`-laden value plumbing is replaced with typed coercion.
-import { createEffect, createMemo, For, merge, onCleanup, Show, untrack } from "solid-js";
+import { createEffect, createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useUniqueId } from "../util/useUniqueId";
-import { useAnimationId } from "../util/useAnimationId";
-import { JavascriptAnimate } from "../animation/JavascriptAnimate";
+import { useCartesianChartLayout } from "../context/chartLayoutContext";
+import {
+  AnimatedItems,
+  type AnimationInterpolateFn,
+  useAnimationCallbacks,
+} from "../animation/AnimatedItems";
+import { matchAppend, type AnimationMatchByProp } from "../animation/matchBy";
+import type { MutableRef } from "../animation/useAnimationStartSnapshot";
 import type { EasingInput } from "../animation/easing";
 import { Layer } from "../container/Layer";
 import { Symbols } from "../shape/Symbols";
 import { Curve, type CurveProps, type CurveType } from "../shape/Curve";
 import { svgPropertiesNoEventsFromUnknown } from "../util/svgPropertiesNoEvents";
 import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { type CellProps, collectCells } from "../component/Cell";
 import {
   type CartesianLabelListEntry,
@@ -53,11 +63,13 @@ import { AxisId } from "../state/cartesianAxisSlice";
 import { ChartData } from "../state/chartDataSlice";
 import {
   AnimationDuration,
+  CartesianLayout,
   Coordinate,
   DataKey,
   ActiveShape,
   LegendType,
   NullableCoordinate,
+  type ShapeAnimationProps,
   SymbolType,
   TickItem,
   TooltipType,
@@ -66,7 +78,8 @@ import {
 import { getCateCoordinateOfLine, getTooltipNameProp, getValueByDataKey } from "../util/ChartUtils";
 import { getLinearRegression, interpolate, isNullish, isNumOrStr } from "../util/DataUtils";
 import { BaseAxisWithScale, implicitZAxis, ZAxisWithScale } from "../state/selectors/axisSelectors";
-import type { ValueType } from "../component/DefaultTooltipContent";
+import type { Formatter, ValueType } from "../component/DefaultTooltipContent";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export interface ScatterPointNode {
   x?: number | string;
@@ -232,23 +245,35 @@ export function computeScatterPoints({
   });
 }
 
-/** Per-frame symbol growth: size scales 0→full (enter); t=1 → final. */
-function toAnimatedScatterPoints(
-  points: ReadonlyArray<ScatterPointItem>,
-  prev: ReadonlyArray<ScatterPointItem> | null,
-  t: number,
-): ReadonlyArray<ScatterPointItem> {
+// Default per-frame interpolation for Scatter points (the `animationInterpolateFn`
+// the new AnimatedItems engine drives). Mirrors recharts 3.9
+// `defaultScatterAnimateItems`: matched points tween cx/cy/size between prev/next;
+// added points grow their size from 0; removed points are dropped immediately
+// (no exit animation). At t=1 every non-removed point lands on its final geometry.
+const defaultScatterAnimateItems: AnimationInterpolateFn<ScatterPointItem, CartesianLayout> = (
+  items,
+  t,
+) => {
+  if (items == null) return [];
   if (t === 1) {
-    return points;
+    return items.flatMap((item) => (item.status === "removed" ? [] : [item.next]));
   }
-  return points.map((entry, index): ScatterPointItem => {
-    const p = prev?.[index];
-    if (p) {
-      return { ...entry, size: interpolate(p.size, entry.size, t) };
+  return items.flatMap((item): ScatterPointItem[] => {
+    if (item.status === "removed") return [];
+    if (item.status === "matched") {
+      return [
+        {
+          ...item.next,
+          cx: item.next.cx == null ? undefined : interpolate(item.prev.cx, item.next.cx, t),
+          cy: item.next.cy == null ? undefined : interpolate(item.prev.cy, item.next.cy, t),
+          size: interpolate(item.prev.size, item.next.size, t),
+        },
+      ];
     }
-    return { ...entry, size: interpolate(0, entry.size, t) };
+    // added
+    return [{ ...item.next, size: interpolate(0, item.next.size, t) }];
   });
-}
+};
 
 export interface ScatterProps {
   xAxisId?: AxisId;
@@ -269,19 +294,33 @@ export interface ScatterProps {
   /**
    * Built-in symbol type ("circle", "cross", …) OR a custom shape render prop
    * (function form): called per point with its computed geometry + payload, its
-   * return replaces the default <Symbols>. (recharts also accepts an element —
-   * element form is deferred, see header.)
+   * return replaces the default <Symbols>. During animations the per-point item
+   * is widened with `ShapeAnimationProps` (`animationElapsedTime`, `isAnimating`,
+   * `isEntrance`) so the custom shape can react to animation state (v3.9).
+   * (recharts also accepts an element — element form is N/A by design — no
+   * cloneElement.)
    */
-  shape?: SymbolType | ((item: ScatterPointItem) => JSX.Element);
+  shape?: SymbolType | ((item: ScatterPointItem & ShapeAnimationProps) => JSX.Element);
   /** Highlighted shape for the active (hovered) point — object/function/boolean forms. */
   activeShape?: ActiveShape<ScatterShapeProps, SVGElement>;
   legendType?: LegendType;
   tooltipType?: TooltipType;
+  /** Formats this Scatter's tooltip value; takes precedence over the Tooltip-level `formatter`. */
+  formatter?: Formatter;
   hide?: boolean;
   isAnimationActive?: boolean | "auto";
   animationBegin?: number;
   animationDuration?: AnimationDuration;
   animationEasing?: EasingInput;
+  /** Custom per-frame interpolation for the scatter points (v3.9). */
+  animationInterpolateFn?: AnimationInterpolateFn<ScatterPointItem, CartesianLayout>;
+  /** How prev/next points are matched across data updates (v3.9). @defaultValue matchAppend */
+  animationMatchBy?: AnimationMatchByProp<ScatterPointItem>;
+  /**
+   * Z-Index of this component and its children; the higher, the more on top.
+   * @defaultValue 600 (DefaultZIndexes.scatter)
+   */
+  zIndex?: number;
   id?: string;
   class?: string;
   onMouseEnter?: ScatterMouseEvent;
@@ -308,6 +347,9 @@ export const scatterDefaultProps = {
   animationBegin: 0,
   animationDuration: 400,
   animationEasing: "linear",
+  animationInterpolateFn: defaultScatterAnimateItems,
+  animationMatchBy: matchAppend,
+  zIndex: DefaultZIndexes.scatter,
 } as const satisfies Partial<ScatterProps>;
 
 // Ported from recharts Scatter `errorBarDataPointFormatter`: maps a computed
@@ -389,7 +431,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev && store != null) {
       store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
       prev = null;
@@ -434,7 +476,10 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     });
   });
 
-  const labelContextEntries = createMemo(() => labelListEntries());
+  // Animation start/end tracking: labels are hidden while the symbols animate
+  // (recharts `showLabels={!isAnimating}`), revealed once the animation settles.
+  const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks();
+  const labelContextEntries = createMemo(() => (isAnimating() ? undefined : labelListEntries()));
 
   const nameOf = (): string | undefined =>
     merged.name == null ? getTooltipNameProp(undefined, merged.dataKey) : String(merged.name);
@@ -455,6 +500,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
       type: merged.tooltipType,
       color: props.fill,
       unit: "",
+      formatter: merged.formatter,
       graphicalItemId: id,
     },
   }));
@@ -469,15 +515,27 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     },
   ]);
 
-  // Item-type tooltip dispatch per point.
-  const onItemEnter = useMouseEnterItemDispatch(props.onMouseEnter, merged.dataKey, id);
-  const onItemLeave = useMouseLeaveItemDispatch(props.onMouseLeave);
-  const onItemClick = useMouseClickItemDispatch(props.onClick, merged.dataKey, id);
+  // Item-type tooltip dispatch per point. Getter args: the hooks read
+  // handler/dataKey at event time (fresh, never stale).
+  const onItemEnter = useMouseEnterItemDispatch(
+    () => props.onMouseEnter,
+    () => merged.dataKey,
+    id,
+  );
+  const onItemLeave = useMouseLeaveItemDispatch(() => props.onMouseLeave);
+  const onItemClick = useMouseClickItemDispatch(
+    () => props.onClick,
+    () => merged.dataKey,
+    id,
+  );
 
-  // Enter animation: symbols scale up from size 0. Keyed <Show> restarts on a new
-  // id; isAnimationActive=false → t=1 → full size → byte-identical to static.
-  const animationId = useAnimationId(() => points(), "recharts-scatter-");
-  let prevPoints: ReadonlyArray<ScatterPointItem> | null = null;
+  // Holds the latest visible points frame so a re-animation (data change) tweens
+  // from where the dots currently are. Managed by AnimatedItems via
+  // useAnimationStartSnapshot.
+  const previousPointsRef: MutableRef<ReadonlyArray<ScatterPointItem> | null | undefined> = {
+    current: null,
+  };
+  const layout = useCartesianChartLayout();
   // The optional connecting line through the points (recharts ScatterLine):
   // lineType "joint" links every point; "fitting" draws a linear regression. The
   // Curve renders fill=none, stroke=scatter fill, carrying the scatter's `name`.
@@ -520,7 +578,11 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     );
   };
 
-  const renderScatterBody = (frame: ReadonlyArray<ScatterPointItem>): JSX.Element => (
+  const renderScatterBody = (
+    frame: ReadonlyArray<ScatterPointItem>,
+    animationElapsedTime: number,
+    isEntrance: boolean,
+  ): JSX.Element => (
     <>
       {renderScatterLine(frame)}
       <For each={frame}>
@@ -548,7 +610,15 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
                   }}
                 />
               ) : customShape ? (
-                customShape(entry)
+                // v3.9: forward the animation state into the custom shape so it
+                // can react to it (mirrors recharts ScatterSymbols). isAnimating
+                // combines the live callback flag with an in-flight progress check.
+                customShape({
+                  ...entry,
+                  animationElapsedTime,
+                  isAnimating: isAnimating() || animationElapsedTime < 1,
+                  isEntrance,
+                })
               ) : (
                 <Symbols
                   cx={entry.cx}
@@ -560,7 +630,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
                   type={symbolType}
                   name={entry.name}
                   fill={entry.cell?.fill ?? entry.fill ?? merged.fill}
-                  fill-opacity={merged.fillOpacity}
+                  fillOpacity={merged.fillOpacity}
                   stroke={entry.cell?.stroke}
                 />
               )}
@@ -580,42 +650,68 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
       <SetLegendPayload id={id} legendPayload={legendPayload()} />
       <Show when={!merged.hide && points()}>
         {(pts) => (
-          <Show when={animationId()} keyed>
-            {(animId) => (
-              <JavascriptAnimate
-                animationId={animId}
-                duration={merged.animationDuration}
-                easing={merged.animationEasing}
-                isActive={merged.isAnimationActive}
-                begin={merged.animationBegin}
-              >
-                {(t) => {
-                  const frame = toAnimatedScatterPoints(untrack(pts), prevPoints, t);
-                  prevPoints = frame;
-                  return (
-                    <Show
-                      when={needClip()}
-                      fallback={
-                        <Layer class="recharts-scatter" id={id}>
-                          {renderScatterBody(frame)}
-                        </Layer>
-                      }
-                    >
-                      <Layer class="recharts-scatter" id={id} clip-path={`url(#clipPath-${id})`}>
-                        <defs>
-                          <GraphicalItemClipPath
-                            clipPathId={id}
-                            xAxisId={merged.xAxisId}
-                            yAxisId={merged.yAxisId}
-                          />
-                        </defs>
-                        {renderScatterBody(frame)}
-                      </Layer>
-                    </Show>
-                  );
-                }}
-              </JavascriptAnimate>
-            )}
+          // Wrapped in <ZIndexLayer> (default 600) so a `zIndex` prop relayers the
+          // whole `.recharts-scatter` Layer into its portal — recharts wraps the
+          // entire Layer in ZIndexLayer. The needClip <Show> stays OUTSIDE the portal
+          // (each branch mounts its own ZIndexLayer wrapping a stable <Layer>).
+          <Show
+            when={needClip()}
+            fallback={
+              <ZIndexLayer zIndex={merged.zIndex}>
+                <Layer class="recharts-scatter" id={id}>
+                  <AnimatedItems
+                    animationInput={pts()}
+                    animationIdPrefix="recharts-scatter-"
+                    items={pts()}
+                    previousItemsRef={previousPointsRef}
+                    isAnimationActive={merged.isAnimationActive}
+                    animationBegin={merged.animationBegin}
+                    animationDuration={merged.animationDuration}
+                    animationEasing={merged.animationEasing}
+                    onAnimationStart={handleAnimationStart}
+                    onAnimationEnd={handleAnimationEnd}
+                    animationInterpolateFn={merged.animationInterpolateFn}
+                    animationMatchBy={merged.animationMatchBy}
+                    layout={layout() ?? "horizontal"}
+                  >
+                    {(frame, animationElapsedTime, isEntrance) => (
+                      <Layer>{renderScatterBody(frame, animationElapsedTime, isEntrance)}</Layer>
+                    )}
+                  </AnimatedItems>
+                </Layer>
+              </ZIndexLayer>
+            }
+          >
+            <ZIndexLayer zIndex={merged.zIndex}>
+              <Layer class="recharts-scatter" id={id} clipPath={`url(#clipPath-${id})`}>
+                <defs>
+                  <GraphicalItemClipPath
+                    clipPathId={id}
+                    xAxisId={merged.xAxisId}
+                    yAxisId={merged.yAxisId}
+                  />
+                </defs>
+                <AnimatedItems
+                  animationInput={pts()}
+                  animationIdPrefix="recharts-scatter-"
+                  items={pts()}
+                  previousItemsRef={previousPointsRef}
+                  isAnimationActive={merged.isAnimationActive}
+                  animationBegin={merged.animationBegin}
+                  animationDuration={merged.animationDuration}
+                  animationEasing={merged.animationEasing}
+                  onAnimationStart={handleAnimationStart}
+                  onAnimationEnd={handleAnimationEnd}
+                  animationInterpolateFn={merged.animationInterpolateFn}
+                  animationMatchBy={merged.animationMatchBy}
+                  layout={layout() ?? "horizontal"}
+                >
+                  {(frame, animationElapsedTime, isEntrance) => (
+                    <Layer>{renderScatterBody(frame, animationElapsedTime, isEntrance)}</Layer>
+                  )}
+                </AnimatedItems>
+              </Layer>
+            </ZIndexLayer>
           </Show>
         )}
       </Show>

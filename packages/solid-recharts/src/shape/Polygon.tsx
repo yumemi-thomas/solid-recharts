@@ -7,6 +7,7 @@
  * to narrow `points` without a non-null `!`); `clsx` → `class={[...]}`;
  * `return null` → `<Show>`.
  */
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { Show, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Coordinate } from "../util/types";
@@ -94,7 +95,10 @@ interface PolygonOwnProps {
   connectNulls?: boolean;
 }
 
-export type PolygonProps = Omit<JSX.PolygonSVGAttributes<SVGPolygonElement>, "points" | "class"> &
+export type PolygonProps = Omit<
+  CamelSvgProps<JSX.PolygonSVGAttributes<SVGPolygonElement>>,
+  "points" | "class"
+> &
   PolygonOwnProps;
 
 export const Polygon = (props: PolygonProps): JSX.Element => {

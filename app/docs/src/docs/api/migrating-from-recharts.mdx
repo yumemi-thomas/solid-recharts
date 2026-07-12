@@ -1,0 +1,53 @@
+export const meta = {
+  slug: "migrating-from-recharts",
+  title: "Migrating from recharts",
+  group: "guides",
+  description: "What changes (and what doesn't) when moving a React recharts app to Solid.",
+  order: 1,
+};
+
+# Migrating from recharts
+
+The component names, composition model and almost all props are identical to recharts 3.x.
+Most chart JSX can be pasted from a React app and adjusted mechanically.
+
+## What stays the same
+
+- Component names and nesting: `<LineChart><XAxis/><Line/></LineChart>`
+- `dataKey`, `domain`, `ticks`, `stackId`, `layout`, `margin`, `syncId`, …
+- camelCase SVG styling props: `strokeDasharray`, `fillOpacity`, `strokeWidth`
+- Tooltip/Legend/Label customization via `content`/`formatter` functions
+- Event handlers: `onClick`, `onMouseEnter`, … on charts and series
+
+## Mechanical changes
+
+| React (recharts)                         | Solid (solid-recharts)                       |
+| ---------------------------------------- | -------------------------------------------- |
+| `className="…"`                          | `class="…"`                                  |
+| `data.map((d) => <Cell … key={d.id} />)` | `<For each={data}>{(d) => <Cell … />}</For>` |
+| `style={{ marginTop: 8 }}`               | `style={{ "margin-top": "8px" }}`            |
+| `{cond ? <Tooltip/> : null}`             | `<Show when={cond}><Tooltip/></Show>`        |
+| `useState` for chart state               | `createSignal`                               |
+
+There is no `key` prop — Solid's `<For>` handles identity.
+
+## Custom content components
+
+recharts render-prop APIs (`shape`, `content`, `label`, `tick`, `dot`, `activeDot`) accept
+functions here too. The function receives the same props object the React version would.
+Remember that Solid components run **once** — read reactive values inside the JSX you
+return, not in early returns.
+
+```tsx
+<Bar dataKey="uv" shape={(props) => <Rectangle {...props} radius={[6, 6, 0, 0]} />} />
+```
+
+## Not ported
+
+- `Customized` component (use a plain child component instead)
+- React-specific escape hatches (`React.cloneElement` patterns)
+- Treemap animation (deferred)
+
+## See also
+
+- [Getting started](/docs/getting-started)

@@ -16,8 +16,13 @@
 // at the brush rect, using isPanorama=true (full data range + the brush viewBox).
 // Keyboard (ArrowLeft/Right move a focused traveller by one index) and touch
 // (the same drag via changedTouches) are WIRED.
-// DEFERRED (documented): leaveTimeOut, onDragEnd, and the controlled
-// startIndex/endIndex prop-sync edge cases.
+// `dy`, `onDragEnd` (fires at drag release), and `leaveTimeOut` (drag ends after
+// the pointer leaves the brush) are WIRED.
+// Controlled startIndex/endIndex prop-sync is WIRED: the effect below dispatches
+// prop changes into the store, and traveller pixels DERIVE from the store indices
+// (drag overrides win mid-interaction, the Solid equivalent of recharts'
+// getDerivedStateFromProps "don't sync while interacting" guards). Covered by the
+// "with controlled startIndex/endIndex" Brush.spec block.
 import { createEffect, createMemo, createSignal, merge, onCleanup, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { scalePoint } from "victory-vendor/d3-scale";
@@ -25,7 +30,6 @@ import { useAppSelector, useAppStore } from "../state/hooks";
 import { Layer } from "../container/Layer";
 import { Text } from "../component/Text";
 import { RootSurface } from "../container/RootSurface";
-import { ClipPathProvider } from "../container/ClipPathProvider";
 import { PanoramaContextProvider } from "../context/PanoramaContext";
 import { selectChartDataWithIndexes } from "../state/selectors/dataSelectors";
 import { selectBrushDimensions } from "../state/selectors/brushSelectors";
@@ -33,6 +37,7 @@ import { ChartData } from "../state/chartDataSlice";
 import { DataKey, Padding } from "../util/types";
 import { getValueByDataKey } from "../util/ChartUtils";
 import { isNumber, isNotNil } from "../util/DataUtils";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export type BrushTickFormatter = (value: unknown, index: number) => string | number;
 type BrushTravellerId = "startX" | "endX";
@@ -57,9 +62,17 @@ export interface BrushProps {
   startIndex?: number;
   endIndex?: number;
   tickFormatter?: BrushTickFormatter;
+  /** Accessible label for the travellers; falls back to `Min value: …, Max value: …`. */
+  ariaLabel?: string;
   /** Always show the start/end text (not only while interacting). @defaultValue false */
   alwaysShowText?: boolean;
+  /** Extra vertical offset added to the brush's y position. @defaultValue 0 */
+  dy?: number;
   onChange?: (next: { startIndex: number; endIndex: number }) => void;
+  /** Fired once at the end of a drag (mouseup/touchend or leave timeout). */
+  onDragEnd?: (next: { startIndex: number; endIndex: number }) => void;
+  /** Delay (ms) before a drag ends when the pointer leaves the brush. @defaultValue 1000 */
+  leaveTimeOut?: number;
   class?: string;
   id?: string;
   /**
@@ -78,6 +91,7 @@ export const brushDefaultProps = {
   stroke: "#666",
   padding: { top: 1, right: 1, bottom: 1, left: 1 },
   alwaysShowText: false,
+  leaveTimeOut: 1000,
 } as const satisfies Partial<BrushProps>;
 
 const range0 = (n: number): number[] => {
@@ -139,6 +153,24 @@ function getTextOfTick(
   return typeof tickFormatter === "function" ? tickFormatter(text, index) : text;
 }
 
+// Accessible label for a traveller: the `name` of the start/end data rows.
+// (sic, per recharts: the label says "value" but reads the `name` property.)
+function getNameFromUnknown(value: unknown): string | undefined {
+  if (isNotNil(value) && typeof value === "object" && "name" in value) {
+    const { name }: { name: unknown } = value;
+    if (typeof name === "string") {
+      return name;
+    }
+  }
+  return undefined;
+}
+
+function getAriaLabel(data: ChartData, startIndex: number, endIndex: number): string {
+  const start = getNameFromUnknown(data[startIndex]);
+  const end = getNameFromUnknown(data[endIndex]);
+  return `Min value: ${start}, Max value: ${end}`;
+}
+
 function DefaultTraveller(props: {
   x: number;
   y: number;
@@ -190,7 +222,7 @@ export const Brush = (props: BrushProps): JSX.Element => {
 
   // The brush's own pixel rect (x/width come from the chart offset unless overridden).
   const x = (): number => merged.x ?? dimensions()?.x ?? 0;
-  const y = (): number => merged.y ?? dimensions()?.y ?? 0;
+  const y = (): number => (merged.y ?? dimensions()?.y ?? 0) + (merged.dy ?? 0);
   const width = (): number => merged.width ?? dimensions()?.width ?? 0;
 
   // Register brush settings so the offset reserves `height` at the bottom. Two-arg
@@ -206,7 +238,7 @@ export const Brush = (props: BrushProps): JSX.Element => {
     }),
     (settings) => store?.actions.brush.setBrushSettings(settings),
   );
-  onCleanup(() => store?.actions.brush.setBrushSettings(null));
+  unregisterOnCleanup(() => store?.actions.brush.setBrushSettings(null));
 
   // Sync controlled start/end index props into the store (recharts BrushInternal
   // useEffect — always dispatch; the reducer ignores undefined fields).
@@ -374,12 +406,28 @@ export const Brush = (props: BrushProps): JSX.Element => {
     }
   };
   const handleWindowUp = (): void => {
+    const wasDragging = isTravellerMoving() || isSlideMoving();
     setIsTravellerMoving(false);
     setIsSlideMoving(false);
     // Drop the pixel overrides so the travellers snap to the final index positions.
     setOverrideStartX(null);
     setOverrideEndX(null);
     detachListeners();
+    if (leaveTimer != null) {
+      clearTimeout(leaveTimer);
+      leaveTimer = undefined;
+    }
+    if (wasDragging) {
+      merged.onDragEnd?.({ startIndex: startIndex(), endIndex: endIndex() });
+    }
+  };
+
+  // recharts: leaving the brush mid-drag ends the drag after `leaveTimeOut` ms.
+  let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+  const handleLeaveWrapper = (): void => {
+    if (isTravellerMoving() || isSlideMoving()) {
+      leaveTimer = setTimeout(handleWindowUp, merged.leaveTimeOut ?? 1000);
+    }
   };
   const attachListeners = (): void => {
     window.addEventListener("mousemove", handleWindowMove, true);
@@ -485,7 +533,11 @@ export const Brush = (props: BrushProps): JSX.Element => {
 
   return (
     <Show when={valid()}>
-      <Layer class={layerClass()} style={{ "user-select": "none" }}>
+      <Layer
+        class={layerClass()}
+        style={{ "user-select": "none" }}
+        onMouseLeave={handleLeaveWrapper}
+      >
         {/* Background */}
         <rect
           stroke={merged.stroke}
@@ -497,11 +549,14 @@ export const Brush = (props: BrushProps): JSX.Element => {
         />
         {/* Panorama: mirror the brush's children inside the brush rect, in the
             isPanorama context (RootSurface routes them to the brush surface; they
-            read the full data range + the brush viewBox). Opt-in via children. */}
+            read the full data range + the brush viewBox). Opt-in via children.
+            No ClipPathProvider here: recharts' compact chart has none, so
+            useClipPathId inside the panorama falls through to the MAIN chart's
+            provider and the DOM keeps a single clipPath (chartDimensions parity). */}
         <Show when={props.children != null}>
           <PanoramaContextProvider>
             <RootSurface otherAttributes={null} title={undefined} desc={undefined}>
-              <ClipPathProvider>{props.children}</ClipPathProvider>
+              {props.children}
             </RootSurface>
           </PanoramaContextProvider>
         </Show>
@@ -524,8 +579,10 @@ export const Brush = (props: BrushProps): JSX.Element => {
         {/* Start traveller */}
         <Layer
           class="recharts-brush-traveller"
+          tabIndex={0}
           role="slider"
-          tabindex={0}
+          aria-label={merged.ariaLabel ?? getAriaLabel(data(), startIndex(), endIndex())}
+          aria-valuenow={startX()}
           onMouseEnter={() => setIsTextActive(true)}
           onMouseLeave={() => setIsTextActive(false)}
           onMouseDown={(e) => startTravellerDrag("startX", e)}
@@ -546,8 +603,10 @@ export const Brush = (props: BrushProps): JSX.Element => {
         {/* End traveller */}
         <Layer
           class="recharts-brush-traveller"
+          tabIndex={0}
           role="slider"
-          tabindex={0}
+          aria-label={merged.ariaLabel ?? getAriaLabel(data(), startIndex(), endIndex())}
+          aria-valuenow={endX()}
           onMouseEnter={() => setIsTextActive(true)}
           onMouseLeave={() => setIsTextActive(false)}
           onMouseDown={(e) => startTravellerDrag("endX", e)}

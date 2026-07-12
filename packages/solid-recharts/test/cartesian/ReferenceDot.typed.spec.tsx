@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Line, LineChart, ReferenceDot } from "../../src";
+import { type DotProps, Line, LineChart, ReferenceDot, getRelativeCoordinate } from "../../src";
 import { render } from "../helper/render";
 
 // Ported from recharts 3.8.1 test/cartesian/ReferenceDot.typed.spec.tsx.
@@ -44,5 +44,33 @@ describe("ReferenceDot with strong typing", () => {
         </LineChart>
       ));
     });
+  });
+});
+
+describe("ReferenceDot event handlers", () => {
+  // Handlers are props-first `(dotProps, event)` (recharts parity; see
+  // ReferenceDot.spec). The event's currentTarget is the rendered <circle>,
+  // so it satisfies SVGMousePointer/SVGTouchPointer and feeds
+  // getRelativeCoordinate directly — same as the reference.
+  it("should allow calling getRelativeCoordinate with the type provided by Recharts event handler", () => {
+    render(() => (
+      <LineChart width={100} height={100}>
+        <ReferenceDot
+          x={10}
+          y={10}
+          onClick={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseDown={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseUp={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseMove={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseLeave={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseOver={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseOut={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onMouseEnter={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onTouchStart={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onTouchMove={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+          onTouchEnd={(_dotProps: DotProps, e) => getRelativeCoordinate(e)}
+        />
+      </LineChart>
+    ));
   });
 });

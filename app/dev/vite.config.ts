@@ -9,7 +9,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [solid()],
   resolve: {
-    conditions: ["development", "browser"],
+    // Keep "module"/"import" so deps expose their ESM builds (the narrow
+    // ["development","browser"] set forced es-toolkit to its CJS build).
+    conditions: ["module", "browser", "import", "development"],
     alias: { "solid-recharts": resolve(here, "../../packages/solid-recharts/src/index.ts") },
   },
 });

@@ -1,0 +1,48 @@
+export const meta = {
+  slug: "reference-dot",
+  title: "ReferenceDot",
+  group: "cartesian",
+  description: "Draws a circle at a fixed data coordinate to mark a specific point.",
+  example: "reference-lines",
+};
+
+# ReferenceDot
+
+`ReferenceDot` draws a circle (dot) at a data coordinate. Use it to highlight important individual points, thresholds, or events on the chart.
+
+```tsx
+import { ReferenceDot, LineChart } from "solid-recharts";
+
+<LineChart data={data}>
+  <ReferenceDot x="Jan" y={4000} r={8} fill="#ff7300" />
+</LineChart>;
+```
+
+<Example slug="reference-lines" />
+
+## Props
+
+| Prop          | Type                                      | Default     | Description                                |
+| ------------- | ----------------------------------------- | ----------- | ------------------------------------------ |
+| `x`           | `number \| string`                        | —           | X-data coordinate (required)               |
+| `y`           | `number \| string`                        | —           | Y-data coordinate (required)               |
+| `r`           | `number`                                  | `10`        | Radius in pixels                           |
+| `fill`        | `string`                                  | `"#fff"`    | Fill color                                 |
+| `stroke`      | `string`                                  | `"#ccc"`    | Border color                               |
+| `strokeWidth` | `number`                                  | `1`         | Border thickness in pixels                 |
+| `label`       | `string \| boolean \| ReactNode`          | `false`     | Text label next to the dot                 |
+| `ifOverflow`  | `"discard" \| "hidden" \| "extendDomain"` | `"discard"` | Behavior when the dot exits the chart area |
+| `zIndex`      | `number`                                  | —           | Stacking order (higher renders on top)     |
+
+## Notes
+
+- Both `x` and `y` are required.
+- Use `r` to control dot size; typical range is 5–15 pixels.
+- `label` renders as text near the dot; useful for marking specific events.
+- `ifOverflow="hidden"` clips the dot at the chart boundary.
+
+## See also
+
+- [ReferenceLine](/docs/reference-line) — a line at a coordinate
+- [ReferenceArea](/docs/reference-area) — a shaded band
+- [LineChart](/docs/line-chart) — the chart container

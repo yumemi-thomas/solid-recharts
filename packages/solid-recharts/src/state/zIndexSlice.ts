@@ -57,8 +57,15 @@ export interface ZIndexSlice {
 }
 
 export function createZIndexSlice(initialState: ZIndexState = initialZIndexState): ZIndexSlice {
+  // Deep-copy the entries: a shallow `{ ...initialState.zIndexMap }` would make
+  // every chart's store wrap the SAME module-level ZIndexEntry objects from
+  // `initialZIndexState`, so one chart registering its portal <g> would
+  // overwrite every other chart's portal element (graphical items then portal
+  // into a different chart's svg).
   const [state, setState] = createStore<ZIndexState>({
-    zIndexMap: { ...initialState.zIndexMap },
+    zIndexMap: Object.fromEntries(
+      Object.entries(initialState.zIndexMap).map(([z, entry]) => [z, { ...entry }]),
+    ),
   });
 
   const actions: ZIndexActions = {

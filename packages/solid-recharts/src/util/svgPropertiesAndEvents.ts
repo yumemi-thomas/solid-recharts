@@ -8,6 +8,7 @@
 // from '@solidjs/web'.
 import { isEventKey } from "./excludeEventProps";
 import { isDataAttribute, isSvgElementPropKey, toSvgAttributeName } from "./svgPropertiesNoEvents";
+import { svgPropertiesNoEventsKeepCase } from "./svgPropertiesNoEvents";
 
 /**
  * Filters an object to only include SVG properties, data attributes, and event
@@ -31,6 +32,23 @@ export function svgPropertiesAndEvents(obj: Record<string, unknown>): Record<str
         // Solid event props (`onMouseEnter`, …) must keep their camelCase key.
         result[key] = obj[key];
       }
+    }
+  }
+  return result;
+}
+
+/**
+ * Vendor-verbatim variant of {@link svgPropertiesAndEvents}: keeps camelCase
+ * key names (see svgPropertiesNoEventsKeepCase). For building component-input
+ * payload records; the consuming component applies the DOM rename itself.
+ */
+export function svgPropertiesAndEventsKeepCase(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = svgPropertiesNoEventsKeepCase(obj);
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && isEventKey(key)) {
+      result[key] = obj[key];
     }
   }
   return result;

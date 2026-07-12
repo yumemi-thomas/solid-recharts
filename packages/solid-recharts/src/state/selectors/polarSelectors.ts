@@ -18,9 +18,10 @@ import { selectChartLayout } from "../../context/chartLayoutContext";
 import {
   selectChartDataAndAlwaysIgnoreIndexes,
   selectChartDataSliceIgnoringIndexes,
+  selectChartDataWithIndexes,
 } from "./dataSelectors";
 import { pickAxisType } from "./pickAxisType";
-import { selectStackOffsetType } from "./rootPropsSelectors";
+import { selectReverseStackOrder, selectStackOffsetType } from "./rootPropsSelectors";
 import { combineCheckedDomain } from "./combiners/combineCheckedDomain";
 import {
   combineAppliedValues,
@@ -28,10 +29,12 @@ import {
   combineAxisDomainWithNiceTicks,
   combineDisplayedData,
   combineDomainOfAllAppliedNumericalValuesIncludingErrorValues,
+  combineDomainOfStackGroups,
   combineGraphicalItemsData,
   combineGraphicalItemsSettings,
   combineNiceTicks,
   combineNumericalDomain,
+  combineStackGroups,
   itemAxisPredicate,
   selectAllErrorBarSettings,
   selectBaseAxis,
@@ -39,7 +42,11 @@ import {
   selectDomainFromUserPreference,
   selectRealScaleType,
   selectRenderableAxisSettings,
+  selectTooltipAxis,
 } from "./axisSelectors";
+import { isStacked } from "../types/StackedGraphicalItem";
+import { combineDisplayedStackedData } from "./combiners/combineDisplayedStackedData";
+import type { AllStackGroups } from "../../util/stacks/stackTypes";
 
 export type PolarAxisType = "angleAxis" | "radiusAxis";
 
@@ -114,14 +121,46 @@ const selectPolarNumericalDomain = (
     selectBaseAxis(state, axisType, axisId),
     selectDomainDefinition(state, axisType, axisId),
     selectDomainFromUserPreference(state, axisType, axisId),
-    // Stacks are unsupported in polar charts.
-    undefined,
+    // Stacked RadialBars contribute their stack totals (verified against released
+    // recharts: the implicit numeric angle axis spans [0, stack total]).
+    combineDomainOfStackGroups(
+      selectPolarStackGroups(state, axisType, axisId),
+      selectChartDataWithIndexes(state),
+      axisType,
+      selectDomainFromUserPreference(state, axisType, axisId),
+    ),
     selectDomainOfAllPolarAppliedNumericalValues(state, axisType, axisId),
     // Reference elements are unsupported in polar charts.
     undefined,
     selectChartLayout(state),
     pickAxisType(state, axisType),
   );
+
+// Stacked RadialBars sharing this polar axis → displayed stacked data → d3 stack
+// groups (reference selectStackedRadialBars/selectStackGroups, shared by the
+// numeric-domain selector above and selectRadialBarSectors).
+export const selectPolarStackGroups = (
+  state: RechartsRootState,
+  axisType: PolarAxisType,
+  axisId: AxisId,
+): AllStackGroups | undefined => {
+  const stackedItems = selectPolarItemsSettings(state, axisType, axisId)
+    .filter((item) => item.type === "radialBar")
+    .filter(isStacked);
+  if (stackedItems.length === 0) {
+    return undefined;
+  }
+  return combineStackGroups(
+    combineDisplayedStackedData(
+      stackedItems,
+      selectChartDataAndAlwaysIgnoreIndexes(state),
+      selectTooltipAxis(state),
+    ),
+    stackedItems,
+    selectStackOffsetType(state),
+    selectReverseStackOrder(state),
+  );
+};
 
 export const selectPolarAxisDomain = (
   state: RechartsRootState,

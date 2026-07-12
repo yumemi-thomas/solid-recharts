@@ -9,7 +9,7 @@ import { RootSurface } from "../container/RootSurface";
 import { RechartsWrapper } from "./RechartsWrapper";
 import { ClipPathProvider } from "../container/ClipPathProvider";
 import { CartesianChartProps } from "../util/types";
-import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
+import { svgPropertiesNoEventsKeepCase } from "../util/svgPropertiesNoEvents";
 
 export interface CategoricalChartProps extends CartesianChartProps {
   ref?: SVGSVGElement | ((el: SVGSVGElement) => void);
@@ -17,7 +17,7 @@ export interface CategoricalChartProps extends CartesianChartProps {
 
 export const CategoricalChart = (props: CategoricalChartProps): JSX.Element => {
   const attrs = (): Record<string, unknown> =>
-    svgPropertiesNoEvents({
+    svgPropertiesNoEventsKeepCase({
       ...omit(
         props,
         "width",

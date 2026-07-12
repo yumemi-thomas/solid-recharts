@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Radar, RadarChart } from "../../src";
+import { Radar, RadarChart, getRelativeCoordinate } from "../../src";
 import { render } from "../helper/render";
 
 type ExampleDataPoint = {
@@ -62,5 +62,58 @@ describe("Radar with strong typing", () => {
         </RadarChart>
       ));
     });
+  });
+});
+
+describe("Radar event handlers", () => {
+  it("should allow calling getRelativeCoordinate with the type provided by the Solid event handler", () => {
+    /*
+     * SOLID DEVIATION: handlers are single-arg DOM handlers `(e) => ...`, not the
+     * reference's props-first `(data: InternalRadarProps, e) => ...` 2-arg form (there
+     * is no `InternalRadarProps` type and no props-first handler arity in the port).
+     * The (SVG) event arg is accepted by getRelativeCoordinate.
+     */
+    render(() => (
+      <RadarChart width={100} height={100}>
+        <Radar
+          dataKey="foo"
+          isAnimationActive={false}
+          onClick={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseDown={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseUp={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseMove={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseLeave={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseOver={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseOut={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onMouseEnter={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onTouchStart={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onTouchMove={(e) => {
+            getRelativeCoordinate(e);
+          }}
+          onTouchEnd={(e) => {
+            getRelativeCoordinate(e);
+          }}
+        />
+      </RadarChart>
+    ));
+    expect(true).toBe(true);
   });
 });

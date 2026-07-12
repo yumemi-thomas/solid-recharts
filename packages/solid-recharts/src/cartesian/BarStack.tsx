@@ -77,7 +77,7 @@ export const BarStackClipLayer = (props: LayerProps & { index: number }): JSX.El
   return (
     <Layer
       class={["recharts-bar-stack-layer", props.class].filter(Boolean).join(" ")}
-      clip-path={clipPathUrl}
+      clipPath={clipPathUrl}
       onMouseEnter={props.onMouseEnter}
       onMouseLeave={props.onMouseLeave}
       onClick={props.onClick}

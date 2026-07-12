@@ -161,4 +161,28 @@ describe("<LabelList />", () => {
     expect(text).toBeInTheDocument();
     expect(text).toHaveAttribute("offset", "40");
   });
+
+  it("accepts the clockWise prop without forwarding it to the rendered labels", () => {
+    // recharts accepts `clockWise` on LabelList but destructures it away (it is
+    // neither passed to Label nor rendered to the DOM) — parity check.
+    const data = [
+      { x: 100, y: 200 },
+      { x: 120, y: 100 },
+    ];
+    const { container } = render(() => (
+      <BarChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20 }} data={data}>
+        <XAxis dataKey="x" />
+        <YAxis />
+        <Bar dataKey="y" isAnimationActive={false}>
+          <LabelList dataKey="x" clockWise />
+        </Bar>
+      </BarChart>
+    ));
+    flush();
+
+    const labels = container.querySelectorAll(".recharts-label");
+    expect(labels.length).toEqual(data.length);
+    expect(container.querySelector("[clockWise]")).toBeNull();
+    expect(container.querySelector("[clockwise]")).toBeNull();
+  });
 });

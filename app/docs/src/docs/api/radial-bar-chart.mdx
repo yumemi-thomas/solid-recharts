@@ -1,0 +1,59 @@
+export const meta = {
+  slug: "radial-bar-chart",
+  title: "RadialBarChart",
+  group: "charts",
+  description: "Polar chart container for RadialBar series with radial layout.",
+  example: "radial-bar-basic",
+};
+
+# RadialBarChart
+
+`RadialBarChart` is the polar container for [`RadialBar`](/docs/radial-bar) series. It owns the
+chart's layout, scales, and interaction state; children like `PolarAngleAxis`, `PolarRadiusAxis` and `RadialBar` register themselves into it.
+
+```tsx
+import {
+  RadialBarChart,
+  RadialBar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+} from "solid-recharts";
+
+<RadialBarChart data={data} width={500} height={300}>
+  <PolarGrid strokeDasharray="3 3" />
+  <PolarAngleAxis dataKey="name" />
+  <PolarRadiusAxis />
+  <RadialBar dataKey="value" fill="#8884d8" />
+</RadialBarChart>;
+```
+
+<Example slug="radial-bar-basic" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per radial bar         |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `syncId`                    | `string`                       | —                | Sync tooltip across charts sharing the id           |
+| `cx`, `cy`                  | `number \| string`             | `"50%"`          | Center position of the chart                        |
+| `startAngle`, `endAngle`    | `number`                       | `0`, `360`       | Angle range swept by the bars                       |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `RadialBarChart` props are supported; see the
+[recharts RadialBarChart docs](https://recharts.org/en-US/api/RadialBarChart) for the full matrix.
+
+## Notes
+
+- The default `layout` is `"radial"`, rendering bars radiating outward from the center.
+- Each data entry renders as one radial bar sector.
+- Use `PolarAngleAxis` and `PolarRadiusAxis` to label the angle and radius dimensions.
+- Set `background` on the `<RadialBar>` child to render background sectors behind each bar.
+
+## See also
+
+- [RadialBar](/docs/radial-bar) — the series component and its background/label options
+- [PolarAngleAxis](/docs/polar-angle-axis) · [PolarRadiusAxis](/docs/polar-radius-axis)
+- [Tooltip](/docs/tooltip) · [Legend](/docs/legend)

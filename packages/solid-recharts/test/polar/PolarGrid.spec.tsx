@@ -181,6 +181,68 @@ describe("<PolarGrid />", () => {
       expectPolarGridCircles(container, []);
     });
 
+    test("Renders angle lines, polygons and background if fill provided", () => {
+      const { container } = render(() => (
+        <Surface width={500} height={500}>
+          <PolarGrid
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            polarAngles={polarAngles}
+            polarRadius={polarRadius}
+            fill="red"
+          />
+        </Surface>
+      ));
+      flush();
+
+      expectPolarGridLines(container, [
+        { x1: "250", x2: "450", y1: "250", y2: "250" },
+        { x1: "250", x2: "423.20508075688775", y1: "250", y2: "150" },
+        { x1: "250", x2: "350", y1: "250", y2: "76.79491924311228" },
+        { x1: "250", x2: "250", y1: "250", y2: "50" },
+        { x1: "250", x2: "86.16959114220163", y1: "250", y2: "135.2847127297908" },
+        { x1: "250", x2: "50", y1: "250", y2: "249.99999999999997" },
+        { x1: "250", x2: "62.06147584281831", y1: "250", y2: "318.40402866513375" },
+        { x1: "250", x2: "249.99999999999997", y1: "250", y2: "450" },
+        { x1: "250", x2: "350", y1: "250", y2: "423.2050807568877" },
+      ]);
+
+      // Background = the outermost ring (radius = max(polarRadius) = 80), drawn
+      // first with the provided fill, so it sits behind the concentric rings.
+      expectPolarGridPolygons(container, [
+        {
+          cx: 250,
+          cy: 250,
+          d: "M 330,250L 319.2820323027551,210L 290,180.71796769724492L 250,170L 184.46783645688066,204.11388509191633L 170,250L 174.82459033712732,277.3616114660535L 249.99999999999997,330L 290,319.28203230275506Z",
+          fill: "red",
+        },
+        {
+          cx: 250,
+          cy: 250,
+          d: "M 260,250L 258.66025403784437,245L 255,241.3397459621556L 250,240L 241.80847955711008,244.26423563648953L 240,250L 240.60307379214092,253.4202014332567L 250,260L 255,258.66025403784437Z",
+        },
+        {
+          cx: 250,
+          cy: 250,
+          d: "M 270,250L 267.3205080756888,240L 260,232.67949192431124L 250,230L 233.61695911422015,238.5284712729791L 230,250L 231.20614758428184,256.8404028665134L 250,270L 260,267.3205080756888Z",
+        },
+        {
+          cx: 250,
+          cy: 250,
+          d: "M 290,250L 284.6410161513775,230L 270,215.35898384862247L 250,210L 217.23391822844033,227.05694254595815L 210,250L 212.41229516856367,263.6808057330268L 250,290L 270,284.6410161513775Z",
+        },
+        {
+          cx: 250,
+          cy: 250,
+          d: "M 330,250L 319.2820323027551,210L 290,180.71796769724492L 250,170L 184.46783645688066,204.11388509191633L 170,250L 174.82459033712732,277.3616114660535L 249.99999999999997,330L 290,319.28203230275506Z",
+        },
+      ]);
+
+      expectPolarGridCircles(container, []);
+    });
+
     test("Don't render any lines or polygons when polarAngles and polarRadius are not specified", () => {
       const { container } = render(() => (
         <Surface width={500} height={500}>
@@ -790,6 +852,66 @@ describe("<PolarGrid />", () => {
             91.14285714285715, 107.71428571428574,
           ],
         );
+      });
+    });
+  });
+
+  describe("with a user class (recharts: className)", () => {
+    const polarAngles = [0, 90, 180, 270];
+    const polarRadius = [10, 20, 40, 80];
+
+    test("merges the class onto every concentric ring and radial line", () => {
+      const { container } = render(() => (
+        <Surface width={500} height={500}>
+          <PolarGrid
+            class="my-grid"
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            polarAngles={polarAngles}
+            polarRadius={polarRadius}
+          />
+        </Surface>
+      ));
+      flush();
+
+      const polygons = container.querySelectorAll(".recharts-polar-grid-concentric-polygon");
+      expect(polygons).toHaveLength(polarRadius.length);
+      polygons.forEach((polygon) => {
+        expect(polygon).toHaveClass("my-grid");
+      });
+
+      // The radial lines carry the user class as their only class (recharts
+      // spreads the svg props - incl. className - verbatim onto each line).
+      const lines = container.querySelectorAll(".recharts-polar-grid-angle line");
+      expect(lines).toHaveLength(polarAngles.length);
+      lines.forEach((line) => {
+        expect(line).toHaveClass("my-grid");
+      });
+    });
+
+    test("merges the class onto concentric circles when gridType is circle", () => {
+      const { container } = render(() => (
+        <Surface width={500} height={500}>
+          <PolarGrid
+            class="my-grid"
+            gridType="circle"
+            cx={250}
+            cy={250}
+            innerRadius={0}
+            outerRadius={200}
+            polarAngles={polarAngles}
+            polarRadius={polarRadius}
+          />
+        </Surface>
+      ));
+      flush();
+
+      const circles = container.querySelectorAll(".recharts-polar-grid-concentric-circle");
+      expect(circles).toHaveLength(polarRadius.length);
+      circles.forEach((circle) => {
+        expect(circle).toHaveClass("my-grid");
       });
     });
   });

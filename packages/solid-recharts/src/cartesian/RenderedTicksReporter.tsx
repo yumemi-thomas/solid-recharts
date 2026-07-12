@@ -5,11 +5,12 @@
 // useXAxisTicks/useYAxisTicks hooks (and the tick-snap inverse scale) can read
 // them. Solid deviation: useEffect add + cleanup remove → createEffect + onCleanup
 // (the same effect-dispatch idiom the other Report* components use).
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppStore } from "../state/hooks";
 import type { AxisId } from "../state/cartesianAxisSlice";
 import type { CartesianTickItem, TickItem } from "../util/types";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 
 export function RenderedTicksReporter(props: {
   axisType: "xAxis" | "yAxis";
@@ -37,7 +38,7 @@ export function RenderedTicksReporter(props: {
     },
   );
 
-  onCleanup(() => {
+  unregisterOnCleanup(() => {
     if (prev != null) {
       store?.actions.renderedTicks.removeRenderedTicks(prev);
       prev = null;

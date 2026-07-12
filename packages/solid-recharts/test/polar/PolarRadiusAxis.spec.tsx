@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
 import { exampleRadarData, PageData } from "../_data";
 import { PolarRadiusAxis, Radar, RadarChart, RadialBar, RadialBarChart } from "../../src";
+import type { PolarRadiusTickContentProps } from "../../src/polar/PolarRadiusAxis";
+import type { LabelContentType } from "../../src/component/Label";
 import { assertNotNull } from "../helper/assertNotNull";
 import { render } from "../helper/render";
 import {
@@ -932,6 +934,58 @@ describe("<PolarRadiusAxis />", () => {
       expect(formatter).toHaveBeenNthCalledWith(6, "iPhone 6", 5);
       expect(formatter).toHaveBeenNthCalledWith(7, "iPhone 6s", 6);
       expect(formatter).toHaveBeenNthCalledWith(8, "iPhone 5se", 7);
+    });
+  });
+
+  describe("function-form tick", () => {
+    test("Renders ticks when tick is set to be a function", () => {
+      const renderTick = (props: PolarRadiusTickContentProps) => (
+        <text x={props.x} y={props.y} class="customized-tick">
+          {String(props.payload.value)}
+        </text>
+      );
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar dataKey="value" />
+          <PolarRadiusAxis
+            orientation="left"
+            cx={250}
+            cy={250}
+            label="test"
+            tick={renderTick}
+            dataKey="value"
+          />
+        </RadarChart>
+      ));
+
+      expect(container.querySelectorAll(".customized-tick")).toHaveLength(5);
+      expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
+    });
+  });
+
+  // Element-form label is PERMANENT-N/A (Solid has no cloneElement); the function
+  // form is the supported custom-content path (recharts renders it via <Label content>).
+  describe("function-form label", () => {
+    test("Renders label when label is set to be a function", () => {
+      const renderLabel: LabelContentType = (labelProps) => (
+        <text x={labelProps.x} y={labelProps.y} class="customized-label">
+          any
+        </text>
+      );
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar dataKey="value" />
+          <PolarRadiusAxis
+            orientation="left"
+            cx={250}
+            cy={250}
+            label={renderLabel}
+            dataKey="value"
+          />
+        </RadarChart>
+      ));
+
+      expect(container.querySelectorAll(".customized-label")).toHaveLength(1);
     });
   });
 });

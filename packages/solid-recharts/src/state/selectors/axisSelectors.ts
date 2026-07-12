@@ -19,7 +19,7 @@
 // PORTED: reference elements (selectReferenceElementsDomain + the dots/lines/areas
 // ByAxis selectors + combine*Domain) extend the numerical domain for
 // ifOverflow='extendDomain' elements (referenceElementsSlice is wired in).
-import range from "es-toolkit/compat/range";
+import { range } from "../../util/collectionUtils";
 import { selectChartLayout } from "../../context/chartLayoutContext";
 import {
   getDomainOfStackGroups,
@@ -39,6 +39,7 @@ import {
 import {
   AxisDomain,
   AxisTick,
+  AxisType,
   CartesianTickItem,
   CategoricalDomain,
   CategoricalDomainItem,
@@ -1055,21 +1056,82 @@ export const combineNumericalDomain = (
   referenceElementsDomain: NumberDomain | undefined,
   layout: LayoutType,
   axisType: AllAxisTypes,
+  numericTicksDomain?: NumberDomain,
 ): NumberDomain | undefined => {
   if (domainFromUserPreference != null) {
     return domainFromUserPreference;
   }
 
+  // Polar branches verified against released recharts: stacked RadialBars extend
+  // the numeric axis (angle axis in radial layout, radius axis in centric layout)
+  // to the stack total — e.g. shadcn's radial-stacked fills [0, total] exactly.
   const shouldIncludeDomainOfStackGroups =
     (layout === "vertical" && axisType === "xAxis") ||
-    (layout === "horizontal" && axisType === "yAxis");
+    (layout === "horizontal" && axisType === "yAxis") ||
+    (layout === "radial" && axisType === "angleAxis") ||
+    (layout === "centric" && axisType === "radiusAxis");
 
   const mergedDomains = shouldIncludeDomainOfStackGroups
     ? mergeDomains(domainOfStackGroups, referenceElementsDomain, dataAndErrorBarsDomain)
     : mergeDomains(referenceElementsDomain, dataAndErrorBarsDomain);
 
-  return parseNumericalUserDomain(domainDefinition, mergedDomains, axisSettings.allowDataOverflow);
+  const parsedDomain = parseNumericalUserDomain(
+    domainDefinition,
+    mergedDomains,
+    axisSettings.allowDataOverflow,
+  );
+  if (parsedDomain != null) {
+    return parsedDomain;
+  }
+
+  /*
+   * https://github.com/recharts/recharts/issues/7362
+   * The user-provided domain could not be resolved without data - it's a function
+   * bound or one of 'auto'/'dataMin'/'dataMax' - and there is no data domain to
+   * resolve it from: empty or all-null data, and no domain-extending reference
+   * elements (only reference dots/lines/areas with ifOverflow="extendDomain"
+   * contribute to mergedDomains). If the
+   * axis opted into data overflow and supplied an explicit numeric `ticks` array,
+   * fall back to the ticks' [min, max] extent so the explicit tick ladder still
+   * renders, mirroring what a literal numeric domain already does.
+   */
+  if (axisSettings.allowDataOverflow && mergedDomains == null && numericTicksDomain != null) {
+    return numericTicksDomain;
+  }
+
+  return parsedDomain;
 };
+
+/**
+ * https://github.com/recharts/recharts/issues/7362
+ * Derives the [min, max] extent of an axis's explicit numeric `ticks`. Used by
+ * {@link combineNumericalDomain} as a last-resort domain when a non-literal domain
+ * cannot be resolved without data. Returns undefined for non-number axes, or when
+ * no numeric ticks were supplied.
+ */
+export const combineNumericTicksDomain = (
+  axisSettings: AllAxisSettings,
+): NumberDomain | undefined => {
+  if (
+    axisSettings == null ||
+    axisSettings.type !== "number" ||
+    !("ticks" in axisSettings) ||
+    axisSettings.ticks == null
+  ) {
+    return undefined;
+  }
+  const numericTicks = onlyAllowNumbers(axisSettings.ticks);
+  if (numericTicks.length === 0) {
+    return undefined;
+  }
+  return [Math.min(...numericTicks), Math.max(...numericTicks)];
+};
+
+export const selectNumericTicksDomain = (
+  state: RechartsRootState,
+  axisType: AllAxisTypes,
+  axisId: AxisId,
+): NumberDomain | undefined => combineNumericTicksDomain(selectBaseAxis(state, axisType, axisId));
 
 export const selectNumericalDomain = (
   state: RechartsRootState,
@@ -1091,6 +1153,7 @@ export const selectNumericalDomain = (
     selectReferenceElementsDomain(state, axisType, axisId),
     selectChartLayout(state),
     axisType,
+    selectNumericTicksDomain(state, axisType, axisId),
   );
 
 /**
@@ -2034,6 +2097,72 @@ export const selectTicksOfAxis = (
     selectCategoricalDomain(state, axisType, axisId, isPanorama),
     pickAxisType(state, axisType),
   );
+
+/**
+ * The bundle of axis props that CartesianGrid passes to its coordinate
+ * generators (and to the custom horizontal/vertical render-prop functions).
+ * Ported from recharts' AxisPropsForCartesianGridTicksGeneration.
+ */
+export type AxisPropsForCartesianGridTicksGeneration = {
+  angle: number;
+  interval: CartesianAxisSettings["interval"];
+  minTickGap: number;
+  orientation: XAxisOrientation | YAxisOrientation;
+  tick: CartesianAxisSettings["tick"];
+  tickCount: number | undefined;
+  tickFormatter: CartesianAxisSettings["tickFormatter"];
+  ticks: ReadonlyArray<AxisTick> | undefined;
+  type: "number" | "category";
+  unit: string | undefined;
+  axisType: AxisType;
+  categoricalDomain: ReadonlyArray<unknown> | undefined;
+  duplicateDomain: ReadonlyArray<unknown> | undefined;
+  isCategorical: boolean;
+  niceTicks: ReadonlyArray<number> | undefined;
+  range: AxisRange | undefined;
+  realScaleType: string | undefined;
+  scale: RechartsScale | undefined;
+};
+
+/**
+ * Builds the AxisPropsForCartesianGridTicksGeneration payload from the store —
+ * the data CartesianGrid feeds to its default (and custom) coordinate
+ * generators. Ported from recharts selectAxisPropsNeededForCartesianGridTicksGenerator.
+ */
+export const selectAxisPropsNeededForCartesianGridTicksGenerator = (
+  state: RechartsRootState,
+  axisType: "xAxis" | "yAxis",
+  axisId: AxisId,
+  isPanorama: boolean,
+): AxisPropsForCartesianGridTicksGeneration | undefined => {
+  const cartesianAxis: XAxisSettings | YAxisSettings =
+    axisType === "xAxis" ? selectXAxisSettings(state, axisId) : selectYAxisSettings(state, axisId);
+  if (cartesianAxis == null) {
+    return undefined;
+  }
+  const layout = selectChartLayout(state);
+  const isCategorical = isCategoricalAxis(layout, axisType);
+  return {
+    angle: cartesianAxis.angle,
+    interval: cartesianAxis.interval,
+    minTickGap: cartesianAxis.minTickGap,
+    orientation: cartesianAxis.orientation,
+    tick: cartesianAxis.tick,
+    tickCount: cartesianAxis.tickCount,
+    tickFormatter: cartesianAxis.tickFormatter,
+    ticks: cartesianAxis.ticks,
+    type: cartesianAxis.type,
+    unit: cartesianAxis.unit,
+    axisType,
+    categoricalDomain: selectCategoricalDomain(state, axisType, axisId, isPanorama),
+    duplicateDomain: selectDuplicateDomain(state, axisType, axisId, isPanorama),
+    isCategorical,
+    niceTicks: selectNiceTicks(state, axisType, axisId, isPanorama),
+    range: selectAxisRange(state, axisType, axisId, isPanorama),
+    realScaleType: selectRealScaleType(state, axisType, axisId),
+    scale: selectAxisScale(state, axisType, axisId, isPanorama),
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Z axis scale (Scatter point size). The z scale maps the z data value to a

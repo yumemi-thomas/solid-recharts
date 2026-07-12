@@ -5,7 +5,7 @@
  * @author xile611
  * @date 2015-09-17
  */
-import Decimal from "decimal.js-light";
+import Decimal from "./DecimalLite";
 
 /**
  * Get the digit count of a number.

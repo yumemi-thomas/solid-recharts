@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Line, LineChart, ReferenceArea } from "../../src";
+import { Line, LineChart, ReferenceArea, getRelativeCoordinate } from "../../src";
 import { render } from "../helper/render";
 
 // Ported from recharts 3.8.1 test/cartesian/ReferenceArea.typed.spec.tsx.
@@ -44,5 +44,31 @@ describe("ReferenceArea with strong typing", () => {
         </LineChart>
       ));
     });
+  });
+});
+
+describe("ReferenceArea event handlers", () => {
+  // Handlers spread onto the rendered <rect> are Solid single-arg DOM handlers
+  // (repo convention; see ReferenceArea.spec "events"). The event's currentTarget
+  // is the SVGRectElement, satisfying SVGMousePointer/SVGTouchPointer, so it
+  // feeds getRelativeCoordinate directly — same call shape as the reference.
+  it("should allow calling getRelativeCoordinate with the type provided by Recharts event handler", () => {
+    render(() => (
+      <LineChart width={100} height={100}>
+        <ReferenceArea
+          onClick={(e) => getRelativeCoordinate(e)}
+          onMouseDown={(e) => getRelativeCoordinate(e)}
+          onMouseUp={(e) => getRelativeCoordinate(e)}
+          onMouseMove={(e) => getRelativeCoordinate(e)}
+          onMouseLeave={(e) => getRelativeCoordinate(e)}
+          onMouseOver={(e) => getRelativeCoordinate(e)}
+          onMouseOut={(e) => getRelativeCoordinate(e)}
+          onMouseEnter={(e) => getRelativeCoordinate(e)}
+          onTouchStart={(e) => getRelativeCoordinate(e)}
+          onTouchMove={(e) => getRelativeCoordinate(e)}
+          onTouchEnd={(e) => getRelativeCoordinate(e)}
+        />
+      </LineChart>
+    ));
   });
 });

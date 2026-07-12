@@ -1,6 +1,7 @@
 // Ported from recharts 3.8.1 src/container/Layer.tsx (commit 7a23854).
 // Solid deviations: `className` → `class` (Omit the wide SVG `class`); `clsx` →
 // `class={[...]}`; `forwardRef` → `ref` prop; no destructuring (omit + props).
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
@@ -13,7 +14,10 @@ interface LayerOwnProps {
 
 // Omit class/children/ref from the SVG attrs so LayerOwnProps owns them cleanly
 // (avoids a `children`/`ref` intersection that breaks `{...spread}` forwarding).
-export type LayerProps = Omit<JSX.GSVGAttributes<SVGGElement>, "class" | "children" | "ref"> &
+export type LayerProps = Omit<
+  CamelSvgProps<JSX.GSVGAttributes<SVGGElement>>,
+  "class" | "children" | "ref"
+> &
   LayerOwnProps;
 
 /**

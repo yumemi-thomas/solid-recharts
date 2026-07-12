@@ -6,10 +6,12 @@
 // registers via an effect and points compute from the store.
 import { createEffect, createSignal, flush } from "solid-js";
 import { Show } from "@solidjs/web";
+import type { JSX } from "@solidjs/web";
 import { describe, expect, it, vi } from "vitest";
 import { Radar, RadarChart } from "../../src";
 import type { RadarProps } from "../../src";
-import { render } from "../helper/render";
+import type { RadarShapeProps } from "../../src/polar/Radar";
+import { fireEvent, render, screen } from "../helper/render";
 import { useAppSelector } from "../../src/state/hooks";
 import { selectPolarItemsSettings } from "../../src/state/selectors/polarSelectors";
 import { exampleRadarData } from "../_data";
@@ -52,6 +54,92 @@ describe("<Radar />", () => {
         unit: undefined,
       });
     });
+
+    it("should render a polygon", () => {
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar dataKey="value" isAnimationActive={false} />
+        </RadarChart>
+      ));
+      flush();
+
+      const polygon = container.querySelector(".recharts-radar-polygon path");
+      expect(polygon?.getAttribute("d")).toBe(GOLDEN_RADAR_PATH);
+      expect(polygon?.getAttribute("fill")).toBeNull();
+      expect(polygon?.getAttribute("fill-opacity")).toBeNull();
+    });
+  });
+
+  // Element/object-form shape/label/dot need React.cloneElement and are
+  // PERMANENT-N/A; the FUNCTION form is portable and ported below.
+  it("Render customized shape when shape is set to be a function", () => {
+    const CustomizedShape = (props: RadarShapeProps): JSX.Element => {
+      const d = props.points.reduce(
+        (result, entry, index) =>
+          result + (index ? `L${entry.x},${entry.y}` : `M${entry.x},${entry.y}`),
+        "",
+      );
+      return <path d={d} data-testid="customized-shape" />;
+    };
+
+    render(() => (
+      <RadarChart width={500} height={500} data={exampleRadarData}>
+        <Radar dataKey="value" isAnimationActive={false} shape={CustomizedShape} />
+      </RadarChart>
+    ));
+    flush();
+
+    expect(screen.getAllByTestId("customized-shape")).toHaveLength(1);
+  });
+
+  it("Render customized label when label is set to be a function", () => {
+    const CustomizedLabel = (): JSX.Element => <text data-testid="customized-label">test</text>;
+
+    render(() => (
+      <RadarChart width={500} height={500} data={exampleRadarData}>
+        <Radar dataKey="value" isAnimationActive={false} label={CustomizedLabel} />
+      </RadarChart>
+    ));
+    flush();
+
+    expect(screen.getAllByTestId("customized-label")).toHaveLength(exampleRadarData.length);
+  });
+
+  it("Render customized dot when dot is set to be a function", () => {
+    const CustomizedDot = (props: { cx?: number; cy?: number }): JSX.Element => (
+      <circle cx={props.cx} cy={props.cy} r={10} data-testid="customized-dot" />
+    );
+
+    render(() => (
+      <RadarChart width={500} height={500} data={exampleRadarData}>
+        <Radar dataKey="value" isAnimationActive={false} dot={CustomizedDot} />
+      </RadarChart>
+    ));
+    flush();
+
+    expect(screen.getAllByTestId("customized-dot")).toHaveLength(exampleRadarData.length);
+  });
+
+  // The reference titles this "react element" but the value is the FUNCTION form
+  // (`dot={props => <.../>}`), which is portable; the true react-element form
+  // (`dot={<Comp />}`) needs React.cloneElement and stays PERMANENT-N/A.
+  it("Render customized dot when dot is set via an inline render function", () => {
+    const CustomizedDot = (props: { cx?: number; cy?: number }): JSX.Element => (
+      <circle cx={props.cx} cy={props.cy} r={10} data-testid="customized-dot" />
+    );
+
+    render(() => (
+      <RadarChart width={500} height={500} data={exampleRadarData}>
+        <Radar
+          dataKey="value"
+          isAnimationActive={false}
+          dot={(props) => <CustomizedDot {...props} />}
+        />
+      </RadarChart>
+    ));
+    flush();
+
+    expect(screen.getAllByTestId("customized-dot")).toHaveLength(exampleRadarData.length);
   });
 
   it("should render Radar in a custom component", () => {
@@ -81,6 +169,55 @@ describe("<Radar />", () => {
     flush();
 
     expect(container.querySelectorAll(".recharts-radar-polygon")).toHaveLength(0);
+  });
+
+  describe("events", () => {
+    // PERMANENT-N/A: the onMouseEnter/onMouseLeave cases assert the full
+    // InternalRadarProps payload via recharts' 2-arg props-first handler signature
+    // (the port forwards single-arg event-only handlers onto the polygon path), and
+    // every reference case is render-count coupled. The single-arg event-only
+    // assertions below ARE portable.
+    it("should fire onClick event when clicking on the radar polygon", () => {
+      const handleClick = vi.fn();
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar dataKey="value" isAnimationActive={false} onClick={handleClick} />
+        </RadarChart>
+      ));
+      flush();
+
+      const polygon = container.querySelector(".recharts-polygon");
+      expect(polygon).not.toBeNull();
+      fireEvent.click(polygon!);
+      expect(handleClick).toHaveBeenCalled();
+      expectLastCalledWith(handleClick, expect.objectContaining({ type: "click" }));
+    });
+
+    it("should fire onTouchMove and onTouchEnd events when touching the radar polygon", () => {
+      const handleTouchMove = vi.fn();
+      const handleTouchEnd = vi.fn();
+      const { container } = render(() => (
+        <RadarChart width={500} height={500} data={exampleRadarData}>
+          <Radar
+            dataKey="value"
+            isAnimationActive={false}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          />
+        </RadarChart>
+      ));
+      flush();
+
+      const polygon = container.querySelector(".recharts-polygon");
+      expect(polygon).not.toBeNull();
+      fireEvent.touchMove(polygon!, { touches: [{ clientX: 200, clientY: 200 }] });
+      expect(handleTouchMove).toHaveBeenCalled();
+      expectLastCalledWith(handleTouchMove, expect.objectContaining({ type: "touchmove" }));
+
+      fireEvent.touchEnd(polygon!);
+      expect(handleTouchEnd).toHaveBeenCalled();
+      expectLastCalledWith(handleTouchEnd, expect.objectContaining({ type: "touchend" }));
+    });
   });
 
   describe("state integration", () => {

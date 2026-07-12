@@ -1,0 +1,67 @@
+export const meta = {
+  slug: "composed-chart",
+  title: "ComposedChart",
+  group: "charts",
+  description: "Cartesian chart container for multiple series types: Line, Area, and Bar.",
+  example: "composed-basic",
+};
+
+# ComposedChart
+
+`ComposedChart` is the cartesian container for mixed [`Area`](/docs/area), [`Bar`](/docs/bar),
+and [`Line`](/docs/line) series in a single chart. It owns the layout, scales, and
+interaction state; children like `XAxis`, `CartesianGrid` and `Tooltip` register themselves
+into it.
+
+```tsx
+import {
+  ComposedChart,
+  Area,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "solid-recharts";
+
+<ComposedChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Bar dataKey="amt" fill="#8884d8" />
+  <Area type="monotone" dataKey="uv" stroke="#82ca9d" fill="#82ca9d" />
+  <Line type="monotone" dataKey="pv" stroke="#ffc658" />
+</ComposedChart>;
+```
+
+<Example slug="composed-basic" />
+
+## Props
+
+| Prop                        | Type                           | Default          | Description                                         |
+| --------------------------- | ------------------------------ | ---------------- | --------------------------------------------------- |
+| `data`                      | `object[]`                     | —                | Source data array, one entry per x position         |
+| `width`, `height`           | `number`                       | —                | Fixed size (omit when inside `ResponsiveContainer`) |
+| `layout`                    | `"horizontal" \| "vertical"`   | `"horizontal"`   | Direction of the independent axis                   |
+| `margin`                    | `{ top, right, bottom, left }` | `{ 5, 5, 5, 5 }` | Space around the plot area                          |
+| `syncId`                    | `string`                       | —                | Sync tooltip/brush across charts sharing the id     |
+| `onClick`, `onMouseMove`, … | `function`                     | —                | Chart-level mouse events with the active payload    |
+
+All other recharts `ComposedChart` props are supported; see the
+[recharts ComposedChart docs](https://recharts.org/en-US/api/ComposedChart) for the full matrix.
+
+## Notes
+
+- Add any combination of `<Bar>`, `<Area>`, and `<Line>` children in any order.
+- All series share the same x and y axes unless you assign custom `xAxisId`/`yAxisId`.
+- Set `stackId` on two or more `Bar` or `Area` children to stack them.
+- Set `syncId` on two charts to mirror tooltips and brushes between them.
+
+## See also
+
+- [Area](/docs/area) — fill series with dots and labels
+- [Bar](/docs/bar) — column series with shapes and stacking
+- [Line](/docs/line) — line series with curves and customization
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis)

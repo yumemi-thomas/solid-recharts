@@ -326,7 +326,15 @@ describe("axis domain hooks", () => {
     });
   });
 
-  describe.skip("with data filtered by a brush, when used inside the brush panorama", () => {
+  // DEEP-DEFERRED: recharts' Panorama uses React.cloneElement(innerChart, { data,
+  // width, height, compact: true }) to inject the FULL dataset + dimensions into
+  // the nested <LineChart> passed as Brush children, so the inner chart's own
+  // store reports the full domain. Solid has no cloneElement (PERMANENT-N/A), and
+  // a nested <LineChart> spins up its own empty store (no data/dimensions
+  // propagated through JSX children) → inner domain is undefined, not the full
+  // range. Reproducing this needs prop-injection into an opaque child element,
+  // which the JSX-children model can't express without cloneElement.
+  describe("with data filtered by a brush, when used inside the brush panorama", () => {
     const renderTestCase = createSelectorTestCase((props) => (
       <LineChart width={500} height={300} data={PageData}>
         <Line dataKey="uv" />

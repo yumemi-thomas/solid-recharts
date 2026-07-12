@@ -108,7 +108,7 @@ export function Dots(props: DotsProps): JSX.Element {
 
   return (
     <Show when={shouldRenderDots(props.points, props.dot)}>
-      <Layer class={props.class} clip-path={layerClip()}>
+      <Layer class={props.class} clipPath={layerClip()}>
         <For each={props.points}>
           {(entry, i) => (
             <DotRenderer

@@ -1,0 +1,59 @@
+export const meta = {
+  slug: "bar",
+  title: "Bar",
+  group: "cartesian",
+  description:
+    "A bar series component for cartesian charts with radius, stacking, and custom shapes.",
+  example: "bar-basic",
+};
+
+# Bar
+
+`Bar` is a graphical series component that renders bars on a cartesian chart (typically a `BarChart`). Bars can be stacked, sized, styled, and rendered with custom shapes.
+
+```tsx
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "solid-recharts";
+
+<BarChart width={500} height={300} data={data}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Bar dataKey="value" fill="#8884d8" />
+</BarChart>;
+```
+
+<Example slug="bar-basic" />
+
+## Props
+
+| Prop                | Type                         | Default     | Description                                     |
+| ------------------- | ---------------------------- | ----------- | ----------------------------------------------- |
+| `dataKey`           | `string \| number \| func`   | —           | Data key or accessor for the bar's values       |
+| `fill`              | `string`                     | `"#3182bd"` | Bar fill color                                  |
+| `fillOpacity`       | `number \| string`           | `1`         | Fill transparency (0–1)                         |
+| `stroke`            | `string`                     | —           | Bar outline color                               |
+| `strokeWidth`       | `number`                     | `0`         | Outline thickness                               |
+| `stackId`           | `string`                     | —           | Stack bars with others sharing this id          |
+| `barSize`           | `number`                     | —           | Fixed bar width (pixels); auto-sized if omitted |
+| `radius`            | `number \| [tl, tr, br, bl]` | `0`         | Corner radius of bars                           |
+| `minPointSize`      | `number \| "auto"`           | `0`         | Minimum bar height (filters tiny bars)          |
+| `background`        | `boolean \| object`          | `false`     | Render full-span background behind each bar     |
+| `label`             | `boolean \| object`          | `false`     | Render labels on bars                           |
+| `isAnimationActive` | `boolean \| "auto"`          | `"auto"`    | Enable enter/update animation                   |
+
+See the [recharts Bar docs](https://recharts.org/en-US/api/Bar) for the full prop matrix.
+
+## Notes
+
+- **Stacking**: pass the same `stackId` to multiple `Bar` components to stack them (bars with different stack ids group side-by-side).
+- **Radius**: pass a single number for uniform corners, or `[topLeft, topRight, bottomRight, bottomLeft]` for per-corner control.
+- **Custom shapes**: pass a function as `shape` to render custom bar geometry; it receives the bar's rectangle + payload.
+- **Backgrounds**: set `background={true}` or `background={{}}` to render a full-height background behind each bar for a grouped effect.
+
+## See also
+
+- [BarChart](/docs/bar-chart) — the chart container
+- [Area](/docs/area) — alternative stacking with areas
+- [Cell](/docs/cell) — per-bar fill/stroke overrides
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) — axes

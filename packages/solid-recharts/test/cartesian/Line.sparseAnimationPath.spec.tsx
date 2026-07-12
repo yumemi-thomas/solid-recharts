@@ -4,18 +4,17 @@
 // path `d` keeps a line-to ("L") command — both mid-animation and after it
 // completes. NaN/undefined points must not break the line-to.
 //
-// Harness adaptation: the Solid Line draws via stroke-dasharray with the curve `d`
-// UNCHANGED by animation (see Line.animation.spec.tsx), so the `L` command is
-// present at every progress. We drive the wired animation with the established
-// AnimationManagerContext + MockProgressAnimationManager pattern (the Solid
-// createSelectorTestCase intentionally wires no animation manager). getTotalLength
-// is mocked on SVGElement.prototype (jsdom lacks it).
+// Harness adaptation: the Solid Line draws via stroke-dasharray (LineDrawShape)
+// over points morphed by AnimatedItems; the `L` command is present at every
+// progress. We drive the wired v3.9 animation with the AnimationControllerProvider
+// + MockControllerAnimationManager pattern (the new engine). getTotalLength is
+// mocked on SVGElement.prototype (jsdom lacks it).
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { flush } from "solid-js";
 import { render } from "../helper/render";
 import { ComposedChart, Line, XAxis } from "../../src";
-import { AnimationManagerContext } from "../../src/animation/useAnimationManager";
-import { MockProgressAnimationManager } from "../animation/MockProgressAnimationManager";
+import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
+import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";
 import { assertNotNull } from "../helper/assertNotNull";
 
 const data = [
@@ -60,12 +59,12 @@ describe("Line sparse animation path commands", () => {
   } {
     const animationManager = new MockProgressAnimationManager("line-sparse");
     const { container } = render(() => (
-      <AnimationManagerContext value={() => animationManager}>
+      <AnimationControllerProvider value={animationManager.factory}>
         <ComposedChart data={data} width={100} height={100}>
           <XAxis dataKey="index" type="number" />
           <Line dataKey="redLine" stroke="red" />
         </ComposedChart>
-      </AnimationManagerContext>
+      </AnimationControllerProvider>
     ));
     flush();
     return { container, animationManager };

@@ -1,0 +1,67 @@
+export const meta = {
+  slug: "radar",
+  title: "Radar",
+  group: "polar",
+  description: "A radar series connecting data points across a polar grid.",
+  example: "radar-basic",
+};
+
+# Radar
+
+`Radar` plots data points on a polar grid, connecting them with a polygon. Each point corresponds to a category on the angle axis and a value on the radius axis. Use inside a `RadarChart` with `PolarAngleAxis` and `PolarRadiusAxis`.
+
+```tsx
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+} from "solid-recharts";
+
+<RadarChart data={data}>
+  <PolarGrid />
+  <PolarAngleAxis dataKey="category" />
+  <PolarRadiusAxis />
+  <Radar dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+</RadarChart>;
+```
+
+<Example slug="radar-basic" />
+
+## Props
+
+| Prop                | Type                            | Default  | Description                                                               |
+| ------------------- | ------------------------------- | -------- | ------------------------------------------------------------------------- |
+| `dataKey`           | `string \| function`            | —        | Key or accessor to extract values for the radar series                    |
+| `name`              | `string \| number`              | —        | Series name (shown in legend and tooltip)                                 |
+| `fill`              | `string`                        | —        | Fill color of the polygon area                                            |
+| `fillOpacity`       | `number \| string`              | `0.6`    | Opacity of the fill (0–1)                                                 |
+| `stroke`            | `string`                        | —        | Outline color of the polygon                                              |
+| `strokeWidth`       | `number \| string`              | `2`      | Thickness of the outline                                                  |
+| `dot`               | `boolean \| object \| function` | `false`  | Render points at each vertex; true, object, or render function            |
+| `activeDot`         | `boolean \| object \| function` | `true`   | Point style on hover (true uses default, object merges, function renders) |
+| `label`             | `boolean \| object \| function` | `false`  | Render labels at each point                                               |
+| `isAnimationActive` | `boolean \| "auto"`             | `"auto"` | Animate polygon on mount/data change                                      |
+| `animationDuration` | `number`                        | `1500`   | Animation duration in milliseconds                                        |
+| `animationEasing`   | `string`                        | `"ease"` | Easing function name (e.g. `"ease"`, `"linear"`)                          |
+
+All other recharts `Radar` props are supported; see the
+[recharts Radar docs](https://recharts.org/en-US/api/Radar) for the full matrix.
+
+## Notes
+
+- `dataKey` is required and should reference a numeric field in your data.
+- `fill` without `fillOpacity` renders opaque; set opacity for transparency.
+- The polygon animates from the chart center on first render.
+- Use `dot` and `activeDot` to style the vertex points (similar to Line series).
+- `label` can be a function: `label={(entry) => entry.value}`.
+
+## See also
+
+- [RadarChart](/docs/radar-chart) — the container
+- [PolarAngleAxis](/docs/polar-angle-axis) · [PolarRadiusAxis](/docs/polar-radius-axis) — axes
+- [PolarGrid](/docs/polar-grid) — grid lines
+- [Tooltip](/docs/tooltip) — hover details
+- [Legend](/docs/legend) · [LabelList](/docs/label-list) — labels

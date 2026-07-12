@@ -6,9 +6,10 @@
 //
 // Solid deviations: `resolveDefaultProps`→`merge`; `clsx`→array/joined; per-line
 // and per-ring rendering is a child component so prop reads stay in a tracking
-// scope (not a <For> callback body). DEFERRED (documented): ZIndexLayer (plain
-// <g>), background fill rect (fill defaults to "none"), generic SVG-prop
-// passthrough beyond stroke/strokeWidth/strokeDasharray.
+// scope (not a <For> callback body). zIndex relayering IS wired (<ZIndexLayer>,
+// default DefaultZIndexes.grid). DEFERRED (documented): background fill rect (fill
+// defaults to "none"), generic SVG-prop passthrough beyond
+// stroke/strokeWidth/strokeDasharray.
 import { For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector } from "../state/hooks";
@@ -16,6 +17,8 @@ import { AxisId } from "../state/cartesianAxisSlice";
 import { selectPolarGridAngles, selectPolarGridRadii } from "../state/selectors/polarGridSelectors";
 import { selectPolarViewBox } from "../state/selectors/polarAxisSelectors";
 import { polarToCartesian } from "../util/PolarUtils";
+import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 
 export interface PolarGridProps {
   cx?: number;
@@ -28,9 +31,22 @@ export interface PolarGridProps {
   radialLines?: boolean;
   angleAxisId?: AxisId;
   radiusAxisId?: AxisId;
+  /**
+   * Extra CSS class(es) for the grid elements (recharts: `className`). Like
+   * recharts, it lands on every concentric ring (joined with the
+   * `recharts-polar-grid-concentric-*` class) and on every radial line, so
+   * selectors like `first:fill-muted` can target individual rings.
+   */
+  class?: string;
   stroke?: string;
   strokeWidth?: number | string;
   strokeDasharray?: string | number;
+  /** Background fill for the space between grid lines (the outer ring). @defaultValue "none" */
+  fill?: string;
+  /** Opacity of the background fill. */
+  fillOpacity?: number | string;
+  /** Stacking order within the chart's z-index system. @defaultValue DefaultZIndexes.grid */
+  zIndex?: number;
 }
 
 export const polarGridDefaultProps = {
@@ -64,6 +80,8 @@ interface GridCommon {
   strokeWidth: number | string | undefined;
   // stroke-dasharray accepts only string in Solid JSX; coerced before passing.
   strokeDasharray: string | undefined;
+  /** User class merged onto each grid element (recharts: `className`). */
+  class?: string;
 }
 
 // recharts spreads the center coords onto the concentric <path> via
@@ -80,6 +98,8 @@ const ConcentricRing = (
     radius: number;
     gridType: "polygon" | "circle";
     polarAngles: ReadonlyArray<number>;
+    fill?: string;
+    fillOpacity?: number | string;
   },
 ): JSX.Element => (
   <Show
@@ -87,8 +107,9 @@ const ConcentricRing = (
     fallback={
       <path
         {...concentricPolygonAttrs(props.cx, props.cy)}
-        class="recharts-polar-grid-concentric-polygon"
-        fill="none"
+        class={["recharts-polar-grid-concentric-polygon", props.class]}
+        fill={props.fill ?? "none"}
+        fill-opacity={props.fillOpacity}
         stroke={props.stroke}
         stroke-width={props.strokeWidth}
         stroke-dasharray={props.strokeDasharray}
@@ -97,8 +118,9 @@ const ConcentricRing = (
     }
   >
     <circle
-      class="recharts-polar-grid-concentric-circle"
-      fill="none"
+      class={["recharts-polar-grid-concentric-circle", props.class]}
+      fill={props.fill ?? "none"}
+      fill-opacity={props.fillOpacity}
       stroke={props.stroke}
       stroke-width={props.strokeWidth}
       stroke-dasharray={props.strokeDasharray}
@@ -117,7 +139,10 @@ const RadialLine = (
   const end = (): { x: number; y: number } =>
     polarToCartesian(props.cx, props.cy, props.outerRadius, props.angle);
   return (
+    // recharts spreads the axis svg props (incl. `className`) verbatim onto each
+    // radial line, so the user class is the line's only class.
     <line
+      class={props.class}
       stroke={props.stroke}
       stroke-width={props.strokeWidth}
       stroke-dasharray={props.strokeDasharray}
@@ -181,33 +206,35 @@ export const PolarGrid = (props: PolarGridProps): JSX.Element => {
   return (
     <Show when={geom()}>
       {(g) => (
-        <g class="recharts-polar-grid">
-          <g class="recharts-polar-grid-concentric">
-            <For each={g().radii}>
-              {(radius) => (
+        <ZIndexLayer zIndex={merged.zIndex ?? DefaultZIndexes.grid}>
+          <g class="recharts-polar-grid">
+            <g class="recharts-polar-grid-concentric">
+              {/* Background fill = the outermost ring, drawn first so it sits behind
+                  the stroked rings (recharts ConcentricGridPath). */}
+              <Show when={merged.fill != null && merged.fill !== "none" && g().radii.length > 0}>
                 <ConcentricRing
                   cx={g().cx}
                   cy={g().cy}
-                  radius={radius}
+                  radius={Math.max(...g().radii)}
                   gridType={gridType()}
                   polarAngles={g().angles}
+                  class={merged.class}
                   stroke={merged.stroke}
                   strokeWidth={merged.strokeWidth}
                   strokeDasharray={dash()}
+                  fill={merged.fill}
+                  fillOpacity={merged.fillOpacity}
                 />
-              )}
-            </For>
-          </g>
-          <Show when={radialLines() && g().angles.length > 0}>
-            <g class="recharts-polar-grid-angle">
-              <For each={g().angles}>
-                {(angle) => (
-                  <RadialLine
+              </Show>
+              <For each={g().radii}>
+                {(radius) => (
+                  <ConcentricRing
                     cx={g().cx}
                     cy={g().cy}
-                    angle={angle}
-                    innerRadius={g().innerRadius}
-                    outerRadius={g().outerRadius}
+                    radius={radius}
+                    gridType={gridType()}
+                    polarAngles={g().angles}
+                    class={merged.class}
                     stroke={merged.stroke}
                     strokeWidth={merged.strokeWidth}
                     strokeDasharray={dash()}
@@ -215,8 +242,27 @@ export const PolarGrid = (props: PolarGridProps): JSX.Element => {
                 )}
               </For>
             </g>
-          </Show>
-        </g>
+            <Show when={radialLines() && g().angles.length > 0}>
+              <g class="recharts-polar-grid-angle">
+                <For each={g().angles}>
+                  {(angle) => (
+                    <RadialLine
+                      cx={g().cx}
+                      cy={g().cy}
+                      angle={angle}
+                      innerRadius={g().innerRadius}
+                      outerRadius={g().outerRadius}
+                      class={merged.class}
+                      stroke={merged.stroke}
+                      strokeWidth={merged.strokeWidth}
+                      strokeDasharray={dash()}
+                    />
+                  )}
+                </For>
+              </g>
+            </Show>
+          </g>
+        </ZIndexLayer>
       )}
     </Show>
   );

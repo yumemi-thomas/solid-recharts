@@ -7,10 +7,11 @@
 // the React-component `shape` prop-equality case.
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
-import { render } from "../helper/render";
+import { fireEvent, render } from "../helper/render";
 import { Bar, BarChart, LineChart, ReferenceDot, XAxis, YAxis } from "../../src";
 import { useAppSelector } from "../../src/state/hooks";
 import { selectReferenceDotsByAxis } from "../../src/state/selectors/axisSelectors";
+import { assertNotNull } from "../helper/assertNotNull";
 import { Show } from "solid-js";
 
 describe("<ReferenceDot />", () => {
@@ -262,6 +263,155 @@ describe("<ReferenceDot />", () => {
     flush();
 
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(0);
+  });
+
+  describe("events", () => {
+    // Handlers are called props-first — `(dotProps, event)` — exactly like recharts
+    // (the reference's Dot wraps them via adaptEventHandlers; the port wraps in
+    // ReferenceDot's renderDot). The first-arg snapshot asserts the geometry/style
+    // fields of the dot props (the full React props-bag snapshot is N/A: the port
+    // carries `class`, not `className`, and Solid handler values differ).
+    it("should fire event handlers when provided", () => {
+      const onClick = vi.fn();
+      const onMouseEnter = vi.fn();
+      const onMouseLeave = vi.fn();
+      const onMouseOver = vi.fn();
+      const onMouseOut = vi.fn();
+      const onMouseMove = vi.fn();
+      const onTouchStart = vi.fn();
+      const onTouchMove = vi.fn();
+      const onTouchEnd = vi.fn();
+
+      const { container } = render(() => (
+        <LineChart width={100} height={100} data={[{ x: 1, y: 1 }]}>
+          <YAxis dataKey="y" />
+          <XAxis dataKey="x" />
+          <ReferenceDot
+            x={1}
+            y={1}
+            r={3}
+            onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            onMouseOver={onMouseOver}
+            onMouseOut={onMouseOut}
+            onMouseMove={onMouseMove}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          />
+        </LineChart>
+      ));
+      flush();
+
+      const dot = container.querySelector(".recharts-reference-dot .recharts-dot");
+      assertNotNull(dot);
+
+      // The reference golden for this chart: cx=80, cy=5 (LineChart 100×100, one point).
+      const expectedDotProps = expect.objectContaining({
+        class: "recharts-reference-dot-dot",
+        cx: 80,
+        cy: 5,
+        fill: "#fff",
+        fillOpacity: 1,
+        r: 3,
+        stroke: "#ccc",
+        strokeWidth: 1,
+      });
+
+      fireEvent.click(dot);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(onClick).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "click" }),
+      );
+
+      fireEvent.mouseEnter(dot);
+      expect(onMouseEnter).toHaveBeenCalledTimes(1);
+      expect(onMouseEnter).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "mouseenter" }),
+      );
+
+      fireEvent.mouseOver(dot);
+      expect(onMouseOver).toHaveBeenCalledTimes(1);
+      expect(onMouseOver).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "mouseover" }),
+      );
+
+      fireEvent.mouseLeave(dot);
+      expect(onMouseLeave).toHaveBeenCalledTimes(1);
+      expect(onMouseLeave).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "mouseleave" }),
+      );
+
+      fireEvent.mouseOut(dot);
+      expect(onMouseOut).toHaveBeenCalledTimes(1);
+      expect(onMouseOut).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "mouseout" }),
+      );
+
+      fireEvent.mouseMove(dot);
+      expect(onMouseMove).toHaveBeenCalledTimes(1);
+      expect(onMouseMove).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "mousemove" }),
+      );
+
+      fireEvent.touchStart(dot);
+      expect(onTouchStart).toHaveBeenCalledTimes(1);
+      expect(onTouchStart).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "touchstart" }),
+      );
+
+      fireEvent.touchMove(dot);
+      expect(onTouchMove).toHaveBeenCalledTimes(1);
+      expect(onTouchMove).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "touchmove" }),
+      );
+
+      fireEvent.touchEnd(dot);
+      expect(onTouchEnd).toHaveBeenCalledTimes(1);
+      expect(onTouchEnd).toHaveBeenLastCalledWith(
+        expectedDotProps,
+        expect.objectContaining({ type: "touchend" }),
+      );
+    });
+
+    it("should fire mousedown and mouseup handlers props-first", () => {
+      const onMouseDown = vi.fn();
+      const onMouseUp = vi.fn();
+      const { container } = render(() => (
+        <LineChart width={100} height={100} data={[{ x: 1, y: 1 }]}>
+          <YAxis dataKey="y" />
+          <XAxis dataKey="x" />
+          <ReferenceDot x={1} y={1} r={3} onMouseDown={onMouseDown} onMouseUp={onMouseUp} />
+        </LineChart>
+      ));
+      flush();
+
+      const dot = container.querySelector(".recharts-reference-dot .recharts-dot");
+      assertNotNull(dot);
+
+      fireEvent.mouseDown(dot);
+      expect(onMouseDown).toHaveBeenCalledTimes(1);
+      expect(onMouseDown).toHaveBeenLastCalledWith(
+        expect.objectContaining({ cx: 80, cy: 5, r: 3 }),
+        expect.objectContaining({ type: "mousedown" }),
+      );
+
+      fireEvent.mouseUp(dot);
+      expect(onMouseUp).toHaveBeenCalledTimes(1);
+      expect(onMouseUp).toHaveBeenLastCalledWith(
+        expect.objectContaining({ cx: 80, cy: 5, r: 3 }),
+        expect.objectContaining({ type: "mouseup" }),
+      );
+    });
   });
 
   describe("state integration", () => {

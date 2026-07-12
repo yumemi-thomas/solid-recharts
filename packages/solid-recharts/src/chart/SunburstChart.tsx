@@ -9,7 +9,9 @@
 // by RechartsWrapper's portal); `useAppDispatch`→`useAppStore`; `RegisterGraphicalItemId`
 // →`useUniqueId`; the imperative `sectors[]`/`positions` build → a `createMemo` that
 // recomputes on size/data change; `es-toolkit get` → a small tooltip-index path getter.
-// DEFERRED: responsive ResizeObserver sizing, event throttling nuances.
+// NON-GAP: `responsive` defaults to false in the reference too, and
+// ResponsiveContainer sizing flows via the wrapper context.
+// DEFERRED: event throttling nuances.
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { scaleLinear } from "victory-vendor/d3-scale";
@@ -327,7 +329,7 @@ const SunburstChartImpl = (
                     onMouseLeave={(e) => handleLeave(arc, e)}
                     fill={arc.fill}
                     stroke={arc.stroke}
-                    stroke-width={arc.strokeWidth}
+                    strokeWidth={arc.strokeWidth}
                     startAngle={arc.startAngle}
                     endAngle={arc.endAngle}
                     innerRadius={arc.innerRadius}

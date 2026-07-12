@@ -1,0 +1,58 @@
+export const meta = {
+  slug: "z-axis",
+  title: "ZAxis",
+  group: "cartesian",
+  description: "Configures bubble/dot sizing in ScatterChart using a third data dimension.",
+  example: "scatter-bubble",
+};
+
+# ZAxis
+
+`ZAxis` is used in `ScatterChart` to map a third data dimension (typically from a `z`
+or `size` dataKey) to the radius or area of scatter dots, creating bubble charts. The
+`range` prop controls the min and max bubble sizes.
+
+```tsx
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis } from "solid-recharts";
+
+<ScatterChart width={500} height={300} data={data}>
+  <XAxis dataKey="x" type="number" />
+  <YAxis dataKey="y" type="number" />
+  <ZAxis dataKey="z" range={[100, 1000]} />
+  <Scatter data={data} fill="#8884d8" />
+</ScatterChart>;
+```
+
+<Example slug="scatter-bubble" />
+
+## Props
+
+| Prop      | Type                           | Default    | Description                                               |
+| --------- | ------------------------------ | ---------- | --------------------------------------------------------- |
+| `dataKey` | `string \| function`           | —          | The key (or accessor function) for the bubble size data   |
+| `range`   | `[number, number]`             | —          | Min and max radius/area values for scaling bubbles        |
+| `zAxisId` | `string \| number`             | `0`        | Unique identifier (in case multiple scatter charts exist) |
+| `type`    | `"number" \| "category"`       | `"number"` | Data type (always numeric for bubble sizing)              |
+| `domain`  | `[number, number]` \| function | auto       | Data domain for scaling; auto-detected if omitted         |
+| `scale`   | `"linear" \| "log" \| …`       | `"linear"` | Scale algorithm for value-to-size mapping                 |
+| `name`    | `string`                       | —          | Axis name (shown in tooltips)                             |
+| `unit`    | `string`                       | —          | Unit label appended to tooltip values                     |
+
+All other recharts `ZAxis` props are supported; see the [recharts ZAxis
+docs](https://recharts.org/en-US/api/ZAxis) for the complete reference.
+
+## Notes
+
+- `ZAxis` does not render visual elements; it only registers size configuration for
+  the scatter chart.
+- The `range` prop is required to size bubbles; without it, all bubbles are the same
+  size.
+- `range={[100, 1000]}` means the smallest data value maps to radius 100, and the
+  largest to radius 1000.
+- If `dataKey` is omitted, the ZAxis is ignored and scatter dots use the `radius` prop.
+
+## See also
+
+- [ScatterChart](/docs/scatter-chart) — the container for scatter plots
+- [Scatter](/docs/scatter) — the dot/bubble series component
+- [XAxis](/docs/x-axis) · [YAxis](/docs/y-axis) — position axes

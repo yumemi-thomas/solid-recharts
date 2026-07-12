@@ -1,2 +1,12 @@
 node_modules
 vendor/
+app/dev/dist/
+test-results/
+
+# docs app (TanStack Start) generated artifacts
+app/docs/.tanstack/
+app/docs/.nitro/
+app/docs/.output/
+app/docs/dist/
+
+.DS_Store

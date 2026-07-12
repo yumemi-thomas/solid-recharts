@@ -1,0 +1,70 @@
+export const meta = {
+  slug: "sunburst-chart",
+  title: "SunburstChart",
+  group: "charts",
+  description: "A radial hierarchical chart with nested rings of sectors.",
+  example: "sunburst-basic",
+};
+
+# SunburstChart
+
+`SunburstChart` is a self-contained radial hierarchical chart that displays nested data
+as concentric rings of sectors. Each sector's angle is proportional to its value within
+its parent, making hierarchical proportions and structure easy to see at a glance. It is
+not placed inside another chart container.
+
+```tsx
+import { SunburstChart, ResponsiveContainer } from "solid-recharts";
+
+const data = {
+  name: "root",
+  value: 100,
+  children: [
+    { name: "A", value: 40 },
+    { name: "B", value: 30 },
+    { name: "C", value: 30 },
+  ],
+};
+
+<ResponsiveContainer width="100%" height="100%">
+  <SunburstChart data={data} />
+</ResponsiveContainer>;
+```
+
+<Example slug="sunburst-basic" />
+
+## Props
+
+| Prop              | Type                 | Default   | Description                                           |
+| ----------------- | -------------------- | --------- | ----------------------------------------------------- |
+| `data`            | `object`             | —         | Root node with nested `children` array                |
+| `dataKey`         | `string`             | `"value"` | Key to read each node's numeric value                 |
+| `nameKey`         | `string \| function` | `"name"`  | Key to read each node's name / label                  |
+| `width`, `height` | `number \| "%"`      | —         | Fixed size or percentage inside `ResponsiveContainer` |
+| `innerRadius`     | `number`             | `50`      | Radius of the innermost ring (center hole)            |
+| `outerRadius`     | `number`             | —         | Outer radius of the outermost ring                    |
+| `padding`         | `number`             | `2`       | Space between sectors (stroke width)                  |
+| `ringPadding`     | `number`             | `2`       | Padding between each hierarchical level               |
+| `cx`, `cy`        | `number \| "%"`      | `"50%"`   | Center point of the chart                             |
+| `fill`, `stroke`  | `string`             | —         | Default sector colors                                 |
+
+All other recharts `SunburstChart` props are supported; see the
+[recharts SunburstChart docs](https://recharts.org/en-US/api/SunburstChart) for the full matrix.
+
+## Notes
+
+- **Data shape:** The `data` prop is a single root node object with a nested `children`
+  array. Each child can have its own `children`, forming an arbitrary tree.
+- **Values:** Each node's numeric `dataKey` is summed across its children. Leaf nodes
+  should have explicit values; parent values roll up automatically.
+- **Colors:** Use the `fill` prop on nodes (in the data) to assign colors to individual
+  sectors. The chart applies a default color palette if no node fill is set.
+- **Tooltip:** Sunburst supports item-type tooltips; hover a sector to see its details
+  (name and value).
+- **Animation:** Entry animation is wired; nodes fade and grow on mount. Update animation
+  is not yet ported.
+
+## See also
+
+- [ResponsiveContainer](/docs/responsive-container) — fluid sizing
+- [Tooltip](/docs/tooltip) — hover info

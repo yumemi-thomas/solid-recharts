@@ -3,12 +3,21 @@
 // narrowest. `isAnimationActive={false}` so trapezoids are at final geometry;
 // `flush()` because the funnel resolves trapezoids from the store via a selector.
 //
-// Per-trapezoid `name` attribute and animation are deferred in the minimal port
-// (see Funnel.tsx), so those reference assertions are intentionally omitted.
-import { describe, expect, it } from "vitest";
+// Also ported: the FunnelChart layout-context block (viewBox/clipPathId/width/height,
+// via createSelectorTestCase + a value-spy) and the chart-level `onClick` event-fire
+// case. The mouseEnter/mouseMove/mouseLeave chart-level cases are PERMANENT-N/A
+// (non-bubbling wrapper-div handlers; see the note at that test).
+//
+// Per-trapezoid `name` attribute is deferred in the minimal port (see Funnel.tsx),
+// so that reference assertion is intentionally omitted.
+import { describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
 import { render, fireEvent } from "../helper/render";
 import { FunnelChart, Funnel, Tooltip, Cell } from "../../src";
+import { createSelectorTestCase } from "../helper/createSelectorTestCase";
+import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
+import { useClipPathId } from "../../src/container/ClipPathProvider";
 
 const data = [
   { value: 100, name: "Show" },
@@ -133,5 +142,74 @@ describe("<FunnelChart />", () => {
     expect(container.querySelectorAll(".recharts-trapezoid")).toHaveLength(0);
     expect(container.querySelectorAll("circle.custom-trap")).toHaveLength(data.length);
     expect(container.querySelector("circle.custom-trap[data-name='Show']")).not.toBeNull();
+  });
+
+  // Ported from recharts' `forEach([onClick, onMouseEnter, onMouseMove, onMouseLeave])`
+  // chart-level event test. Only the `click` case is portable: a trapezoid click
+  // bubbles to the chart surface and fires the FunnelChart-level onClick (wired in
+  // RechartsWrapper). The mouseEnter / mouseMove / mouseLeave cases are PERMANENT-N/A:
+  // RechartsWrapper attaches those directly on the wrapper div (native, non-bubbling
+  // for enter/leave; the wrapper isn't on the bubble path for a descendant move that
+  // the React reference catches via synthetic-event delegation) — probe-verified 0
+  // calls, same conclusion as chartEvents.spec. Funnel ALSO exposes per-trapezoid
+  // onMouseEnter/Leave/Move handlers (fired on the trapezoid itself); those are
+  // exercised by the typed spec + the item-tooltip hover case above.
+  const data02 = [
+    { value: 60, name: "Show" },
+    { value: 50, name: "Click" },
+    { value: 30, name: "Visit" },
+    { value: 20, name: "Inquiry" },
+    { value: 6, name: "Order" },
+  ];
+
+  it("should fire click event", () => {
+    const onEventMock = vi.fn();
+    const { container } = render(() => (
+      <FunnelChart
+        margin={{ top: 20, right: 50, left: 20, bottom: 0 }}
+        width={500}
+        height={300}
+        onClick={onEventMock}
+      >
+        <Funnel dataKey="value" data={data} isAnimationActive={false} />
+        <Funnel dataKey="value" data={data02} isAnimationActive={false} width="80%" />
+      </FunnelChart>
+    ));
+    flush();
+
+    const trapezoid = container.querySelectorAll(".recharts-funnel-trapezoid")[2];
+    expect(trapezoid).toBeDefined();
+    fireEvent.click(trapezoid!);
+    flush();
+
+    expect(onEventMock).toHaveBeenCalled();
+  });
+
+  describe("FunnelChart layout context", () => {
+    const renderTestCase = createSelectorTestCase((props) => (
+      <FunnelChart width={100} height={50} barSize={20}>
+        {props.children}
+      </FunnelChart>
+    ));
+
+    it("should provide viewBox", () => {
+      const { spy } = renderTestCase(useViewBox);
+      expectLastCalledWith(spy, { height: 40, width: 90, x: 5, y: 5 });
+    });
+
+    it("should provide clipPathId", () => {
+      const { spy } = renderTestCase(useClipPathId);
+      expectLastCalledWith(spy, expect.stringMatching(/recharts\d+-clip/));
+    });
+
+    it("should provide width", () => {
+      const { spy } = renderTestCase(useChartWidth);
+      expectLastCalledWith(spy, 100);
+    });
+
+    it("should provide height", () => {
+      const { spy } = renderTestCase(useChartHeight);
+      expectLastCalledWith(spy, 50);
+    });
   });
 });

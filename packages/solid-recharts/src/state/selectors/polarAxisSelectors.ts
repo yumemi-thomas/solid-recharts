@@ -3,12 +3,10 @@
 // FULL SOLID-NATIVE REWRITE: reselect `createSelector` → plain functions
 // (memoization is provided by `useAppSelector`'s `createMemo`).
 //
-// SCOPE: only the polar-VIEWBOX cluster (selectPolarOptions, selectMaxRadius,
-// selectInnerRadius, selectOuterRadius, selectPolarViewBox) is ported here — it
-// is all the minimal Pie + the Label polar path need. The angle/radius AXIS
-// selectors (selectAngleAxis/selectRadiusAxis/ranges, implicitAngle/RadiusAxis)
-// are DEFERRED to the polar-axis vertical: they depend on
-// defaultPolarAngleAxisProps/defaultPolarRadiusAxisProps which are not ported yet.
+// SCOPE: both the polar-VIEWBOX cluster (selectPolarOptions, selectMaxRadius,
+// selectInnerRadius, selectOuterRadius, selectPolarViewBox) AND the angle/radius
+// AXIS selectors (selectAngleAxis/selectRadiusAxis + ranges, implicitAngle/
+// RadiusAxis) are ported in this file.
 import { RechartsRootState } from "../store";
 import { PolarChartState } from "../polarOptionsSlice";
 import { AxisId } from "../cartesianAxisSlice";

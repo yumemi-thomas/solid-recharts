@@ -13,7 +13,8 @@
  * it track). `isUpdateAnimationActive` defaults to false, so the common path
  * (e.g. Bar's rectangles) stays static — wiring is regression-safe.
  */
-import { createSignal, Show, omit, untrack } from "solid-js";
+import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
+import { createEffect, createSignal, Show, omit, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import type { AnimationDuration } from "../util/types";
 import type { EasingInput } from "../animation/easing";
@@ -119,7 +120,10 @@ interface RectangleOwnProps {
   animationEasing?: EasingInput;
 }
 
-export type RectangleProps = Omit<JSX.PathSVGAttributes<SVGPathElement>, "radius" | "class"> &
+export type RectangleProps = Omit<
+  CamelSvgProps<JSX.PathSVGAttributes<SVGPathElement>>,
+  "radius" | "class"
+> &
   RectangleOwnProps;
 
 /**
@@ -163,23 +167,33 @@ export const Rectangle = (props: RectangleProps): JSX.Element => {
 
   // Animation (update path) state: a ref to read the path length + prev-value
   // closures the animation interpolates from.
+  //
+  // The ref only captures the element — refs fire before the dynamic `d`
+  // attribute is applied, where getTotalLength() is 0/throws. The measuring
+  // effect below runs after attributes land and re-measures when the geometry
+  // changes.
   let pathEl: SVGPathElement | undefined;
   const [totalLength, setTotalLength] = createSignal(-1);
-  // Solid 2.0 has no onMount; read the path length in the ref callback (a mount
-  // side-effect boundary) — a write, not a tracked read, so it's diagnostic-safe.
   const measurePath = (el: SVGPathElement): void => {
     pathEl = el;
-    if (el.getTotalLength) {
-      try {
-        const len = el.getTotalLength();
-        if (len) {
-          setTotalLength(len);
-        }
-      } catch {
-        // getTotalLength can throw on detached/empty paths — ignore.
-      }
-    }
   };
+  createEffect(
+    () => ({ x: x(), y: y(), width: width(), height: height(), radius: radius() }),
+    () => {
+      if (pathEl?.getTotalLength == null) {
+        return;
+      }
+      let len = 0;
+      try {
+        len = pathEl.getTotalLength();
+      } catch {
+        return; // getTotalLength can throw on detached/empty paths — keep the last value.
+      }
+      if (len) {
+        setTotalLength(len);
+      }
+    },
+  );
 
   const animationId = useAnimationId(
     () => ({ x: x(), y: y(), width: width(), height: height(), radius: radius() }),
@@ -261,7 +275,9 @@ export const Rectangle = (props: RectangleProps): JSX.Element => {
                 const dashStyle: JSX.CSSProperties = !snap.animActive
                   ? { "stroke-dasharray": to }
                   : t > 0
-                    ? { transition, "stroke-dasharray": to }
+                    ? // key order matches recharts' serialized style string
+                      // (`stroke-dasharray: …; transition: …;`).
+                      { "stroke-dasharray": to, transition }
                     : { "stroke-dasharray": from };
                 // `props.style` may be a string in Solid JSX; only merge object styles.
                 const userStyle: JSX.CSSProperties =

@@ -8,12 +8,18 @@
 //  - animation: each whisker <line> is wrapped in CSSTransitionAnimate (a CSS
 //    `transform` scaleX/scaleY 0→1); isAnimationActive=false renders the final
 //    transform immediately with no transition.
-//  - ZIndexLayer DEFERRED (plain Layer). svgPropertiesNoEvents passthrough kept.
+//  - zIndex: an EXPLICIT zIndex portals via ZIndexLayer, but unlike recharts
+//    (default `DefaultZIndexes.line`) the default stays inline: default-portaling
+//    duplicates content because the ErrorBar subtree is instantiated twice when
+//    its parent item's points settle and Solid's Portal appends rather than
+//    reconciles. svgPropertiesNoEvents passthrough kept.
 //  - arbitrary SVG-prop passthrough to the whisker group (recharts `Props = SVGProps
-//    & ErrorBarProps`, e.g. a bare `begin` attribute) is DEFERRED.
-import { type Accessor, createMemo, For, merge, Show } from "solid-js";
+//    & ErrorBarProps`, e.g. a bare `begin` attribute) rides through
+//    svgPropertiesNoEvents, filtered by the canonical allowlist.
+import { type Accessor, createMemo, For, merge, omit, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
+import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { CSSTransitionAnimate } from "../animation/CSSTransitionAnimate";
 import { EasingInput, RectangleCoordinate, DataKey } from "../util/types";
 import { ReportErrorBarSettings, useErrorBarContext } from "../context/ErrorBarContext";
@@ -21,6 +27,7 @@ import { useAppSelector } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useChartLayout } from "../context/chartLayoutContext";
 import { selectAxisWithScale } from "../state/selectors/axisSelectors";
+import { svgPropertiesNoEvents, type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 
 export interface ErrorBarDataItem {
   x: number | undefined;
@@ -41,7 +48,20 @@ export type ErrorBarDataPointFormatter = (
   direction: ErrorBarDirection,
 ) => ErrorBarDataItem;
 
-export interface ErrorBarProps {
+// Arbitrary SVG presentation props ride through to the whisker group (recharts
+// `Props = SVGProps<SVGLineElement> & ErrorBarProps`). Own props below win on
+// key conflicts.
+type ErrorBarSvgProps = Omit<
+  CamelSvgProps<JSX.LineSVGAttributes<SVGLineElement>>,
+  "class" | "direction" | "width" | "offset" | "stroke" | "strokeWidth" | "children" | "ref"
+> & {
+  /** SVG animation-timing attribute (React's SVGProps exposes it; Solid's
+   * LineSVGAttributes doesn't). Rides through to the whisker group like any
+   * other passthrough attr — distinct from `animationBegin`. */
+  begin?: string | number;
+};
+
+export interface ErrorBarProps extends ErrorBarSvgProps {
   /** Which data property each ErrorBar reads (single value or [low, high]). */
   dataKey: DataKey<unknown>;
   /** Width of the whisker serifs in pixels. @defaultValue 5 */
@@ -54,24 +74,26 @@ export interface ErrorBarProps {
   strokeWidth?: number | string;
   /** Extra offset rendered as an `offset` attribute on the whisker group. @defaultValue 0 */
   offset?: number;
-  /** Animation props (DEFERRED — kept for prop parity). */
+  /** Animation props (CSS transform scale 0→1 via CSSTransitionAnimate). */
   isAnimationActive?: boolean;
   animationBegin?: number;
   animationDuration?: number;
   animationEasing?: EasingInput;
+  /** When set, relocates this element into that z-index portal (unset = inline). */
+  zIndex?: number;
   class?: string;
 }
 
 const errorBarDefaultProps = {
   stroke: "black",
-  "stroke-width": 1.5,
+  strokeWidth: 1.5,
   width: 5,
   offset: 0,
   isAnimationActive: true,
   animationBegin: 0,
   animationDuration: 400,
   animationEasing: "ease-in-out",
-} as const satisfies Partial<ErrorBarProps & { "stroke-width": number }>;
+} as const satisfies Partial<ErrorBarProps>;
 
 function useErrorBarDirection(
   directionFromProps: ErrorBarDirection | undefined,
@@ -99,13 +121,13 @@ function ErrorBarImpl(props: {
   dataKey: DataKey<unknown>;
   width: number;
   direction: ErrorBarDirection;
-  stroke: string;
-  strokeWidth: number | string;
-  offset: number;
+  /** Allowlist-filtered, kebab-cased SVG attrs spread onto the whisker group. */
+  groupSvgAttrs: Record<string, unknown>;
   isAnimationActive: boolean;
   animationBegin: number;
   animationDuration: number;
   animationEasing: EasingInput;
+  zIndex: number | undefined;
   class?: string;
 }): JSX.Element {
   const scaleDirection = (): string => (props.direction === "x" ? "scaleX" : "scaleY");
@@ -120,14 +142,9 @@ function ErrorBarImpl(props: {
     selectAxisWithScale(s, "yAxis", ctx().yAxisId, isPanorama),
   );
 
-  // recharts spreads {stroke, strokeWidth, offset} onto the whisker GROUP (the
-  // lines inherit). `offset` is not a typed `<g>` attribute, so build the set as
-  // a Record and spread it (mirrors how Layer forwards svgPropertiesAndEvents).
-  const groupAttrs = createMemo<Record<string, unknown>>(() => ({
-    stroke: props.stroke,
-    "stroke-width": props.strokeWidth,
-    offset: props.offset,
-  }));
+  // recharts spreads svgPropertiesNoEvents(others) onto the whisker GROUP (the
+  // lines inherit stroke etc.; `offset` and other non-typed attrs ride along).
+  const groupAttrs = (): Record<string, unknown> => props.groupSvgAttrs;
 
   const lineGroups = createMemo<ReadonlyArray<ErrorBarLineGroup> | null>(() => {
     const { data, dataPointFormatter, errorBarOffset: offset } = ctx();
@@ -195,55 +212,57 @@ function ErrorBarImpl(props: {
   return (
     <Show when={lineGroups()}>
       {(groups) => (
-        <Layer class="recharts-errorBars">
-          <For each={groups()}>
-            {(group) => (
-              <Show when={group.lines.length > 0}>
-                {/* Raw <g> (mirrors Layer's `recharts-layer` class) so the Record
+        <ZIndexLayer zIndex={props.zIndex}>
+          <Layer class="recharts-errorBars">
+            <For each={groups()}>
+              {(group) => (
+                <Show when={group.lines.length > 0}>
+                  {/* Raw <g> (mirrors Layer's `recharts-layer` class) so the Record
                     spread can carry the non-typed `offset` attribute. */}
-                <g class={["recharts-layer", "recharts-errorBar"]} {...groupAttrs()}>
-                  <For each={group.lines}>
-                    {(c) => {
-                      const lineStyle: JSX.CSSProperties | undefined = props.isAnimationActive
-                        ? { "transform-origin": group.transformOrigin }
-                        : undefined;
-                      return (
-                        <CSSTransitionAnimate
-                          animationId={`error-bar-${props.direction}_${c.x1}-${c.x2}-${c.y1}-${c.y2}`}
-                          from={`${scaleDirection()}(0)`}
-                          to={`${scaleDirection()}(1)`}
-                          attributeName="transform"
-                          begin={props.animationBegin}
-                          easing={
-                            typeof props.animationEasing === "string"
-                              ? props.animationEasing
-                              : undefined
-                          }
-                          isActive={props.isAnimationActive}
-                          duration={props.animationDuration}
-                        >
-                          {(style) => (
-                            <line
-                              x1={c.x1}
-                              y1={c.y1}
-                              x2={c.x2}
-                              y2={c.y2}
-                              style={{
-                                ...lineStyle,
-                                transform: style.transform,
-                                transition: style.transition,
-                              }}
-                            />
-                          )}
-                        </CSSTransitionAnimate>
-                      );
-                    }}
-                  </For>
-                </g>
-              </Show>
-            )}
-          </For>
-        </Layer>
+                  <g class={["recharts-layer", "recharts-errorBar"]} {...groupAttrs()}>
+                    <For each={group.lines}>
+                      {(c) => {
+                        const lineStyle: JSX.CSSProperties | undefined = props.isAnimationActive
+                          ? { "transform-origin": group.transformOrigin }
+                          : undefined;
+                        return (
+                          <CSSTransitionAnimate
+                            animationId={`error-bar-${props.direction}_${c.x1}-${c.x2}-${c.y1}-${c.y2}`}
+                            from={`${scaleDirection()}(0)`}
+                            to={`${scaleDirection()}(1)`}
+                            attributeName="transform"
+                            begin={props.animationBegin}
+                            easing={
+                              typeof props.animationEasing === "string"
+                                ? props.animationEasing
+                                : undefined
+                            }
+                            isActive={props.isAnimationActive}
+                            duration={props.animationDuration}
+                          >
+                            {(style) => (
+                              <line
+                                x1={c.x1}
+                                y1={c.y1}
+                                x2={c.x2}
+                                y2={c.y2}
+                                style={{
+                                  ...lineStyle,
+                                  transform: style.transform,
+                                  transition: style.transition,
+                                }}
+                              />
+                            )}
+                          </CSSTransitionAnimate>
+                        );
+                      }}
+                    </For>
+                  </g>
+                </Show>
+              )}
+            </For>
+          </Layer>
+        </ZIndexLayer>
       )}
     </Show>
   );
@@ -258,6 +277,26 @@ function ErrorBarImpl(props: {
 export function ErrorBar(props: ErrorBarProps): JSX.Element {
   const merged = merge(errorBarDefaultProps, props);
   const direction = useErrorBarDirection(props.direction);
+  // Everything that isn't ErrorBar config is an SVG presentation prop for the
+  // whisker group (recharts: `const { direction, width, dataKey, ...others } =
+  // props; svgPropertiesNoEvents(others)`). The allowlist filter drops any
+  // remaining non-SVG keys (and the merge proxy's symbols).
+  const groupSvgAttrs = createMemo<Record<string, unknown>>(() =>
+    svgPropertiesNoEvents({
+      ...omit(
+        merged,
+        "dataKey",
+        "width",
+        "direction",
+        "isAnimationActive",
+        "animationBegin",
+        "animationDuration",
+        "animationEasing",
+        "zIndex",
+        "class",
+      ),
+    }),
+  );
   return (
     <>
       <ReportErrorBarSettings dataKey={merged.dataKey} direction={direction()} />
@@ -265,13 +304,12 @@ export function ErrorBar(props: ErrorBarProps): JSX.Element {
         dataKey={merged.dataKey}
         width={merged.width}
         direction={direction()}
-        stroke={merged.stroke}
-        strokeWidth={merged["stroke-width"]}
-        offset={merged.offset}
+        groupSvgAttrs={groupSvgAttrs()}
         isAnimationActive={merged.isAnimationActive}
         animationBegin={merged.animationBegin}
         animationDuration={merged.animationDuration}
         animationEasing={merged.animationEasing}
+        zIndex={merged.zIndex}
         class={merged.class}
       />
     </>

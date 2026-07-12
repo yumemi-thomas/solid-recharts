@@ -1,0 +1,52 @@
+export const meta = {
+  slug: "error-bar",
+  title: "ErrorBar",
+  group: "cartesian",
+  description: "Whiskers showing error margins or uncertainty on data points.",
+  example: "error-bars",
+};
+
+# ErrorBar
+
+`ErrorBar` renders error whiskers on a graphical item (Bar, Line, or Scatter). It nests inside the item and reads error values from the data, drawing lines from the lower to upper bounds around each point.
+
+```tsx
+import { Bar, BarChart, ErrorBar } from "solid-recharts";
+
+<BarChart data={data}>
+  <Bar dataKey="value" fill="#8884d8">
+    <ErrorBar dataKey="error" width={5} stroke="#ff7300" />
+  </Bar>
+</BarChart>;
+```
+
+<Example slug="error-bars" />
+
+## Props
+
+| Prop                | Type                           | Default     | Description                                       |
+| ------------------- | ------------------------------ | ----------- | ------------------------------------------------- |
+| `dataKey`           | `string \| number \| function` | —           | Data field holding the error value(s) (required)  |
+| `width`             | `number`                       | `5`         | Whisker serif width in pixels                     |
+| `direction`         | `"x" \| "y"`                   | `"y"` (bar) | Axis direction (Scatter only; inferred elsewhere) |
+| `stroke`            | `string`                       | `"black"`   | Whisker color                                     |
+| `strokeWidth`       | `number \| string`             | `1.5`       | Whisker thickness                                 |
+| `offset`            | `number`                       | `0`         | Extra pixel offset applied to the whisker group   |
+| `isAnimationActive` | `boolean`                      | `true`      | Animate whiskers on data change                   |
+| `animationDuration` | `number`                       | `400`       | Animation duration (ms)                           |
+| `zIndex`            | `number`                       | —           | Stacking order                                    |
+
+## Notes
+
+- `dataKey` points to a data property containing either a single number (symmetric error) or an array `[low, high]` (asymmetric).
+- Whiskers are drawn from `value - low` to `value + high` on the appropriate axis.
+- ErrorBar must be a child of Bar, Line, or Scatter; it reads the parent's data context.
+- `direction="x"` requires the x-axis to be numeric (not categorical).
+- Set `isAnimationActive={false}` to render whiskers without animation.
+
+## See also
+
+- [Bar](/docs/bar) — bar series (typically holds ErrorBar)
+- [Line](/docs/line) — line series
+- [Scatter](/docs/scatter) — scatter plot
+- [BarChart](/docs/bar-chart) — the chart container

@@ -26,13 +26,14 @@
 //    it is type-incompatible with the kebab LineSVGAttributes and has no effect).
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect, createSignal, flush, Show } from "solid-js";
-import { fireEvent, render } from "../../helper/render";
+import { fireEvent, render, screen } from "../../helper/render";
 import { Bar, BarChart, Line, LineChart, ReferenceLine, XAxis, YAxis } from "../../../src";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectReferenceLinesByAxis } from "../../../src/state/selectors/axisSelectors";
 import { PageData } from "../../_data";
 import { assertNotNull } from "../../helper/assertNotNull";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
+import type { LabelContentType } from "../../../src/component/Label";
 
 type ExpectedReferenceLine = {
   x1: string | null;
@@ -223,6 +224,137 @@ describe("<ReferenceLine />", () => {
     flush();
 
     expectReferenceLines(container, []);
+    expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
+  });
+
+  test("Render line and label when ifOverflow is extendDomain in ReferenceLine", () => {
+    const { container } = render(() => (
+      <BarChart
+        width={1100}
+        height={250}
+        barGap={2}
+        barSize={6}
+        data={data}
+        margin={{ top: 20, right: 60, bottom: 0, left: 20 }}
+      >
+        <XAxis dataKey="name" />
+        <YAxis tickCount={7} />
+        <Bar dataKey="uv" />
+        <ReferenceLine x="201102" label="test" stroke="#666" />
+        <ReferenceLine y={20} stroke="#666" label="20" ifOverflow="extendDomain" />
+      </BarChart>
+    ));
+    flush();
+    expectReferenceLines(container, [
+      {
+        x1: "123.63636363636368",
+        x2: "123.63636363636368",
+        y1: "220",
+        y2: "20",
+      },
+      {
+        x1: "80",
+        x2: "1040",
+        y1: "20",
+        y2: "20",
+      },
+    ]);
+    expect(container.querySelectorAll(".recharts-label")).toHaveLength(2);
+  });
+
+  test('Render line and label when ifOverflow is "extendDomain" in ReferenceLine', () => {
+    // The reference also asserts no console.warn; in the Solid port the global
+    // diagnostics guard already fails any unexpected diagnostic, so a console spy
+    // would be redundant — the geometry + label-count assertions suffice.
+    const { container } = render(() => (
+      <BarChart
+        width={1100}
+        height={250}
+        barGap={2}
+        barSize={6}
+        data={data}
+        margin={{ top: 20, right: 60, bottom: 0, left: 20 }}
+      >
+        <XAxis dataKey="name" />
+        <YAxis tickCount={7} />
+        <Bar dataKey="uv" />
+        <ReferenceLine x="201102" label="test" stroke="#666" />
+        <ReferenceLine y={20} stroke="#666" label="20" ifOverflow="extendDomain" />
+      </BarChart>
+    ));
+    flush();
+    expectReferenceLines(container, [
+      {
+        x1: "123.63636363636368",
+        x2: "123.63636363636368",
+        y1: "220",
+        y2: "20",
+      },
+      {
+        x1: "80",
+        x2: "1040",
+        y1: "20",
+        y2: "20",
+      },
+    ]);
+    expect(container.querySelectorAll(".recharts-label")).toHaveLength(2);
+  });
+
+  test("Render 1 line and 1 label when label is set to be a function in ReferenceLine", () => {
+    const renderLabel: LabelContentType = (props) => {
+      const { x, y } = props as { x: number; y: number };
+      return (
+        <text class="customized-reference-line-label" x={x} y={y}>
+          any
+        </text>
+      );
+    };
+    const { container } = render(() => (
+      <BarChart
+        width={1100}
+        height={250}
+        barGap={2}
+        barSize={6}
+        data={data}
+        margin={{ top: 20, right: 60, bottom: 0, left: 20 }}
+      >
+        <XAxis dataKey="name" />
+        <YAxis tickCount={7} />
+        <Bar dataKey="uv" />
+        <ReferenceLine y={20} stroke="#666" label={renderLabel} ifOverflow="visible" />
+      </BarChart>
+    ));
+    flush();
+
+    expectReferenceLines(container, [
+      {
+        x1: "80",
+        x2: "1040",
+        y1: "-102.22222222222223",
+        y2: "-102.22222222222223",
+      },
+    ]);
+    expect(container.querySelectorAll(".customized-reference-line-label")).toHaveLength(1);
+  });
+
+  test("Don't Render 1 label when label=true", () => {
+    const { container } = render(() => (
+      <BarChart
+        width={1100}
+        height={250}
+        barGap={2}
+        barSize={6}
+        data={data}
+        margin={{ top: 20, right: 60, bottom: 0, left: 20 }}
+      >
+        <XAxis dataKey="name" />
+        <YAxis tickCount={7} />
+        <Bar dataKey="uv" />
+        <ReferenceLine y={20} stroke="#666" label />
+      </BarChart>
+    ));
+    flush();
+
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
 
@@ -539,6 +671,74 @@ describe("<ReferenceLine />", () => {
       fireEvent.touchEnd(dot);
       expect(onTouchEnd).toHaveBeenCalledTimes(1);
       expect(onTouchEnd).toHaveBeenLastCalledWith(expect.objectContaining({ type: "touchend" }));
+    });
+  });
+
+  describe("shape", () => {
+    // The element-form `shape` is PERMANENT-N/A (React.cloneElement — Solid has no
+    // element-props introspection). The function-form is the recoverable case:
+    // renderLine calls `option(lineProps)` and the returned element is rendered.
+    it("should render if shape is a function", () => {
+      const { container } = render(() => (
+        <LineChart width={100} height={100} data={[{ x: 1, y: 1 }]}>
+          <YAxis dataKey="y" />
+          <XAxis dataKey="x" />
+          <ReferenceLine x={1} shape={() => <g data-testid="my-custom-line-shape" />} />
+        </LineChart>
+      ));
+      flush();
+      expect(screen.getByTestId("my-custom-line-shape")).toBeVisible();
+      // The default `<line>` is replaced by the custom shape.
+      expect(container.querySelectorAll(".recharts-reference-line-line")).toHaveLength(0);
+    });
+
+    it("should pass the resolved line geometry to the shape function", () => {
+      const spy = vi.fn(() => <g data-testid="my-custom-line-shape" />);
+      render(() => (
+        <LineChart width={100} height={100} data={[{ x: 1, y: 1 }]}>
+          <YAxis dataKey="y" />
+          <XAxis dataKey="x" />
+          <ReferenceLine x={1} shape={spy} />
+        </LineChart>
+      ));
+      flush();
+      expect(spy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          x1: expect.any(Number),
+          y1: expect.any(Number),
+          x2: expect.any(Number),
+          y2: expect.any(Number),
+        }),
+      );
+    });
+  });
+
+  describe("multiple axes", () => {
+    // The port resolves the x/y scales per-axis via selectAxisScale(state, axis,
+    // xAxisId/yAxisId, …). A reference line targeting a non-default axis id must map
+    // through THAT axis' scale: y=150 lives inside the "right" domain (0..200) but is
+    // out of range of the default "left" domain (0..20), so with ifOverflow="discard"
+    // (default) only the correctly-targeted line survives.
+    const multiAxisData = [
+      { name: "A", pv: 10, uv: 100 },
+      { name: "B", pv: 20, uv: 200 },
+    ];
+
+    it("should map the reference line through the targeted axis' scale", () => {
+      const { container } = render(() => (
+        <BarChart width={500} height={400} data={multiAxisData}>
+          <XAxis dataKey="name" />
+          <YAxis yAxisId="left" />
+          <YAxis yAxisId="right" orientation="right" />
+          <Bar dataKey="pv" yAxisId="left" />
+          <Bar dataKey="uv" yAxisId="right" />
+          <ReferenceLine y={150} yAxisId="right" stroke="#666" />
+          <ReferenceLine y={150} yAxisId="left" stroke="#f00" />
+        </BarChart>
+      ));
+      flush();
+      // Only the line targeting the "right" axis (domain 0..200) is in range.
+      expect(container.querySelectorAll(".recharts-reference-line-line")).toHaveLength(1);
     });
   });
 });
