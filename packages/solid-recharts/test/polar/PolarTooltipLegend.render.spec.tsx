@@ -3,7 +3,7 @@
 // `flush()` because registration + sectors compute via effects/selectors.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import {
   PieChart,
   Pie,

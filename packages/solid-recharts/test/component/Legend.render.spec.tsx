@@ -3,7 +3,7 @@
 // the portal. itemSorter defaults to "value" → alphabetical by label.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { Area, AreaChart, Bar, BarChart, Legend, Line, LineChart } from "../../src";
 import { numericalData, PageData } from "../_data";
 

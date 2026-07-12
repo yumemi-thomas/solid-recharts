@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { Area, AreaChart, Tooltip, XAxis, YAxis } from "../../src";
 import { rangeData } from "../_data";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { areaChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";

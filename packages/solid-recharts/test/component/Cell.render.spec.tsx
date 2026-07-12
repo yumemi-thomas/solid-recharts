@@ -6,7 +6,7 @@
 // and `flush()` because the items register via effects and compute from the store.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import {
   BarChart,
   Bar,

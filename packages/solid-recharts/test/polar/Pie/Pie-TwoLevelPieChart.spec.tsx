@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { Pie, PieChart, Sector } from "../../../src";
 import type { PieSectorShapeProps } from "../../../src/polar/Pie";
-import { render, fireEvent } from "../../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 
 const data1 = [
   { name: "Group A", value: 400 },

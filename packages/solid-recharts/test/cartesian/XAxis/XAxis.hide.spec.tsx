@@ -8,7 +8,7 @@ import { pageData } from "../../_data";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 describe("XAxis hide", () => {
   it("Don't render x-axis when hide is set to be true", () => {

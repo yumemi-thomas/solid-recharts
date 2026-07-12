@@ -11,7 +11,7 @@
 // mocked on SVGElement.prototype (jsdom lacks it).
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { ComposedChart, Line, XAxis } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";

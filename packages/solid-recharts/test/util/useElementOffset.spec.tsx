@@ -7,7 +7,7 @@
 // values are byte-identical to recharts.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { flush } from "solid-js";
-import { renderHook } from "../helper/render";
+import { renderHook } from "@solidjs/testing-library";
 import { useElementOffset } from "../../src/util/useElementOffset";
 import { getMockDomRect } from "../helper/mockGetBoundingClientRect";
 

@@ -2,7 +2,7 @@
 // Harness changes only: render from the local Solid shim (thunk), no React
 // import. The 'with animation' case snapshot matches the reference byte-for-byte
 // (the update-animation path renders the t=0 frame with the "0px 1px" dash).
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { Surface, Trapezoid } from "../../src";
 
 describe("<Trapezoid />", () => {

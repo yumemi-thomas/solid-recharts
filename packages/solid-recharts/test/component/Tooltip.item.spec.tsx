@@ -5,7 +5,7 @@
 // (filter by graphicalItemId) + the index-based payload searcher.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar, Tooltip } from "../../src";
 import { PageData } from "../_data";
 

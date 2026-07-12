@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Bar, BarChart, Line, LineChart, Scatter, useXAxisDomain, XAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";

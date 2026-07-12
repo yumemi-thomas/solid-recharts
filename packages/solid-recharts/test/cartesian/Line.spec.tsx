@@ -23,7 +23,7 @@ import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { lineChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
 import { assertNotNull } from "../helper/assertNotNull";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 
 describe("<Line />", () => {
   beforeEach(() => {

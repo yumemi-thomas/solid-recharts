@@ -30,7 +30,7 @@
 //     same "restart from the beginning" behaviour.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";

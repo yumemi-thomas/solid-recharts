@@ -8,7 +8,7 @@ import {
 import { selectBarBandSize } from "../../../src/state/selectors/barSelectors";
 import { selectChartOffsetInternal } from "../../../src/state/selectors/selectChartOffsetInternal";
 import { Bar, BarChart, XAxis, YAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import { expectBars } from "../../helper/expectBars";

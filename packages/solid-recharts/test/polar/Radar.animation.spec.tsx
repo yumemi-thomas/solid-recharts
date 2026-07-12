@@ -26,7 +26,7 @@
 // tween state resets and the entrance animation re-runs from the center.
 import { describe, expect, it, vi } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import type { AnimationController } from "../../src";

@@ -8,7 +8,7 @@
 // because the bar registers via an effect and its rectangles compute from the store.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar, ComposedChart, Rectangle, Tooltip, XAxis, YAxis } from "../../src";
 import type { BarChartProps, BarProps, BarRectangleItem } from "../../src";
 import { PageData, boxPlotData } from "../_data";

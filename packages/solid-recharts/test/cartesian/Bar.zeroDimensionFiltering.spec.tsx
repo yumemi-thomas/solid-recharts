@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { Bar, BarChart, BarStack, XAxis, YAxis } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { selectBarRectangles } from "../../src/state/selectors/barSelectors";
 import { getAllBars } from "../helper/expectBars";
 

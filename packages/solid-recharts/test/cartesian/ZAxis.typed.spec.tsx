@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { Scatter, ScatterChart, ZAxis } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 // Ported from recharts 3.8.1 test/cartesian/ZAxis.typed.spec.tsx.
 

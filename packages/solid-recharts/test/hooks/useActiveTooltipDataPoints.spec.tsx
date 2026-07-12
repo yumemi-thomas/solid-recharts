@@ -28,7 +28,7 @@ import {
 } from "../component/Tooltip/tooltipMouseHoverSelectors";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 describe("useActiveTooltipDataPoints", () => {
   beforeEach(() => {

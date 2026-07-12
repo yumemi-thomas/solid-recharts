@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { Sankey } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const data = {
   nodes: [{ name: "A" }, { name: "B" }, { name: "C" }, { name: "D" }],

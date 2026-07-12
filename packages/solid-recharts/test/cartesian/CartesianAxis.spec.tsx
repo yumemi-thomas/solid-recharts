@@ -7,7 +7,7 @@
 // covers it).
 import { describe, expect, it } from "vitest";
 import { scaleLinear } from "victory-vendor/d3-scale";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { CartesianAxis, Surface } from "../../src";
 import type { CartesianTickContentProps, TickItem } from "../../src/util/types";
 import type { LabelContentType } from "../../src/component/Label";

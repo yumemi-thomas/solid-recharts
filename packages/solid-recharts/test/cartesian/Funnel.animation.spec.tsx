@@ -22,7 +22,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSignal, flush } from "solid-js";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";
 import { Funnel, FunnelChart } from "../../src";

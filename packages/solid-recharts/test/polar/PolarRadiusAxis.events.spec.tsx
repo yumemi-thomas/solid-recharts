@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
 import { PolarAngleAxis, PolarRadiusAxis, RadarChart } from "../../src";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 
 describe("PolarRadiusAxis events", () => {

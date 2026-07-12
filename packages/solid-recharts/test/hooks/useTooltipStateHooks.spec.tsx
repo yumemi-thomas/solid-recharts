@@ -18,7 +18,7 @@ import { hideTooltip, showTooltip } from "../component/Tooltip/tooltipTestHelper
 import { areaChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 describe("public tooltip-state hooks", () => {
   beforeEach(() => {

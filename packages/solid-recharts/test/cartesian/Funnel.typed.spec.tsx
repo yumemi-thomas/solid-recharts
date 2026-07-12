@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Funnel, FunnelChart, getRelativeCoordinate, type FunnelTrapezoidItem } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 type ExampleDataPoint = {
   value: number;

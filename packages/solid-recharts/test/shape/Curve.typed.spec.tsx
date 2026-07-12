@@ -19,7 +19,7 @@
  *   `(_curveProps, e)` React signature is reported in blocked.)
  */
 import { describe, it } from "vitest";
-import { render } from "@solid-recharts/testing-library";
+import { render } from "@solidjs/testing-library";
 import { Curve, getRelativeCoordinate } from "../../src";
 
 describe("Curve types", () => {

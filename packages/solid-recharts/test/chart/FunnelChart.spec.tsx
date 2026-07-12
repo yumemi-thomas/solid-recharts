@@ -12,7 +12,7 @@
 // so that reference assertion is intentionally omitted.
 import { describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { FunnelChart, Funnel, Tooltip, Cell } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";

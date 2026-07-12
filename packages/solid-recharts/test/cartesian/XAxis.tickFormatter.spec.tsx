@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Line, LineChart, XAxis } from "../../src";
 import { PageData } from "../_data";
 import { expectXAxisTicks } from "../helper/expectAxisTicks";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 describe("XAxis with custom tickFormatter", () => {
   it("should render ticks formatted with tickFormatter", () => {

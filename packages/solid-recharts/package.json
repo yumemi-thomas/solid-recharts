@@ -1,6 +1,7 @@
 {
   "name": "solid-recharts",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -17,12 +18,12 @@
     "victory-vendor": "^37.0.2"
   },
   "devDependencies": {
-    "@solid-recharts/testing-library": "workspace:*",
+    "@solidjs/testing-library": "^1.0.0-beta.2",
     "axe-core": "^4.12.0",
     "vitest-axe": "^0.1.0"
   },
   "peerDependencies": {
-    "@solidjs/web": "^2.0.0-beta.14",
-    "solid-js": "^2.0.0-beta.14"
+    "@solidjs/web": "^2.0.0-beta.17",
+    "solid-js": "^2.0.0-beta.17"
   }
 }

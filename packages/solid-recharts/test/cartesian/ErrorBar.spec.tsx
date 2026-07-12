@@ -18,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import type { AnimationController } from "../../src";
 import { MockControllerAnimationManager } from "../animation/mockControllerAnimationManager";

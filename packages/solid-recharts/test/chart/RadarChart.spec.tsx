@@ -15,7 +15,7 @@ import { createEffect, createSignal, flush } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { exampleRadarData } from "../_data";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "../../src";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { expectLastCalledWithScale } from "../helper/expectScale";

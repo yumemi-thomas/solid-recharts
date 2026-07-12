@@ -22,7 +22,7 @@ import {
 import { Brush, ComposedChart, Legend, PieChart, XAxis, YAxis } from "../../src";
 import { useClipPathId } from "../../src/container/ClipPathProvider";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { emptyOffset } from "../helper/offsetHelpers";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";

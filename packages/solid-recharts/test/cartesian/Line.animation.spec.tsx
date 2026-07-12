@@ -25,7 +25,7 @@
 //     scheduling — render-count coupled.
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart, Line } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";

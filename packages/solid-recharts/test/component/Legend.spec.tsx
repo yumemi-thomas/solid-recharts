@@ -10,7 +10,7 @@
 // supported by the port (see reclassifiedBlocked) and are omitted.
 import { createEffect, createSignal, flush, Show } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
-import { fireEvent, render, screen } from "../helper/render";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
 import {
   Area,
   AreaChart,

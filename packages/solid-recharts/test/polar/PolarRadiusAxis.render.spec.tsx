@@ -8,7 +8,7 @@
 // axis line). Exact nice-tick geometry comes online with Radar + the full spec.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { RadarChart, PolarRadiusAxis } from "../../src";
 
 const data = [

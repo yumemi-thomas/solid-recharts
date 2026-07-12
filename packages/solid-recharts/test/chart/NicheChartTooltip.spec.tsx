@@ -4,7 +4,7 @@
 // hover dispatches through the store before the tooltip portal updates.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { SunburstChart, Treemap, Sankey, Tooltip } from "../../src";
 
 function tipItems(container: Element): Array<string | null> {

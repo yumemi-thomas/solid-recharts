@@ -3,7 +3,7 @@
 // containers → chart composition) mounts and renders correct SVG end-to-end.
 // The comprehensive `chartDimensions.spec` parity port is the next milestone.
 import { describe, it, expect } from "vitest";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart } from "../../src";
 
 describe("LineChart (empty-chart smoke)", () => {

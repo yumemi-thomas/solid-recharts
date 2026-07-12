@@ -120,24 +120,6 @@ export default defineConfig({
           "typescript/no-unsafe-argument": "off",
         },
       },
-      {
-        // The vendored Solid-2.0 testing-library is framework glue kept as close to
-        // upstream solid-testing-library as possible (so re-syncs stay mechanical);
-        // it intentionally uses the assertions/any that upstream does. The type
-        // discipline is for the recharts port, not this vendored package.
-        files: ["packages/solid-testing-library/**"],
-        rules: {
-          "typescript/no-explicit-any": "off",
-          "typescript/consistent-type-assertions": "off",
-          "typescript/no-non-null-assertion": "off",
-          "typescript/no-unnecessary-type-assertion": "off",
-          "typescript/no-unsafe-assignment": "off",
-          "typescript/no-unsafe-member-access": "off",
-          "typescript/no-unsafe-call": "off",
-          "typescript/no-unsafe-return": "off",
-          "typescript/no-unsafe-argument": "off",
-        },
-      },
     ],
   },
 });

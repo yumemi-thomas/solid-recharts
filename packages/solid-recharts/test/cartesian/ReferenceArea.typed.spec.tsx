@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Line, LineChart, ReferenceArea, getRelativeCoordinate } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 // Ported from recharts 3.8.1 test/cartesian/ReferenceArea.typed.spec.tsx.
 

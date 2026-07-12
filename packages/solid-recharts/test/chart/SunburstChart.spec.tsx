@@ -4,7 +4,7 @@
 // size is reported via an effect (ReportChartSize) before the arcs compute.
 import { describe, expect, it, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { SunburstChart } from "../../src";
 import type { SunburstData } from "../../src";
 import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";

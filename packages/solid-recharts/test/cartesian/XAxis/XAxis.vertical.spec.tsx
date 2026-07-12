@@ -16,7 +16,7 @@ import {
   selectDisplayedData,
 } from "../../../src/state/selectors/axisSelectors";
 import { useAppSelector } from "../../../src/state/hooks";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import type { XAxisSettings } from "../../../src/state/cartesianAxisSlice";

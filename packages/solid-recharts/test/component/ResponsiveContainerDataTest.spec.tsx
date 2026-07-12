@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { ResponsiveContainer, BarChart, Bar } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
 

@@ -10,7 +10,7 @@
 // come online with Radar (which provides the item domain).
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { RadarChart, PolarAngleAxis } from "../../src";
 
 const data = [

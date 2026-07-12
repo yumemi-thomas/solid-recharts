@@ -3,7 +3,7 @@
 // per-data-point labels for graphical items (via LabelList + its context).
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, ReferenceLine } from "../../src";
 
 const data = [

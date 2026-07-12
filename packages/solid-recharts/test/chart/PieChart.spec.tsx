@@ -23,7 +23,7 @@ import {
 } from "../helper/expectPieSectors";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
 import { selectDisplayedData, selectPieLegend } from "../../src/state/selectors/pieSelectors";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { PageData } from "../_data";
 
 const SECTOR_SELECTOR = ".recharts-pie-sector path.recharts-sector";

@@ -6,6 +6,23 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@solid-recharts/dev", "dev"],
       "port": 5173
+    },
+    {
+      "name": "react-baseline",
+      "runtimeExecutable": "/private/tmp/claude-501/-Users-thomas-Downloads-solid-recharts/d01624c4-e81b-44a1-b75a-fe5b086693ea/scratchpad/react-consumer/node_modules/.bin/vite",
+      "runtimeArgs": [
+        "dev",
+        "/private/tmp/claude-501/-Users-thomas-Downloads-solid-recharts/d01624c4-e81b-44a1-b75a-fe5b086693ea/scratchpad/react-consumer",
+        "--port",
+        "4322"
+      ],
+      "port": 4322
+    },
+    {
+      "name": "docs-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "app/docs", "preview", "--port", "4173"],
+      "port": 4173
     }
   ]
 }

@@ -6,7 +6,7 @@
 // <Shape>/<Layer> emits `<g class="recharts-layer recharts-active-shape">`, so
 // `toHaveClass('recharts-active-shape')` (substring-class match) still holds.
 import { describe, expect, it } from "vitest";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { FunnelTrapezoid, type FunnelTrapezoidProps } from "../../src/util/FunnelUtils";
 import type { Coordinate, TrapezoidViewBox } from "../../src/util/types";
 

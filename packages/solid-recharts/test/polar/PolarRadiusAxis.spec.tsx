@@ -4,7 +4,7 @@ import { PolarRadiusAxis, Radar, RadarChart, RadialBar, RadialBarChart } from ".
 import type { PolarRadiusTickContentProps } from "../../src/polar/PolarRadiusAxis";
 import type { LabelContentType } from "../../src/component/Label";
 import { assertNotNull } from "../helper/assertNotNull";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import {
   implicitRadiusAxis,
   selectRadiusAxis,

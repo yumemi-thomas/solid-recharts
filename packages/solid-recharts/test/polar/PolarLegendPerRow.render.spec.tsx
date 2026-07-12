@@ -4,7 +4,7 @@
 // `flush()` because legend payload registers via effects/selectors.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { PieChart, Pie, RadialBarChart, RadialBar, Legend, Cell } from "../../src";
 
 const pieData = [

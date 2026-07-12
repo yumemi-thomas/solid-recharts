@@ -5,7 +5,7 @@
 // spec's structure; the stability assertions hold by construction. Assertions
 // are otherwise byte-identical.
 import { describe, it, expect } from "vitest";
-import { renderHook } from "../helper/render";
+import { renderHook } from "@solidjs/testing-library";
 import { useUniqueId } from "../../src/util/useUniqueId";
 import { useIdFallback } from "../../src/util/useId";
 

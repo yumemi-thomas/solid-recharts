@@ -2,7 +2,7 @@
 // 7a23854).
 //
 // Harness deviations: React `render` -> Solid `render(() => <…/>)` + `flush()`;
-// @testing-library/react -> the repo's local testing-library at ../helper/render.
+// @testing-library/react -> @solidjs/testing-library.
 //
 // The reference spec's PRIMARY assertion in every case is
 // `expect((await axe(container, AXE_OPTIONS)).violations).toEqual([])` (axe-core static a11y
@@ -55,7 +55,7 @@ import {
   exampleTreemapData,
 } from "../_data";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const AXE_OPTIONS = { rules: { "color-contrast": { enabled: false } } } as const;
 

@@ -37,7 +37,7 @@
 //     is preserved.
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { trim } from "../helper/trim";
 import { assertNotNull } from "../helper/assertNotNull";
 import { Rectangle, Surface } from "../../src";

@@ -41,7 +41,7 @@ import { getCalculatedYAxisWidth } from "../../../src/util/YAxisUtils";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { assertNotNull } from "../../helper/assertNotNull";
-import { render, fireEvent } from "../../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 
 describe("<YAxis />", () => {
   const data = [

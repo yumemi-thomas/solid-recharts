@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Radar, RadarChart } from "../../src";
 import type { RadarProps } from "../../src";
 import type { RadarShapeProps } from "../../src/polar/Radar";
-import { fireEvent, render, screen } from "../helper/render";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { useAppSelector } from "../../src/state/hooks";
 import { selectPolarItemsSettings } from "../../src/state/selectors/polarSelectors";
 import { exampleRadarData } from "../_data";

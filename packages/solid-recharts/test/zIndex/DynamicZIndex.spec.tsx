@@ -13,7 +13,7 @@
 import { describe, it, expect } from "vitest";
 import { createSignal, flush } from "solid-js";
 import { LineChart, Line, XAxis, YAxis } from "../../src";
-import { fireEvent, render, screen } from "../helper/render";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
 
 describe("Dynamic zIndex updates", () => {
   it("should keep the line in the DOM when zIndex changes dynamically", () => {

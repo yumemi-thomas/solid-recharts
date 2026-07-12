@@ -40,7 +40,7 @@ import { PageData, misbehavedData } from "../../_data";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { expectLastCalledWithScale } from "../../helper/expectScale";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { useAppStore } from "../../../src/state/hooks";
 import {
   shouldReturnFromInitialState,

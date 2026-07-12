@@ -7,7 +7,7 @@ import type {
   PieSectorShapeProps,
 } from "../../../src/polar/Pie";
 import { PageData } from "../../_data";
-import { render, fireEvent } from "../../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { expectPieSectors } from "../../helper/expectPieSectors";
 import { expectTooltipPayload } from "../../component/Tooltip/tooltipTestHelpers";
 import { assertNotNull } from "../../helper/assertNotNull";

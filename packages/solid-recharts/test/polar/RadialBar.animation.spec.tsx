@@ -23,7 +23,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { JSX } from "@solidjs/web";
 import { createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import { trim } from "../helper/trim";
 import { RadialBarChart, RadialBar } from "../../src";

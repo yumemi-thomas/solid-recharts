@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { Treemap } from "../../src";
 import { exampleTreemapData } from "../_data";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 function depthLayers(container: Element): Element[] {
   return Array.from(container.querySelectorAll(".recharts-treemap-depth-1"));

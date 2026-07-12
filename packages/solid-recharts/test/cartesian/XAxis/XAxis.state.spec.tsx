@@ -3,7 +3,7 @@ import type { Mock } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { BarChart, XAxis } from "../../../src";
-import { render, fireEvent } from "../../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 import { useAppSelector } from "../../../src/state/hooks";
 import {

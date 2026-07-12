@@ -1,6 +1,6 @@
 import { beforeEach, describe, it } from "vitest";
 import { flush } from "solid-js";
-import { fireEvent } from "../../helper/render";
+import { fireEvent } from "@solidjs/testing-library";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { RadialBar, RadialBarChart, Tooltip } from "../../../src";
 import { PageData } from "../../_data";

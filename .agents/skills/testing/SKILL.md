@@ -1,24 +1,23 @@
 ---
 name: testing
-description: Use this skill whenever you write, run, or debug tests in the solid-recharts repo — porting a recharts spec, adding a `.spec.ts(x)` file, choosing render/query helpers, or interpreting a test failure. Covers the two pillars of this repo's test setup — (1) the Solid 2.0 **diagnostics discipline** (`expectClean`/`expectOnly`, `DEV.diagnostics`, dev-mode wiring) where any unexpected reactive-graph diagnostic fails the test, and (2) the vendored **@solid-recharts/testing-library** package (`render`, `renderHook`, `renderRef`, `testEffect`, `screen`, `fireEvent`, `waitFor`, byRole/byText queries). Trigger on `expectClean`, `expectOnly`, `DEV.diagnostics`, `STRICT_READ_UNTRACKED`, `SIGNAL_WRITE_IN_OWNED_SCOPE`, `NO_OWNER_EFFECT`, `vp test`, `renderHook`, `testEffect`, "why is my test failing with a diagnostic", or "how do I test a Solid component/hook here".
+description: Use this skill whenever you write, run, or debug tests in the solid-recharts repo — porting a recharts spec, adding a `.spec.ts(x)` file, choosing render/query helpers, or interpreting a test failure. Covers the two pillars of this repo's test setup — (1) the Solid 2.0 **diagnostics discipline** (`expectClean`/`expectOnly`, `DEV.diagnostics`, dev-mode wiring) where any unexpected reactive-graph diagnostic fails the test, and (2) **@solidjs/testing-library** (`render`, `renderHook`, `renderRef`, `testEffect`, `screen`, `fireEvent`, `waitFor`, byRole/byText queries). Trigger on `expectClean`, `expectOnly`, `DEV.diagnostics`, `STRICT_READ_UNTRACKED`, `SIGNAL_WRITE_IN_OWNED_SCOPE`, `NO_OWNER_EFFECT`, `vp test`, `renderHook`, `testEffect`, "why is my test failing with a diagnostic", or "how do I test a Solid component/hook here".
 ---
 
 # Testing in solid-recharts
 
-This repo ports **recharts 3.8.1** to **SolidJS 2.0**. Two things make its test setup
-non-obvious; read this before writing or debugging a test.
+This repo ports **recharts** (reference pinned at v3.9.2) to **SolidJS 2.0**. Two things make
+its test setup non-obvious; read this before writing or debugging a test.
 
 1. **Diagnostics discipline** — every Solid 2.0 reactive-graph diagnostic that fires during a
    test is treated as a failure, not console noise.
-2. **A vendored testing library** — the official `@solidjs/testing-library` still targets Solid
-   1.x, so we ship our own Solid-2.0 port as the `@solid-recharts/testing-library` workspace
-   package.
+2. **@solidjs/testing-library** — the official Solid 2.0 testing library (`1.0.0-beta.x`);
+   specs import it directly.
 
 ## TL;DR
 
 ```tsx
 import { describe, expect, it } from "vitest";
-import { render, screen, fireEvent, waitFor } from "../helper/render";
+import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
 import { expectClean } from "../utils/diagnostics";
 
 it("renders a tick label", async () => {
@@ -33,8 +32,7 @@ it("renders a tick label", async () => {
 });
 ```
 
-- Import render/query/event helpers from **`test/helper/render`** (a thin re-export of the
-  package) — one swap point for when the upstream package ships on npm.
+- Import render/query/event helpers from **`@solidjs/testing-library`**.
 - Import `expectClean` / `expectOnly` from **`test/utils/diagnostics`**.
 - Wrap the body of behavioral tests in `expectClean(...)` by default.
 - Run with `vp test run` (CI) or `vp test` (watch). `pnpm test` adds a `pretest` gate that
@@ -108,11 +106,10 @@ condition) strips reactivity and emits nothing.
 
 ---
 
-## 2. @solid-recharts/testing-library
+## 2. @solidjs/testing-library
 
-A vendored Solid 2.0 port of `@solidjs/testing-library` (`next` branch). Lives at
-`packages/solid-testing-library/`; `solid-recharts` depends on it as `workspace:*` and re-exports
-it through `test/helper/render.ts`. It re-exports everything from `@testing-library/dom`
+The official Solid 2.0 testing library (`@solidjs/testing-library@1.0.0-beta.x`).
+It re-exports everything from `@testing-library/dom`
 (`screen`, `fireEvent`, `waitFor`, `within`, all `getBy*/queryBy*/findBy*` queries) plus the
 Solid-specific helpers below.
 
@@ -178,9 +175,8 @@ await testEffect<number>((done) => {
 });
 ```
 
-Note: our copy's error handler calls the error **accessor** (`fail(err())`), matching upstream —
-`createErrorBoundary`'s fallback receives `Accessor<unknown>`, not a value. (This was a fix vs.
-the original vendor; don't revert it to `fail(err)`.)
+Note: the error handler calls the error **accessor** (`fail(err())`) —
+`createErrorBoundary`'s fallback receives `Accessor<unknown>`, not a value.
 
 ### Async queries are rarely needed
 
@@ -188,21 +184,12 @@ Solid's reactivity is near-instantaneous, so prefer sync `getBy*`. Reach for `fi
 only for genuinely async behavior — transitions, `<Loading>`/Suspense, resources, router
 navigation.
 
-### Re-syncing the vendor
-
-Keep `packages/solid-testing-library/src/{index,types}.ts` as close to
-[upstream `next`](https://github.com/solidjs/solid-testing-library/tree/next) as the 2.0 API
-allows so a future re-sync (or swap to the published npm package) stays mechanical. Known
-intentional deltas from upstream: long JSDoc trimmed; `renderRef`/`RenderRefOptions` generics
-simplified (dropped unused type params); `testEffect` error handler kept as `fail(err())`.
-
 ---
 
 ## TDD workflow (per AGENTS.md)
 
 - Port **every** `test()` case from the unit's real recharts spec
-  (`vendor/recharts-reference/test/<path>`), not a sample. Track status in `TESTS.md`
-  (`pending → ported-red → green`).
+  (`vendor/recharts-reference/test/<path>`), not a sample.
 - **Red first.** Author the spec before the implementation; implement the minimum to go green.
 - Tier A (DOM/behavioral): assertions byte-identical, change only the harness. Tier B
   (state-internal): equivalent tests, expectations golden-anchored to recharts.

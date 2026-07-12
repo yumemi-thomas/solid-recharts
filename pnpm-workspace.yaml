@@ -3,8 +3,8 @@ packages:
   # app/docs is intentionally NOT a workspace member: it runs TanStack Start
   # SSR, which is proven on real vite@8 but breaks (silent hydration
   # unclaiming) on the vite-plus-core engine this workspace overrides `vite`
-  # to. It gets its own lockfile/node_modules — install with
-  # `pnpm install --ignore-workspace` inside app/docs.
+  # to. It has its own pnpm-workspace.yaml, lockfile and node_modules — a plain
+  # `pnpm install` inside app/docs treats it as its own workspace root.
   - "app/dev"
 
 allowBuilds:
@@ -16,9 +16,17 @@ allowBuilds:
 enablePrePostScripts: true
 
 minimumReleaseAgeExclude:
-  - "@solidjs/signals@2.0.0-beta.15"
-  - "@solidjs/web@2.0.0-beta.15"
-  - solid-js@2.0.0-beta.15
+  - "@solidjs/signals@2.0.0-beta.17"
+  - "@solidjs/web@2.0.0-beta.17"
+  - solid-js@2.0.0-beta.17
+  - "@solidjs/testing-library@1.0.0-beta.2"
+
+# @solidjs/testing-library declares `solid-js >=2.0.0`, which a 2.0.0-beta.*
+# prerelease doesn't formally satisfy — allow it until Solid 2.0 stable ships.
+peerDependencyRules:
+  allowedVersions:
+    "@solidjs/testing-library>solid-js": "2.0.0-beta.17"
+    "@solidjs/testing-library>@solidjs/web": "2.0.0-beta.17"
 
 # Beta/preview toolchain (Solid 2.0, Vite+, vite-plugin-solid@next): hoisted layout so plugin
 # peer resolution and the `vp` bin behave like the npm-flat setup proven green.

@@ -27,7 +27,7 @@
 // RechartsWrapper.handleClick now flush()es between dispatchMouseClick and the
 // external-handler dispatch.
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import {
   BarChartCase,
   ComposedChartCase,

@@ -40,7 +40,7 @@ import {
   allCartesianChartsExcept,
   type CartesianChartTestCase,
 } from "../helper/parameterizedTestCases";
-import { fireEvent, render, screen } from "../helper/render";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
 
 const emptyBaseValues: ReadonlyArray<BaseValue | undefined> = [undefined, NaN];
 

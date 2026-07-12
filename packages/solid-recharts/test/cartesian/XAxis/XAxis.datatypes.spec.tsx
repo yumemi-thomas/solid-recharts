@@ -4,7 +4,7 @@ import { describe, it } from "vitest";
 import { ComposedChart, XAxis } from "../../../src";
 import { coordinateWithValueData, dateWithValueData, pageData, timeData } from "../../_data";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const normalizedDateString = (date: Date): string =>
   date.toString().replace(/\(.*?\)/, "(Coordinated Universal Time)");

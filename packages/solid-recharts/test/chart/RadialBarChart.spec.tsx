@@ -25,7 +25,7 @@ import { createEffect, flush } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { Cell, Legend, RadialBar, RadialBarChart, Sector, Tooltip } from "../../src";
 import type { SectorProps } from "../../src/shape/Sector";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { trim } from "../helper/trim";
 import { assertNotNull } from "../helper/assertNotNull";

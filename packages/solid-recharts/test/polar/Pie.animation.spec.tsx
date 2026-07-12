@@ -11,7 +11,7 @@
 // (matching recharts 3.9 Pie.animation.spec).
 import { describe, expect, it, vi } from "vitest";
 import { createSignal, flush, Show } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { PieChart, Pie } from "../../src";
 import { expectPieSectors } from "../helper/expectPieSectors";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";

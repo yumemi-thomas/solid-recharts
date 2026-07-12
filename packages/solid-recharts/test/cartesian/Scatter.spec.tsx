@@ -19,7 +19,7 @@ import { assertNotNull } from "../helper/assertNotNull";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { dataWithSpecialNameAndFillProperties, PageData } from "../_data";
 import { selectTooltipPayload } from "../../src/state/selectors/tooltipSelectors";
 import { selectActiveTooltipPayload } from "../../src/state/selectors/tooltipSelectors";

@@ -18,7 +18,7 @@
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { fireEvent } from "../helper/render";
+import { fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar, Brush } from "../../src";
 import { PageData } from "../_data";
 import { assertNotNull } from "../helper/assertNotNull";

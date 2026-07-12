@@ -4,7 +4,7 @@
 // render takes a thunk. All assertions are byte-identical.
 import { describe, expect, it, test } from "vitest";
 import { createSignal } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { curveLinear } from "victory-vendor/d3-shape";
 import { Surface, Curve } from "../../src";
 import { getPath, type CurveType } from "../../src/shape/Curve";

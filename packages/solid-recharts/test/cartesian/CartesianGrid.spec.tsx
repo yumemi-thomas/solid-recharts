@@ -15,7 +15,7 @@
 import { describe, expect, it, type Mock, test, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import {
   CartesianGrid,
   LineChart,

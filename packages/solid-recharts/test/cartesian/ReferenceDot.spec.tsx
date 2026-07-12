@@ -7,7 +7,7 @@
 // the React-component `shape` prop-equality case.
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { Bar, BarChart, LineChart, ReferenceDot, XAxis, YAxis } from "../../src";
 import { useAppSelector } from "../../src/state/hooks";
 import { selectReferenceDotsByAxis } from "../../src/state/selectors/axisSelectors";

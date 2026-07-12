@@ -1,6 +1,6 @@
 import { expect, vi } from "vitest";
 import { flush } from "solid-js";
-import { fireEvent } from "../../helper/render";
+import { fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../../helper/assertNotNull";
 import type { Coordinate } from "../../../src/util/types";
 

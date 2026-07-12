@@ -18,7 +18,7 @@
 // fails it via the global guard in test/setup.ts.
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { AreaChart, Area, XAxis, YAxis } from "../../src";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { expectAreaCurve } from "../helper/expectAreaCurve";

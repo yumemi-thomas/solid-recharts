@@ -6,7 +6,6 @@
 // root store composes them — `state` mirrors the slice state proxies, `actions`
 // namespaces the slice actions by slice name (symmetric with `state`).
 //
-// Grows as each slice lands (PORT_ORDER Tier 2 builds the core feature-vertically).
 import { createChartDataSlice, type ChartDataActions, type ChartDataState } from "./chartDataSlice";
 import {
   createChartLayoutSlice,

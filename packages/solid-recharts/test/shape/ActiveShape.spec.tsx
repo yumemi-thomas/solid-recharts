@@ -18,7 +18,7 @@
 // upstream cases are omitted. The function, object, and boolean forms are ported
 // verbatim (modulo className->class).
 import { describe, expect, test } from "vitest";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { Funnel, FunnelChart, Trapezoid, Tooltip } from "../../src";
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { funnelChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";

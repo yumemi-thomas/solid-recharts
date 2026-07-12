@@ -1,6 +1,6 @@
 import { describe, it, test, expect, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import {
   Area,
   Bar,

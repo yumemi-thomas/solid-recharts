@@ -18,7 +18,7 @@
 //    hook directly in a render body.
 import { describe, expect, it, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { Brush, ComposedChart, Line, LineChart, ReferenceLine, XAxis, YAxis } from "../../../src";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectAxisRangeWithReverse } from "../../../src/state/selectors/axisSelectors";

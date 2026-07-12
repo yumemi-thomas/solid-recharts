@@ -23,7 +23,7 @@
 //     shape; `getRelativeCoordinate(e)` still accepts the (SVG) event.
 import { describe, it } from "vitest";
 import { Area, AreaChart, getRelativeCoordinate } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectAreaCurve, type ExpectedArea } from "../helper/expectAreaCurve";
 
 type ExampleDataPoint = {

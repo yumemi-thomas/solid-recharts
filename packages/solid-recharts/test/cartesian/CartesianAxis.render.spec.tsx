@@ -3,7 +3,7 @@
 // not just register settings.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis } from "../../src";
 import { PageData } from "../_data";
 

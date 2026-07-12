@@ -21,7 +21,7 @@ import {
 import type { CartesianGraphicalItemSettings } from "../../../src/state/graphicalItemsSlice";
 import { useAppSelector } from "../../../src/state/hooks";
 import { BarSettings } from "../../../src/state/types/BarSettings";
-import { fireEvent, render } from "../../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { assertZIndexLayerOrder } from "../../helper/assertZIndexLayerOrder";
 import { expectActiveBars, expectBars, getAllBarPaths, getAllBars } from "../../helper/expectBars";
 import { expectLabels } from "../../helper/expectLabel";

@@ -25,7 +25,7 @@ import {
   XAxis,
   YAxis,
 } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const data = [
   { name: "a", uv: 100 },

@@ -2,7 +2,7 @@
 // Harness changes only: render from local Solid shim, no React import, render takes a thunk.
 // All assertions are byte-identical to recharts.
 import { describe, test, expect } from "vitest";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 import { Surface, Dot } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";

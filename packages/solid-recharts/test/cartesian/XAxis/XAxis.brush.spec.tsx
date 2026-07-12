@@ -3,7 +3,7 @@ import { createEffect } from "solid-js";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectTicksOfAxis } from "../../../src/state/selectors/axisSelectors";
 import { BarChart, Brush, XAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 

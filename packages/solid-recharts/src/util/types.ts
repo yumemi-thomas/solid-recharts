@@ -10,7 +10,7 @@ import type { ExternalMouseEvents } from "../chart/types";
 // codebase (Area, Label, Text, axisSelectors, d3-scale, the public index). We do
 // NOT port it whole — only the geometry/value types the currently-ported units
 // reference, growing this file as later units need more ("declare/stub then
-// backfill", per PORT_ORDER). Definitions are copied faithfully; the sole
+// backfill"). Definitions are copied faithfully; the sole
 // deviation is `ChartCoordinate`'s `any` fields → `unknown` (this repo bans
 // `any`; the type is `@deprecated` and those fields aren't read structurally by
 // current consumers).

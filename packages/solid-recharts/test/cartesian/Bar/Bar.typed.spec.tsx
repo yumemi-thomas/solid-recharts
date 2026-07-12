@@ -19,7 +19,7 @@
 //    on each call (golden-anchored to the Solid type surface).
 import { describe, it } from "vitest";
 import { Bar, BarChart, getRelativeCoordinate, type BarRectangleItem } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectBars, type ExpectedBar } from "../../helper/expectBars";
 
 type ExampleDataPoint = {

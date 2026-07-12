@@ -12,7 +12,7 @@
 // SYNCHRONOUSLY in its constructor (on first render), not lazily on the first tick.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { PieChart, Pie, Legend } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";

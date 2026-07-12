@@ -32,7 +32,7 @@
 //     be reproduced.
 import { beforeEach, describe, expect, it } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { ScatterChart, Scatter, Legend } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";

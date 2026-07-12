@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { getRelativeCoordinate, Line, LineChart, XAxis, type TickItem } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 // Ported from recharts 3.8.1 test/cartesian/XAxis/XAxis.typed.spec.tsx.
 //

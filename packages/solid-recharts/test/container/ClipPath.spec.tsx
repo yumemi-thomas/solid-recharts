@@ -17,7 +17,7 @@ import {
 } from "../../src";
 import { PageData } from "../_data";
 import { assertNotNull } from "../helper/assertNotNull";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 function selectAllClipPaths(container: Element | null): NodeListOf<SVGRectElement> {
   assertNotNull(container);

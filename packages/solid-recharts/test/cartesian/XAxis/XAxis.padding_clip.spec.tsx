@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Bar, BarChart, XAxis, YAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 describe("XAxis padding with allowDataOverflow", () => {
   it("should clip data reaching into the padding area when allowDataOverflow is true", () => {

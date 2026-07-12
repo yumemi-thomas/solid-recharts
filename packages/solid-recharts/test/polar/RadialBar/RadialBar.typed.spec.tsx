@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RadialBarDataItem } from "../../../src";
 import { getRelativeCoordinate, RadialBar, RadialBarChart } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 type ExampleDataPoint = {
   value: number;

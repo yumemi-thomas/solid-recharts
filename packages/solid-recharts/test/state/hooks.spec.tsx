@@ -14,7 +14,7 @@
 // asserted after `flush()` (Solid batches writes on microtasks).
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { renderHook } from "../helper/render";
+import { renderHook } from "@solidjs/testing-library";
 import { useAppSelector, useAppStore } from "../../src/state/hooks";
 import { RechartsStoreProvider } from "../../src/state/RechartsStoreProvider";
 

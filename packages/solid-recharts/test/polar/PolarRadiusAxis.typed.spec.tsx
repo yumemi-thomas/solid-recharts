@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { PolarRadiusAxis, RadialBar, RadialBarChart, getRelativeCoordinate } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 // Ported from recharts 3.8.1 test/polar/PolarRadiusAxis.typed.spec.tsx.
 

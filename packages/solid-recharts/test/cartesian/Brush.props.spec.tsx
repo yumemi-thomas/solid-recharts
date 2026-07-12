@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { BarChart, Brush } from "../../src";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 
 const data = [

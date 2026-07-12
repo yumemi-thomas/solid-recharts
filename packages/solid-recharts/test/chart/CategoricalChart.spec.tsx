@@ -29,7 +29,7 @@ import {
 } from "../../src";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { assertNotNull } from "../helper/assertNotNull";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 
 type WrapperProps = {
   onClick: () => void;

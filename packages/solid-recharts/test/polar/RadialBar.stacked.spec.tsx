@@ -4,7 +4,7 @@
 // [570,1830]→[56°,180°] with endAngle=180 and total=1830).
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { RadialBarChart, RadialBar } from "../../src";
 
 const data = [{ month: "january", desktop: 1260, mobile: 570 }];

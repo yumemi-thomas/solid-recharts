@@ -9,7 +9,7 @@
 import { createEffect, createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { vi, type Mock } from "vitest";
-import { render } from "./render";
+import { render } from "@solidjs/testing-library";
 import { useAppSelector, useAppStore } from "../../src/state/hooks";
 import type { RechartsRootState } from "../../src/state/store";
 

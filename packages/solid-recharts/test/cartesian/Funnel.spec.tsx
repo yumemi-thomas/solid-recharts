@@ -10,7 +10,7 @@ import { Cell, Funnel, FunnelChart, FunnelProps, FunnelTrapezoidItem, LabelList 
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { funnelChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
 import { computeFunnelTrapezoids } from "../../src/cartesian/Funnel";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const data = [
   { value: 100, name: "展现" },

@@ -30,7 +30,7 @@ import "@testing-library/jest-dom/vitest";
 import "./helper/expectFunctionReturning";
 import { afterEach, beforeEach, vi } from "vitest";
 import { DEV } from "solid-js";
-import { cleanup } from "./helper/render";
+import { cleanup } from "@solidjs/testing-library";
 import {
   type DiagnosticEvent,
   describeDiagnosticEvents,

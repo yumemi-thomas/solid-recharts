@@ -12,7 +12,7 @@ import { barChartMouseHoverTooltipSelector } from "../../component/Tooltip/toolt
 import { mockGetBoundingClientRect } from "../../helper/mockGetBoundingClientRect";
 import { expectNthCalledWith } from "../../helper/expectLastCalledWith";
 import { assertNotNull } from "../../helper/assertNotNull";
-import { fireEvent } from "../../helper/render";
+import { fireEvent } from "@solidjs/testing-library";
 
 const expectedBars: ReadonlyArray<ExpectedBar> = [
   {

@@ -20,7 +20,7 @@
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect, createSignal, flush, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { fireEvent, render, screen } from "../helper/render";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { Bar, BarChart, IfOverflow, LineChart, ReferenceArea, XAxis, YAxis } from "../../src";
 import { useAppSelector } from "../../src/state/hooks";
 import { selectReferenceAreasByAxis } from "../../src/state/selectors/axisSelectors";

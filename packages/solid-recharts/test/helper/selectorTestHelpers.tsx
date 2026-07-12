@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createRechartsStore } from "../../src/state/store";
 import type { RechartsRootState } from "../../src/state/store";
 import { useAppSelector } from "../../src/state/hooks";
-import { render } from "./render";
+import { render } from "@solidjs/testing-library";
 import { flush, type Accessor } from "solid-js";
 
 type Selector<T> = (state: RechartsRootState) => T;

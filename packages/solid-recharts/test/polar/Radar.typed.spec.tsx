@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Radar, RadarChart, getRelativeCoordinate } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 type ExampleDataPoint = {
   value: number;

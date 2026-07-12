@@ -13,7 +13,7 @@
 // - `flush()` drains Solid's microtask-batched store writes before DOM assertions.
 import { describe, expect, it, test } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { exampleRadarData, pageData } from "../_data";
 import {
   PolarAngleAxis,

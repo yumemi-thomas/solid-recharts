@@ -32,7 +32,7 @@ import {
 import { expectLastCalledWithScale } from "../../helper/expectScale";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import type { PolarAngleTickContentProps } from "../../../src/polar/PolarAngleAxis";
 
 /*

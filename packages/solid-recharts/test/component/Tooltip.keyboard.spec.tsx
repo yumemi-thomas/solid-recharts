@@ -5,7 +5,7 @@
 // interaction → the same payload pipeline).
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, Tooltip } from "../../src";
 import { PageData } from "../_data";
 

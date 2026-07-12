@@ -7,7 +7,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import {
   Area,

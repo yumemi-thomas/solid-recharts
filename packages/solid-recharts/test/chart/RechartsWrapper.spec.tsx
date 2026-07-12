@@ -1,6 +1,6 @@
 import { Show, createSignal, flush } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import { BarChart } from "../../src";
 import { RechartsWrapper } from "../../src/chart/RechartsWrapper";

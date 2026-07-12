@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 test/component/LabelList.spec.tsx (commit 7a23854).
 import { flush } from "solid-js";
 import { Bar, BarChart, LabelList, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectLabels } from "../helper/expectLabel";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
 

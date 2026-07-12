@@ -5,7 +5,7 @@
 // a vertical line at x=category spans the full plot height at that band's x.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ReferenceLine } from "../../src";
 
 const data = [

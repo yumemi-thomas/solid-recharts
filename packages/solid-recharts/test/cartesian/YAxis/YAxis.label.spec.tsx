@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { YAxis, Label, AreaChart, Area } from "../../../src";
-import { render, screen } from "../../helper/render";
+import { render, screen } from "@solidjs/testing-library";
 import { PageData } from "../../_data";
 import { assertNotNull } from "../../helper/assertNotNull";
 

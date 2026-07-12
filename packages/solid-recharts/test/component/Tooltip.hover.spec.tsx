@@ -9,7 +9,7 @@
 // places index 2 ("Page C") at x = 164; a mousemove there selects it.
 import { describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, Tooltip } from "../../src";
 import { PageData } from "../_data";
 

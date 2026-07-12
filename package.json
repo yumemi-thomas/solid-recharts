@@ -1,6 +1,7 @@
 {
   "name": "solid-recharts-monorepo",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "ref:setup": "bash scripts/setup-reference.sh",
@@ -15,11 +16,11 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
-    "@solidjs/web": "2.0.0-beta.15",
+    "@solidjs/web": "2.0.0-beta.17",
     "@testing-library/jest-dom": "^6.9.1",
     "@types/node": "^22.20.1",
     "jsdom": "^25.0.1",
-    "solid-js": "2.0.0-beta.15",
+    "solid-js": "2.0.0-beta.17",
     "typescript": "^5.9.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.24",
     "vite-plugin-solid": "3.0.0-next.5",

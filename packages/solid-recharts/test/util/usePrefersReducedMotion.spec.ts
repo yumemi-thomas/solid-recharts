@@ -3,7 +3,7 @@
 // an Accessor, so the value is read via `result()` where React wrote
 // `result.current`. Assertions/mocks are otherwise byte-identical.
 import { test } from "vitest";
-import { renderHook } from "../helper/render";
+import { renderHook } from "@solidjs/testing-library";
 
 import { usePrefersReducedMotion } from "../../src/util/usePrefersReducedMotion";
 import { Global } from "../../src/util/Global";

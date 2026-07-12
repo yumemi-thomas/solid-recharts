@@ -51,7 +51,7 @@ import {
   Scatter,
   ScatterChart,
 } from "../../src";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import type { AnimationController } from "../../src";
 import {

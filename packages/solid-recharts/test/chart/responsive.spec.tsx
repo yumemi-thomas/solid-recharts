@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";

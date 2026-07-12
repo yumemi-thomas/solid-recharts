@@ -7,7 +7,7 @@
 // register via effects and points compute from the store.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { AreaChart, Area } from "../../src";
 
 const data = [

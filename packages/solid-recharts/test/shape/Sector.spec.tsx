@@ -2,7 +2,7 @@
 // Harness changes only: render from the local Solid shim (thunk), no React
 // import. Assertions are byte-identical (snapshots self-record; the
 // `.recharts-sector` presence/count + arc-count are the parity signal).
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 import { Surface, Sector } from "../../src";
 

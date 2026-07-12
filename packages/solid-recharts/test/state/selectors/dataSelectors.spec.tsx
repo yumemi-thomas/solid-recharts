@@ -10,7 +10,7 @@ import {
   useAppSelectorWithStableTest,
 } from "../../helper/selectorTestHelpers";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 // Ported from recharts 3.8.1 test/state/selectors/dataSelectors.spec.tsx.
 

@@ -2,7 +2,7 @@
 // range (x1..x2, y1..y2), mapped to pixels through both cartesian scales.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ReferenceArea } from "../../src";
 
 const data = [

@@ -3,7 +3,7 @@
 // import; the invalid-input cast uses `unknown` instead of `any`. Assertions
 // are byte-identical (snapshots self-record our output; the `.recharts-cross`
 // counts are the parity signal).
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 import { Surface, Cross } from "../../src";
 

@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar } from "../../src";
 import type { AnimationController } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";

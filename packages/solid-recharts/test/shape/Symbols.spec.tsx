@@ -4,7 +4,7 @@
 // tests are ported; the 4th ('Expect no points attribute on path') renders a
 // full LineChart with XAxis/YAxis/Line and is DEFERRED until the chart vertical
 // is ported.
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { Surface, Symbols } from "../../src";
 
 describe("<Symbols />", () => {

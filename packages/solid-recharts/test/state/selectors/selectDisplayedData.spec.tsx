@@ -16,7 +16,7 @@ import {
   useAppSelectorWithStableTest,
 } from "../../helper/selectorTestHelpers";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const data1 = [
   { label: "Iter: 0", x: 211, y: 481, z: 1798 },

@@ -22,7 +22,7 @@
 //     load-bearing contracts (fresh `from`, settled `to`, gating) are asserted.
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { CSSTransitionAnimate } from "../../src/animation/CSSTransitionAnimate";
 import { MockControllerAnimationManager } from "./mockControllerAnimationManager";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";

@@ -4,7 +4,7 @@
 // chart size is reported via an effect before the layout computes.
 import { describe, expect, it, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import { render, fireEvent, screen } from "../helper/render";
+import { render, fireEvent, screen } from "@solidjs/testing-library";
 import { Tooltip, Treemap, XAxis, YAxis } from "../../src";
 import { getTooltip, showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { treemapNodeChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";

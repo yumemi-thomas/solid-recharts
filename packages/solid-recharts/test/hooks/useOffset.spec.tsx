@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Brush, ComposedChart, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "../../src";
 import { useActiveTooltipDataPoints, useOffset, usePlotArea } from "../../src/hooks";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { pageData } from "../_data";
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";

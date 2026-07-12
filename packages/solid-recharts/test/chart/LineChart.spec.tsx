@@ -24,7 +24,7 @@
 //     call-count spies (render-count coupling).
 import { describe, expect, it, test, vi } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { Brush, CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "../../src";
 import type { CurveType } from "../../src/shape/Curve";
 import type { LabelContentType } from "../../src/component/Label";

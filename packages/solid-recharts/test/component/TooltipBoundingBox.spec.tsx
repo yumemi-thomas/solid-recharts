@@ -1,10 +1,10 @@
 // Ported from recharts 3.8.1 test/component/TooltipBoundingBox.spec.tsx.
 // Harness adaptations: React render -> Solid render(() => <…/>) + flush();
-// @testing-library/react -> repo-local testing-library (../helper/render);
+// @testing-library/react -> @solidjs/testing-library;
 // userEvent.keyboard('{Escape}') -> fireEvent.keyDown(document, { key: 'Escape' }).
 import { flush } from "solid-js";
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "../helper/render";
+import { render, screen, fireEvent } from "@solidjs/testing-library";
 import { TooltipBoundingBox } from "../../src/component/TooltipBoundingBox";
 import type { TooltipBoundingBoxProps } from "../../src/component/TooltipBoundingBox";
 

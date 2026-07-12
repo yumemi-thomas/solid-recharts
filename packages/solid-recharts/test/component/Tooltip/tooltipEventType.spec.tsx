@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { fireEvent, render } from "../../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { PageData } from "../../_data";
 import { getTooltip, hideTooltip, showTooltip } from "./tooltipTestHelpers";
 import {

@@ -3,7 +3,7 @@ import type { Mock } from "vitest";
 import type { JSX } from "@solidjs/web";
 import { Bar, BarChart, ComposedChart, Line, LineChart, XAxis, YAxis } from "../../../src";
 import type { CartesianTickContentProps } from "../../../src";
-import { render, fireEvent } from "../../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import { expectLastCalledWith, expectNthCalledWith } from "../../helper/expectLastCalledWith";

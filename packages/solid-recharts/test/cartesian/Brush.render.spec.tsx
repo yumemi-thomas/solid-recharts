@@ -5,7 +5,7 @@
 // `flush()` because the brush registers settings + reads indices via effects.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, Brush } from "../../src";
 
 const data = [

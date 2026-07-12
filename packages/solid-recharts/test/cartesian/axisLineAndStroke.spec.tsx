@@ -3,7 +3,7 @@
 // unit-test them on the cartesian axes (only PolarAngleAxis tests axisLine=false).
 import { describe, expect, it } from "vitest";
 import { Line, LineChart, XAxis, YAxis } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const data = [
   { name: "a", uv: 100 },

@@ -10,7 +10,7 @@
 // `store.actions.zIndex.registerZIndexPortal(…)` + `flush()`.
 import { beforeEach, describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { RechartsStoreContext } from "../../src/state/RechartsStoreContext";
 import { AllZIndexPortals } from "../../src/zIndex/ZIndexPortal";
 import { createRechartsStore, type RechartsStore } from "../../src/state/store";

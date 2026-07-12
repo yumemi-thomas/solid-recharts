@@ -1,6 +1,6 @@
 import { createEffect, createSignal, flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "../helper/render";
+import { render, screen } from "@solidjs/testing-library";
 import { ResponsiveContainer, useResponsiveContainerContext } from "../../src";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { assertNotNull } from "../helper/assertNotNull";

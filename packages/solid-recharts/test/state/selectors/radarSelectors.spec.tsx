@@ -7,7 +7,7 @@
 // asserts the selector VALUE before/after the click (render-count assertions dropped).
 import { createEffect, createSignal, flush } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render } from "../../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { useAppSelectorWithStableTest } from "../../helper/selectorTestHelpers";
 import { RechartsRootState } from "../../../src/state/store";
 import {

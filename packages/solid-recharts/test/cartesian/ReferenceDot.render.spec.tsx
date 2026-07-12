@@ -2,7 +2,7 @@
 // mapped to pixels through both cartesian scales (CartesianScaleHelperImpl).
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ReferenceDot } from "../../src";
 
 const data = [

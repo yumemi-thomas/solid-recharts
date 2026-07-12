@@ -21,7 +21,7 @@ import {
 import { expectScatterPoints, expectScatterPointsUnordered } from "../helper/expectScatterPoints";
 import { expectXAxisTicks, expectYAxisTicks } from "../helper/expectAxisTicks";
 import { assertNotNull } from "../helper/assertNotNull";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { boxPlotData, PageData } from "../_data";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";

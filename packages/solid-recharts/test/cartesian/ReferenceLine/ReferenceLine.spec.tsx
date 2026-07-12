@@ -26,7 +26,7 @@
 //    it is type-incompatible with the kebab LineSVGAttributes and has no effect).
 import { describe, expect, it, test, vi } from "vitest";
 import { createEffect, createSignal, flush, Show } from "solid-js";
-import { fireEvent, render, screen } from "../../helper/render";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { Bar, BarChart, Line, LineChart, ReferenceLine, XAxis, YAxis } from "../../../src";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectReferenceLinesByAxis } from "../../../src/state/selectors/axisSelectors";

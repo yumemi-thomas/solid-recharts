@@ -6,7 +6,7 @@ import { scaleTime } from "victory-vendor/d3-scale";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectRealScaleType } from "../../../src/state/selectors/axisSelectors";
 import { Line, LineChart, XAxis, YAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import type { XAxisProps } from "../../../src/cartesian/XAxis";

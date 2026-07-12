@@ -8,7 +8,7 @@
 // coords would diverge from recharts for reasons unrelated to axis logic.
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis } from "../../src";
 
 function tickTexts(container: Element, axis: ".recharts-xAxis" | ".recharts-yAxis"): string[] {

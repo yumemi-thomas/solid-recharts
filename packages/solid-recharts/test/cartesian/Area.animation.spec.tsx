@@ -19,7 +19,7 @@
 // propagation to a flush boundary.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSignal, flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { AreaChart, Area } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";

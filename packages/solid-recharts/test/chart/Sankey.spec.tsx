@@ -4,7 +4,7 @@
 // before the layout computes.
 import { describe, expect, it, vi } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { Sankey, Tooltip, XAxis, YAxis } from "../../src";
 import { computeData, sankeyPayloadSearcher } from "../../src/chart/Sankey";
 import type { SankeyLinkProps, SankeyNodeProps } from "../../src";

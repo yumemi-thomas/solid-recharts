@@ -28,7 +28,7 @@ import {
   Tooltip,
 } from "../../../src";
 import { assertZIndexLayerOrder } from "../../helper/assertZIndexLayerOrder";
-import { fireEvent, render } from "../../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectPolarItemsSettings } from "../../../src/state/selectors/polarSelectors";
 import { PageData } from "../../_data";

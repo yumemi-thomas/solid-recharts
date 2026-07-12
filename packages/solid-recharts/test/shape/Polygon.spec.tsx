@@ -2,7 +2,7 @@
 // Harness changes only: render/fireEvent from the local Solid shim (thunk), no
 // React import; `className` → `class` (the sanctioned prop rename). Path `d`
 // assertions are byte-identical (the parity signal); snapshots self-record.
-import { render, fireEvent } from "../helper/render";
+import { render, fireEvent } from "@solidjs/testing-library";
 import { Surface, Polygon } from "../../src";
 import { Coordinate } from "../../src/util/types";
 import { assertNotNull } from "../helper/assertNotNull";

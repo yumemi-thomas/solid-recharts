@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createEffect } from "solid-js";
 import { useAppSelector } from "../../../src/state/hooks";
 import { Line, LineChart, Tooltip, XAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { selectXAxisPosition } from "../../../src/state/selectors/axisSelectors";
 import { pageData } from "../../_data";

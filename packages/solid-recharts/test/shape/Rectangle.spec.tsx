@@ -2,7 +2,7 @@
 // Harness changes only: render from the local Solid shim (thunk), no React
 // import; invalid-input casts use `unknown`. These all exercise the static
 // (non-update-animation) path. Path `d`/arc assertions are byte-identical.
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { Surface, Rectangle } from "../../src";
 import { RectRadius } from "../../src/shape/Rectangle";
 

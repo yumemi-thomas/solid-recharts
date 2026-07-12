@@ -23,7 +23,7 @@ import {
   getTooltip,
 } from "../component/Tooltip/tooltipTestHelpers";
 import { assertNotNull } from "../helper/assertNotNull";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 
 function assertChartA11yAttributes(svg: Element): void {
   expect(svg).not.toBeNull();

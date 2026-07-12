@@ -12,7 +12,7 @@
 import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { describe, expect, it } from "vitest";
-import { fireEvent } from "../../helper/render";
+import { fireEvent } from "@solidjs/testing-library";
 import type { RechartsRootState } from "../../../src/state/store";
 import { selectStackGroups } from "../../../src/state/selectors/axisSelectors";
 import {

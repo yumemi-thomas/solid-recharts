@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 test/util/DomUtils.spec.tsx.
 // Harness changes only: render from the local Solid shim (thunk), no React
 // import. Assertions are byte-identical to recharts.
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import {
   getStringSize,
   clearStringCache,

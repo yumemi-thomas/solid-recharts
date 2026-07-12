@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { Brush, Line, LineChart } from "../../src";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const data = [
   { name: "a", uv: 100 },

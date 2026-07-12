@@ -26,7 +26,7 @@ import type { AxisDomain, AxisTick } from "../../../src/util/types";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import { expectYAxisTicks } from "../../helper/expectAxisTicks";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 type Datum = { name: string; value: number | null };
 

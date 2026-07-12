@@ -26,7 +26,7 @@
 import { describe, expect, it, test } from "vitest";
 import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { render, fireEvent, screen, waitFor } from "../helper/render";
+import { render, fireEvent, screen, waitFor } from "@solidjs/testing-library";
 import { BarChart, Brush, ComposedChart, Line, LineChart, ReferenceLine } from "../../src";
 import type { BrushProps } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";

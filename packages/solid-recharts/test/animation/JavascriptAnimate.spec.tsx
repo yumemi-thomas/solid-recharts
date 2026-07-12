@@ -9,7 +9,7 @@
 // injected MockControllerAnimationManager (deterministic, no requestAnimationFrame).
 import { describe, it, expect, vi } from "vitest";
 import { flush } from "solid-js";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import { JavascriptAnimate } from "../../src/animation/JavascriptAnimate";
 import { MockControllerAnimationManager } from "./mockControllerAnimationManager";
 

@@ -14,7 +14,7 @@ import {
   useAppSelectorWithStableTest,
 } from "../../helper/selectorTestHelpers";
 import { mockGetBoundingClientRect } from "../../helper/mockGetBoundingClientRect";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 // Ported from recharts 3.8.1 test/state/selectors/legendSelectors.spec.tsx.
 

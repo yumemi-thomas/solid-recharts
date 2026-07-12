@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { render, screen } from "../helper/render";
+import { render, screen } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { Surface, Text } from "../../src";

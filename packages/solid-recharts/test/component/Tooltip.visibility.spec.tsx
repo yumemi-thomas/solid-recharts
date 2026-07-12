@@ -6,7 +6,7 @@
 import { createSignal, flush, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
-import { fireEvent, getByText, render } from "../helper/render";
+import { fireEvent, getByText, render } from "@solidjs/testing-library";
 import {
   Area,
   AreaChart,

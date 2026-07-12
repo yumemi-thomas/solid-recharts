@@ -24,7 +24,7 @@
 import { describe, expect, it } from "vitest";
 import { Scatter, ScatterChart } from "../../src";
 import type { ScatterPointItem } from "../../src/cartesian/Scatter";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 type ExampleDataPoint = {
   x: number;

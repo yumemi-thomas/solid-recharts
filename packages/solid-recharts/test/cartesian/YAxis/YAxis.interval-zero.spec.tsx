@@ -2,7 +2,7 @@
 import { flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 import { Line, LineChart, XAxis, YAxis } from "../../../src";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 
 describe("YAxis interval={0} with custom ticks - comprehensive tests", () => {
   const data = [

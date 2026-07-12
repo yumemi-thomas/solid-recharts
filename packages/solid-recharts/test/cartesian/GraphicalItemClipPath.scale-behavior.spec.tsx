@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { scaleLinear, scalePoint } from "victory-vendor/d3-scale";
 import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { fireEvent } from "../helper/render";
+import { fireEvent } from "@solidjs/testing-library";
 import { Line, LineChart, XAxis, YAxis } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";

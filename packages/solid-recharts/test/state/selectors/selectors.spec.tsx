@@ -3,7 +3,7 @@
 // Solid-native store actions; tooltip selector exports live in tooltipSelectors.
 import { createEffect, flush } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
-import { render } from "../../helper/render";
+import { render } from "@solidjs/testing-library";
 import { RechartsStoreProvider } from "../../../src/state/RechartsStoreProvider";
 import { createRechartsStore, type RechartsRootState } from "../../../src/state/store";
 import { arrayTooltipSearcher } from "../../../src/state/optionsSlice";

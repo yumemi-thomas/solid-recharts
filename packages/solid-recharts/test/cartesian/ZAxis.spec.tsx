@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { createEffect, createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { fireEvent, render } from "../helper/render";
+import { fireEvent, render } from "@solidjs/testing-library";
 import {
   BarChart,
   CartesianGrid,

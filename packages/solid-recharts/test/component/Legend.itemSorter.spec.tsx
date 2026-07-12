@@ -12,7 +12,7 @@
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
 import { createSignal, flush, For } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 import {
   Area,
   AreaChart,

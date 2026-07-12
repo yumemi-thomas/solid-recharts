@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { createSignal, flush, Show } from "solid-js";
 import { Bar, BarChart, Pie, PieChart } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
-import { render } from "../helper/render";
+import { render } from "@solidjs/testing-library";
 
 const barData = [
   { name: "a", uv: 100 },

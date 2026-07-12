@@ -7,7 +7,7 @@ import { Label, Line, LineChart, PieChart, ReferenceLine, Surface } from "../../
 import type { Props as LabelProps } from "../../src/component/Label";
 import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
 import { assertNotNull } from "../helper/assertNotNull";
-import { render, screen } from "../helper/render";
+import { render, screen } from "@solidjs/testing-library";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";
 
