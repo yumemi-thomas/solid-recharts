@@ -8,7 +8,8 @@ packages:
   - "app/dev"
 
 allowBuilds:
-  canvas: set this to true or false
+  # canvas' native build is unnecessary — jsdom runs the suite without it.
+  canvas: false
   esbuild: true
 
 # Pre/post scripts must run so the library's `pretest` reference gate fires.

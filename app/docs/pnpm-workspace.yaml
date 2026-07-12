@@ -2,8 +2,11 @@
 # workspace on purpose: TanStack Start SSR is proven on real vite@8, while the
 # monorepo overrides `vite` to vite-plus-core, which silently breaks Solid 2.0
 # hydration (unclaimed server nodes, dead pages).
+# esbuild's postinstall verifies/installs the platform binary — required for
+# the vite@8 build to run in CI (blocked install scripts fail the deploy with
+# ERR_PNPM_IGNORED_BUILDS).
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
 
 # Portal patch removed on the beta.15 bump — beta.15 fixes the upstream Portal
 # bug (createElementProxy -> native `contains` throw) natively. No patch needed.
