@@ -1,5 +1,8 @@
 import path from "node:path";
-import { defineConfig } from "vite-plus";
+// Import from real `vite` (this standalone workspace's actual dependency) —
+// NOT "vite-plus": that only resolved locally by escaping up into the
+// monorepo root's node_modules, and breaks isolated CI installs (Vercel).
+import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import viteSolid from "vite-plugin-solid";
