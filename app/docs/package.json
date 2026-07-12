@@ -33,5 +33,5 @@
     "vite": "^8.0.14",
     "vite-plugin-solid": "3.0.0-next.5"
   },
-  "packageManager": "pnpm@11.5.3"
+  "packageManager": "pnpm@11.12.0"
 }
