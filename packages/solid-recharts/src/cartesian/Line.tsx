@@ -25,7 +25,11 @@ import { useActiveTooltipDataPoints } from "../hooks";
 import { selectActiveTooltipIndex } from "../state/selectors/tooltipSelectors";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
-import { AnimatedItems, type AnimationInterpolateFn } from "../animation/AnimatedItems";
+import {
+  AnimatedItems,
+  useAnimationCallbacks,
+  type AnimationInterpolateFn,
+} from "../animation/AnimatedItems";
 import { matchByIndex, type AnimationItem, type AnimationMatchByProp } from "../animation/matchBy";
 import type { MutableRef } from "../animation/useAnimationStartSnapshot";
 import { LineDrawShape, type LineDrawShapeProps } from "./LineDrawShape";
@@ -80,7 +84,7 @@ import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export interface LinePointItem {
   readonly value: unknown;
@@ -342,39 +346,27 @@ export const Line = (props: LineProps): JSX.Element => {
   const layout = useCartesianChartLayout();
   const id = useUniqueId("recharts-line", props.id);
 
-  let prev: LineSettings | null = null;
-
-  createEffect(
-    (): LineSettings => ({
-      id,
-      type: "line",
-      isPanorama,
-      data: merged.data,
-      dataKey: merged.dataKey,
-      xAxisId: merged.xAxisId,
-      yAxisId: merged.yAxisId,
-      zAxisId: 0,
-      hide: merged.hide,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addCartesianGraphicalItem(settings);
-      } else if (prev !== settings) {
-        store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<LineSettings>(
+      () => ({
+        id,
+        type: "line",
+        isPanorama,
+        data: merged.data,
+        dataKey: merged.dataKey,
+        xAxisId: merged.xAxisId,
+        yAxisId: merged.yAxisId,
+        zAxisId: 0,
+        hide: merged.hide,
+      }),
+      {
+        add: (next) => store.actions.graphicalItems.addCartesianGraphicalItem(next),
+        replace: (prev, next) =>
+          store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next }),
+        remove: (prev) => store.actions.graphicalItems.removeCartesianGraphicalItem(prev),
+      },
+    );
+  }
 
   const points = useAppSelector((state) =>
     selectLinePoints(state, merged.xAxisId, merged.yAxisId, isPanorama, id),
@@ -494,19 +486,11 @@ export const Line = (props: LineProps): JSX.Element => {
   });
   // Labels are hidden while the entrance animation runs and shown once it ends
   // (matching recharts: showLabels = !isAnimating).
-  // ownedWrite: handleAnimationEnd also fires from the animation effect cleanup
-  // when a mid-animation chart is disposed (route/soft navigation) — a legal
-  // teardown write, not a write-in-computation bug.
-  const [showLabels, setShowLabels] = createSignal(true, { ownedWrite: true });
-  const labelContextEntries = createMemo(() => (showLabels() ? labelListEntries() : undefined));
-  const handleAnimationStart = (): void => {
-    props.onAnimationStart?.();
-    setShowLabels(false);
-  };
-  const handleAnimationEnd = (): void => {
-    props.onAnimationEnd?.();
-    setShowLabels(true);
-  };
+  const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks(
+    () => props.onAnimationStart?.(),
+    () => props.onAnimationEnd?.(),
+  );
+  const labelContextEntries = createMemo(() => (isAnimating() ? undefined : labelListEntries()));
 
   // Measure on data change AND on animation start/end (showLabels flips): a
   // data-change morph alters the path geometry per frame, so the length taken
@@ -515,7 +499,7 @@ export const Line = (props: LineProps): JSX.Element => {
   // settled dasharray the new curve's true length — mirroring recharts, which
   // recomputes totalLength on the post-animation re-render.
   createEffect(
-    () => ({ points: points(), showLabels: showLabels() }),
+    () => ({ points: points(), showLabels: !isAnimating() }),
     () => {
       if (curveEl?.getTotalLength == null) {
         return;
@@ -627,8 +611,7 @@ export const Line = (props: LineProps): JSX.Element => {
                     // recharts: visibleLength is computed only while the animation is
                     // active; once settled it is null so no entrance dasharray remains.
                     const len = untrack(totalLength);
-                    const animationActive =
-                      untrack(showLabels) === false || animationElapsedTime < 1;
+                    const animationActive = untrack(isAnimating) || animationElapsedTime < 1;
                     const visibleLength = animationActive
                       ? animatedLineLength.getVisibleLength(animationElapsedTime, len)
                       : null;

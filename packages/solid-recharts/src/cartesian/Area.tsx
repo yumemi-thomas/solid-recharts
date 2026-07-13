@@ -11,10 +11,14 @@
 // registration components → `createEffect` add/replace + `onCleanup` (Line idiom);
 // React `useRef` prev-frame state → plain `{ current }` MutableRef objects driven
 // by AnimatedItems/useAnimationStartSnapshot.
-import { createEffect, createMemo, createSignal, merge, Show } from "solid-js";
+import { createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
-import { AnimatedItems, type AnimationInterpolateFn } from "../animation/AnimatedItems";
+import {
+  AnimatedItems,
+  useAnimationCallbacks,
+  type AnimationInterpolateFn,
+} from "../animation/AnimatedItems";
 import {
   matchAnimationItems,
   matchByIndex,
@@ -78,7 +82,7 @@ import { interpolate, isNan, isNullish, isNumber } from "../util/DataUtils";
 import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
 import { StackDataPoint } from "../util/stacks/stackTypes";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 import { AreaRevealShape, type AreaRevealShapeProps } from "./AreaRevealShape";
 
 function getLegendItemColor(
@@ -417,45 +421,33 @@ export const Area = (props: AreaProps): JSX.Element => {
   const layout = useCartesianChartLayout();
   const id = useUniqueId("recharts-area", props.id);
 
-  let prev: AreaSettings | null = null;
-
-  createEffect(
-    (): AreaSettings => ({
-      id,
-      type: "area",
-      isPanorama,
-      data: merged.data,
-      dataKey: merged.dataKey ?? "",
-      xAxisId: merged.xAxisId,
-      yAxisId: merged.yAxisId,
-      zAxisId: 0,
-      hide: merged.hide,
-      // Area has no bar size; the field exists only because AreaSettings shares
-      // the MaybeStackedGraphicalItem shape with Bar.
-      barSize: undefined,
-      stackId: merged.stackId == null ? undefined : String(merged.stackId),
-      connectNulls: merged.connectNulls,
-      baseValue: merged.baseValue,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addCartesianGraphicalItem(settings);
-      } else if (prev !== settings) {
-        store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<AreaSettings>(
+      () => ({
+        id,
+        type: "area",
+        isPanorama,
+        data: merged.data,
+        dataKey: merged.dataKey ?? "",
+        xAxisId: merged.xAxisId,
+        yAxisId: merged.yAxisId,
+        zAxisId: 0,
+        hide: merged.hide,
+        // Area has no bar size; the field exists only because AreaSettings shares
+        // the MaybeStackedGraphicalItem shape with Bar.
+        barSize: undefined,
+        stackId: merged.stackId == null ? undefined : String(merged.stackId),
+        connectNulls: merged.connectNulls,
+        baseValue: merged.baseValue,
+      }),
+      {
+        add: (next) => store.actions.graphicalItems.addCartesianGraphicalItem(next),
+        replace: (prev, next) =>
+          store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next }),
+        remove: (prev) => store.actions.graphicalItems.removeCartesianGraphicalItem(prev),
+      },
+    );
+  }
 
   const area = useAppSelector((state) => selectArea(state, id, isPanorama));
 
@@ -569,18 +561,11 @@ export const Area = (props: AreaProps): JSX.Element => {
     });
   });
   // Labels are hidden while the entrance/update animation runs, shown once it ends.
-  // ownedWrite: handleAnimationEnd also fires from the driver's effect cleanup when
-  // a mid-animation chart is disposed (route/soft navigation) — a legal teardown.
-  const [showLabels, setShowLabels] = createSignal(true, { ownedWrite: true });
-  const labelContextEntries = createMemo(() => (showLabels() ? labelListEntries() : undefined));
-  const handleAnimationStart = (): void => {
-    setShowLabels(false);
-    props.onAnimationStart?.();
-  };
-  const handleAnimationEnd = (): void => {
-    setShowLabels(true);
-    props.onAnimationEnd?.();
-  };
+  const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks(
+    () => props.onAnimationStart?.(),
+    () => props.onAnimationEnd?.(),
+  );
+  const labelContextEntries = createMemo(() => (isAnimating() ? undefined : labelListEntries()));
 
   // Per-frame prev geometry (recharts' previousPointsRef / previousBaselineRef):
   // plain `{ current }` refs (NOT signals) driven by AnimatedItems +
@@ -761,7 +746,7 @@ export const Area = (props: AreaProps): JSX.Element => {
                       stepBaseLine,
                       target.isRange,
                       animationElapsedTime,
-                      !showLabels() || animationElapsedTime < 1,
+                      isAnimating() || animationElapsedTime < 1,
                       effectiveIsEntrance,
                     );
                   }}

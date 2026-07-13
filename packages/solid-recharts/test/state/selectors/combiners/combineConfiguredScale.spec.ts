@@ -1,4 +1,4 @@
-import { scaleLinear } from "victory-vendor/d3-scale";
+import { scaleLinear } from "d3-scale";
 import { describe, expect, it } from "vitest";
 import { assertNotNull } from "../../../helper/assertNotNull";
 import { AxisRange } from "../../../../src/state/selectors/axisSelectors";

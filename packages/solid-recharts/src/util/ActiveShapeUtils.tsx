@@ -28,13 +28,6 @@ function mergeShapeProps<PropsType extends object>(
   return { ...props, ...option };
 }
 
-/** Extracts a shape option's props (object form); element form is N/A (no cloneElement). */
-export function getPropsFromShapeOption<PropsType extends object>(
-  option: Partial<PropsType>,
-): Partial<PropsType> {
-  return option;
-}
-
 function getShapeIndex(shapeProps: object): string | number | undefined {
   if (!("index" in shapeProps)) {
     return undefined;

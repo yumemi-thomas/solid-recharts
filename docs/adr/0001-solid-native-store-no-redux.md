@@ -1,0 +1,3 @@
+# Solid-native store instead of Redux/reselect
+
+Upstream recharts builds its state layer on @reduxjs/toolkit + react-redux + reselect. This port replaces all of it with a Solid-native store: each slice is a factory returning a Solid `createStore` plus action functions, composed into one per-chart `{ state, actions }`; consumers read via `useAppSelector` (a `createMemo` over a plain selector function) and write by calling actions directly. No dispatch, no action objects, no middleware runtime. Chosen because Solid's fine-grained reactivity subsumes react-redux's subscription machinery and the Redux indirection would be dead weight in bundle and at runtime.

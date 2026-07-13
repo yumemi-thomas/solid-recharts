@@ -1,12 +1,26 @@
 // Ported from recharts 3.8.1 src/state/selectors/dataSelectors.ts (commit 7a23854).
 //
-// Solid-native: plain selector functions, no reselect. recharts wraps several of
-// these in `createSelector` purely for memoization (to swallow spurious Immer
-// reference churn); in the Solid store, memoization comes from `useAppSelector`'s
-// `createMemo` at the consumer, so these stay plain functions. Behavior is
-// identical.
+// The chartData-projecting selectors below are wrapped in the Solid-native
+// `createSelector` (ADR-0002) so they present a stable reference when the data
+// is unchanged — the leaf-input fix the memoized selector graph depends on. The
+// remaining `slice`-returning helpers stay plain (they intentionally produce a
+// fresh window each call and their wrapped consumers absorb the churn).
 import { RechartsRootState } from "../store";
 import { ChartData, ChartDataState } from "../chartDataSlice";
+import { createSelector } from "../createSelector";
+
+// LEAF-INPUT rule (ADR-0002 "Known constraint"): these read the individual
+// leaves of the chartData slice — never the slice root `state.chartData`, whose
+// proxy reference is permanently stable in Solid and so can never invalidate a
+// reference-keyed cache. Reading the leaves (the `chartData` array is replaced
+// wholesale by `setChartData`; the indexes are primitives) lets `createSelector`
+// return a stable projected object when nothing changed and a fresh one when it
+// did — the reselect semantics the downstream selector graph relies on.
+const pickChartData = (state: RechartsRootState): ChartData | undefined =>
+  state.chartData.chartData;
+const pickComputedData = (state: RechartsRootState): unknown => state.chartData.computedData;
+const pickDataStartIndex = (state: RechartsRootState): number => state.chartData.dataStartIndex;
+const pickDataEndIndex = (state: RechartsRootState): number => state.chartData.dataEndIndex;
 
 /**
  * Always returns the data with the indexes set by a Brush. That might or might
@@ -15,23 +29,28 @@ import { ChartData, ChartDataState } from "../chartDataSlice";
  * {@link selectChartDataAndAlwaysIgnoreIndexes} or
  * {@link selectChartDataWithIndexesIfNotInPanoramaPosition4} when that matters.
  */
-export const selectChartDataWithIndexes = (state: RechartsRootState): ChartDataState =>
-  state.chartData;
+export const selectChartDataWithIndexes: (state: RechartsRootState) => ChartDataState =
+  createSelector(
+    [pickChartData, pickComputedData, pickDataStartIndex, pickDataEndIndex],
+    (chartData, computedData, dataStartIndex, dataEndIndex) => ({
+      chartData,
+      computedData,
+      dataStartIndex,
+      dataEndIndex,
+    }),
+  );
 
 /**
  * Always returns the full range of data, ignoring Brush indexes. Useful for the
  * Brush panorama, Legend, and Tooltip.
  */
-export const selectChartDataAndAlwaysIgnoreIndexes = (state: RechartsRootState): ChartDataState => {
-  const dataState = selectChartDataWithIndexes(state);
-  const dataEndIndex = dataState.chartData != null ? dataState.chartData.length - 1 : 0;
-  return {
-    chartData: dataState.chartData,
-    computedData: dataState.computedData,
-    dataEndIndex,
+export const selectChartDataAndAlwaysIgnoreIndexes: (state: RechartsRootState) => ChartDataState =
+  createSelector([pickChartData, pickComputedData], (chartData, computedData) => ({
+    chartData,
+    computedData,
+    dataEndIndex: chartData != null ? chartData.length - 1 : 0,
     dataStartIndex: 0,
-  };
-};
+  }));
 
 export const selectChartDataWithIndexesIfNotInPanoramaPosition4 = (
   state: RechartsRootState,

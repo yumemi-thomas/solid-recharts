@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scaleLinear } from "victory-vendor/d3-scale";
+import { scaleLinear } from "d3-scale";
 import { getEndPoints, type ReferenceLineSegment } from "../../../src/cartesian/ReferenceLine";
 import type { CartesianViewBoxRequired } from "../../../src/util/types";
 import {

@@ -17,11 +17,15 @@
 // Enter/Leave/onTouchStart/Move/End, props-first `(data, index, event)`) ARE wired.
 // No legend registration and no ZIndexLayer — matching recharts (upstream Funnel
 // registers no legend payload and renders inline without a zIndex portal).
-import { createMemo, createSignal, For, merge, Show } from "solid-js";
+import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
-import { AnimatedItems, type AnimationInterpolateFn } from "../animation/AnimatedItems";
+import {
+  AnimatedItems,
+  useAnimationCallbacks,
+  type AnimationInterpolateFn,
+} from "../animation/AnimatedItems";
 import { matchAppend, type AnimationMatchByProp } from "../animation/matchBy";
 import type { MutableRef } from "../animation/useAnimationStartSnapshot";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
@@ -452,18 +456,11 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
     current: null,
   };
 
-  // ownedWrite: handleAnimationEnd also fires from the animation effect cleanup when
-  // a mid-animation chart is disposed (route/soft navigation) — a legal teardown.
-  const [showLabels, setShowLabels] = createSignal(true, { ownedWrite: true });
-  const labelContextEntries = createMemo(() => (showLabels() ? labelListEntries() : undefined));
-  const handleAnimationStart = (): void => {
-    props.onAnimationStart?.();
-    setShowLabels(false);
-  };
-  const handleAnimationEnd = (): void => {
-    props.onAnimationEnd?.();
-    setShowLabels(true);
-  };
+  const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks(
+    () => props.onAnimationStart?.(),
+    () => props.onAnimationEnd?.(),
+  );
+  const labelContextEntries = createMemo(() => (isAnimating() ? undefined : labelListEntries()));
 
   const layerClass = (): string =>
     ["recharts-trapezoids", merged.class].filter((c): c is string => Boolean(c)).join(" ");
@@ -514,13 +511,12 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
                         const isActive = (): boolean =>
                           Boolean(activeShape) && activeItemIndex() === String(i());
                         // v3.9 ShapeAnimationProps forwarded into the custom-shape
-                        // invocation, mirroring upstream FunnelTrapezoids. `showLabels`
-                        // is the inverse of upstream's `isAnimating` (false during the
-                        // animation); combine `< 1` like upstream so the shape sees
-                        // `isAnimating` through the whole entrance frame.
+                        // invocation, mirroring upstream FunnelTrapezoids. Combine
+                        // `< 1` like upstream so the shape sees `isAnimating` through
+                        // the whole entrance frame.
                         const shapeAnimationProps = (): ShapeAnimationProps => ({
                           animationElapsedTime,
-                          isAnimating: !showLabels() || animationElapsedTime < 1,
+                          isAnimating: isAnimating() || animationElapsedTime < 1,
                           isEntrance,
                         });
                         return (

@@ -138,14 +138,16 @@ export function LineDrawShape(props: LineDrawShapeProps): JSX.Element {
     props.forwardPathRef?.(el);
   };
 
-  // Re-measure whenever the geometry or the animation frame changes (a data-change
-  // morph alters the path per frame; remeasuring once the frame committed gives the
-  // settled dash the new curve's true length — mirrors recharts recomputing
-  // totalLength on the post-animation re-render).
+  // Re-measure the path length only while the entrance dash is actually being
+  // drawn (`visibleLength != null`). `totalLength` feeds `strokeDasharray` ONLY on
+  // that branch (see below), so once the reveal is done — including every
+  // subsequent data-change morph, where `frame` changes per frame — measuring
+  // would force a synchronous SVG layout (reflow) each frame for a value nothing
+  // reads. Guarding on visibleLength drops those per-frame reflows.
   createEffect(
     () => ({ points: props.points, visibleLength: props.visibleLength }),
-    () => {
-      if (pathEl?.getTotalLength == null) {
+    (deps) => {
+      if (deps.visibleLength == null || pathEl?.getTotalLength == null) {
         return;
       }
       const length = getTotalLength(pathEl);

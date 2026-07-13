@@ -3,12 +3,7 @@
 // `selectGraphicalItemStackedData` reads this area's stack series off the numeric
 // axis' stack groups, and computeArea turns it into a per-point baseLine.
 import { RechartsRootState } from "../store";
-import {
-  selectAxisWithScale,
-  selectStackGroups,
-  selectTicksOfGraphicalItem,
-  selectUnfilteredCartesianItems,
-} from "./axisSelectors";
+import { selectStackGroups, selectUnfilteredCartesianItems } from "./axisSelectors";
 import { getBandSizeOfAxis, isCategoricalAxis } from "../../util/ChartUtils";
 import { ChartData } from "../chartDataSlice";
 import { selectChartLayout } from "../../context/chartLayoutContext";
@@ -19,32 +14,14 @@ import {
   selectXAxisIdFromGraphicalItemId,
   selectYAxisIdFromGraphicalItemId,
 } from "./graphicalItemSelectors";
+import {
+  selectAxisWithScaleForGraphicalItem,
+  selectTicksForGraphicalItem,
+} from "./selectAxisForGraphicalItem";
 import { AreaSettings } from "../types/AreaSettings";
 import { computeArea, ComputedArea } from "../../cartesian/Area";
 import { combineStackedData } from "./combiners/combineStackedData";
 import { AllStackGroups, StackDataPoint } from "../../util/stacks/stackTypes";
-
-const selectXAxisWithScale = (state: RechartsRootState, id: GraphicalItemId, isPanorama: boolean) =>
-  selectAxisWithScale(state, "xAxis", selectXAxisIdFromGraphicalItemId(state, id), isPanorama);
-
-const selectXAxisTicks = (state: RechartsRootState, id: GraphicalItemId, isPanorama: boolean) =>
-  selectTicksOfGraphicalItem(
-    state,
-    "xAxis",
-    selectXAxisIdFromGraphicalItemId(state, id),
-    isPanorama,
-  );
-
-const selectYAxisWithScale = (state: RechartsRootState, id: GraphicalItemId, isPanorama: boolean) =>
-  selectAxisWithScale(state, "yAxis", selectYAxisIdFromGraphicalItemId(state, id), isPanorama);
-
-const selectYAxisTicks = (state: RechartsRootState, id: GraphicalItemId, isPanorama: boolean) =>
-  selectTicksOfGraphicalItem(
-    state,
-    "yAxis",
-    selectYAxisIdFromGraphicalItemId(state, id),
-    isPanorama,
-  );
 
 const selectBandSize = (
   state: RechartsRootState,
@@ -54,14 +31,14 @@ const selectBandSize = (
   const layout = selectChartLayout(state);
   if (isCategoricalAxis(layout, "xAxis")) {
     return getBandSizeOfAxis(
-      selectXAxisWithScale(state, id, isPanorama),
-      selectXAxisTicks(state, id, isPanorama),
+      selectAxisWithScaleForGraphicalItem(state, "xAxis", id, isPanorama),
+      selectTicksForGraphicalItem(state, "xAxis", id, isPanorama),
       false,
     );
   }
   return getBandSizeOfAxis(
-    selectYAxisWithScale(state, id, isPanorama),
-    selectYAxisTicks(state, id, isPanorama),
+    selectAxisWithScaleForGraphicalItem(state, "yAxis", id, isPanorama),
+    selectTicksForGraphicalItem(state, "yAxis", id, isPanorama),
     false,
   );
 };
@@ -116,10 +93,10 @@ export const selectArea = (
   isPanorama: boolean,
 ): ComputedArea | undefined => {
   const layout = selectChartLayout(state);
-  const xAxis = selectXAxisWithScale(state, id, isPanorama);
-  const yAxis = selectYAxisWithScale(state, id, isPanorama);
-  const xAxisTicks = selectXAxisTicks(state, id, isPanorama);
-  const yAxisTicks = selectYAxisTicks(state, id, isPanorama);
+  const xAxis = selectAxisWithScaleForGraphicalItem(state, "xAxis", id, isPanorama);
+  const yAxis = selectAxisWithScaleForGraphicalItem(state, "yAxis", id, isPanorama);
+  const xAxisTicks = selectTicksForGraphicalItem(state, "xAxis", id, isPanorama);
+  const yAxisTicks = selectTicksForGraphicalItem(state, "yAxis", id, isPanorama);
   const { chartData, dataStartIndex, dataEndIndex } =
     selectChartDataWithIndexesIfNotInPanoramaPosition3(state, id, isPanorama);
   const bandSize = selectBandSize(state, id, isPanorama);

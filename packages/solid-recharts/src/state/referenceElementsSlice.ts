@@ -12,6 +12,7 @@
 // useUniqueId) and we match by `id`, the same proxy-safe strategy as
 // graphicalItemsSlice / tooltipSlice / legendSlice.
 import { createStore } from "solid-js";
+import { createCollectionActions } from "./createCollectionActions";
 import type { AxisId } from "./cartesianAxisSlice";
 import type { IfOverflow } from "../util/IfOverflow";
 import type { ReferenceLineSegment } from "../cartesian/ReferenceLine";
@@ -81,40 +82,48 @@ export function createReferenceElementsSlice(
     lines: [...initialState.lines],
   });
 
+  // State arrays are typed ReadonlyArray (immutable external API); the collection
+  // actions reassign the whole array rather than mutate in place (see ADR-0002).
+  // Reference elements have no replace action — a change is remove-then-add at the
+  // call site (ReferenceLine/Dot/Area), so only add + remove are wired.
+  const dots = createCollectionActions<ReferenceDotSettings>(
+    (updater) =>
+      setState((s) => {
+        const next = updater(s.dots);
+        if (next !== s.dots) {
+          s.dots = next;
+        }
+      }),
+    (d) => d.id,
+  );
+  const areas = createCollectionActions<ReferenceAreaSettings>(
+    (updater) =>
+      setState((s) => {
+        const next = updater(s.areas);
+        if (next !== s.areas) {
+          s.areas = next;
+        }
+      }),
+    (a) => a.id,
+  );
+  const lines = createCollectionActions<ReferenceLineSettings>(
+    (updater) =>
+      setState((s) => {
+        const next = updater(s.lines);
+        if (next !== s.lines) {
+          s.lines = next;
+        }
+      }),
+    (l) => l.id,
+  );
+
   const actions: ReferenceElementsActions = {
-    // State arrays are typed ReadonlyArray (immutable external API), so actions
-    // REASSIGN the whole array rather than mutate in place — Solid's fine-grained
-    // store still tracks the change, and the readonly type stays honest.
-    addDot(dot) {
-      setState((s) => {
-        s.dots = [...s.dots, dot];
-      });
-    },
-    removeDot(dot) {
-      setState((s) => {
-        s.dots = s.dots.filter((d) => d.id !== dot.id);
-      });
-    },
-    addArea(area) {
-      setState((s) => {
-        s.areas = [...s.areas, area];
-      });
-    },
-    removeArea(area) {
-      setState((s) => {
-        s.areas = s.areas.filter((a) => a.id !== area.id);
-      });
-    },
-    addLine(line) {
-      setState((s) => {
-        s.lines = [...s.lines, line];
-      });
-    },
-    removeLine(line) {
-      setState((s) => {
-        s.lines = s.lines.filter((l) => l.id !== line.id);
-      });
-    },
+    addDot: dots.add,
+    removeDot: dots.remove,
+    addArea: areas.add,
+    removeArea: areas.remove,
+    addLine: lines.add,
+    removeLine: lines.remove,
   };
 
   return { state, actions };

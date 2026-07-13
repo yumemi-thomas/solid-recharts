@@ -11,6 +11,7 @@
 // unique `id` instead, which is the items' real identity and gives identical
 // ordering/replacement semantics.
 import { createStore } from "solid-js";
+import { createCollectionActions } from "./createCollectionActions";
 import { ChartData } from "./chartDataSlice";
 import { AxisId } from "./cartesianAxisSlice";
 import { DataKey } from "../util/types";
@@ -112,50 +113,36 @@ export function createGraphicalItemsSlice(
     polarItems: [...initialState.polarItems],
   });
 
+  // State arrays are typed ReadonlyArray (immutable external API); the collection
+  // actions reassign the whole array rather than mutate in place (see ADR-0002).
+  const cartesian = createCollectionActions<CartesianGraphicalItemSettings>(
+    (updater) =>
+      setState((s) => {
+        const next = updater(s.cartesianItems);
+        if (next !== s.cartesianItems) {
+          s.cartesianItems = next;
+        }
+      }),
+    (it) => it.id,
+  );
+  const polar = createCollectionActions<PolarGraphicalItemSettings>(
+    (updater) =>
+      setState((s) => {
+        const next = updater(s.polarItems);
+        if (next !== s.polarItems) {
+          s.polarItems = next;
+        }
+      }),
+    (it) => it.id,
+  );
+
   const actions: GraphicalItemsActions = {
-    // State arrays are typed ReadonlyArray (immutable external API), so actions
-    // REASSIGN the whole array rather than mutate in place — Solid's fine-grained
-    // store still tracks the change, and the readonly type stays honest.
-    addCartesianGraphicalItem(item) {
-      setState((s) => {
-        s.cartesianItems = [...s.cartesianItems, item];
-      });
-    },
-    replaceCartesianGraphicalItem({ prev, next }) {
-      setState((s) => {
-        const index = s.cartesianItems.findIndex((it) => it.id === prev.id);
-        if (index > -1) {
-          const nextItems = s.cartesianItems.slice();
-          nextItems[index] = next;
-          s.cartesianItems = nextItems;
-        }
-      });
-    },
-    removeCartesianGraphicalItem(item) {
-      setState((s) => {
-        s.cartesianItems = s.cartesianItems.filter((it) => it.id !== item.id);
-      });
-    },
-    addPolarGraphicalItem(item) {
-      setState((s) => {
-        s.polarItems = [...s.polarItems, item];
-      });
-    },
-    replacePolarGraphicalItem({ prev, next }) {
-      setState((s) => {
-        const index = s.polarItems.findIndex((it) => it.id === prev.id);
-        if (index > -1) {
-          const nextItems = s.polarItems.slice();
-          nextItems[index] = next;
-          s.polarItems = nextItems;
-        }
-      });
-    },
-    removePolarGraphicalItem(item) {
-      setState((s) => {
-        s.polarItems = s.polarItems.filter((it) => it.id !== item.id);
-      });
-    },
+    addCartesianGraphicalItem: cartesian.add,
+    replaceCartesianGraphicalItem: cartesian.replace,
+    removeCartesianGraphicalItem: cartesian.remove,
+    addPolarGraphicalItem: polar.add,
+    replacePolarGraphicalItem: polar.replace,
+    removePolarGraphicalItem: polar.remove,
   };
 
   return { state, actions };

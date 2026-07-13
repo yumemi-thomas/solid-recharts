@@ -5,7 +5,7 @@
 import { describe, expect, it, test } from "vitest";
 import { createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
-import { curveLinear } from "victory-vendor/d3-shape";
+import { curveLinear } from "d3-shape";
 import { Surface, Curve } from "../../src";
 import { getPath, type CurveType } from "../../src/shape/Curve";
 import { assertNotNull } from "../helper/assertNotNull";

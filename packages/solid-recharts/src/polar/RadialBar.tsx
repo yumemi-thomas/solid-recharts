@@ -30,11 +30,15 @@
 // (final frame), element-form shape, per-sector item-hover dispatch (sectors lack
 // tooltipPosition).
 // Cells ARE wired: a <Cell> child overrides the per-sector fill/stroke/class.
-import { createEffect, createMemo, createSignal, For, merge, Show, untrack } from "solid-js";
+import { createMemo, For, merge, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
-import { AnimatedItems, type AnimationInterpolateFn } from "../animation/AnimatedItems";
+import {
+  AnimatedItems,
+  useAnimationCallbacks,
+  type AnimationInterpolateFn,
+} from "../animation/AnimatedItems";
 import { matchAppend, type AnimationMatchByProp } from "../animation/matchBy";
 import type { MutableRef } from "../animation/useAnimationStartSnapshot";
 import { usePolarChartLayout } from "../context/chartLayoutContext";
@@ -96,7 +100,7 @@ import {
 } from "../util/ChartUtils";
 import { interpolate, isNumber, mathSign } from "../util/DataUtils";
 import type { StackSeries } from "../util/stacks/stackTypes";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export type RadialBarDataItem = SectorProps &
   PolarViewBoxRequired &
@@ -494,29 +498,14 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
     maxBarSize: merged.maxBarSize,
   });
 
-  let prev: RadialBarSettings | null = null;
-
-  createEffect(
-    (): RadialBarSettings => settings(),
-    (s) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addPolarGraphicalItem(s);
-      } else if (prev !== s) {
-        store.actions.graphicalItems.replacePolarGraphicalItem({ prev, next: s });
-      }
-      prev = s;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removePolarGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<RadialBarSettings>(() => settings(), {
+      add: (next) => store.actions.graphicalItems.addPolarGraphicalItem(next),
+      replace: (prev, next) =>
+        store.actions.graphicalItems.replacePolarGraphicalItem({ prev, next }),
+      remove: (prev) => store.actions.graphicalItems.removePolarGraphicalItem(prev),
+    });
+  }
 
   // Per-sector <Cell> overrides (collected from children, in data order).
   const cells = collectCells(() => props.children);
@@ -574,17 +563,10 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
     current: null,
   };
   // Labels are hidden while the sectors animate (recharts' showLabels={!isAnimating}).
-  // ownedWrite: handleAnimationEnd also fires from the animation effect cleanup when a
-  // mid-animation chart is disposed (route/soft navigation) — a legal teardown write.
-  const [showLabels, setShowLabels] = createSignal(true, { ownedWrite: true });
-  const handleAnimationStart = (): void => {
-    props.onAnimationStart?.();
-    setShowLabels(false);
-  };
-  const handleAnimationEnd = (): void => {
-    props.onAnimationEnd?.();
-    setShowLabels(true);
-  };
+  const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks(
+    () => props.onAnimationStart?.(),
+    () => props.onAnimationEnd?.(),
+  );
 
   // User pointer handlers are forwarded to each sector's wrapping <Layer>: the
   // mouse handlers wrap into the tooltip-item dispatch (called props-first), and
@@ -669,7 +651,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
             <Layer class={layerClass()}>
               <PolarLabelListContextProvider
                 value={() =>
-                  showLabels()
+                  !isAnimating()
                     ? secs().map(
                         (sector): PolarLabelListEntry => ({
                           value: sector.value,
@@ -730,7 +712,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
                             isActive={isSectorActiveShape(i())}
                             option={sectorOption(i())}
                             animationElapsedTime={animationElapsedTime}
-                            isAnimating={!showLabels() || animationElapsedTime < 1}
+                            isAnimating={isAnimating() || animationElapsedTime < 1}
                             isEntrance={isEntrance}
                             class={`recharts-radial-bar-sector ${entry.class ?? ""}`}
                             fill={entry.fill ?? merged.fill}

@@ -93,7 +93,7 @@ import {
 import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
 import { BarStackClipLayer, useStackId } from "./BarStack";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 const defaultMinPointSize = 0;
 
@@ -419,7 +419,10 @@ function BarBackground(props: {
     if (!backgroundFromProps) {
       return undefined;
     }
-    const active = activeIndex();
+    // NOTE: intentionally does NOT read activeIndex() here — that would rebuild
+    // the whole rects array (and recreate every background-rect DOM node) on
+    // every hover move. `isActive` is derived per-rect in the JSX below, so the
+    // array stays stable across hover and only the active flag updates.
     const dataKey = props.dataKey;
     const backgroundProps = svgPropertiesNoEventsFromUnknown(backgroundFromProps);
     const backgroundEventProps = svgPropertiesAndEventsFromUnknown({
@@ -441,7 +444,7 @@ function BarBackground(props: {
       return [
         {
           option: backgroundFromProps,
-          isActive: String(entry.originalDataIndex) === active,
+          isActive: false, // placeholder; derived reactively per-rect in the JSX below
           ...rest,
           fill: "#eee",
           ...bg,
@@ -465,7 +468,12 @@ function BarBackground(props: {
         <ZIndexLayer zIndex={getZIndexFromUnknown(props.background, DefaultZIndexes.barBackground)}>
           <Layer>
             <For each={rects()}>
-              {(barRectangleProps) => <BarRectangle {...barRectangleProps} />}
+              {(barRectangleProps) => (
+                <BarRectangle
+                  {...barRectangleProps}
+                  isActive={String(barRectangleProps.originalDataIndex) === activeIndex()}
+                />
+              )}
             </For>
           </Layer>
         </ZIndexLayer>
@@ -850,44 +858,32 @@ export const Bar = (props: BarProps): JSX.Element => {
   const activeBar = merged.activeBar;
   const hasCustomShape = shape !== defaultBarShape;
 
-  let prev: BarSettings | null = null;
-
-  createEffect(
-    (): BarSettings => ({
-      id,
-      type: "bar",
-      isPanorama,
-      data: merged.data,
-      dataKey: merged.dataKey,
-      xAxisId: merged.xAxisId,
-      yAxisId: merged.yAxisId,
-      zAxisId: 0,
-      hide: merged.hide,
-      stackId,
-      barSize: merged.barSize,
-      maxBarSize: merged.maxBarSize,
-      minPointSize: merged.minPointSize,
-      hasCustomShape,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addCartesianGraphicalItem(settings);
-      } else if (prev !== settings) {
-        store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<BarSettings>(
+      () => ({
+        id,
+        type: "bar",
+        isPanorama,
+        data: merged.data,
+        dataKey: merged.dataKey,
+        xAxisId: merged.xAxisId,
+        yAxisId: merged.yAxisId,
+        zAxisId: 0,
+        hide: merged.hide,
+        stackId,
+        barSize: merged.barSize,
+        maxBarSize: merged.maxBarSize,
+        minPointSize: merged.minPointSize,
+        hasCustomShape,
+      }),
+      {
+        add: (next) => store.actions.graphicalItems.addCartesianGraphicalItem(next),
+        replace: (prev, next) =>
+          store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next }),
+        remove: (prev) => store.actions.graphicalItems.removeCartesianGraphicalItem(prev),
+      },
+    );
+  }
 
   // Per-bar <Cell> overrides (collected from children, in data order).
   const cells = collectCells(() => props.children);
@@ -1112,7 +1108,15 @@ export const Bar = (props: BarProps): JSX.Element => {
                   >
                     {(frame, animationElapsedTime, isEntrance) => (
                       <Layer>
-                        <For each={frame}>
+                        {/* keyed={false} (index-keyed): `frame` is a fresh array of
+                            fresh rect objects every animation tick; reference-keyed
+                            <For> would dispose+recreate every bar's DOM node and
+                            rebuild its ~10 event closures per frame. Index-keying
+                            reuses the rows (geometry updates reactively via the
+                            getter-wrapped props) and builds the handlers once per
+                            slot. `r` is now an accessor — event handlers read `r()`
+                            at dispatch time so they see the current frame's rect. */}
+                        <For each={frame} keyed={false}>
                           {(r, i) => (
                             // Render every selector-output rectangle, matching recharts
                             // (zero-dimension genuinely-empty bars are already dropped at
@@ -1124,12 +1128,12 @@ export const Bar = (props: BarProps): JSX.Element => {
                             // here suppressed all animated bars until the animation was
                             // driven to a non-zero frame.
                             <BarRectangleLayer
-                              entry={r}
-                              displayIndex={i()}
+                              entry={r()}
+                              displayIndex={i}
                               dataKey={merged.dataKey}
                               activeBar={activeBar}
-                              fill={r.fill ?? r.cell?.fill ?? merged.fill}
-                              stroke={r.stroke ?? r.cell?.stroke ?? merged.stroke}
+                              fill={r().fill ?? r().cell?.fill ?? merged.fill}
+                              stroke={r().stroke ?? r().cell?.stroke ?? merged.stroke}
                               radius={merged.radius}
                               shape={shape}
                               animationElapsedTime={animationElapsedTime}
@@ -1137,43 +1141,47 @@ export const Bar = (props: BarProps): JSX.Element => {
                               isAnimating={isAnimating() || animationElapsedTime < 1}
                               isEntrance={isEntrance}
                               isEntryActive={isEntryActive}
-                              cellClass={typeof r.class === "string" ? r.class : undefined}
-                              onMouseEnter={onItemEnter(r, r.originalDataIndex)}
-                              onMouseLeave={onItemLeave(r, r.originalDataIndex)}
-                              onClick={onItemClick(r, r.originalDataIndex)}
+                              cellClass={typeof r().class === "string" ? r().class : undefined}
+                              onMouseEnter={(event) =>
+                                onItemEnter(r(), r().originalDataIndex)(event)
+                              }
+                              onMouseLeave={(event) =>
+                                onItemLeave(r(), r().originalDataIndex)(event)
+                              }
+                              onClick={(event) => onItemClick(r(), r().originalDataIndex)(event)}
                               onMouseOver={
                                 onMouseOverHandler != null
-                                  ? (event) => onMouseOverHandler(r, r.originalDataIndex, event)
+                                  ? (event) => onMouseOverHandler(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseOut={
                                 onMouseOutHandler != null
-                                  ? (event) => onMouseOutHandler(r, r.originalDataIndex, event)
+                                  ? (event) => onMouseOutHandler(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseMove={
                                 onMouseMoveHandler != null
-                                  ? (event) => onMouseMoveHandler(r, r.originalDataIndex, event)
+                                  ? (event) => onMouseMoveHandler(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseDown={
                                 onMouseDownHandler != null
-                                  ? (event) => onMouseDownHandler(r, r.originalDataIndex, event)
+                                  ? (event) => onMouseDownHandler(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseUp={
                                 onMouseUpHandler != null
-                                  ? (event) => onMouseUpHandler(r, r.originalDataIndex, event)
+                                  ? (event) => onMouseUpHandler(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onTouchMove={
                                 onTouchMoveHandler != null
-                                  ? (event) => onTouchMoveHandler(r, i(), event)
+                                  ? (event) => onTouchMoveHandler(r(), i, event)
                                   : undefined
                               }
                               onTouchEnd={
                                 onTouchEndHandler != null
-                                  ? (event) => onTouchEndHandler(r, i(), event)
+                                  ? (event) => onTouchEndHandler(r(), i, event)
                                   : undefined
                               }
                             />

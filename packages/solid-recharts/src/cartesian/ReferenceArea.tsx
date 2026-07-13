@@ -16,7 +16,7 @@
 //  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
 //    (React.cloneElement — use the render-function form). <Label>
 //    CHILDREN are not rendered (the `label` prop is).
-import { createEffect, createMemo, merge, Show } from "solid-js";
+import { createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
 import {
@@ -41,7 +41,7 @@ import { CartesianScaleHelperImpl } from "../util/scale/CartesianScaleHelper";
 import type { AxisId } from "../state/cartesianAxisSlice";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 type ReferenceCoordinateValue = number | string;
 
@@ -124,39 +124,29 @@ const renderRect = (option: ReferenceAreaProps["shape"], props: RectangleProps):
 
 function ReportReferenceArea(props: ReferenceAreaSettings): JSX.Element {
   const store = useAppStore();
-  let prev: ReferenceAreaSettings | null = null;
-
-  createEffect(
-    (): ReferenceAreaSettings => ({
-      id: props.id,
-      xAxisId: props.xAxisId,
-      yAxisId: props.yAxisId,
-      ifOverflow: props.ifOverflow,
-      x1: props.x1,
-      x2: props.x2,
-      y1: props.y1,
-      y2: props.y2,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.referenceElements.addArea(settings);
-      } else if (prev !== settings) {
-        store.actions.referenceElements.removeArea(prev);
-        store.actions.referenceElements.addArea(settings);
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.referenceElements.removeArea(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<ReferenceAreaSettings>(
+      () => ({
+        id: props.id,
+        xAxisId: props.xAxisId,
+        yAxisId: props.yAxisId,
+        ifOverflow: props.ifOverflow,
+        x1: props.x1,
+        x2: props.x2,
+        y1: props.y1,
+        y2: props.y2,
+      }),
+      {
+        add: (next) => store.actions.referenceElements.addArea(next),
+        // No replace action on the slice; a change is remove-then-add (recharts idiom).
+        replace: (prev, next) => {
+          store.actions.referenceElements.removeArea(prev);
+          store.actions.referenceElements.addArea(next);
+        },
+        remove: (prev) => store.actions.referenceElements.removeArea(prev),
+      },
+    );
+  }
 
   return null;
 }

@@ -10,7 +10,7 @@
 // plus `onCleanup` for removal. Defaults are resolved field-by-field to match
 // recharts' `resolveDefaultProps`: explicit `undefined` falls back to defaults.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createMemo, Show } from "solid-js";
+import { createMemo, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
@@ -43,7 +43,7 @@ import {
   TickProp,
 } from "../util/types";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   xAxisId?: string | number;
@@ -155,71 +155,58 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
   const unit = createMemo(() => props.unit);
   const mirror = createMemo(() => withDefault(props.mirror, xAxisDefaultProps.mirror));
 
-  let prev: XAxisSettings | null = null;
-
-  createEffect(
-    (): XAxisSettings | undefined => {
-      const evaluatedType = getAxisTypeBasedOnLayout(
-        layout(),
-        "xAxis",
-        withDefault(props.type, xAxisDefaultProps.type),
-      );
-      if (evaluatedType == null) {
-        return undefined;
-      }
-      return {
-        id: xAxisId(),
-        scale: withDefault(props.scale, xAxisDefaultProps.scale),
-        type: evaluatedType,
-        dataKey: props.dataKey,
-        unit: unit(),
-        name: props.name,
-        allowDuplicatedCategory: withDefault(
-          props.allowDuplicatedCategory,
-          xAxisDefaultProps.allowDuplicatedCategory,
-        ),
-        allowDataOverflow: withDefault(
-          props.allowDataOverflow,
-          xAxisDefaultProps.allowDataOverflow,
-        ),
-        reversed: withDefault(props.reversed, xAxisDefaultProps.reversed),
-        includeHidden: withDefault(props.includeHidden, xAxisDefaultProps.includeHidden),
-        domain: props.domain,
-        allowDecimals: withDefault(props.allowDecimals, xAxisDefaultProps.allowDecimals),
-        tickCount: withDefault(props.tickCount, xAxisDefaultProps.tickCount),
-        ticks: props.ticks,
-        tick: tick(),
-        niceTicks: withDefault(props.niceTicks, xAxisDefaultProps.niceTicks),
-        interval: withDefault(props.interval, xAxisDefaultProps.interval),
-        mirror: mirror(),
-        minTickGap: withDefault(props.minTickGap, xAxisDefaultProps.minTickGap),
-        angle: withDefault(props.angle, xAxisDefaultProps.angle),
-        hide: hide(),
-        tickFormatter: tickFormatter(),
-        padding: withDefault(props.padding, xAxisDefaultProps.padding),
-        height: withDefault(props.height, xAxisDefaultProps.height),
-        orientation: orientation(),
-      };
-    },
-    (settings) => {
-      if (settings == null || store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.cartesianAxis.addXAxis(settings);
-      } else if (prev !== settings) {
-        store.actions.cartesianAxis.replaceXAxis({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.cartesianAxis.removeXAxis(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<XAxisSettings>(
+      (): XAxisSettings | undefined => {
+        const evaluatedType = getAxisTypeBasedOnLayout(
+          layout(),
+          "xAxis",
+          withDefault(props.type, xAxisDefaultProps.type),
+        );
+        if (evaluatedType == null) {
+          return undefined;
+        }
+        return {
+          id: xAxisId(),
+          scale: withDefault(props.scale, xAxisDefaultProps.scale),
+          type: evaluatedType,
+          dataKey: props.dataKey,
+          unit: unit(),
+          name: props.name,
+          allowDuplicatedCategory: withDefault(
+            props.allowDuplicatedCategory,
+            xAxisDefaultProps.allowDuplicatedCategory,
+          ),
+          allowDataOverflow: withDefault(
+            props.allowDataOverflow,
+            xAxisDefaultProps.allowDataOverflow,
+          ),
+          reversed: withDefault(props.reversed, xAxisDefaultProps.reversed),
+          includeHidden: withDefault(props.includeHidden, xAxisDefaultProps.includeHidden),
+          domain: props.domain,
+          allowDecimals: withDefault(props.allowDecimals, xAxisDefaultProps.allowDecimals),
+          tickCount: withDefault(props.tickCount, xAxisDefaultProps.tickCount),
+          ticks: props.ticks,
+          tick: tick(),
+          niceTicks: withDefault(props.niceTicks, xAxisDefaultProps.niceTicks),
+          interval: withDefault(props.interval, xAxisDefaultProps.interval),
+          mirror: mirror(),
+          minTickGap: withDefault(props.minTickGap, xAxisDefaultProps.minTickGap),
+          angle: withDefault(props.angle, xAxisDefaultProps.angle),
+          hide: hide(),
+          tickFormatter: tickFormatter(),
+          padding: withDefault(props.padding, xAxisDefaultProps.padding),
+          height: withDefault(props.height, xAxisDefaultProps.height),
+          orientation: orientation(),
+        };
+      },
+      {
+        add: (next) => store.actions.cartesianAxis.addXAxis(next),
+        replace: (prev, next) => store.actions.cartesianAxis.replaceXAxis({ prev, next }),
+        remove: (prev) => store.actions.cartesianAxis.removeXAxis(prev),
+      },
+    );
+  }
 
   // Visual: render the <CartesianAxis> (ticks + labels + axis line). Never inside
   // a Brush panorama.

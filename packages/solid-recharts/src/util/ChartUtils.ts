@@ -15,16 +15,8 @@ import {
   stackOffsetSilhouette,
   stackOffsetWiggle,
   stackOrderNone,
-} from "victory-vendor/d3-shape";
-import {
-  findEntryInArray,
-  isNan,
-  isNotNil,
-  isNullish,
-  isNumber,
-  isNumOrStr,
-  mathSign,
-} from "./DataUtils";
+} from "d3-shape";
+import { isNan, isNotNil, isNullish, isNumber, isNumOrStr, mathSign } from "./DataUtils";
 import { getSliced } from "./getSliced";
 import { isWellBehavedNumber } from "./isWellBehavedNumber";
 import type {
@@ -276,6 +268,32 @@ export const truncateByDomain = <T>(
   return result;
 };
 
+// Value→tick lookup cache, keyed on the ticks array reference. getCateCoordinateOfLine
+// is called once per data point; a linear findEntryInArray scan there is O(points²)
+// across a full series when allowDuplicatedCategory=false (ticks.length ≈ points).
+// The axis-ticks selector memoizes the ticks array, so this map is built once per
+// render and reused for every point lookup, making it O(points). First value wins,
+// mirroring Array.find.
+const tickByValueCache = new WeakMap<ReadonlyArray<TickItem>, Map<unknown, TickItem>>();
+function findTickByValue(ticks: ReadonlyArray<TickItem>, value: unknown): TickItem | undefined {
+  // Map uses SameValueZero and would match NaN, while the upstream Array.find
+  // lookup uses strict equality (NaN !== NaN). Preserve that fallback behavior.
+  if (typeof value === "number" && Number.isNaN(value)) {
+    return undefined;
+  }
+  let map = tickByValueCache.get(ticks);
+  if (map == null) {
+    map = new Map<unknown, TickItem>();
+    for (const tick of ticks) {
+      if (tick != null && !map.has(tick.value)) {
+        map.set(tick.value, tick);
+      }
+    }
+    tickByValueCache.set(ticks, map);
+  }
+  return map.get(value);
+}
+
 export function getCateCoordinateOfLine<T>({
   axis,
   ticks,
@@ -312,7 +330,7 @@ export function getCateCoordinateOfLine<T>({
       const key: string | number = axisDataKey;
       const cellValue = entry[key];
       if (!isNullish(cellValue)) {
-        const matchedTick = ticks ? findEntryInArray(ticks, "value", cellValue) : undefined;
+        const matchedTick = ticks ? findTickByValue(ticks, cellValue) : undefined;
 
         if (matchedTick) {
           return matchedTick.coordinate + bandSize / 2;
@@ -625,35 +643,61 @@ export const getStackedData = (
   offsetType: StackOffsetType,
 ): ReadonlyArray<Series<StackDatum, StackKey>> => {
   const offsetAccessor: OffsetAccessor = STACK_OFFSET_MAP[offsetType] ?? offsetSign;
+  // Track whether any value is a [min, max] tuple during the (unavoidable) value
+  // accessor pass, so the ranged-data fixup below can be skipped entirely for the
+  // common scalar case instead of running a second full series×points scan.
+  let hasRangedValues = false;
   const stack = shapeStack<StackDatum, StackKey>()
     .keys(dataKeys)
-    .value((d, key) => Number(getValueByDataKey(d, key, 0)))
+    .value((d, key) => {
+      const raw = getValueByDataKey(d, key, 0);
+      if (Array.isArray(raw) && raw.length === 2) {
+        hasRangedValues = true;
+      }
+      return Number(raw);
+    })
     .order(stackOrderNone)
     .offset(offsetAccessor);
 
   const result = stack(data);
 
   // Ranged data: when a value is a [min, max] tuple, use it directly (no stacking).
-  result.forEach((s, seriesIndex) => {
-    s.forEach((point, pointIndex) => {
-      const value = getValueByDataKey(data[pointIndex], dataKeys[seriesIndex], 0);
-      if (value != null && Array.isArray(value) && value.length === 2) {
-        const lo: unknown = value[0];
-        const hi: unknown = value[1];
-        if (isNumber(lo) && isNumber(hi)) {
-          point[0] = lo;
-          point[1] = hi;
+  if (hasRangedValues) {
+    result.forEach((s, seriesIndex) => {
+      s.forEach((point, pointIndex) => {
+        const value = getValueByDataKey(data[pointIndex], dataKeys[seriesIndex], 0);
+        if (value != null && Array.isArray(value) && value.length === 2) {
+          const lo: unknown = value[0];
+          const hi: unknown = value[1];
+          if (isNumber(lo) && isNumber(hi)) {
+            point[0] = lo;
+            point[1] = hi;
+          }
         }
-      }
+      });
     });
-  });
+  }
 
   return result;
 };
 
 const getDomainOfSingle = (data: ReadonlyArray<ReadonlyArray<unknown>>): number[] => {
-  const flat = data.flat(2).filter(isNumber);
-  return [Math.min(...flat), Math.max(...flat)];
+  // Reduce loop, not `Math.min(...flat)`: spreading a data-sized array throws a V8
+  // RangeError past ~100k elements. Empty input yields [Infinity, -Infinity],
+  // matching the previous Math.min/Math.max-of-empty behavior.
+  let min = Infinity;
+  let max = -Infinity;
+  for (const value of data.flat(2)) {
+    if (isNumber(value)) {
+      if (value < min) {
+        min = value;
+      }
+      if (value > max) {
+        max = value;
+      }
+    }
+  }
+  return [min, max];
 };
 
 const makeDomainFinite = (domain: NumberDomain): NumberDomain => [

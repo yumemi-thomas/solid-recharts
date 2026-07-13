@@ -25,7 +25,7 @@
 // "with controlled startIndex/endIndex" Brush.spec block.
 import { createEffect, createMemo, createSignal, merge, onCleanup, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { scalePoint } from "victory-vendor/d3-scale";
+import { scalePoint } from "d3-scale";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { Layer } from "../container/Layer";
 import { Text } from "../component/Text";

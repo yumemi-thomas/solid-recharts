@@ -109,11 +109,15 @@ export function Dots(props: DotsProps): JSX.Element {
   return (
     <Show when={shouldRenderDots(props.points, props.dot)}>
       <Layer class={props.class} clipPath={layerClip()}>
-        <For each={props.points}>
+        {/* keyed={false} (index-keyed): during animation `points` is a fresh
+            array with fresh point objects every frame; reference-keyed <For>
+            would dispose+recreate every dot's DOM node per frame. Index-keying
+            reuses the rows and only updates cx/cy reactively. */}
+        <For each={props.points} keyed={false}>
           {(entry, i) => (
             <DotRenderer
-              entry={entry}
-              index={i()}
+              entry={entry()}
+              index={i}
               dot={props.dot}
               baseProps={props.baseProps}
               dataKey={props.dataKey}

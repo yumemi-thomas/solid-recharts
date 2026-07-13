@@ -8,6 +8,8 @@
 // match by it (the same proxy-safe strategy as graphicalItemsSlice/tooltipSlice).
 // `selectLegendPayload` flattens `items` back to the reference's flat shape.
 import { createStore } from "solid-js";
+import { createCollectionActions } from "./createCollectionActions";
+import { patched } from "./patched";
 import { LayoutType, Size } from "../util/types";
 import {
   HorizontalAlignmentType,
@@ -66,41 +68,37 @@ export function createLegendSlice(initialState: LegendState = initialLegendState
     payload: [...initialState.payload],
   });
 
+  const payload = createCollectionActions<LegendPayloadEntry>(
+    (updater) =>
+      setState((s) => {
+        const next = updater(s.payload);
+        if (next !== s.payload) {
+          s.payload = next;
+        }
+      }),
+    (e) => e.id,
+  );
+
   const actions: LegendActions = {
     setLegendSize(payload) {
+      // Slice immutability contract (ADR-0002): replace the node, not leaves.
       setState((s) => {
-        s.size.width = payload.width;
-        s.size.height = payload.height;
+        s.size = patched(s.size, { width: payload.width, height: payload.height });
       });
     },
     setLegendSettings(payload) {
       setState((s) => {
-        s.settings.align = payload.align;
-        s.settings.layout = payload.layout;
-        s.settings.verticalAlign = payload.verticalAlign;
-        s.settings.itemSorter = payload.itemSorter;
+        s.settings = patched(s.settings, {
+          align: payload.align,
+          layout: payload.layout,
+          verticalAlign: payload.verticalAlign,
+          itemSorter: payload.itemSorter,
+        });
       });
     },
-    addLegendPayload(payload) {
-      setState((s) => {
-        s.payload = [...s.payload, payload];
-      });
-    },
-    replaceLegendPayload({ prev, next }) {
-      setState((s) => {
-        const index = s.payload.findIndex((e) => e.id === prev.id);
-        if (index > -1) {
-          const nextItems = s.payload.slice();
-          nextItems[index] = next;
-          s.payload = nextItems;
-        }
-      });
-    },
-    removeLegendPayload(payload) {
-      setState((s) => {
-        s.payload = s.payload.filter((e) => e.id !== payload.id);
-      });
-    },
+    addLegendPayload: payload.add,
+    replaceLegendPayload: payload.replace,
+    removeLegendPayload: payload.remove,
   };
 
   return { state, actions };

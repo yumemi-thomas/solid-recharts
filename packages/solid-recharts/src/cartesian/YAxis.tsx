@@ -40,7 +40,7 @@ import {
   TickProp,
 } from "../util/types";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export interface YAxisProps<DataPointType = unknown, DataValueType = unknown> {
   yAxisId?: string | number;
@@ -152,71 +152,58 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
   const unit = createMemo(() => props.unit);
   const mirror = createMemo(() => withDefault(props.mirror, yAxisDefaultProps.mirror));
 
-  let prev: YAxisSettings | null = null;
-
-  createEffect(
-    (): YAxisSettings | undefined => {
-      const evaluatedType = getAxisTypeBasedOnLayout(
-        layout(),
-        "yAxis",
-        withDefault(props.type, yAxisDefaultProps.type),
-      );
-      if (evaluatedType == null) {
-        return undefined;
-      }
-      return {
-        id: yAxisId(),
-        scale: withDefault(props.scale, yAxisDefaultProps.scale),
-        type: evaluatedType,
-        dataKey: props.dataKey,
-        unit: unit(),
-        name: props.name,
-        allowDuplicatedCategory: withDefault(
-          props.allowDuplicatedCategory,
-          yAxisDefaultProps.allowDuplicatedCategory,
-        ),
-        allowDataOverflow: withDefault(
-          props.allowDataOverflow,
-          yAxisDefaultProps.allowDataOverflow,
-        ),
-        reversed: withDefault(props.reversed, yAxisDefaultProps.reversed),
-        includeHidden: withDefault(props.includeHidden, yAxisDefaultProps.includeHidden),
-        domain: props.domain,
-        allowDecimals: withDefault(props.allowDecimals, yAxisDefaultProps.allowDecimals),
-        tickCount: withDefault(props.tickCount, yAxisDefaultProps.tickCount),
-        ticks: props.ticks,
-        tick: tick(),
-        niceTicks: withDefault(props.niceTicks, yAxisDefaultProps.niceTicks),
-        interval: withDefault(props.interval, yAxisDefaultProps.interval),
-        mirror: mirror(),
-        minTickGap: withDefault(props.minTickGap, yAxisDefaultProps.minTickGap),
-        angle: withDefault(props.angle, yAxisDefaultProps.angle),
-        hide: hide(),
-        tickFormatter: tickFormatter(),
-        padding: withDefault(props.padding, yAxisDefaultProps.padding),
-        width: withDefault(props.width, yAxisDefaultProps.width),
-        orientation: orientation(),
-      };
-    },
-    (settings) => {
-      if (settings == null || store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.cartesianAxis.addYAxis(settings);
-      } else if (prev !== settings) {
-        store.actions.cartesianAxis.replaceYAxis({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.cartesianAxis.removeYAxis(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<YAxisSettings>(
+      (): YAxisSettings | undefined => {
+        const evaluatedType = getAxisTypeBasedOnLayout(
+          layout(),
+          "yAxis",
+          withDefault(props.type, yAxisDefaultProps.type),
+        );
+        if (evaluatedType == null) {
+          return undefined;
+        }
+        return {
+          id: yAxisId(),
+          scale: withDefault(props.scale, yAxisDefaultProps.scale),
+          type: evaluatedType,
+          dataKey: props.dataKey,
+          unit: unit(),
+          name: props.name,
+          allowDuplicatedCategory: withDefault(
+            props.allowDuplicatedCategory,
+            yAxisDefaultProps.allowDuplicatedCategory,
+          ),
+          allowDataOverflow: withDefault(
+            props.allowDataOverflow,
+            yAxisDefaultProps.allowDataOverflow,
+          ),
+          reversed: withDefault(props.reversed, yAxisDefaultProps.reversed),
+          includeHidden: withDefault(props.includeHidden, yAxisDefaultProps.includeHidden),
+          domain: props.domain,
+          allowDecimals: withDefault(props.allowDecimals, yAxisDefaultProps.allowDecimals),
+          tickCount: withDefault(props.tickCount, yAxisDefaultProps.tickCount),
+          ticks: props.ticks,
+          tick: tick(),
+          niceTicks: withDefault(props.niceTicks, yAxisDefaultProps.niceTicks),
+          interval: withDefault(props.interval, yAxisDefaultProps.interval),
+          mirror: mirror(),
+          minTickGap: withDefault(props.minTickGap, yAxisDefaultProps.minTickGap),
+          angle: withDefault(props.angle, yAxisDefaultProps.angle),
+          hide: hide(),
+          tickFormatter: tickFormatter(),
+          padding: withDefault(props.padding, yAxisDefaultProps.padding),
+          width: withDefault(props.width, yAxisDefaultProps.width),
+          orientation: orientation(),
+        };
+      },
+      {
+        add: (next) => store.actions.cartesianAxis.addYAxis(next),
+        replace: (prev, next) => store.actions.cartesianAxis.replaceYAxis({ prev, next }),
+        remove: (prev) => store.actions.cartesianAxis.removeYAxis(prev),
+      },
+    );
+  }
 
   // Visual: render the <CartesianAxis>. Never inside a Brush panorama.
   const isPanorama = useIsPanorama();

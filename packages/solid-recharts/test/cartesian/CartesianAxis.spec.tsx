@@ -6,7 +6,7 @@
 // React.cloneElement an already-evaluated element to inject computed x/y — function form
 // covers it).
 import { describe, expect, it } from "vitest";
-import { scaleLinear } from "victory-vendor/d3-scale";
+import { scaleLinear } from "d3-scale";
 import { render } from "@solidjs/testing-library";
 import { CartesianAxis, Surface } from "../../src";
 import type { CartesianTickContentProps, TickItem } from "../../src/util/types";

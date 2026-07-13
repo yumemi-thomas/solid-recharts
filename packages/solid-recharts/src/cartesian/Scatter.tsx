@@ -10,7 +10,7 @@
 // joint/fitting line) are wired.) Solid deviations:
 // resolveDefaultProps→merge; effect-dispatch registration → createEffect/onCleanup;
 // the `@ts-expect-error`-laden value plumbing is replaced with typed coercion.
-import { createEffect, createMemo, For, merge, Show } from "solid-js";
+import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
@@ -79,7 +79,7 @@ import { getCateCoordinateOfLine, getTooltipNameProp, getValueByDataKey } from "
 import { getLinearRegression, interpolate, isNullish, isNumOrStr } from "../util/DataUtils";
 import { BaseAxisWithScale, implicitZAxis, ZAxisWithScale } from "../state/selectors/axisSelectors";
 import type { Formatter, ValueType } from "../component/DefaultTooltipContent";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export interface ScatterPointNode {
   x?: number | string;
@@ -402,41 +402,29 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
   // The default shape a (possibly partial-object) activeShape falls back to.
   const defaultSymbolShape = (p: ScatterShapeProps): JSX.Element => <Symbols {...p} />;
 
-  let prev: ScatterSettings | null = null;
-
-  createEffect(
-    (): ScatterSettings => ({
-      id,
-      type: "scatter",
-      isPanorama,
-      data: merged.data,
-      dataKey: merged.dataKey,
-      xAxisId: merged.xAxisId,
-      yAxisId: merged.yAxisId,
-      zAxisId: merged.zAxisId,
-      hide: merged.hide,
-      tooltipType: merged.tooltipType,
-      name: merged.name,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addCartesianGraphicalItem(settings);
-      } else if (prev !== settings) {
-        store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removeCartesianGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<ScatterSettings>(
+      () => ({
+        id,
+        type: "scatter",
+        isPanorama,
+        data: merged.data,
+        dataKey: merged.dataKey,
+        xAxisId: merged.xAxisId,
+        yAxisId: merged.yAxisId,
+        zAxisId: merged.zAxisId,
+        hide: merged.hide,
+        tooltipType: merged.tooltipType,
+        name: merged.name,
+      }),
+      {
+        add: (next) => store.actions.graphicalItems.addCartesianGraphicalItem(next),
+        replace: (prev, next) =>
+          store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev, next }),
+        remove: (prev) => store.actions.graphicalItems.removeCartesianGraphicalItem(prev),
+      },
+    );
+  }
 
   // Per-point <Cell> overrides (collected from children, in data order).
   const cells = collectCells(() => props.children);

@@ -88,7 +88,21 @@ import {
 import { selectChartHeight, selectChartWidth } from "./containerSelectors";
 import { selectAllXAxes, selectAllYAxes } from "./selectAllAxes";
 import { pickAxisType } from "./pickAxisType";
+import { pickAxisId } from "./pickAxisId";
+import { createSelector } from "../createSelector";
+import { arrayContentsAreEqualCheck, emptyArraysAreEqualCheck } from "./arrayEqualityCheck";
+import { numberDomainEqualityCheck } from "./numberDomainEqualityCheck";
 import { isWellBehavedNumber } from "../../util/isWellBehavedNumber";
+
+// `pickAxisType` is generic (`<T>(state, axisType: T) => T`), so as a bare input
+// selector its return infers to `unknown`. These typed picks pin it to the axis
+// arg shape each combiner expects — used wherever it feeds a wrapped selector.
+const pickAxisTypeArg = (_state: RechartsRootState, axisType: AllAxisTypes): AllAxisTypes =>
+  axisType;
+const pickRenderableAxisType = (
+  _state: RechartsRootState,
+  axisType: RenderableAxisType,
+): RenderableAxisType => axisType;
 import { getNiceTickValues, getTickValuesFixedDomain } from "../../util/scale";
 import { selectChartOffsetInternal } from "./selectChartOffsetInternal";
 import { selectBrushDimensions } from "./brushSelectors";
@@ -387,11 +401,17 @@ export function itemAxisPredicate(axisType: AllAxisTypes, axisId: AxisId) {
   };
 }
 
-const selectAxisPredicate = (
-  _state: RechartsRootState,
+// Wrapped (ADR-0002) so the predicate reference is stable per (axisType, axisId)
+// — an unwrapped fresh closure per call would defeat downstream item-settings
+// caching. Mirrors upstream `createSelector([pickAxisType, pickAxisId], itemAxisPredicate)`.
+const selectAxisPredicate: (
+  state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): ((item: CartesianGraphicalItemSettings) => boolean) => itemAxisPredicate(axisType, axisId);
+) => (item: CartesianGraphicalItemSettings) => boolean = createSelector(
+  [pickAxisTypeArg, pickAxisId],
+  itemAxisPredicate,
+);
 
 export const combineGraphicalItemsSettings = <T extends GraphicalItemSettings>(
   graphicalItems: ReadonlyArray<T>,
@@ -405,28 +425,29 @@ export const combineGraphicalItemsSettings = <T extends GraphicalItemSettings>(
     return !item.hide;
   });
 
-export const selectCartesianItemsSettings = (
+export const selectCartesianItemsSettings: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): ReadonlyArray<CartesianGraphicalItemSettings> =>
-  combineGraphicalItemsSettings(
-    selectUnfilteredCartesianItems(state),
-    selectBaseAxis(state, axisType, axisId),
-    selectAxisPredicate(state, axisType, axisId),
-  );
+) => ReadonlyArray<CartesianGraphicalItemSettings> = createSelector(
+  [selectUnfilteredCartesianItems, selectBaseAxis, selectAxisPredicate],
+  combineGraphicalItemsSettings,
+  { resultEqualityCheck: emptyArraysAreEqualCheck },
+);
 
 export const filterGraphicalNotStackedItems = (
   cartesianItems: ReadonlyArray<GraphicalItemSettings>,
 ): ReadonlyArray<GraphicalItemSettings> =>
   cartesianItems.filter((item) => !("stackId" in item) || item.stackId === undefined);
 
-const selectCartesianItemsSettingsExceptStacked = (
+const selectCartesianItemsSettingsExceptStacked: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): ReadonlyArray<GraphicalItemSettings> =>
-  filterGraphicalNotStackedItems(selectCartesianItemsSettings(state, axisType, axisId));
+) => ReadonlyArray<GraphicalItemSettings> = createSelector(
+  [selectCartesianItemsSettings],
+  filterGraphicalNotStackedItems,
+);
 
 export const combineGraphicalItemsData = (
   cartesianItems: ReadonlyArray<GraphicalItemSettings>,
@@ -440,20 +461,24 @@ export const combineGraphicalItemsData = (
  * True if at least one graphical item relies on the chart-level data (no own
  * `data` prop).
  */
-export const selectAnyCartesianItemsUsesChartData = (
+export const selectAnyCartesianItemsUsesChartData: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): boolean => selectCartesianItemsSettings(state, axisType, axisId).some((item) => !item.data);
+) => boolean = createSelector([selectCartesianItemsSettings], (items) =>
+  items.some((item) => !item.data),
+);
 
 /**
  * Data defined on the chart graphical items (Line/Scatter/etc.), filtered by axis.
  */
-export const selectCartesianGraphicalItemsData = (
+export const selectCartesianGraphicalItemsData: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): ChartData => combineGraphicalItemsData(selectCartesianItemsSettings(state, axisType, axisId));
+) => ChartData = createSelector([selectCartesianItemsSettings], combineGraphicalItemsData, {
+  resultEqualityCheck: emptyArraysAreEqualCheck,
+});
 
 export const combineDisplayedData = (
   graphicalItemsData: ChartData,
@@ -469,16 +494,15 @@ export const combineDisplayedData = (
  * All data in the chart (graphical items + chart root), useful for figuring out
  * an axis domain. Discards original indexes, so not useful for ordering.
  */
-export const selectDisplayedData = (
+export const selectDisplayedData: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): ChartData =>
-  combineDisplayedData(
-    selectCartesianGraphicalItemsData(state, axisType, axisId),
-    selectChartDataWithIndexesIfNotInPanoramaPosition4(state, axisType, axisId, isPanorama),
-  );
+) => ChartData = createSelector(
+  [selectCartesianGraphicalItemsData, selectChartDataWithIndexesIfNotInPanoramaPosition4],
+  combineDisplayedData,
+);
 
 export const combineAppliedValues = (
   data: ChartData,
@@ -518,20 +542,22 @@ export const combineAllAppliedValues = (
 /**
  * All values with the appropriate dataKey applied. Expensive — iterates all data.
  */
-export const selectAllAppliedValues = (
+export const selectAllAppliedValues: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): AppliedChartData =>
-  combineAllAppliedValues(
-    selectDisplayedData(state, axisType, axisId, isPanorama),
-    selectBaseAxis(state, axisType, axisId),
-    selectCartesianItemsSettings(state, axisType, axisId),
-    selectChartDataWithIndexesIfNotInPanoramaPosition4(state, axisType, axisId, isPanorama),
-    selectAnyCartesianItemsUsesChartData(state, axisType, axisId),
-    selectCartesianGraphicalItemsData(state, axisType, axisId),
-  );
+) => AppliedChartData = createSelector(
+  [
+    selectDisplayedData,
+    selectBaseAxis,
+    selectCartesianItemsSettings,
+    selectChartDataWithIndexesIfNotInPanoramaPosition4,
+    selectAnyCartesianItemsUsesChartData,
+    selectCartesianGraphicalItemsData,
+  ],
+  combineAllAppliedValues,
+);
 
 function makeNumber(val: unknown): number | undefined {
   if (isNumOrStr(val) || val instanceof Date) {
@@ -713,6 +739,14 @@ export const combineDomainOfAllAppliedNumericalValuesIncludingErrorValues = (
   return undefined;
 };
 
+// NOT wrapped (ADR-0002 leaf-input constraint): `selectAllErrorBarSettings`
+// returns the `errorBars` slice root and the combiner iterates its nested,
+// dynamically-keyed entries. Under a wrapped selector the combiner runs
+// untracked and the input reads only the root, so an ErrorBar registering after
+// first compute is never tracked → the domain stays stale (missed the error-bar
+// extension). Kept as a plain function so its combiner runs tracked inside its
+// wrapped consumer `selectNumericalDomain`, whose numberDomainEqualityCheck
+// still stabilizes the domain reference downstream.
 export const selectDomainOfAllAppliedNumericalValuesIncludingErrorValues = (
   state: RechartsRootState,
   axisType: AllAxisTypes,
@@ -945,29 +979,32 @@ export const selectDomainFromUserPreference = (
 // (reselect createSelectors → plain functions; memoization from useAppSelector).
 
 /** Cartesian items (Bar/Area) that are actually stacked (have stackId + dataKey). */
-export const selectStackedCartesianItemsSettings = (
+export const selectStackedCartesianItemsSettings: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): ReadonlyArray<DefinitelyStackedGraphicalItem> =>
-  selectCartesianItemsSettings(state, axisType, axisId)
-    .filter((item) => item.type === "area" || item.type === "bar")
-    .filter(isStacked);
+) => ReadonlyArray<DefinitelyStackedGraphicalItem> = createSelector(
+  [selectCartesianItemsSettings],
+  (cartesianItems): ReadonlyArray<DefinitelyStackedGraphicalItem> =>
+    cartesianItems.filter((item) => item.type === "area" || item.type === "bar").filter(isStacked),
+);
 
 const selectTooltipAxisForStacks = (state: RechartsRootState): BaseCartesianAxis =>
   selectRenderableAxisSettings(state, selectTooltipAxisType(state), selectTooltipAxisId(state));
 
-export const selectDisplayedStackedData = (
+export const selectDisplayedStackedData: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): DisplayedStackedData =>
-  combineDisplayedStackedData(
-    selectStackedCartesianItemsSettings(state, axisType, axisId),
-    selectChartDataWithIndexesIfNotInPanoramaPosition4(state, axisType, axisId, isPanorama),
-    selectTooltipAxisForStacks(state),
-  );
+) => DisplayedStackedData = createSelector(
+  [
+    selectStackedCartesianItemsSettings,
+    selectChartDataWithIndexesIfNotInPanoramaPosition4,
+    selectTooltipAxisForStacks,
+  ],
+  combineDisplayedStackedData,
+);
 
 export const combineStackGroups = (
   displayedData: DisplayedStackedData,
@@ -1006,18 +1043,20 @@ export const combineStackGroups = (
  * Stack groups are groups of graphical items that stack on each other, keyed by
  * stack ID. Items without a stack ID do not appear.
  */
-export const selectStackGroups = (
+export const selectStackGroups: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): AllStackGroups =>
-  combineStackGroups(
-    selectDisplayedStackedData(state, axisType, axisId, isPanorama),
-    selectStackedCartesianItemsSettings(state, axisType, axisId),
-    selectStackOffsetType(state),
-    selectReverseStackOrder(state),
-  );
+) => AllStackGroups = createSelector(
+  [
+    selectDisplayedStackedData,
+    selectStackedCartesianItemsSettings,
+    selectStackOffsetType,
+    selectReverseStackOrder,
+  ],
+  combineStackGroups,
+);
 
 export const combineDomainOfStackGroups = (
   stackGroups: AllStackGroups | undefined,
@@ -1034,18 +1073,16 @@ export const combineDomainOfStackGroups = (
   return getDomainOfStackGroups(stackGroups, dataStartIndex, dataEndIndex);
 };
 
-export const selectDomainOfStackGroups = (
+export const selectDomainOfStackGroups: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): NumberDomain | undefined =>
-  combineDomainOfStackGroups(
-    selectStackGroups(state, axisType, axisId, isPanorama),
-    selectChartDataWithIndexes(state),
-    axisType,
-    selectDomainFromUserPreference(state, axisType, axisId),
-  );
+) => NumberDomain | undefined = createSelector(
+  [selectStackGroups, selectChartDataWithIndexes, pickAxisTypeArg, selectDomainFromUserPreference],
+  combineDomainOfStackGroups,
+  { resultEqualityCheck: numberDomainEqualityCheck },
+);
 
 export const combineNumericalDomain = (
   axisSettings: BaseCartesianAxis,
@@ -1127,34 +1164,34 @@ export const combineNumericTicksDomain = (
   return [Math.min(...numericTicks), Math.max(...numericTicks)];
 };
 
-export const selectNumericTicksDomain = (
+export const selectNumericTicksDomain: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): NumberDomain | undefined => combineNumericTicksDomain(selectBaseAxis(state, axisType, axisId));
+) => NumberDomain | undefined = createSelector([selectBaseAxis], combineNumericTicksDomain, {
+  resultEqualityCheck: numberDomainEqualityCheck,
+});
 
-export const selectNumericalDomain = (
+export const selectNumericalDomain: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): NumberDomain | undefined =>
-  combineNumericalDomain(
-    selectBaseAxis(state, axisType, axisId),
-    selectDomainDefinition(state, axisType, axisId),
-    selectDomainFromUserPreference(state, axisType, axisId),
-    selectDomainOfStackGroups(state, axisType, axisId, isPanorama),
-    selectDomainOfAllAppliedNumericalValuesIncludingErrorValues(
-      state,
-      axisType,
-      axisId,
-      isPanorama,
-    ),
-    selectReferenceElementsDomain(state, axisType, axisId),
-    selectChartLayout(state),
-    axisType,
-    selectNumericTicksDomain(state, axisType, axisId),
-  );
+) => NumberDomain | undefined = createSelector(
+  [
+    selectBaseAxis,
+    selectDomainDefinition,
+    selectDomainFromUserPreference,
+    selectDomainOfStackGroups,
+    selectDomainOfAllAppliedNumericalValuesIncludingErrorValues,
+    selectReferenceElementsDomain,
+    selectChartLayout,
+    pickAxisTypeArg,
+    selectNumericTicksDomain,
+  ],
+  combineNumericalDomain,
+  { resultEqualityCheck: numberDomainEqualityCheck },
+);
 
 /**
  * Expand maps everything between 0 and 1; nothing to compute.
@@ -1194,32 +1231,32 @@ export const combineAxisDomain = (
   return numericalDomain;
 };
 
-export const selectAxisDomain = (
+export const selectAxisDomain: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): NumberDomain | CategoricalDomain | undefined =>
-  combineAxisDomain(
-    selectBaseAxis(state, axisType, axisId),
-    selectChartLayout(state),
-    selectDisplayedData(state, axisType, axisId, isPanorama),
-    selectAllAppliedValues(state, axisType, axisId, isPanorama),
-    selectStackOffsetType(state),
-    axisType,
-    selectNumericalDomain(state, axisType, axisId, isPanorama),
-  );
+) => NumberDomain | CategoricalDomain | undefined = createSelector(
+  [
+    selectBaseAxis,
+    selectChartLayout,
+    selectDisplayedData,
+    selectAllAppliedValues,
+    selectStackOffsetType,
+    pickAxisTypeArg,
+    selectNumericalDomain,
+  ],
+  combineAxisDomain,
+);
 
-export const selectRealScaleType = (
+export const selectRealScaleType: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
-): RechartsScaleType | undefined =>
-  combineRealScaleType(
-    selectBaseAxis(state, axisType, axisId),
-    selectHasBar(state),
-    selectChartName(state),
-  );
+) => RechartsScaleType | undefined = createSelector(
+  [selectBaseAxis, selectHasBar, selectChartName],
+  combineRealScaleType,
+);
 
 export const combineNiceTicks = (
   axisDomain: NumberDomain | CategoricalDomain | undefined,
@@ -1289,17 +1326,15 @@ export const combineNiceTicks = (
   return undefined;
 };
 
-export const selectNiceTicks = (
+export const selectNiceTicks: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): ReadonlyArray<number> | undefined =>
-  combineNiceTicks(
-    selectAxisDomain(state, axisType, axisId, isPanorama),
-    selectRenderableAxisSettings(state, axisType, axisId),
-    selectRealScaleType(state, axisType, axisId),
-  );
+) => ReadonlyArray<number> | undefined = createSelector(
+  [selectAxisDomain, selectRenderableAxisSettings, selectRealScaleType],
+  combineNiceTicks,
+);
 
 export const combineAxisDomainWithNiceTicks = (
   axisSettings: BaseCartesianAxis,
@@ -1325,18 +1360,15 @@ export const combineAxisDomainWithNiceTicks = (
   return domain;
 };
 
-export const selectAxisDomainIncludingNiceTicks = (
+export const selectAxisDomainIncludingNiceTicks: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): NumberDomain | CategoricalDomain | undefined =>
-  combineAxisDomainWithNiceTicks(
-    selectBaseAxis(state, axisType, axisId),
-    selectAxisDomain(state, axisType, axisId, isPanorama),
-    selectNiceTicks(state, axisType, axisId, isPanorama),
-    axisType,
-  );
+) => NumberDomain | CategoricalDomain | undefined = createSelector(
+  [selectBaseAxis, selectAxisDomain, selectNiceTicks, pickRenderableAxisType],
+  combineAxisDomainWithNiceTicks,
+);
 
 /**
  * Smallest gap between two data numbers as a ratio of the whole range (0..1).
@@ -1515,7 +1547,7 @@ export const selectYAxisRange = (
   return [offset.top + padding.top, offset.top + offset.height - padding.bottom];
 };
 
-export const selectAxisRange = (
+const computeAxisRange = (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
@@ -1537,40 +1569,57 @@ export const selectAxisRange = (
   }
 };
 
-export const selectAxisRangeWithReverse = (
+// The range tuple is rebuilt fresh from offset/padding on every call; this
+// identity wrapper (ADR-0002) applies content-equality so callers get a stable
+// reference when the plot range is unchanged — otherwise the tick/scale chain
+// above rebuilds per consumer per mousemove frame.
+export const selectAxisRange: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): AxisRange | undefined =>
-  combineAxisRangeWithReverse(
-    selectBaseAxis(state, axisType, axisId),
-    selectAxisRange(state, axisType, axisId, isPanorama),
-  );
+) => AxisRange | undefined = createSelector([computeAxisRange], (range) => range, {
+  resultEqualityCheck: (a, b) =>
+    a == null || b == null ? a === b : arrayContentsAreEqualCheck(a, b),
+});
 
-export const selectCheckedAxisDomain = (
+export const selectAxisRangeWithReverse: (
+  state: RechartsRootState,
+  axisType: AllAxisTypes,
+  axisId: AxisId,
+  isPanorama: boolean,
+) => AxisRange | undefined = createSelector(
+  [selectBaseAxis, selectAxisRange],
+  combineAxisRangeWithReverse,
+  // The range tuple is recomputed fresh each call (from offset/padding) but only
+  // its VALUES matter; content-equality returns the prior reference when the plot
+  // range is unchanged (e.g. across a mousemove), so the scale/ticks chain above
+  // stays cache-stable instead of rebuilding a d3 scale per consumer per frame.
+  {
+    resultEqualityCheck: (a, b) =>
+      a == null || b == null ? a === b : arrayContentsAreEqualCheck(a, b),
+  },
+);
+
+export const selectCheckedAxisDomain: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): NumberDomain | CategoricalDomain | undefined =>
-  combineCheckedDomain(
-    selectRealScaleType(state, axisType, axisId),
-    selectAxisDomainIncludingNiceTicks(state, axisType, axisId, isPanorama),
-  );
+) => NumberDomain | CategoricalDomain | undefined = createSelector(
+  [selectRealScaleType, selectAxisDomainIncludingNiceTicks],
+  combineCheckedDomain,
+);
 
-const selectConfiguredScale = (
+const selectConfiguredScale: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): CustomScaleDefinition | undefined =>
-  combineConfiguredScale(
-    selectBaseAxis(state, axisType, axisId),
-    selectRealScaleType(state, axisType, axisId),
-    selectCheckedAxisDomain(state, axisType, axisId, isPanorama),
-    selectAxisRangeWithReverse(state, axisType, axisId, isPanorama),
-  );
+) => CustomScaleDefinition | undefined = createSelector(
+  [selectBaseAxis, selectRealScaleType, selectCheckedAxisDomain, selectAxisRangeWithReverse],
+  combineConfiguredScale,
+);
 
 export const combineCategoricalDomain = (
   layout: LayoutType,
@@ -1589,26 +1638,22 @@ export const combineCategoricalDomain = (
   return undefined;
 };
 
-export const selectCategoricalDomain = (
+export const selectCategoricalDomain: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): ReadonlyArray<unknown> | undefined =>
-  combineCategoricalDomain(
-    selectChartLayout(state),
-    selectAllAppliedValues(state, axisType, axisId, isPanorama),
-    selectRenderableAxisSettings(state, axisType, axisId),
-    axisType,
-  );
+) => ReadonlyArray<unknown> | undefined = createSelector(
+  [selectChartLayout, selectAllAppliedValues, selectRenderableAxisSettings, pickRenderableAxisType],
+  combineCategoricalDomain,
+);
 
-export const selectAxisScale = (
+export const selectAxisScale: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): RechartsScale | undefined =>
-  rechartsScaleFactory(selectConfiguredScale(state, axisType, axisId, isPanorama));
+) => RechartsScale | undefined = createSelector([selectConfiguredScale], rechartsScaleFactory);
 
 /** The ticks the axis component actually rendered (from the renderedTicks slice). */
 export const selectRenderedTicksOfAxis = (
@@ -1621,13 +1666,15 @@ export const selectRenderedTicksOfAxis = (
  * Maps a pixel coordinate back to a data value (the inverse of the axis scale).
  * Continuous scales invert; categorical scales snap to the nearest category.
  */
-export const selectAxisInverseScale = (
+export const selectAxisInverseScale: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): InverseScaleFunction | undefined =>
-  combineInverseScaleFunction(selectConfiguredScale(state, axisType, axisId, isPanorama));
+) => InverseScaleFunction | undefined = createSelector(
+  [selectConfiguredScale],
+  combineInverseScaleFunction,
+);
 
 /** Inverse scale that snaps a pixel coordinate to the nearest rendered tick value. */
 export const selectAxisInverseTickSnapScale = (
@@ -1678,18 +1725,15 @@ export const combineDuplicateDomain = (
   return undefined;
 };
 
-export const selectDuplicateDomain = (
+export const selectDuplicateDomain: (
   state: RechartsRootState,
   axisType: AllAxisTypes,
   axisId: AxisId,
   isPanorama: boolean,
-): ReadonlyArray<unknown> | undefined =>
-  combineDuplicateDomain(
-    selectChartLayout(state),
-    selectAllAppliedValues(state, axisType, axisId, isPanorama),
-    selectBaseAxis(state, axisType, axisId),
-    axisType,
-  );
+) => ReadonlyArray<unknown> | undefined = createSelector(
+  [selectChartLayout, selectAllAppliedValues, selectBaseAxis, pickAxisTypeArg],
+  combineDuplicateDomain,
+);
 
 /**
  * One of four near-identical tick generators. This one feeds graphical items
@@ -1767,21 +1811,23 @@ export const combineGraphicalItemTicks = (
     .filter(isNotNil);
 };
 
-export const selectTicksOfGraphicalItem = (
+export const selectTicksOfGraphicalItem: (
   state: RechartsRootState,
   axisType: RenderableAxisType,
   axisId: AxisId,
   isPanorama: boolean,
-): TickItem[] | undefined =>
-  combineGraphicalItemTicks(
-    selectChartLayout(state),
-    selectRenderableAxisSettings(state, axisType, axisId),
-    selectAxisScale(state, axisType, axisId, isPanorama),
-    selectAxisRange(state, axisType, axisId, isPanorama),
-    selectDuplicateDomain(state, axisType, axisId, isPanorama),
-    selectCategoricalDomain(state, axisType, axisId, isPanorama),
-    axisType,
-  );
+) => TickItem[] | undefined = createSelector(
+  [
+    selectChartLayout,
+    selectRenderableAxisSettings,
+    selectAxisScale,
+    selectAxisRange,
+    selectDuplicateDomain,
+    selectCategoricalDomain,
+    pickRenderableAxisType,
+  ],
+  combineGraphicalItemTicks,
+);
 
 export const selectAxisWithScale = (
   state: RechartsRootState,

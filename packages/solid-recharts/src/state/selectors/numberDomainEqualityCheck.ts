@@ -1,8 +1,16 @@
-// SKIPPED — intentionally NOT ported to the SolidJS port.
-//
-// Reason: reselect resultEqualityCheck — Solid memoizes via createMemo, not needed
-//
-// TODO: do not port this file as-is. The Solid-native port replaces it (see the
-// reason above). If a consumer needs this path, wire it to the Solid equivalent
-// instead.
-export {};
+// Ported from recharts 3.9.2 src/state/selectors/numberDomainEqualityCheck.ts.
+// See arrayEqualityCheck.ts for why this is now ported (ADR-0002).
+import type { NumberDomain } from "../../util/types";
+
+export const numberDomainEqualityCheck = (
+  a: NumberDomain | undefined,
+  b: NumberDomain | undefined,
+): boolean => {
+  if (a === b) {
+    return true;
+  }
+  if (a == null || b == null) {
+    return false;
+  }
+  return a[0] === b[0] && a[1] === b[1];
+};

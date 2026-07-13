@@ -14,6 +14,7 @@ import {
 import { selectChartDirection } from "./selectors/axisSelectors";
 import { combineActiveTooltipIndex } from "./selectors/combiners/combineActiveTooltipIndex";
 import { selectTooltipEventType } from "./selectors/selectTooltipEventType";
+import { isEventThrottled } from "./isEventThrottled";
 
 const mkInteraction = (index: number): TooltipInteractionState => ({
   active: false,
@@ -22,12 +23,6 @@ const mkInteraction = (index: number): TooltipInteractionState => ({
   graphicalItemId: undefined,
   coordinate: undefined,
 });
-
-export type KeyDownAction = { type: "keyDown"; payload: KeyboardEvent["key"] };
-
-export function keyDownAction(payload: KeyboardEvent["key"]): KeyDownAction {
-  return { type: "keyDown", payload };
-}
 
 let rafId: number | null = null;
 let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -43,8 +38,7 @@ export function dispatchKeyDown(store: RechartsStore, key: KeyboardEvent["key"])
 
   const state = store.state;
   const { throttleDelay, throttledEvents } = state.eventSettings;
-  const eventListAsString: "all" | ReadonlyArray<string> | undefined = throttledEvents;
-  const isThrottled = eventListAsString === "all" || eventListAsString?.includes("keydown");
+  const isThrottled = isEventThrottled(throttledEvents, "keydown");
 
   if (timeoutId !== null && (typeof throttleDelay !== "number" || !isThrottled)) {
     clearTimeout(timeoutId);

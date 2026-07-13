@@ -1,4 +1,4 @@
-import type { SeriesPoint } from "victory-vendor/d3-shape";
+import type { SeriesPoint } from "d3-shape";
 import { truncateByDomain } from "../../../src/util/ChartUtils";
 
 function createMockSeriesPoint(val: [number, number]): SeriesPoint<Record<number, number>> {

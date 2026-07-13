@@ -1,4 +1,4 @@
-import { scaleBand, scaleLinear, scalePoint } from "victory-vendor/d3-scale";
+import { scaleBand, scaleLinear, scalePoint } from "d3-scale";
 import {
   type AxisPropsNeededForTicksGenerator,
   getBandSizeOfAxis,

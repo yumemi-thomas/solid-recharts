@@ -7,7 +7,7 @@
 // we spread the namespace into a plain record and narrow each candidate to a
 // scale factory through a user-defined type guard before calling it. Behavior is
 // identical (unknown names / non-function exports → `undefined`).
-import * as d3Scales from "victory-vendor/d3-scale";
+import * as d3Scales from "d3-scale";
 import {
   CategoricalDomain,
   CategoricalDomainItem,

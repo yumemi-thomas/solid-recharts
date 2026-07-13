@@ -79,5 +79,19 @@ describe("getCateCoordinateOfLine", () => {
       });
       expect(actual).toBe(18);
     });
+
+    it("should not match NaN tick values and should fall back to the indexed tick", () => {
+      const actual = getCateCoordinateOfLine({
+        axis: { type: "category", dataKey: "foo", scale: mockScale },
+        bandSize: 4,
+        entry: { foo: NaN },
+        index: 0,
+        ticks: [
+          { coordinate: 8, index: 0, value: "fallback" },
+          { coordinate: 16, index: 1, value: NaN },
+        ],
+      });
+      expect(actual).toBe(10);
+    });
   });
 });

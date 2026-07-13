@@ -1,4 +1,4 @@
-import type { Series, SeriesPoint } from "victory-vendor/d3-shape";
+import type { Series, SeriesPoint } from "d3-shape";
 import { getStackedData, offsetSign } from "../../../src/util/ChartUtils";
 import type { StackOffsetType } from "../../../src/util/types";
 

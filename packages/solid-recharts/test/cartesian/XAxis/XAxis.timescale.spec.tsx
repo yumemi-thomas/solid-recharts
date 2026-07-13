@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createEffect } from "solid-js";
 // @ts-expect-error d3-time-format ships no types and victory-vendor does not re-export it.
 import { timeFormat } from "d3-time-format";
-import { scaleTime } from "victory-vendor/d3-scale";
+import { scaleTime } from "d3-scale";
 import { useAppSelector } from "../../../src/state/hooks";
 import { selectRealScaleType } from "../../../src/state/selectors/axisSelectors";
 import { Line, LineChart, XAxis, YAxis } from "../../../src";

@@ -14,7 +14,7 @@
 // DefaultZIndexes.axis).
 // DEFERRED (documented): ELEMENT-form `tick` (Solid can't clone-and-inject
 // computed props into an evaluated node — use the function form instead).
-import { createEffect, For, merge, Show } from "solid-js";
+import { For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { useAppSelector, useAppStore } from "../state/hooks";
@@ -47,7 +47,7 @@ import { usePolarChartLayout } from "../context/chartLayoutContext";
 import { getAxisTypeBasedOnLayout } from "../util/getAxisTypeBasedOnLayout";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
 import type { PolarAxisLineObjectProps, PolarTickEventHandler } from "./PolarAngleAxis";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 type TickOrientation = "left" | "right" | "middle";
 
@@ -265,52 +265,44 @@ export function PolarRadiusAxis<DataPointType = unknown, DataValueType = unknown
   const layout = usePolarChartLayout();
   const merged = merge(polarRadiusAxisDefaultProps, props);
 
-  let prev: RadiusAxisSettings | null = null;
-
-  createEffect(
-    (): RadiusAxisSettings | undefined => {
-      const evaluatedType = getAxisTypeBasedOnLayout(layout(), "radiusAxis", merged.type);
-      if (evaluatedType == null) {
-        return undefined;
-      }
-      return {
-        id: merged.radiusAxisId,
-        scale: merged.scale,
-        type: evaluatedType,
-        dataKey: merged.dataKey,
-        unit: undefined,
-        name: merged.name,
-        allowDuplicatedCategory: merged.allowDuplicatedCategory,
-        allowDataOverflow: merged.allowDataOverflow,
-        reversed: merged.reversed,
-        includeHidden: merged.includeHidden,
-        domain: merged.domain,
-        allowDecimals: merged.allowDecimals,
-        tickCount: merged.tickCount,
-        ticks: merged.ticks,
-        // DEVIATION: the settings slice shares the cartesian tick renderer type,
-        // so a polar function-form renderer is recorded as `true` (presence only —
-        // the renderer itself stays local to this component's render; no selector
-        // reads the function back out of the store).
-        tick: typeof merged.tick === "function" ? true : merged.tick,
-        niceTicks: merged.niceTicks,
-      };
-    },
-    (settings) => {
-      if (settings == null || store == null) {
-        return;
-      }
-      store.actions.polarAxis.addRadiusAxis(settings);
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.polarAxis.removeRadiusAxis(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<RadiusAxisSettings>(
+      (): RadiusAxisSettings | undefined => {
+        const evaluatedType = getAxisTypeBasedOnLayout(layout(), "radiusAxis", merged.type);
+        if (evaluatedType == null) {
+          return undefined;
+        }
+        return {
+          id: merged.radiusAxisId,
+          scale: merged.scale,
+          type: evaluatedType,
+          dataKey: merged.dataKey,
+          unit: undefined,
+          name: merged.name,
+          allowDuplicatedCategory: merged.allowDuplicatedCategory,
+          allowDataOverflow: merged.allowDataOverflow,
+          reversed: merged.reversed,
+          includeHidden: merged.includeHidden,
+          domain: merged.domain,
+          allowDecimals: merged.allowDecimals,
+          tickCount: merged.tickCount,
+          ticks: merged.ticks,
+          // DEVIATION: the settings slice shares the cartesian tick renderer type,
+          // so a polar function-form renderer is recorded as `true` (presence only —
+          // the renderer itself stays local to this component's render; no selector
+          // reads the function back out of the store).
+          tick: typeof merged.tick === "function" ? true : merged.tick,
+          niceTicks: merged.niceTicks,
+        };
+      },
+      {
+        // addRadiusAxis overwrites by id, so it doubles as replace-on-change.
+        add: (next) => store.actions.polarAxis.addRadiusAxis(next),
+        replace: (_prev, next) => store.actions.polarAxis.addRadiusAxis(next),
+        remove: (prev) => store.actions.polarAxis.removeRadiusAxis(prev),
+      },
+    );
+  }
 
   const viewBox = useAppSelector(selectPolarViewBox);
   const scale = useAppSelector((state) =>

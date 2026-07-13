@@ -21,7 +21,7 @@
 // cloneElement). PERMANENT-N/A: element-form `shape`. DEFERRED: object-form
 // `shape`. zIndex relayering IS wired: the `.recharts-radar` Layer is wrapped in
 // <ZIndexLayer> (default DefaultZIndexes.area = 100), matching recharts.
-import { createEffect, createMemo, merge, Show } from "solid-js";
+import { createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
@@ -74,7 +74,7 @@ import { SetTooltipEntrySettings } from "../state/SetTooltipEntrySettings";
 import { SetLegendPayload } from "../state/SetLegendPayload";
 import { LegendPayload } from "../component/DefaultLegendContent";
 import { TooltipPayloadConfiguration } from "../state/tooltipSlice";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 /** recharts: stroke (if not "none") wins as the legend/tooltip color, else fill. */
 const getLegendItemColor = (
@@ -295,38 +295,26 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
   const isPanorama = useIsPanorama();
   const id = useUniqueId("recharts-radar", props.id);
 
-  let prev: RadarSettings | null = null;
-
-  createEffect(
-    (): RadarSettings => ({
-      id,
-      type: "radar",
-      // Radar has no own data prop — it always reads the chart data.
-      data: undefined,
-      dataKey: merged.dataKey,
-      hide: merged.hide,
-      angleAxisId: merged.angleAxisId,
-      radiusAxisId: merged.radiusAxisId,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addPolarGraphicalItem(settings);
-      } else if (prev !== settings) {
-        store.actions.graphicalItems.replacePolarGraphicalItem({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removePolarGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<RadarSettings>(
+      () => ({
+        id,
+        type: "radar",
+        // Radar has no own data prop — it always reads the chart data.
+        data: undefined,
+        dataKey: merged.dataKey,
+        hide: merged.hide,
+        angleAxisId: merged.angleAxisId,
+        radiusAxisId: merged.radiusAxisId,
+      }),
+      {
+        add: (next) => store.actions.graphicalItems.addPolarGraphicalItem(next),
+        replace: (prev, next) =>
+          store.actions.graphicalItems.replacePolarGraphicalItem({ prev, next }),
+        remove: (prev) => store.actions.graphicalItems.removePolarGraphicalItem(prev),
+      },
+    );
+  }
 
   const radar = useAppSelector((state) =>
     selectRadarPoints(state, merged.radiusAxisId, merged.angleAxisId, isPanorama, id),

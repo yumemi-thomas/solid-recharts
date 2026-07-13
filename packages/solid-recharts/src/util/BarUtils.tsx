@@ -2,8 +2,7 @@
 //
 // Exports `BarRectangle`/`defaultBarShape` for background bars and custom shapes;
 // `MinPointSize` + `minPointSizeCallback` for computeBarRectangles.
-import invariant from "tiny-invariant";
-import { createMemo } from "solid-js";
+import { createMemo, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Rectangle, type RectangleProps } from "../shape/Rectangle";
 import type { BarShapeProps } from "../cartesian/Bar";
@@ -27,11 +26,13 @@ export type BarRectangleProps = Omit<BarShapeProps, "value" | "tooltipPosition" 
 type BarRectangleShapeProps = Omit<BarRectangleProps, "option">;
 
 export function BarRectangle(props: BarRectangleProps): JSX.Element {
-  const shapeProps = createMemo((): BarRectangleShapeProps => {
-    const { option: _option, ...rest } = props;
-    void _option;
-    return rest;
-  });
+  // Snapshot of every prop except `option`. `omit` (not native
+  // `{ option, ...rest }`) is required because callers may pass a merged props
+  // proxy (e.g. `<BarRectangle {...rect} isActive={…} />`), whose rest-destructure
+  // fails to exclude `option` and leaks it to custom shape/background functions.
+  // Spreading into a plain object keeps the downstream <Shape> reads a static
+  // snapshot (no STRICT_READ), while the memo re-runs when any prop changes.
+  const shapeProps = createMemo((): BarRectangleShapeProps => ({ ...omit(props, "option") }));
   return (
     <Shape<BarRectangleShapeProps, SVGPathElement>
       option={props.option}
@@ -56,19 +57,23 @@ export type MinPointSize = number | ((value: number | undefined | null, index: n
  * @returns minPointSize
  */
 export const minPointSizeCallback =
-  (minPointSize: MinPointSize, defaultValue = 0) =>
-  (value: unknown, index: number): number => {
-    if (isNumber(minPointSize)) {
-      return minPointSize;
-    }
-    const isValueNumberOrNil = isNumber(value) || isNullish(value);
-    if (isValueNumberOrNil) {
-      return minPointSize(value, index);
-    }
+  // `_defaultValue` is part of the callback's signature but unreachable at runtime:
+  // the only branch that returned it now throws (see below), as upstream's
+  // tiny-invariant did. Kept positionally for API parity.
+  (minPointSize: MinPointSize, _defaultValue = 0) =>
+    (value: unknown, index: number): number => {
+      if (isNumber(minPointSize)) {
+        return minPointSize;
+      }
+      const isValueNumberOrNil = isNumber(value) || isNullish(value);
+      if (isValueNumberOrNil) {
+        return minPointSize(value, index);
+      }
 
-    invariant(
-      isValueNumberOrNil,
-      `minPointSize callback function received a value with type of ${typeof value}. Currently only numbers or null/undefined are supported.`,
-    );
-    return defaultValue;
-  };
+      // Reached only when the value is neither a number nor nil; upstream asserts
+      // this via tiny-invariant, which always throws here — a plain throw is
+      // behavior-equivalent and drops the dependency.
+      throw new Error(
+        `minPointSize callback function received a value with type of ${typeof value}. Currently only numbers or null/undefined are supported.`,
+      );
+    };

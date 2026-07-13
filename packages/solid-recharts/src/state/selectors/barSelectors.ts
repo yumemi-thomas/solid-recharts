@@ -37,6 +37,10 @@ import {
   selectYAxisIdFromGraphicalItemId,
 } from "./graphicalItemSelectors";
 import { combineBarPosition } from "./combiners/combineBarPosition";
+import {
+  selectAxisWithScaleForGraphicalItem,
+  selectTicksForGraphicalItem,
+} from "./selectAxisForGraphicalItem";
 
 const selectSynchronisedBarSettings = (
   state: RechartsRootState,
@@ -187,38 +191,6 @@ export const selectBarPosition = (
     selectSynchronisedBarSettings(state, id),
   );
 
-const selectXAxisWithScale = (
-  state: RechartsRootState,
-  id: GraphicalItemId,
-  isPanorama: boolean,
-) => {
-  const xAxisId = selectXAxisIdFromGraphicalItemId(state, id);
-  return xAxisId == null ? undefined : selectAxisWithScale(state, "xAxis", xAxisId, isPanorama);
-};
-
-const selectYAxisWithScale = (
-  state: RechartsRootState,
-  id: GraphicalItemId,
-  isPanorama: boolean,
-) => {
-  const yAxisId = selectYAxisIdFromGraphicalItemId(state, id);
-  return yAxisId == null ? undefined : selectAxisWithScale(state, "yAxis", yAxisId, isPanorama);
-};
-
-const selectXAxisTicks = (state: RechartsRootState, id: GraphicalItemId, isPanorama: boolean) => {
-  const xAxisId = selectXAxisIdFromGraphicalItemId(state, id);
-  return xAxisId == null
-    ? undefined
-    : selectTicksOfGraphicalItem(state, "xAxis", xAxisId, isPanorama);
-};
-
-const selectYAxisTicks = (state: RechartsRootState, id: GraphicalItemId, isPanorama: boolean) => {
-  const yAxisId = selectYAxisIdFromGraphicalItemId(state, id);
-  return yAxisId == null
-    ? undefined
-    : selectTicksOfGraphicalItem(state, "yAxis", yAxisId, isPanorama);
-};
-
 const selectBarStackGroups = (
   state: RechartsRootState,
   id: GraphicalItemId,
@@ -253,10 +225,10 @@ export const selectBarRectangles = (
 ): ReadonlyArray<BarRectangleItem> | undefined => {
   const axisViewBox = selectAxisViewBox(state);
   const offset = selectChartOffsetInternal(state);
-  const xAxis = selectXAxisWithScale(state, id, isPanorama);
-  const yAxis = selectYAxisWithScale(state, id, isPanorama);
-  const xAxisTicks = selectXAxisTicks(state, id, isPanorama);
-  const yAxisTicks = selectYAxisTicks(state, id, isPanorama);
+  const xAxis = selectAxisWithScaleForGraphicalItem(state, "xAxis", id, isPanorama);
+  const yAxis = selectAxisWithScaleForGraphicalItem(state, "yAxis", id, isPanorama);
+  const xAxisTicks = selectTicksForGraphicalItem(state, "xAxis", id, isPanorama);
+  const yAxisTicks = selectTicksForGraphicalItem(state, "yAxis", id, isPanorama);
   const pos = selectBarPosition(state, id, isPanorama);
   const layout: LayoutType = selectChartLayout(state);
   const { chartData, dataStartIndex, dataEndIndex } =

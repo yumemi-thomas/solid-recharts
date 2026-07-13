@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 src/state/selectors/combiners/combineRealScaleType.ts
 // (commit 7a23854).
-import * as d3Scales from "victory-vendor/d3-scale";
+import * as d3Scales from "d3-scale";
 import { RechartsScaleType } from "../../../util/types";
 import { BaseCartesianAxis } from "../../cartesianAxisSlice";
 import { upperFirst } from "../../../util/DataUtils";

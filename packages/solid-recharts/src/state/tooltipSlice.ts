@@ -7,6 +7,8 @@
 // graphicalItemsSlice (SetTooltipEntrySettings is the sole caller and each
 // graphical item registers exactly one entry, so the id is unique).
 import { createStore } from "solid-js";
+import { createCollectionActions } from "./createCollectionActions";
+import { patched } from "./patched";
 import { TooltipTrigger } from "../chart/types";
 import type { NameType, Payload, ValueType } from "../component/DefaultTooltipContent";
 import { CartesianViewBoxRequired, Coordinate, DataKey, PolarCoordinate } from "../util/types";
@@ -179,96 +181,121 @@ export function createTooltipSlice(initialState: TooltipState = initialTooltipSt
     settings: { ...initialState.settings },
   });
 
-  const actions: TooltipActions = {
-    addTooltipEntrySettings(payload) {
+  // Deviation: recharts matches `prev` by reference (`indexOf`), but a Solid store
+  // proxies stored objects so the raw `prev` never `===` the proxied element. The
+  // collection matches by `settings.graphicalItemId` instead — the same proxy-safe
+  // identity strategy as graphicalItemsSlice. Each graphical item registers exactly
+  // one entry, so the id is unique.
+  const entries = createCollectionActions<TooltipPayloadConfiguration>(
+    (updater) =>
       setState((s) => {
-        s.tooltipItemPayloads = [...s.tooltipItemPayloads, payload];
-      });
-    },
-    replaceTooltipEntrySettings({ prev, next }) {
-      setState((s) => {
-        // Deviation: recharts matches `prev` by reference (`indexOf`), but a
-        // Solid store proxies stored objects so the raw `prev` never `===` the
-        // proxied element. Match by `settings.graphicalItemId` instead — the
-        // same proxy-safe identity strategy as graphicalItemsSlice. Each
-        // graphical item registers exactly one entry, so the id is unique.
-        const index = s.tooltipItemPayloads.findIndex(
-          (p) => p.settings.graphicalItemId === prev.settings.graphicalItemId,
-        );
-        if (index > -1) {
-          const nextItems = s.tooltipItemPayloads.slice();
-          nextItems[index] = next;
-          s.tooltipItemPayloads = nextItems;
+        const next = updater(s.tooltipItemPayloads);
+        if (next !== s.tooltipItemPayloads) {
+          s.tooltipItemPayloads = next;
         }
-      });
-    },
-    removeTooltipEntrySettings(payload) {
-      setState((s) => {
-        s.tooltipItemPayloads = s.tooltipItemPayloads.filter(
-          (p) => p.settings.graphicalItemId !== payload.settings.graphicalItemId,
-        );
-      });
-    },
+      }),
+    (p) => p.settings.graphicalItemId,
+  );
+
+  const actions: TooltipActions = {
+    addTooltipEntrySettings: entries.add,
+    replaceTooltipEntrySettings: entries.replace,
+    removeTooltipEntrySettings: entries.remove,
     setTooltipSettingsState(payload) {
       setState((s) => {
         s.settings = payload;
       });
     },
     setActiveMouseOverItemIndex(payload) {
+      // Slice immutability contract (ADR-0002): replace each written interaction
+      // node so `state.tooltip.<node>` yields a new reference and the selector
+      // graph invalidates by input-reference comparison. In-place leaf writes
+      // keep the node reference stable, so reference-keyed selectors would never
+      // recompute — see the store-proxy-reference-identity memory.
       setState((s) => {
-        s.syncInteraction.active = false;
-        s.syncInteraction.sourceViewBox = undefined;
-        s.keyboardInteraction.active = false;
-        s.itemInteraction.hover.active = true;
-        s.itemInteraction.hover.index = payload.activeIndex;
-        s.itemInteraction.hover.dataKey = payload.activeDataKey;
-        s.itemInteraction.hover.graphicalItemId = payload.activeGraphicalItemId;
-        s.itemInteraction.hover.coordinate = payload.activeCoordinate;
+        s.syncInteraction = patched(s.syncInteraction, {
+          active: false,
+          sourceViewBox: undefined,
+        });
+        s.keyboardInteraction = patched(s.keyboardInteraction, { active: false });
+        s.itemInteraction = patched(s.itemInteraction, {
+          hover: {
+            active: true,
+            index: payload.activeIndex,
+            dataKey: payload.activeDataKey,
+            graphicalItemId: payload.activeGraphicalItemId,
+            coordinate: payload.activeCoordinate,
+          },
+        });
       });
     },
     mouseLeaveChart() {
       setState((s) => {
-        s.itemInteraction.hover.active = false;
-        s.axisInteraction.hover.active = false;
+        s.itemInteraction = patched(s.itemInteraction, {
+          hover: patched(s.itemInteraction.hover, { active: false }),
+        });
+        s.axisInteraction = patched(s.axisInteraction, {
+          hover: patched(s.axisInteraction.hover, { active: false }),
+        });
       });
     },
     mouseLeaveItem() {
       setState((s) => {
-        s.itemInteraction.hover.active = false;
+        s.itemInteraction = patched(s.itemInteraction, {
+          hover: patched(s.itemInteraction.hover, { active: false }),
+        });
       });
     },
     setActiveClickItemIndex(payload) {
       setState((s) => {
-        s.syncInteraction.active = false;
-        s.syncInteraction.sourceViewBox = undefined;
-        s.itemInteraction.click.active = true;
-        s.keyboardInteraction.active = false;
-        s.itemInteraction.click.index = payload.activeIndex;
-        s.itemInteraction.click.dataKey = payload.activeDataKey;
-        s.itemInteraction.click.graphicalItemId = payload.activeGraphicalItemId;
-        s.itemInteraction.click.coordinate = payload.activeCoordinate;
+        s.syncInteraction = patched(s.syncInteraction, {
+          active: false,
+          sourceViewBox: undefined,
+        });
+        s.keyboardInteraction = patched(s.keyboardInteraction, { active: false });
+        s.itemInteraction = patched(s.itemInteraction, {
+          click: {
+            active: true,
+            index: payload.activeIndex,
+            dataKey: payload.activeDataKey,
+            graphicalItemId: payload.activeGraphicalItemId,
+            coordinate: payload.activeCoordinate,
+          },
+        });
       });
     },
     setMouseOverAxisIndex(payload) {
       setState((s) => {
-        s.syncInteraction.active = false;
-        s.syncInteraction.sourceViewBox = undefined;
-        s.axisInteraction.hover.active = true;
-        s.keyboardInteraction.active = false;
-        s.axisInteraction.hover.index = payload.activeIndex;
-        s.axisInteraction.hover.dataKey = payload.activeDataKey;
-        s.axisInteraction.hover.coordinate = payload.activeCoordinate;
+        s.syncInteraction = patched(s.syncInteraction, {
+          active: false,
+          sourceViewBox: undefined,
+        });
+        s.keyboardInteraction = patched(s.keyboardInteraction, { active: false });
+        s.axisInteraction = patched(s.axisInteraction, {
+          hover: patched(s.axisInteraction.hover, {
+            active: true,
+            index: payload.activeIndex,
+            dataKey: payload.activeDataKey,
+            coordinate: payload.activeCoordinate,
+          }),
+        });
       });
     },
     setMouseClickAxisIndex(payload) {
       setState((s) => {
-        s.syncInteraction.active = false;
-        s.syncInteraction.sourceViewBox = undefined;
-        s.keyboardInteraction.active = false;
-        s.axisInteraction.click.active = true;
-        s.axisInteraction.click.index = payload.activeIndex;
-        s.axisInteraction.click.dataKey = payload.activeDataKey;
-        s.axisInteraction.click.coordinate = payload.activeCoordinate;
+        s.syncInteraction = patched(s.syncInteraction, {
+          active: false,
+          sourceViewBox: undefined,
+        });
+        s.keyboardInteraction = patched(s.keyboardInteraction, { active: false });
+        s.axisInteraction = patched(s.axisInteraction, {
+          click: patched(s.axisInteraction.click, {
+            active: true,
+            index: payload.activeIndex,
+            dataKey: payload.activeDataKey,
+            coordinate: payload.activeCoordinate,
+          }),
+        });
       });
     },
     setSyncInteraction(payload) {
@@ -278,9 +305,11 @@ export function createTooltipSlice(initialState: TooltipState = initialTooltipSt
     },
     setKeyboardInteraction(payload) {
       setState((s) => {
-        s.keyboardInteraction.active = payload.active;
-        s.keyboardInteraction.index = payload.activeIndex;
-        s.keyboardInteraction.coordinate = payload.activeCoordinate;
+        s.keyboardInteraction = patched(s.keyboardInteraction, {
+          active: payload.active,
+          index: payload.activeIndex,
+          coordinate: payload.activeCoordinate,
+        });
       });
     },
   };

@@ -16,7 +16,7 @@
 //    render-function form; the default-`<line>` branch is kept). <Label> CHILDREN
 //    are not rendered (the `label` prop is).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createMemo, merge, Show } from "solid-js";
+import { createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
 import {
@@ -46,7 +46,7 @@ import { CartesianScaleHelper, CartesianScaleHelperImpl } from "../util/scale/Ca
 import type { AxisId } from "../state/cartesianAxisSlice";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 /**
  * Single point that defines one end of a segment, in data space.
@@ -242,38 +242,29 @@ const renderLine = (
 
 function ReportReferenceLine(props: ReferenceLineSettings): JSX.Element {
   const store = useAppStore();
-  let prev: ReferenceLineSettings | null = null;
-
-  createEffect(
-    (): ReferenceLineSettings => ({
-      id: props.id,
-      xAxisId: props.xAxisId,
-      yAxisId: props.yAxisId,
-      ifOverflow: props.ifOverflow,
-      x: props.x,
-      y: props.y,
-      segment: props.segment,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.referenceElements.addLine(settings);
-      } else if (prev !== settings) {
-        store.actions.referenceElements.removeLine(prev);
-        store.actions.referenceElements.addLine(settings);
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.referenceElements.removeLine(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<ReferenceLineSettings>(
+      () => ({
+        id: props.id,
+        xAxisId: props.xAxisId,
+        yAxisId: props.yAxisId,
+        ifOverflow: props.ifOverflow,
+        x: props.x,
+        y: props.y,
+        segment: props.segment,
+      }),
+      {
+        add: (next) => store.actions.referenceElements.addLine(next),
+        // The referenceElements slice has no replace action; the change is a
+        // remove of the old settings followed by an add of the new (recharts idiom).
+        replace: (prev, next) => {
+          store.actions.referenceElements.removeLine(prev);
+          store.actions.referenceElements.addLine(next);
+        },
+        remove: (prev) => store.actions.referenceElements.removeLine(prev),
+      },
+    );
+  }
 
   return null;
 }

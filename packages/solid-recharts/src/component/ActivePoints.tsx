@@ -125,12 +125,3 @@ export function renderActivePointsLayerFromState(
     </g>
   );
 }
-
-/** @deprecated Use computeActivePointState + renderActivePointsLayerFromState */
-export function renderActivePointsLayer(args: ActivePointsLayerArgs): JSX.Element | null {
-  const state = computeActivePointState(args);
-  if (state == null) {
-    return null;
-  }
-  return renderActivePointsLayerFromState(state, args);
-}

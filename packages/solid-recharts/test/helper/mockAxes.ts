@@ -1,5 +1,5 @@
 // Port of recharts 3.8.1 test/helper/mockAxes.ts (commit 7a23854).
-import { scaleLinear } from "victory-vendor/d3-scale";
+import { scaleLinear } from "d3-scale";
 import {
   BaseAxisWithScale,
   implicitXAxis,

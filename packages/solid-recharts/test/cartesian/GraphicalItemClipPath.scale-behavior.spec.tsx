@@ -12,7 +12,7 @@
 // last spy call holds the current points. `p.payload` is `unknown` in our port
 // (recharts erases it via `any`), so a runtime guard reads `name`/`x` — no `as`.
 import { describe, it, expect, beforeEach } from "vitest";
-import { scaleLinear, scalePoint } from "victory-vendor/d3-scale";
+import { scaleLinear, scalePoint } from "d3-scale";
 import { createSignal, flush } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { fireEvent } from "@solidjs/testing-library";

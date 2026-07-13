@@ -73,11 +73,14 @@ export const useBarStackClipPathUrl = (index: number): string | undefined => {
 };
 
 export const BarStackClipLayer = (props: LayerProps & { index: number }): JSX.Element => {
-  const clipPathUrl = useBarStackClipPathUrl(props.index);
+  // Memoized so `props.index` is read in a tracking scope: when an index-keyed
+  // <For> feeds a reactive `entry.originalDataIndex` here, a bare hook call would
+  // read it untracked (STRICT_READ_UNTRACKED) and never update.
+  const clipPathUrl = createMemo(() => useBarStackClipPathUrl(props.index));
   return (
     <Layer
       class={["recharts-bar-stack-layer", props.class].filter(Boolean).join(" ")}
-      clipPath={clipPathUrl}
+      clipPath={clipPathUrl()}
       onMouseEnter={props.onMouseEnter}
       onMouseLeave={props.onMouseLeave}
       onClick={props.onClick}

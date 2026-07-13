@@ -38,7 +38,7 @@ import {
   curveStepBefore,
   line as shapeLine,
   type Line as D3LineCurve,
-} from "victory-vendor/d3-shape";
+} from "d3-shape";
 import { isNumber, upperFirst } from "../util/DataUtils";
 import { isWellBehavedNumber } from "../util/isWellBehavedNumber";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";

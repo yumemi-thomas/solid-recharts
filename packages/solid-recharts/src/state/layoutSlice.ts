@@ -1,6 +1,7 @@
 // Ported from recharts 3.8.1 src/state/layoutSlice.ts (commit 7a23854).
 // Solid-native slice (no Redux): createStore + draft-first action setters.
 import { createStore } from "solid-js";
+import { patched } from "./patched";
 import { LayoutType, Margin, Size } from "../util/types";
 
 export type ChartLayoutState = {
@@ -53,11 +54,14 @@ export function createChartLayoutSlice(
       });
     },
     setMargin(margin) {
+      // Slice immutability contract (ADR-0002): replace the margin node.
       setState((s) => {
-        s.margin.top = margin.top ?? 0;
-        s.margin.right = margin.right ?? 0;
-        s.margin.bottom = margin.bottom ?? 0;
-        s.margin.left = margin.left ?? 0;
+        s.margin = patched(s.margin, {
+          top: margin.top ?? 0,
+          right: margin.right ?? 0,
+          bottom: margin.bottom ?? 0,
+          left: margin.left ?? 0,
+        });
       });
     },
     setScale(scale) {

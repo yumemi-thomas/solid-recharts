@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scaleLog } from "victory-vendor/d3-scale";
+import { scaleLog } from "d3-scale";
 import { BaseCartesianAxis } from "../../../../src/state/cartesianAxisSlice";
 import { combineRealScaleType } from "../../../../src/state/selectors/combiners/combineRealScaleType";
 

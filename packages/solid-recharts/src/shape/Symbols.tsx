@@ -20,7 +20,7 @@ import {
   symbolTriangle,
   symbolWye,
   type SymbolType as D3SymbolType,
-} from "victory-vendor/d3-shape";
+} from "d3-shape";
 import { SymbolType } from "../util/types";
 import { isNumber, upperFirst } from "../util/DataUtils";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";

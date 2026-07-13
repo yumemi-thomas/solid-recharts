@@ -13,20 +13,12 @@ import {
 } from "./selectors/tooltipSelectors";
 import { selectTooltipEventType } from "./selectors/selectTooltipEventType";
 import type { RechartsStore } from "./store";
+import { isEventThrottled } from "./isEventThrottled";
 
 export type ExternalEventActionPayload<E = Event> = {
   reactEvent: E;
   handler: CategoricalChartFunc<E> | undefined;
 };
-
-export type ExternalEventAction = {
-  type: "externalEvent";
-  payload: ExternalEventActionPayload;
-};
-
-export function externalEventAction(payload: ExternalEventActionPayload): ExternalEventAction {
-  return { type: "externalEvent", payload };
-}
 
 const rafIdMap = new Map<string, number>();
 const timeoutIdMap = new Map<string, ReturnType<typeof setTimeout>>();
@@ -65,8 +57,7 @@ export function dispatchExternalEvent<E extends Event & { currentTarget: unknown
 
   const state = store.state;
   const { throttleDelay, throttledEvents } = state.eventSettings;
-  const eventListAsString: "all" | ReadonlyArray<string> | undefined = throttledEvents;
-  const isThrottled = eventListAsString === "all" || eventListAsString?.includes(eventType);
+  const isThrottled = isEventThrottled(throttledEvents, eventType);
 
   const existingTimeoutId = timeoutIdMap.get(eventType);
   if (existingTimeoutId !== undefined && (typeof throttleDelay !== "number" || !isThrottled)) {

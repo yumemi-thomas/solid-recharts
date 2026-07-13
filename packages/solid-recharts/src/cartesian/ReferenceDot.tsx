@@ -12,7 +12,7 @@
 //  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
 //    (React.cloneElement — use the render-function form);
 //    `children` is not rendered (CartesianLabelContext).
-import { createEffect, createMemo, merge, Show } from "solid-js";
+import { createMemo, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { Layer } from "../container/Layer";
 import { Dot, type DotProps } from "../shape/Dot";
@@ -36,7 +36,7 @@ import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { Coordinate } from "../util/types";
 import { CartesianScaleHelperImpl } from "../util/scale/CartesianScaleHelper";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 type ReferenceCoordinateValue = number | string;
 
@@ -130,38 +130,28 @@ export type Props<
 
 function ReportReferenceDot(props: ReferenceDotSettings): JSX.Element {
   const store = useAppStore();
-  let prev: ReferenceDotSettings | null = null;
-
-  createEffect(
-    (): ReferenceDotSettings => ({
-      id: props.id,
-      xAxisId: props.xAxisId,
-      yAxisId: props.yAxisId,
-      ifOverflow: props.ifOverflow,
-      x: props.x,
-      y: props.y,
-      r: props.r,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.referenceElements.addDot(settings);
-      } else if (prev !== settings) {
-        store.actions.referenceElements.removeDot(prev);
-        store.actions.referenceElements.addDot(settings);
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.referenceElements.removeDot(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<ReferenceDotSettings>(
+      () => ({
+        id: props.id,
+        xAxisId: props.xAxisId,
+        yAxisId: props.yAxisId,
+        ifOverflow: props.ifOverflow,
+        x: props.x,
+        y: props.y,
+        r: props.r,
+      }),
+      {
+        add: (next) => store.actions.referenceElements.addDot(next),
+        // No replace action on the slice; a change is remove-then-add (recharts idiom).
+        replace: (prev, next) => {
+          store.actions.referenceElements.removeDot(prev);
+          store.actions.referenceElements.addDot(next);
+        },
+        remove: (prev) => store.actions.referenceElements.removeDot(prev),
+      },
+    );
+  }
 
   return null;
 }

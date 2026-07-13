@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scaleLinear, scaleBand } from "victory-vendor/d3-scale";
+import { scaleLinear, scaleBand } from "d3-scale";
 import { getAngledRectangleWidth, normalizeAngle } from "../../../src/util/CartesianUtils";
 import { rechartsScaleFactory } from "../../../src/util/scale/RechartsScale";
 import { CartesianScaleHelperImpl } from "../../../src/util/scale/CartesianScaleHelper";

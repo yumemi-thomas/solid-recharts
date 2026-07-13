@@ -7,7 +7,7 @@
 // Solid deviations: context value carries an `Accessor` (Solid context is fixed
 // at provide-time; the accessor keeps `data` reactive). useEffect add/replace +
 // cleanup remove → createEffect + onCleanup. useGraphicalItemId provides the id.
-import { createContext, createEffect, useContext } from "solid-js";
+import { createContext, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { AxisId } from "../state/cartesianAxisSlice";
@@ -15,7 +15,7 @@ import type { ErrorBarDataPointFormatter } from "../cartesian/ErrorBar";
 import type { ErrorBarsSettings } from "../state/errorBarSlice";
 import { useAppStore } from "../state/hooks";
 import { useGraphicalItemId } from "./RegisterGraphicalItemId";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export interface ErrorBarContextValue {
   data: ReadonlyArray<unknown> | undefined;
@@ -57,29 +57,20 @@ export const useErrorBarContext = (): Accessor<ErrorBarContextValue> => useConte
 export function ReportErrorBarSettings(props: ErrorBarsSettings): JSX.Element {
   const store = useAppStore();
   const graphicalItemId = useGraphicalItemId();
-  let prev: ErrorBarsSettings | null = null;
 
-  createEffect(
-    (): ErrorBarsSettings => ({ dataKey: props.dataKey, direction: props.direction }),
-    (settings) => {
-      if (store == null || graphicalItemId == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.errorBars.addErrorBar({ itemId: graphicalItemId, errorBar: settings });
-      } else if (prev !== settings) {
-        store.actions.errorBars.replaceErrorBar({ itemId: graphicalItemId, prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev != null && store != null && graphicalItemId != null) {
-      store.actions.errorBars.removeErrorBar({ itemId: graphicalItemId, errorBar: prev });
-      prev = null;
-    }
-  });
+  if (store != null && graphicalItemId != null) {
+    registerInStore<ErrorBarsSettings>(
+      () => ({ dataKey: props.dataKey, direction: props.direction }),
+      {
+        add: (next) =>
+          store.actions.errorBars.addErrorBar({ itemId: graphicalItemId, errorBar: next }),
+        replace: (prev, next) =>
+          store.actions.errorBars.replaceErrorBar({ itemId: graphicalItemId, prev, next }),
+        remove: (prev) =>
+          store.actions.errorBars.removeErrorBar({ itemId: graphicalItemId, errorBar: prev }),
+      },
+    );
+  }
 
   return null;
 }

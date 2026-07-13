@@ -4,12 +4,11 @@
 // on change) + onCleanup (remove), the same effect-dispatch idiom Line/Bar/Area
 // use for their graphical-item registration. Returns null (renders nothing) — it
 // exists purely to register the item's tooltip payload entry in the store.
-import { createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppStore } from "./hooks";
 import { TooltipPayloadConfiguration } from "./tooltipSlice";
 import { useIsPanorama } from "../context/PanoramaContext";
-import { unregisterOnCleanup } from "./unregisterOnCleanup";
+import { registerInStore } from "./registerInStore";
 
 export function SetTooltipEntrySettings(props: {
   tooltipEntrySettings: TooltipPayloadConfiguration;
@@ -17,30 +16,14 @@ export function SetTooltipEntrySettings(props: {
   const store = useAppStore();
   const isPanorama = useIsPanorama();
 
-  let prev: TooltipPayloadConfiguration | null = null;
-
-  createEffect(
-    () => props.tooltipEntrySettings,
-    (settings) => {
-      if (store == null || isPanorama) {
-        // Panorama graphical items never contribute to the Tooltip payload.
-        return;
-      }
-      if (prev === null) {
-        store.actions.tooltip.addTooltipEntrySettings(settings);
-      } else if (prev !== settings) {
-        store.actions.tooltip.replaceTooltipEntrySettings({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.tooltip.removeTooltipEntrySettings(prev);
-      prev = null;
-    }
-  });
+  // Panorama graphical items never contribute to the Tooltip payload.
+  if (store != null && !isPanorama) {
+    registerInStore<TooltipPayloadConfiguration>(() => props.tooltipEntrySettings, {
+      add: (next) => store.actions.tooltip.addTooltipEntrySettings(next),
+      replace: (prev, next) => store.actions.tooltip.replaceTooltipEntrySettings({ prev, next }),
+      remove: (prev) => store.actions.tooltip.removeTooltipEntrySettings(prev),
+    });
+  }
 
   return null;
 }

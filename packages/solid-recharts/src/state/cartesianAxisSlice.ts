@@ -195,67 +195,47 @@ export function createCartesianAxisSlice(
     zAxis: { ...initialState.zAxis },
   });
 
+  // The x/y/z axis maps are Record<AxisId, …> (not arrays), and their
+  // add/replace/remove mutate the draft IN PLACE — preserving each map's reference
+  // identity, which downstream reads rely on. So this is a local record helper, not
+  // the shared array `createCollectionActions`; `pick` selects the map to touch.
+  // Concentrates the replace body that was written verbatim three times (x/y/z).
+  function axisCollection<A extends { id: AxisId }>(pick: (s: AxisMapState) => Record<AxisId, A>) {
+    return {
+      add: (axis: A) =>
+        setState((s) => {
+          pick(s)[axis.id] = axis;
+        }),
+      replace: ({ prev, next }: { prev: A; next: A }) =>
+        setState((s) => {
+          const map = pick(s);
+          if (map[prev.id] !== undefined) {
+            if (prev.id !== next.id) {
+              delete map[prev.id];
+            }
+            map[next.id] = next;
+          }
+        }),
+      remove: (axis: A) =>
+        setState((s) => {
+          delete pick(s)[axis.id];
+        }),
+    };
+  }
+  const x = axisCollection<XAxisSettings>((s) => s.xAxis);
+  const y = axisCollection<YAxisSettings>((s) => s.yAxis);
+  const z = axisCollection<ZAxisSettings>((s) => s.zAxis);
+
   const actions: CartesianAxisActions = {
-    addXAxis(axis) {
-      setState((s) => {
-        s.xAxis[axis.id] = axis;
-      });
-    },
-    replaceXAxis({ prev, next }) {
-      setState((s) => {
-        if (s.xAxis[prev.id] !== undefined) {
-          if (prev.id !== next.id) {
-            delete s.xAxis[prev.id];
-          }
-          s.xAxis[next.id] = next;
-        }
-      });
-    },
-    removeXAxis(axis) {
-      setState((s) => {
-        delete s.xAxis[axis.id];
-      });
-    },
-    addYAxis(axis) {
-      setState((s) => {
-        s.yAxis[axis.id] = axis;
-      });
-    },
-    replaceYAxis({ prev, next }) {
-      setState((s) => {
-        if (s.yAxis[prev.id] !== undefined) {
-          if (prev.id !== next.id) {
-            delete s.yAxis[prev.id];
-          }
-          s.yAxis[next.id] = next;
-        }
-      });
-    },
-    removeYAxis(axis) {
-      setState((s) => {
-        delete s.yAxis[axis.id];
-      });
-    },
-    addZAxis(axis) {
-      setState((s) => {
-        s.zAxis[axis.id] = axis;
-      });
-    },
-    replaceZAxis({ prev, next }) {
-      setState((s) => {
-        if (s.zAxis[prev.id] !== undefined) {
-          if (prev.id !== next.id) {
-            delete s.zAxis[prev.id];
-          }
-          s.zAxis[next.id] = next;
-        }
-      });
-    },
-    removeZAxis(axis) {
-      setState((s) => {
-        delete s.zAxis[axis.id];
-      });
-    },
+    addXAxis: x.add,
+    replaceXAxis: x.replace,
+    removeXAxis: x.remove,
+    addYAxis: y.add,
+    replaceYAxis: y.replace,
+    removeYAxis: y.remove,
+    addZAxis: z.add,
+    replaceZAxis: z.replace,
+    removeZAxis: z.remove,
     updateYAxisWidth({ id, width }) {
       setState((s) => {
         const axis = s.yAxis[id];

@@ -14,7 +14,7 @@
 // DEFERRED: event throttling nuances.
 import { createMemo, For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { scaleLinear } from "victory-vendor/d3-scale";
+import { scaleLinear } from "d3-scale";
 import { Surface } from "../container/Surface";
 import { Layer } from "../container/Layer";
 import { Sector } from "../shape/Sector";

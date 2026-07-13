@@ -5,12 +5,16 @@
 // explicit `id` prop (the graphical item's id) keys the entry so replace/remove are
 // proxy-safe (recharts matches the array by reference, which Solid stores break).
 // `SetPolarLegendPayload` lands with the polar vertical. Returns nothing.
-import { createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppStore } from "./hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { LegendPayload } from "../component/DefaultLegendContent";
-import { unregisterOnCleanup } from "./unregisterOnCleanup";
+import { registerInStore } from "./registerInStore";
+
+interface LegendPayloadEntry {
+  id: string;
+  items: ReadonlyArray<LegendPayload>;
+}
 
 export function SetLegendPayload(props: {
   id: string;
@@ -19,32 +23,20 @@ export function SetLegendPayload(props: {
   const store = useAppStore();
   const isPanorama = useIsPanorama();
 
-  let prevId: string | null = null;
-
-  createEffect(
-    () => ({ id: props.id, items: props.legendPayload }),
-    (entry) => {
-      if (store == null || isPanorama) {
-        return;
-      }
-      if (prevId === null) {
-        store.actions.legend.addLegendPayload(entry);
-      } else {
+  // Panorama mirrors never contribute to the legend. The entry is keyed by id
+  // (recharts matches the array by reference, which Solid stores break), so
+  // replace/remove rebuild the `{ id, items: [] }` lookup key from prev.
+  if (store != null && !isPanorama) {
+    registerInStore<LegendPayloadEntry>(() => ({ id: props.id, items: props.legendPayload }), {
+      add: (next) => store.actions.legend.addLegendPayload(next),
+      replace: (prev, next) =>
         store.actions.legend.replaceLegendPayload({
-          prev: { id: prevId, items: [] },
-          next: entry,
-        });
-      }
-      prevId = entry.id;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prevId != null && store != null) {
-      store.actions.legend.removeLegendPayload({ id: prevId, items: [] });
-      prevId = null;
-    }
-  });
+          prev: { id: prev.id, items: [] },
+          next,
+        }),
+      remove: (prev) => store.actions.legend.removeLegendPayload({ id: prev.id, items: [] }),
+    });
+  }
 
   return null;
 }

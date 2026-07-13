@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 test/util/scale/createCategoricalInverse.spec.ts (commit 7a23854).
 import { describe, it, expect } from "vitest";
-import { scaleLinear } from "victory-vendor/d3-scale";
+import { scaleLinear } from "d3-scale";
 import { bisect, createCategoricalInverse } from "../../../src/util/scale/createCategoricalInverse";
 import { CustomScaleDefinition } from "../../../src/util/scale/CustomScaleDefinition";
 

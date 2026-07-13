@@ -7,17 +7,7 @@ import type { HTMLMousePointer, RelativePointer } from "../util/types";
 import { selectActivePropsFromChartPointer } from "./selectors/tooltipSelectors";
 import { selectTooltipEventType } from "./selectors/selectTooltipEventType";
 import type { RechartsStore } from "./store";
-
-export type MouseMoveAction = { type: "mouseMove"; payload: HTMLMousePointer };
-export type MouseClickAction = { type: "mouseClick"; payload: HTMLMousePointer };
-
-export function mouseMoveAction(payload: HTMLMousePointer): MouseMoveAction {
-  return { type: "mouseMove", payload };
-}
-
-export function mouseClickAction(payload: HTMLMousePointer): MouseClickAction {
-  return { type: "mouseClick", payload };
-}
+import { isEventThrottled } from "./isEventThrottled";
 
 /*
  * This single rafId is safe because:
@@ -46,8 +36,7 @@ export function dispatchMouseClick(store: RechartsStore, mousePointer: HTMLMouse
 export function dispatchMouseMove(store: RechartsStore, mousePointer: HTMLMousePointer): void {
   const state = store.state;
   const { throttleDelay, throttledEvents } = state.eventSettings;
-  const eventListAsString: "all" | ReadonlyArray<string> | undefined = throttledEvents;
-  const isThrottled = eventListAsString === "all" || eventListAsString?.includes("mousemove");
+  const isThrottled = isEventThrottled(throttledEvents, "mousemove");
 
   if (rafId !== null) {
     cancelAnimationFrame(rafId);

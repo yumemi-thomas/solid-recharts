@@ -81,7 +81,7 @@ import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { getMaxRadius, polarToCartesian } from "../util/PolarUtils";
 import { getPercentValue, interpolate, isNumber, isNumOrStr, mathSign } from "../util/DataUtils";
 import { getValueByDataKey } from "../util/ChartUtils";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 
 export type PieCoordinate = {
   cx: number;
@@ -583,53 +583,41 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
   const merged = merge(pieDefaultProps, props);
   const id = useUniqueId("recharts-pie", props.id);
 
-  let prev: PieSettings | null = null;
-
-  createEffect(
-    (): PieSettings => ({
-      id,
-      type: "pie",
-      data: merged.data,
-      dataKey: merged.dataKey,
-      hide: merged.hide,
-      angleAxisId: merged.angleAxisId ?? 0,
-      radiusAxisId: merged.radiusAxisId ?? 0,
-      name: merged.name,
-      nameKey: merged.nameKey,
-      tooltipType: merged.tooltipType,
-      legendType: merged.legendType,
-      fill: merged.fill,
-      stroke: merged.stroke,
-      cx: merged.cx,
-      cy: merged.cy,
-      startAngle: merged.startAngle,
-      endAngle: merged.endAngle,
-      paddingAngle: merged.paddingAngle,
-      minAngle: merged.minAngle,
-      innerRadius: merged.innerRadius,
-      outerRadius: merged.outerRadius,
-      cornerRadius: merged.cornerRadius,
-      maxRadius: merged.maxRadius,
-    }),
-    (settings) => {
-      if (store == null) {
-        return;
-      }
-      if (prev === null) {
-        store.actions.graphicalItems.addPolarGraphicalItem(settings);
-      } else if (prev !== settings) {
-        store.actions.graphicalItems.replacePolarGraphicalItem({ prev, next: settings });
-      }
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.graphicalItems.removePolarGraphicalItem(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<PieSettings>(
+      () => ({
+        id,
+        type: "pie",
+        data: merged.data,
+        dataKey: merged.dataKey,
+        hide: merged.hide,
+        angleAxisId: merged.angleAxisId ?? 0,
+        radiusAxisId: merged.radiusAxisId ?? 0,
+        name: merged.name,
+        nameKey: merged.nameKey,
+        tooltipType: merged.tooltipType,
+        legendType: merged.legendType,
+        fill: merged.fill,
+        stroke: merged.stroke,
+        cx: merged.cx,
+        cy: merged.cy,
+        startAngle: merged.startAngle,
+        endAngle: merged.endAngle,
+        paddingAngle: merged.paddingAngle,
+        minAngle: merged.minAngle,
+        innerRadius: merged.innerRadius,
+        outerRadius: merged.outerRadius,
+        cornerRadius: merged.cornerRadius,
+        maxRadius: merged.maxRadius,
+      }),
+      {
+        add: (next) => store.actions.graphicalItems.addPolarGraphicalItem(next),
+        replace: (prev, next) =>
+          store.actions.graphicalItems.replacePolarGraphicalItem({ prev, next }),
+        remove: (prev) => store.actions.graphicalItems.removePolarGraphicalItem(prev),
+      },
+    );
+  }
 
   // Per-slice <Cell> overrides (collected from children, in data order).
   const cells = collectCells(() => props.children);

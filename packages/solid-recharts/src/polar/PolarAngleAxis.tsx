@@ -17,7 +17,7 @@
 // evaluated element to inject computed x/y/payload — use the function form
 // instead). NOTE: the reference PolarAngleAxis renders no axis `label` title
 // either (only PolarRadiusAxis does) — no gap there.
-import { createEffect, For, merge, Show } from "solid-js";
+import { For, merge, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { useAppSelector, useAppStore } from "../state/hooks";
@@ -48,7 +48,7 @@ import { useIsPanorama } from "../context/PanoramaContext";
 import { usePolarChartLayout } from "../context/chartLayoutContext";
 import { getAxisTypeBasedOnLayout } from "../util/getAxisTypeBasedOnLayout";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
-import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { registerInStore } from "../state/registerInStore";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 
@@ -334,54 +334,45 @@ export function PolarAngleAxis<DataPointType = unknown, DataValueType = unknown>
   const merged = merge(polarAngleAxisDefaultProps, props);
   const isPanorama = useIsPanorama();
 
-  let prev: AngleAxisSettings | null = null;
-
-  createEffect(
-    (): AngleAxisSettings | undefined => {
-      const evaluatedType = getAxisTypeBasedOnLayout(layout(), "angleAxis", merged.type);
-      if (evaluatedType == null) {
-        return undefined;
-      }
-      return {
-        id: merged.angleAxisId,
-        scale: merged.scale,
-        type: evaluatedType,
-        dataKey: merged.dataKey,
-        unit: undefined,
-        name: merged.name,
-        // Ignored on purpose: axis calc behaves as if false (recharts note).
-        allowDuplicatedCategory: false,
-        allowDataOverflow: false,
-        reversed: merged.reversed,
-        includeHidden: false,
-        domain: merged.domain,
-        allowDecimals: merged.allowDecimals,
-        tickCount: merged.tickCount,
-        ticks: merged.ticks,
-        // DEVIATION: the settings slice shares the cartesian tick renderer type,
-        // so a polar function-form renderer is recorded as `true` (presence only —
-        // the renderer itself stays local to this component's render; no selector
-        // reads the function back out of the store).
-        tick: typeof merged.tick === "function" ? true : merged.tick,
-        niceTicks: merged.niceTicks,
-      };
-    },
-    (settings) => {
-      if (settings == null || store == null) {
-        return;
-      }
-      // addAngleAxis overwrites by id, so it doubles as replace-on-change.
-      store.actions.polarAxis.addAngleAxis(settings);
-      prev = settings;
-    },
-  );
-
-  unregisterOnCleanup(() => {
-    if (prev && store != null) {
-      store.actions.polarAxis.removeAngleAxis(prev);
-      prev = null;
-    }
-  });
+  if (store != null) {
+    registerInStore<AngleAxisSettings>(
+      (): AngleAxisSettings | undefined => {
+        const evaluatedType = getAxisTypeBasedOnLayout(layout(), "angleAxis", merged.type);
+        if (evaluatedType == null) {
+          return undefined;
+        }
+        return {
+          id: merged.angleAxisId,
+          scale: merged.scale,
+          type: evaluatedType,
+          dataKey: merged.dataKey,
+          unit: undefined,
+          name: merged.name,
+          // Ignored on purpose: axis calc behaves as if false (recharts note).
+          allowDuplicatedCategory: false,
+          allowDataOverflow: false,
+          reversed: merged.reversed,
+          includeHidden: false,
+          domain: merged.domain,
+          allowDecimals: merged.allowDecimals,
+          tickCount: merged.tickCount,
+          ticks: merged.ticks,
+          // DEVIATION: the settings slice shares the cartesian tick renderer type,
+          // so a polar function-form renderer is recorded as `true` (presence only —
+          // the renderer itself stays local to this component's render; no selector
+          // reads the function back out of the store).
+          tick: typeof merged.tick === "function" ? true : merged.tick,
+          niceTicks: merged.niceTicks,
+        };
+      },
+      {
+        // addAngleAxis overwrites by id, so it doubles as replace-on-change.
+        add: (next) => store.actions.polarAxis.addAngleAxis(next),
+        replace: (_prev, next) => store.actions.polarAxis.addAngleAxis(next),
+        remove: (prev) => store.actions.polarAxis.removeAngleAxis(prev),
+      },
+    );
+  }
 
   const viewBox = useAppSelector(selectPolarViewBox);
   const scale = useAppSelector((state) =>

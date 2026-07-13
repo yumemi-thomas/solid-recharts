@@ -1,16 +1,15 @@
 // Ported from recharts 3.8.1 src/util/propsAreEqual.ts (commit 7a23854).
 //
 // Deviation: recharts imports `shallowEqual` from `react-redux`. A SolidJS port
-// has no react-redux, so we inline an equivalent one-level same-value compare.
-// react-redux's `shallowEqual` is just `Object.is` applied per own-enumerable
-// key (its internal `is` predates and mirrors `Object.is`), so the local
-// version below is behavior-identical — NaN compares equal, +0 and -0 do not.
+// has no react-redux, so it reuses the local equivalent in `./ShallowEqual`
+// (one-level same-value compare — NaN equal, +0 and -0 distinct).
 //
 // NOTE on relevance: recharts uses `propsAreEqual` only as the `React.memo`
 // comparator on Bar/Area/Line/Scatter/Legend/ReportEventSettings/etc. Solid
 // components do not re-render, so when those units are ported this comparator
 // will most likely be dropped or repurposed. The function itself is pure and
 // spec-tested, so we port it now and revisit its call sites in Tier 2.
+import { shallowEqual } from "./ShallowEqual";
 
 const propsToShallowCompare = new Set<string>([
   "axisLine",
@@ -36,35 +35,6 @@ const propsToShallowCompare = new Set<string>([
   "radius",
   "throttledEvents",
 ]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-/**
- * One-level same-value comparison, equivalent to react-redux's `shallowEqual`.
- * Uses `Object.is`, so two NaNs are equal and +0/-0 are not — matching the
- * original.
- */
-function shallowEqual(objA: unknown, objB: unknown): boolean {
-  if (Object.is(objA, objB)) {
-    return true;
-  }
-  if (!isRecord(objA) || !isRecord(objB)) {
-    return false;
-  }
-  const keysA = Object.keys(objA);
-  const keysB = Object.keys(objB);
-  if (keysA.length !== keysB.length) {
-    return false;
-  }
-  for (const key of keysA) {
-    if (!Object.hasOwn(objB, key) || !Object.is(objA[key], objB[key])) {
-      return false;
-    }
-  }
-  return true;
-}
 
 /**
  * When comparing two values, returns true if they are the same value or
