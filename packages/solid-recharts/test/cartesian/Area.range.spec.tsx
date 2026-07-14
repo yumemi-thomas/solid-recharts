@@ -4,7 +4,7 @@
 // behaviour of recharts test/chart/AreaChart.spec.tsx "Renders two active dots for
 // ranged Area chart on hover", plus a structural assertion on the two edge curves.
 import { beforeEach, describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { Area, AreaChart, Tooltip, XAxis, YAxis } from "../../src";
 import { rangeData } from "../_data";
 import { render } from "@solidjs/testing-library";
@@ -25,8 +25,6 @@ describe("range Area (dataKey → [low, high])", () => {
         <YAxis />
       </AreaChart>
     ));
-    flush();
-    flush();
     // Top edge + lower (baseLine) edge = 2 stroked curves; a scalar area has 1.
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(2);
   });
@@ -44,8 +42,6 @@ describe("range Area (dataKey → [low, high])", () => {
         <Tooltip />
       </AreaChart>
     ));
-    flush();
-    flush();
     showTooltip(container, areaChartMouseHoverTooltipSelector);
 
     expect(container.querySelectorAll(".customized-active-dot")).toHaveLength(2);

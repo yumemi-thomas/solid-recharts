@@ -7,7 +7,7 @@
 // underlying chart data actually changes. Reference identity is the observable
 // proxy for "did the O(series×points) combiner re-run".
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { Line, LineChart, XAxis } from "../../../src";
 import { useAppStore } from "../../../src/state/hooks";
@@ -43,9 +43,6 @@ function renderChartAndCaptureStore(): RechartsStore {
       <Capture />
     </LineChart>
   ));
-  flush();
-  flush();
-  flush();
   if (store == null) {
     throw new Error("store capture failed");
   }
@@ -78,8 +75,6 @@ describe("memoized selector graph", () => {
       activeDataKey: undefined,
       activeCoordinate: { x: 50, y: 50 },
     });
-    flush();
-
     const after = selectAllAppliedValues(store.state, "xAxis", defaultAxisId, false);
     const displayedAfter = selectDisplayedData(store.state, "xAxis", defaultAxisId, false);
     // The expensive chain is untouched by the interaction — same references,
@@ -103,8 +98,6 @@ describe("memoized selector graph", () => {
       activeDataKey: undefined,
       activeCoordinate: { x: 30, y: 30 },
     });
-    flush();
-
     axes.forEach((axisType, i) => {
       const prev = before[i]!;
       expect(selectNumericalDomain(store.state, axisType, defaultAxisId, false)).toBe(
@@ -127,8 +120,6 @@ describe("memoized selector graph", () => {
       { name: "b", uv: 31 },
       { name: "c", uv: 21 },
     ]);
-    flush();
-
     const after = selectAllAppliedValues(store.state, "xAxis", defaultAxisId, false);
     expect(after).not.toBe(before);
     expect(after.map((v) => v.value)).toEqual(["a", "b", "c"]);

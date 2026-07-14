@@ -6,8 +6,9 @@
 // supported), onBBoxUpdate, React.memo. Solid deviations: createPortal →
 // `<Portal mount>`; useLayoutEffect dispatches → createEffect; hooks return
 // accessors; `className`→`class`, React CSSProperties → JSX.CSSProperties.
-import { createEffect, createMemo, merge, Show } from "solid-js";
-import { JSX, Portal } from "@solidjs/web";
+import { createMemo, Show, mergeProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
+import { DirectPortal } from "../util/DirectPortal";
 import {
   ContentType,
   DefaultLegendContent,
@@ -127,7 +128,7 @@ function getDefaultPosition(
 }
 
 export const Legend = (props: LegendProps): JSX.Element => {
-  const merged = merge(legendDefaultProps, props);
+  const merged = mergeProps(legendDefaultProps, props);
   const store = useAppStore();
   const contextPayload = useLegendPayload();
   const legendPortalFromContext = useLegendPortal();
@@ -138,26 +139,30 @@ export const Legend = (props: LegendProps): JSX.Element => {
 
   // Push the legend settings into the store (drives the offset's legend space).
   createEffect(
-    () => ({
-      align: merged.align,
-      layout: merged.layout,
-      verticalAlign: merged.verticalAlign,
-      itemSorter: merged.itemSorter,
-    }),
-    (settings) => {
-      store?.actions.legend.setLegendSettings(settings);
-    },
+    on(
+      () => ({
+        align: merged.align,
+        layout: merged.layout,
+        verticalAlign: merged.verticalAlign,
+        itemSorter: merged.itemSorter,
+      }),
+      (settings) => {
+        store?.actions.legend.setLegendSettings(settings);
+      },
+    ),
   );
 
   // Report the measured size; reset to 0 on cleanup. (When a portal is supplied
   // from props, nothing needs the size, matching recharts.)
   createEffect(
-    () => ({ width: lastBoundingBox().width, height: lastBoundingBox().height }),
-    (size) => {
-      if (props.portal == null) {
-        store?.actions.legend.setLegendSize(size);
-      }
-    },
+    on(
+      () => ({ width: lastBoundingBox().width, height: lastBoundingBox().height }),
+      (size) => {
+        if (props.portal == null) {
+          store?.actions.legend.setLegendSize(size);
+        }
+      },
+    ),
   );
 
   const portal = (): HTMLElement | null => props.portal ?? legendPortalFromContext();
@@ -167,7 +172,7 @@ export const Legend = (props: LegendProps): JSX.Element => {
   );
 
   // Props handed to a function-form `content`. Built as a plain object (spreading
-  // the Solid `merge()` proxy leaks a MERGE_SOURCE symbol and doesn't materialize
+  // the Solid `mergeProps()` proxy leaks a MERGE_SOURCE symbol and doesn't materialize
   // keys); reads finalPayload()/chart dims so the enclosing reactive insert re-runs
   // when the payload populates.
   const buildContentProps = (): LegendContentProps => {
@@ -242,7 +247,7 @@ export const Legend = (props: LegendProps): JSX.Element => {
       }
     >
       {(mount) => (
-        <Portal mount={mount()}>
+        <DirectPortal mount={mount()}>
           <div class="recharts-legend-wrapper" style={outerStyle()} ref={updateBoundingBox}>
             <Show
               when={typeof merged.content === "function" ? merged.content : null}
@@ -266,7 +271,7 @@ export const Legend = (props: LegendProps): JSX.Element => {
               {(contentFn) => <>{contentFn()(buildContentProps())}</>}
             </Show>
           </div>
-        </Portal>
+        </DirectPortal>
       )}
     </Show>
   );

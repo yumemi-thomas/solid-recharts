@@ -21,8 +21,8 @@
 // cloneElement). PERMANENT-N/A: element-form `shape`. DEFERRED: object-form
 // `shape`. zIndex relayering IS wired: the `.recharts-radar` Layer is wrapped in
 // <ZIndexLayer> (default DefaultZIndexes.area = 100), matching recharts.
-import { createMemo, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useUniqueId } from "../util/useUniqueId";
@@ -291,7 +291,7 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
   props: RadarProps<DataPointType, DataValueType>,
 ): JSX.Element {
   const store = useAppStore();
-  const merged = merge(radarDefaultProps, props);
+  const merged = mergeProps(radarDefaultProps, props);
   const isPanorama = useIsPanorama();
   const id = useUniqueId("recharts-radar", props.id);
 

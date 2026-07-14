@@ -4,7 +4,7 @@
  * Ported from recharts 3.8.1 src/shape/Curve.tsx (commit 7a23854).
  * Pure `getPath`/`getCurveFactory` helpers copied verbatim (modulo type
  * adjustments). Solid deviations:
- *   - `className` → `class` (Omit the wide SVG `class`); `clsx` → `class={[...]}`.
+ *   - `className` → `class` (Omit the wide SVG `class`); `clsx` → `class={[...].filter(Boolean).join(" ")}`.
  *   - `resolveDefaultProps` → `merge()` defaults via per-prop `?? default`.
  *   - `React.forwardRef` → `ref?: SVGPathElement | ((el: SVGPathElement) => void)`.
  *   - `return null` → `<Show>`.
@@ -17,8 +17,8 @@
  *     generic type internally but its typings don't reflect that.
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { Show, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import {
   area as shapeArea,
   type Area as D3AreaCurve,
@@ -303,8 +303,7 @@ export const Curve = (props: CurveProps): JSX.Element => {
   // `strokeDasharray` (camelCase) is forwarded by the spread — svgPropertiesNoEvents
   // renames it to the kebab `stroke-dasharray` DOM attribute (see svg-attribute-rename).
   const others = (): Record<string, unknown> => ({
-    ...omit(
-      props,
+    ...splitProps(props, [
       "class",
       "type",
       "layout",
@@ -313,7 +312,7 @@ export const Curve = (props: CurveProps): JSX.Element => {
       "connectNulls",
       "path",
       "pathRef",
-    ),
+    ])[1],
   });
 
   // recharts Curve spreads `svgPropertiesNoEvents(props)` for attributes and
@@ -326,7 +325,7 @@ export const Curve = (props: CurveProps): JSX.Element => {
       <path
         {...svgPropertiesNoEvents(others())}
         {...(adaptEventHandlers(props) ?? {})}
-        class={["recharts-curve", props.class]}
+        class={["recharts-curve", props.class].filter(Boolean).join(" ")}
         d={dAttr()}
         ref={props.pathRef}
       />

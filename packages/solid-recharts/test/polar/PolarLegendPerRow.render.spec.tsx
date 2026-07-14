@@ -3,7 +3,7 @@
 // aware (its sectors already resolve fill); RadialBar reads name/fill off each row.
 // `flush()` because legend payload registers via effects/selectors.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { PieChart, Pie, RadialBarChart, RadialBar, Legend, Cell } from "../../src";
 
@@ -42,8 +42,6 @@ describe("per-row legend payloads", () => {
         <Legend />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-legend-item")).toHaveLength(pieData.length);
     expect(legendTexts(container)).toEqual(["Group A", "Group B", "Group C"]);
     // The rect legend icon's fill mirrors the cell color, per row.
@@ -63,8 +61,6 @@ describe("per-row legend payloads", () => {
         <Legend />
       </PieChart>
     ));
-    flush();
-
     expect(legendTexts(container)).toEqual(["Group A", "Group B", "Group C"]);
     expect(legendIconFills(container)).toEqual(["#abcdef", "#abcdef", "#abcdef"]);
   });
@@ -76,8 +72,6 @@ describe("per-row legend payloads", () => {
         <Legend />
       </RadialBarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-legend-item")).toHaveLength(radialData.length);
     expect(legendTexts(container)).toEqual(["Alpha", "Beta", "Gamma"]);
     expect(legendIconFills(container)).toEqual(["#aa1111", "#11aa11", "#1111aa"]);

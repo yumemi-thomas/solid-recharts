@@ -17,8 +17,8 @@
 // evaluated element to inject computed x/y/payload — use the function form
 // instead). NOTE: the reference PolarAngleAxis renders no axis `label` title
 // either (only PolarRadiusAxis does) — no gap there.
-import { For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { Layer } from "../container/Layer";
@@ -331,7 +331,7 @@ export function PolarAngleAxis<DataPointType = unknown, DataValueType = unknown>
 ): JSX.Element {
   const store = useAppStore();
   const layout = usePolarChartLayout();
-  const merged = merge(polarAngleAxisDefaultProps, props);
+  const merged = mergeProps(polarAngleAxisDefaultProps, props);
   const isPanorama = useIsPanorama();
 
   if (store != null) {

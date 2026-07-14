@@ -1,7 +1,7 @@
 // Solid-recharts spec: Sankey custom function-form `node` / `link` renderers.
 // recharts also supports element-form (N/A in this port — no cloneElement).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { Sankey } from "../../src";
 import { render } from "@solidjs/testing-library";
 
@@ -25,7 +25,6 @@ describe("Sankey custom node/link content", () => {
         node={(p) => <circle class="custom-sankey-node" cx={p.x} cy={p.y} r={4} />}
       />
     ));
-    flush();
     expect(container.querySelectorAll(".custom-sankey-node")).toHaveLength(data.nodes.length);
     // The default <rect> node is not rendered when a custom node is provided.
     expect(container.querySelectorAll(".recharts-sankey-node rect")).toHaveLength(0);
@@ -40,7 +39,6 @@ describe("Sankey custom node/link content", () => {
         link={(p) => <path class="custom-sankey-link" d={`M0,0L${p.sourceX},${p.sourceY}`} />}
       />
     ));
-    flush();
     expect(container.querySelectorAll(".custom-sankey-link")).toHaveLength(data.links.length);
   });
 });

@@ -1,11 +1,12 @@
+import { splitProps } from "solid-js";
 // Ported from recharts 3.8.1 src/chart/CartesianChart.tsx (commit 7a23854).
 //
 // Solid deviations: `forwardRef` → `ref` prop; `resolveDefaultProps` → per-field
 // `?? default` accessors (see the defaults-use-solid-merge memory — using
 // explicit nullish-coalescing avoids `merge`'s undefined-override gotcha AND the
 // required-ness typing gap). Provider + Report components mirror recharts.
-import { omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { ChartOptions } from "../state/optionsSlice";
 import { RechartsStoreProvider } from "../state/RechartsStoreProvider";
 import { ChartDataContextProvider } from "../context/chartDataContext";
@@ -83,7 +84,7 @@ export const CartesianChart = (props: CartesianChartOptions): JSX.Element => {
       {/* Spread WITHOUT children (a `{...cp()}` spread eagerly evaluates the
           children getter here, before the provider sets context — running them
           outside the store); pass children as a lazy JSX child instead. */}
-      <CategoricalChart {...omit(cp(), "children")} ref={props.ref}>
+      <CategoricalChart {...splitProps(cp(), ["children"])[1]} ref={props.ref}>
         {cp().children}
       </CategoricalChart>
     </RechartsStoreProvider>

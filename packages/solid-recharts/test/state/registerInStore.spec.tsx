@@ -21,7 +21,7 @@
 // artifact ("fn is not a function") rather than the diagnostic — so it would test
 // the harness, not the contract.
 import { describe, expect, it, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { renderHook } from "@solidjs/testing-library";
 import { registerInStore } from "../../src/state/registerInStore";
 
@@ -31,8 +31,6 @@ describe("registerInStore", () => {
   it("calls add once on first registration", () => {
     const handlers = makeHandlers();
     renderHook(() => registerInStore(() => ({ id: "a" }), handlers));
-    flush();
-
     expect(handlers.add).toHaveBeenCalledTimes(1);
     expect(handlers.add).toHaveBeenCalledWith({ id: "a" });
     expect(handlers.replace).not.toHaveBeenCalled();
@@ -46,12 +44,9 @@ describe("registerInStore", () => {
       registerInStore(() => ({ id: "a", n: n() }), handlers);
       return setN;
     });
-    flush();
     expect(handlers.add).toHaveBeenCalledWith({ id: "a", n: 1 });
 
     setN(2);
-    flush();
-
     expect(handlers.replace).toHaveBeenCalledTimes(1);
     expect(handlers.replace).toHaveBeenCalledWith({ id: "a", n: 1 }, { id: "a", n: 2 });
     // add fires exactly once, ever.
@@ -65,16 +60,13 @@ describe("registerInStore", () => {
       registerInStore(() => (on() ? { id: "a" } : undefined), handlers);
       return setOn;
     });
-    flush();
     expect(handlers.add).toHaveBeenCalledTimes(1);
 
     setOn(false); // compute → undefined: no write, prev untouched
-    flush();
     expect(handlers.replace).not.toHaveBeenCalled();
     expect(handlers.remove).not.toHaveBeenCalled();
 
     setOn(true); // valid again: prev survived, so this is a replace — not a second add
-    flush();
     expect(handlers.add).toHaveBeenCalledTimes(1);
     expect(handlers.replace).toHaveBeenCalledTimes(1);
   });
@@ -82,8 +74,6 @@ describe("registerInStore", () => {
   it("calls remove(prev) on unmount", () => {
     const handlers = makeHandlers();
     const { cleanup } = renderHook(() => registerInStore(() => ({ id: "a" }), handlers));
-    flush();
-
     cleanup();
     expect(handlers.remove).toHaveBeenCalledTimes(1);
     expect(handlers.remove).toHaveBeenCalledWith({ id: "a" });
@@ -92,8 +82,6 @@ describe("registerInStore", () => {
   it("does not call remove on unmount when it never registered", () => {
     const handlers = makeHandlers();
     const { cleanup } = renderHook(() => registerInStore(() => undefined, handlers));
-    flush();
-
     cleanup();
     expect(handlers.add).not.toHaveBeenCalled();
     expect(handlers.remove).not.toHaveBeenCalled();

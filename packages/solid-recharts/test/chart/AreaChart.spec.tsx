@@ -17,7 +17,7 @@
 // effect)` for context spies. Any reactive-graph diagnostic fired during the test
 // fails it via the global guard in test/setup.ts.
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { AreaChart, Area, XAxis, YAxis } from "../../src";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
@@ -52,7 +52,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(1);
 
@@ -75,7 +74,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-area-dot")).toHaveLength(1);
@@ -94,7 +92,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(0);
   });
@@ -120,7 +117,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(2);
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(2);
 
@@ -148,7 +144,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(1);
 
@@ -173,7 +168,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-dots")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-area-dot")).toHaveLength(6);
     expect(container.querySelectorAll(".recharts-label-list")).toHaveLength(1);
@@ -194,7 +188,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-area-area")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-area-curve")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-area-dots")).toHaveLength(0);
@@ -238,8 +231,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
-
     expectAreaCurve(container, [
       { d: "M5,42.333C20,42.667,35,43,50,43C65,43,80,43,95,43" },
       { d: "M5,26.333C20,34.667,35,43,50,43C65,43,80,38.34,95,33.68" },
@@ -252,10 +243,10 @@ describe("<AreaChart />", () => {
       const spy = vi.fn();
       const Comp = () => {
         const vb = useViewBox();
-        createEffect(
-          () => vb(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => vb())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -263,7 +254,6 @@ describe("<AreaChart />", () => {
           <Comp />
         </AreaChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith({ x: 5, y: 5, width: 90, height: 40 });
     });
 
@@ -278,7 +268,6 @@ describe("<AreaChart />", () => {
           <Comp />
         </AreaChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(expect.stringMatching(/recharts\d+-clip/));
     });
 
@@ -286,10 +275,10 @@ describe("<AreaChart />", () => {
       const spy = vi.fn();
       const Comp = () => {
         const w = useChartWidth();
-        createEffect(
-          () => w(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => w())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -297,7 +286,6 @@ describe("<AreaChart />", () => {
           <Comp />
         </AreaChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(100);
     });
 
@@ -305,10 +293,10 @@ describe("<AreaChart />", () => {
       const spy = vi.fn();
       const Comp = () => {
         const h = useChartHeight();
-        createEffect(
-          () => h(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => h())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -316,7 +304,6 @@ describe("<AreaChart />", () => {
           <Comp />
         </AreaChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(50);
     });
   });
@@ -334,8 +321,6 @@ describe("<AreaChart />", () => {
         <Area dataKey="uv" fill="#ff7300" isAnimationActive={false} />
       </AreaChart>
     ));
-    flush();
-
     const areas = container.querySelectorAll(".recharts-area .recharts-area-area");
     expect(areas).toHaveLength(1);
     const area = areas[0];
@@ -358,8 +343,6 @@ describe("<AreaChart />", () => {
         <Area dataKey="uv" fill="#ff7300" dot isAnimationActive={false} />
       </AreaChart>
     ));
-    flush();
-
     const dotsLayer = container.querySelector(".recharts-area-dots");
     expect(dotsLayer).not.toBeNull();
     const dots = container.querySelectorAll(".recharts-area-dots .recharts-area-dot");
@@ -384,8 +367,6 @@ describe("<AreaChart />", () => {
         />
       </AreaChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-area-dots rect.custom-dot")).toHaveLength(
       PageData.length,
     );
@@ -402,8 +383,6 @@ describe("<AreaChart />", () => {
         <Area dataKey="uv" fill="#ff7300" isAnimationActive={false} />
       </AreaChart>
     ));
-    flush();
-
     expect(container.querySelector(".recharts-area-dot")).toBeNull();
   });
 });

@@ -21,7 +21,7 @@
 // (`mockGetBoundingClientRect` gives the wrapper a non-zero rect) and asserts the
 // `.recharts-active-shape` WRAPPER class emitted by <Shape>. The element-form
 // activeShape case (`activeShape={<Sector/>}`) is PERMANENT-N/A (no cloneElement).
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { Cell, Legend, RadialBar, RadialBarChart, Sector, Tooltip } from "../../src";
 import type { SectorProps } from "../../src/shape/Sector";
@@ -88,23 +88,16 @@ function assertActiveShapeInteractions(container: HTMLElement): void {
   assertNotNull(sector2);
 
   fireEvent.mouseMove(sector1, { clientX: 200, clientY: 200 });
-  flush();
   vi.runAllTimers();
-  flush();
-
   expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(1);
 
   fireEvent.mouseMove(sector2, { clientX: 200, clientY: 200 });
-  flush();
   vi.runAllTimers();
-  flush();
-
   expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(1);
 
   const wrapper = container.querySelector(".recharts-wrapper");
   assertNotNull(wrapper);
   fireEvent.mouseLeave(wrapper);
-  flush();
   expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(0);
 }
 
@@ -129,8 +122,6 @@ describe("<RadialBarChart />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     expectRadialBars(container, [
       { d: "M 184,150 A 34,34,0, 1,0, 184,150.0006 L 174,150.0004 A 24,24,0, 1,1, 174,150 Z" },
       {
@@ -205,8 +196,6 @@ describe("<RadialBarChart />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     expectRadialBars(container, [
       {
         d: "M 186.4286,150 A 36.4286,36.4286,0, 1,0, 186.4286,150.0006 L 171,150.0004 A 21,21,0, 1,1, 171,150 Z",
@@ -284,7 +273,6 @@ describe("<RadialBarChart />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".test-radial-bar")).toHaveLength(1);
     expect(container.querySelectorAll(".test-custom-background")).toHaveLength(data.length);
   });
@@ -302,7 +290,6 @@ describe("<RadialBarChart />", () => {
         data={data}
       />
     ));
-    flush();
     expectRadialBars(container, []);
   });
 
@@ -321,7 +308,6 @@ describe("<RadialBarChart />", () => {
         <RadialBar dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-radial-bar-sector")).toHaveLength(0);
   });
 
@@ -340,7 +326,6 @@ describe("<RadialBarChart />", () => {
         <RadialBar dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-radial-bar-sector")).toHaveLength(0);
   });
 
@@ -358,7 +343,6 @@ describe("<RadialBarChart />", () => {
         <RadialBar label background dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-radial-bar-sector")).toHaveLength(7);
   });
 
@@ -377,7 +361,6 @@ describe("<RadialBarChart />", () => {
         <RadialBar label background dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-radial-bar-sector")).toHaveLength(7);
   });
 
@@ -397,7 +380,6 @@ describe("<RadialBarChart />", () => {
         <RadialBar shape={renderShape} label background dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".customized-shape")).toHaveLength(7);
   });
 
@@ -417,7 +399,6 @@ describe("<RadialBarChart />", () => {
         <Legend />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-legend-wrapper")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-legend-item")).toHaveLength(7);
   });
@@ -438,7 +419,6 @@ describe("<RadialBarChart />", () => {
         <Tooltip />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-tooltip-wrapper")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-default-tooltip")).toHaveLength(1);
   });
@@ -462,7 +442,6 @@ describe("<RadialBarChart />", () => {
         </RadialBar>
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".unit-test-class")).toHaveLength(data.length);
   });
 
@@ -486,7 +465,6 @@ describe("<RadialBarChart />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
     const background = container.querySelector(".recharts-radial-bar-background-sector");
     expect(background).not.toBeNull();
     const foreground = container.querySelector(".recharts-radial-bar-sector");
@@ -566,10 +544,7 @@ describe("<RadialBarChart />", () => {
     const [sector] = Array.from(sectorNodes);
     assertNotNull(sector);
     fireEvent.mouseMove(sector, { clientX: 200, clientY: 200 });
-    flush();
     vi.runAllTimers();
-    flush();
-
     const activeSector = container.querySelectorAll(".recharts-active-shape");
     expect(activeSector).toHaveLength(0);
   });
@@ -605,10 +580,10 @@ describe("<RadialBarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const viewBox = useViewBox();
-        createEffect(
-          () => viewBox(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => viewBox())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -616,17 +591,16 @@ describe("<RadialBarChart />", () => {
           <Comp />
         </RadialBarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith({ height: 40, width: 90, x: 5, y: 5 });
     });
 
     it("should provide clipPathId", () => {
       const spy = vi.fn();
       const Comp = (): null => {
-        createEffect(
-          () => useClipPathId(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => useClipPathId())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -634,7 +608,6 @@ describe("<RadialBarChart />", () => {
           <Comp />
         </RadialBarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(expect.stringMatching(/recharts\d+-clip/));
     });
 
@@ -642,10 +615,10 @@ describe("<RadialBarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const width = useChartWidth();
-        createEffect(
-          () => width(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => width())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -653,7 +626,6 @@ describe("<RadialBarChart />", () => {
           <Comp />
         </RadialBarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(100);
     });
 
@@ -661,10 +633,10 @@ describe("<RadialBarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const height = useChartHeight();
-        createEffect(
-          () => height(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => height())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -672,7 +644,6 @@ describe("<RadialBarChart />", () => {
           <Comp />
         </RadialBarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(50);
     });
   });

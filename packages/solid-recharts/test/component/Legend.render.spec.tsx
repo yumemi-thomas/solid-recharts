@@ -2,7 +2,7 @@
 // (SetLegendPayload → legendSlice) and <Legend> renders one item per series via
 // the portal. itemSorter defaults to "value" → alphabetical by label.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { Area, AreaChart, Bar, BarChart, Legend, Line, LineChart } from "../../src";
 import { numericalData, PageData } from "../_data";
@@ -25,8 +25,6 @@ describe("<Legend />", () => {
         <Line dataKey="pv" stroke="#387908" />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelector(".recharts-default-legend")).not.toBeNull();
 
     // Two series, sorted by value ("pv" before "uv").
@@ -45,8 +43,6 @@ describe("<Legend />", () => {
           <Line dataKey="value" name="A" />
         </LineChart>
       ));
-      flush();
-
       expect(legendLabels(container)).toEqual(["A", "B"]);
     });
 
@@ -58,8 +54,6 @@ describe("<Legend />", () => {
           <Line dataKey="value" name="A" />
         </LineChart>
       ));
-      flush();
-
       expect(legendLabels(container)).toEqual(["B", "A"]);
     });
 
@@ -71,8 +65,6 @@ describe("<Legend />", () => {
           <Bar dataKey="value" name="A" isAnimationActive={false} />
         </BarChart>
       ));
-      flush();
-
       expect(legendLabels(container)).toEqual(["B", "A"]);
     });
 
@@ -84,8 +76,6 @@ describe("<Legend />", () => {
           <Area dataKey="value" name="A" />
         </AreaChart>
       ));
-      flush();
-
       expect(legendLabels(container)).toEqual(["B", "A"]);
     });
   });

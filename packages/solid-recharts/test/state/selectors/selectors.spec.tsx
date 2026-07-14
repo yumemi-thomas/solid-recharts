@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 test/state/selectors/selectors.spec.tsx
 // (commit 7a23854). Solid deviations: upstream's Redux dispatch cases use the
 // Solid-native store actions; tooltip selector exports live in tooltipSelectors.
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { render } from "@solidjs/testing-library";
 import { RechartsStoreProvider } from "../../../src/state/RechartsStoreProvider";
@@ -168,14 +168,13 @@ describe("useTooltipEventType", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const eventType = useTooltipEventType(undefined);
-      createEffect(
-        () => eventType(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => eventType())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => <Comp />);
-    flush();
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
@@ -185,10 +184,10 @@ describe("useTooltipEventType", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const eventType = useTooltipEventType(shared);
-        createEffect(
-          () => eventType(),
-          (value) => spy(value),
-        );
+        createEffect(() => {
+          const value = (() => eventType())();
+          ((value) => spy(value))(value);
+        });
         return null;
       };
       const preloadedState: Partial<RechartsRootState> = {
@@ -205,7 +204,6 @@ describe("useTooltipEventType", () => {
           <Comp />
         </RechartsStoreProvider>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(expected);
     },
   );
@@ -228,7 +226,6 @@ describe("selectActiveCoordinate", () => {
       activeDataKey: "uv",
       activeIndex: "1",
     });
-    flush();
     const actual = selectActiveCoordinate(store.state, "axis", "hover", undefined);
     expect(actual).toEqual({ x: 3, y: 4 });
   });
@@ -240,7 +237,6 @@ describe("selectActiveCoordinate", () => {
       activeDataKey: "uv",
       activeIndex: "2",
     });
-    flush();
     const actual = selectActiveCoordinate(store.state, "axis", "click", undefined);
     expect(actual).toEqual({ x: 7, y: 8 });
   });
@@ -256,7 +252,6 @@ describe("selectActiveCoordinate", () => {
       sourceViewBox: { x: 0, y: 0, width: 100, height: 100 },
       graphicalItemId: undefined,
     });
-    flush();
     const actual = selectActiveCoordinate(store.state, "axis", "hover", undefined);
     expect(actual).toEqual({ x: 5, y: 6 });
   });
@@ -273,13 +268,9 @@ describe("selectActiveCoordinate", () => {
       activeCoordinate: expected,
       activeDataKey: undefined,
     });
-    flush();
-
     expect(selectActiveCoordinate(store.state, "axis", "hover", undefined)).toEqual(expected);
 
     store.actions.tooltip.mouseLeaveChart();
-    flush();
-
     expect(selectActiveCoordinate(store.state, "axis", "hover", undefined)).toEqual({
       x: 100,
       y: 150,
@@ -300,13 +291,9 @@ describe("selectActiveCoordinate", () => {
       activeCoordinate: expected,
       activeDataKey: undefined,
     });
-    flush();
-
     expect(selectActiveCoordinate(store.state, "axis", "click", undefined)).toEqual(expected);
 
     store.actions.tooltip.mouseLeaveChart();
-    flush();
-
     expect(selectActiveCoordinate(store.state, "axis", "click", undefined)).toEqual(expected);
   });
 
@@ -323,15 +310,11 @@ describe("selectActiveCoordinate", () => {
       activeDataKey: undefined,
       activeGraphicalItemId: "id-1",
     });
-    flush();
-
     expect(selectActiveCoordinate(store.state, "item", "hover", undefined)).toEqual(expected);
 
     // neither of these reset the coordinates and the selector does NOT stop returning them
     store.actions.tooltip.mouseLeaveItem();
     store.actions.tooltip.mouseLeaveChart();
-    flush();
-
     expect(selectActiveCoordinate(store.state, "item", "hover", undefined)).toEqual({
       x: 100,
       y: 150,
@@ -356,15 +339,11 @@ describe("selectActiveCoordinate", () => {
       activeDataKey: undefined,
       activeGraphicalItemId: "id-1",
     });
-    flush();
-
     expect(selectActiveCoordinate(store.state, "item", "click", undefined)).toEqual(expected);
 
     // neither of these should reset coordinate
     store.actions.tooltip.mouseLeaveItem();
     store.actions.tooltip.mouseLeaveChart();
-    flush();
-
     expect(selectActiveCoordinate(store.state, "item", "click", undefined)).toEqual(expected);
   });
 });
@@ -389,7 +368,6 @@ describe("selectIsTooltipActive", () => {
       activeDataKey: "uv",
       activeIndex: "1",
     });
-    flush();
     const actual = selectIsTooltipActive(store.state, "axis", "hover", undefined);
     expect(actual).toEqual({
       activeIndex: "1",
@@ -408,7 +386,6 @@ describe("selectIsTooltipActive", () => {
       sourceViewBox: { x: 0, y: 0, width: 100, height: 100 },
       graphicalItemId: undefined,
     });
-    flush();
     const actual = selectIsTooltipActive(store.state, "axis", "hover", undefined);
     expect(actual).toEqual({
       activeIndex: "1",
@@ -442,7 +419,6 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "foo",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -457,7 +433,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: "dataKey1",
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -474,7 +449,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: undefined,
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -485,13 +459,11 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "foo",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
         });
         store.actions.tooltip.mouseLeaveItem();
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -506,13 +478,11 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "id-1",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
         });
         store.actions.tooltip.mouseLeaveChart();
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -531,7 +501,6 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "foo",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -541,7 +510,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: undefined,
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
@@ -552,13 +520,11 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "foo",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
         });
         store.actions.tooltip.mouseLeaveItem();
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
@@ -581,7 +547,6 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "foo",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -595,7 +560,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: undefined,
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -614,7 +578,6 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "foo",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
@@ -625,13 +588,11 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "bar",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "2",
         });
         store.actions.tooltip.mouseLeaveItem();
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "2",
@@ -641,7 +602,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: undefined,
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "2",
@@ -655,7 +615,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: "dataKey1",
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: false,
           activeIndex: null,
@@ -672,7 +631,6 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: "dataKey1",
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "1",
@@ -682,13 +640,11 @@ describe("selectIsTooltipActive", () => {
           activeDataKey: undefined,
           activeCoordinate,
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "2",
         });
         store.actions.tooltip.mouseLeaveItem();
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "2",
@@ -699,7 +655,6 @@ describe("selectIsTooltipActive", () => {
           activeCoordinate,
           activeGraphicalItemId: "id-1",
         });
-        flush();
         expect(selectIsTooltipActive(store.state, tooltipEventType, trigger, undefined)).toEqual({
           isActive: true,
           activeIndex: "2",
@@ -722,10 +677,10 @@ describe("selectActiveIndexFromChartPointer", () => {
       const props = useAppSelectorWithStableTest((state) =>
         selectActivePropsFromChartPointer(state, exampleChartPointer),
       );
-      createEffect(
-        () => props(),
-        (value) => tooltipActiveSpy(value),
-      );
+      createEffect(() => {
+        const value = (() => props())();
+        ((value) => tooltipActiveSpy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -734,8 +689,6 @@ describe("selectActiveIndexFromChartPointer", () => {
         <Comp />
       </LineChart>
     ));
-    flush();
-
     expect(tooltipActiveSpy).toHaveBeenLastCalledWith({
       activeCoordinate: {
         x: 5,
@@ -751,14 +704,13 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const payload = useAppSelectorWithStableTest(selectTooltipState);
-      createEffect(
-        () => payload(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => payload())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => <Comp />);
-    flush();
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
@@ -771,10 +723,11 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipState = useAppSelectorWithStableTest(selectTooltipState);
-      createEffect(
-        () => tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() =>
+          tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem))();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -782,7 +735,6 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     expectLastCalledWith(spy, []);
   });
 
@@ -790,10 +742,11 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipState = useAppSelectorWithStableTest(selectTooltipState);
-      createEffect(
-        () => tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() =>
+          tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem))();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     const data1 = [{ x: 1 }, { x: 2 }, { x: 3 }];
@@ -809,7 +762,6 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
         <Comp />
       </ComposedChart>
     ));
-    flush();
     // two of these elements will send the data as defined; Scatter decides to pre-chew it
     expectLastCalledWith(spy, [
       data1,
@@ -971,10 +923,11 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipState = useAppSelectorWithStableTest(selectTooltipState);
-      createEffect(
-        () => tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() =>
+          tooltipState()?.tooltipItemPayloads.map((tp) => tp.dataDefinedOnItem))();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -984,7 +937,6 @@ describe("selectTooltipState.tooltipItemPayloads", () => {
         <Pie data={[{ y: 10 }, { y: 20 }, { y: 30 }]} dataKey="y" id="pie-2" />
       </PieChart>
     ));
-    flush();
     expectLastCalledWith(spy, [
       [
         [
@@ -1083,7 +1035,6 @@ describe("selectActiveIndex", () => {
       activeDataKey: "uv",
       activeIndex: "1",
     });
-    flush();
     const actual = selectActiveIndex(store.state, "axis", "hover", undefined);
     expect(actual).toEqual("1");
   });
@@ -1099,7 +1050,6 @@ describe("selectActiveIndex", () => {
       sourceViewBox: { x: 0, y: 0, width: 100, height: 100 },
       graphicalItemId: undefined,
     });
-    flush();
     const actual = selectActiveIndex(store.state, "axis", "hover", undefined);
     expect(actual).toEqual("2");
   });
@@ -1179,14 +1129,13 @@ describe("selectTooltipPayload", () => {
         const payload = useAppSelector((state) =>
           selectTooltipPayload(state, tooltipEventType, trigger, undefined),
         );
-        createEffect(
-          () => payload(),
-          (value) => spy(value),
-        );
+        createEffect(() => {
+          const value = (() => payload())();
+          ((value) => spy(value))(value);
+        });
         return null;
       };
       render(() => <Comp />);
-      flush();
       expect(spy).toHaveBeenCalledWith(undefined);
     },
   );
@@ -1245,14 +1194,12 @@ describe("selectTooltipPayload", () => {
     };
     store.actions.tooltip.addTooltipEntrySettings(tooltipSettings1);
     store.actions.tooltip.addTooltipEntrySettings(tooltipSettings2);
-    flush();
     expect(selectTooltipPayload(store.state, "axis", "hover", undefined)).toEqual(undefined);
     store.actions.tooltip.setMouseOverAxisIndex({
       activeIndex: "1",
       activeDataKey: undefined,
       activeCoordinate: tooltipActiveCoordinate,
     });
-    flush();
     expect(selectTooltipPayload(store.state, "axis", "hover", undefined)).toEqual([
       expectedEntry1,
       expectedEntry2,
@@ -1303,7 +1250,6 @@ describe("selectTooltipPayload", () => {
     };
     store.actions.tooltip.addTooltipEntrySettings(tooltipSettings1);
     store.actions.tooltip.addTooltipEntrySettings(tooltipSettings2);
-    flush();
     expect(selectTooltipPayload(store.state, "axis", "hover", "1")).toEqual([
       expectedEntry1,
       expectedEntry2,
@@ -1336,7 +1282,6 @@ describe("selectTooltipPayload", () => {
       activeCoordinate: tooltipActiveCoordinate,
       activeGraphicalItemId: tooltipSettings.settings.graphicalItemId,
     });
-    flush();
     const expectedEntry: TooltipPayloadEntry = {
       name: 1,
       dataKey: "y",
@@ -1373,7 +1318,6 @@ describe("selectTooltipPayload", () => {
       { x: 1, y: 2 },
       { x: 3, y: 4 },
     ]);
-    flush();
     expect(selectTooltipPayload(store.state, "item", "hover", undefined)).toEqual(undefined);
     store.actions.tooltip.setActiveMouseOverItemIndex({
       activeIndex: "0",
@@ -1382,7 +1326,6 @@ describe("selectTooltipPayload", () => {
       activeGraphicalItemId: tooltipSettings.settings.graphicalItemId,
     });
     store.actions.chartData.setDataStartEndIndexes({ startIndex: 1, endIndex: 10 });
-    flush();
     const expectedEntry: TooltipPayloadEntry = {
       name: 3,
       dataKey: "y",
@@ -1465,7 +1408,6 @@ describe("selectTooltipPayloadConfigurations", () => {
     exampleStore = createRechartsStore();
     exampleStore.actions.tooltip.addTooltipEntrySettings(exampleTooltipPayloadConfiguration1);
     exampleStore.actions.tooltip.addTooltipEntrySettings(exampleTooltipPayloadConfiguration2);
-    flush();
   });
 
   describe.each(allTooltipCombinations)(
@@ -1477,14 +1419,13 @@ describe("selectTooltipPayloadConfigurations", () => {
           const result = useAppSelector((state) =>
             selectTooltipPayloadConfigurations(state, tooltipEventType, trigger, undefined),
           );
-          createEffect(
-            () => result(),
-            (value) => spy(value),
-          );
+          createEffect(() => {
+            const value = (() => result())();
+            ((value) => spy(value))(value);
+          });
           return null;
         };
         render(() => <Comp />);
-        flush();
         expect(spy).toHaveBeenCalledWith(undefined);
       });
 
@@ -1519,7 +1460,6 @@ describe("selectTooltipPayloadConfigurations", () => {
       activeCoordinate: undefined,
       activeGraphicalItemId: exampleTooltipPayloadConfiguration1.settings.graphicalItemId,
     });
-    flush();
     expect(
       selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
     ).toEqual([exampleTooltipPayloadConfiguration1]);
@@ -1529,7 +1469,6 @@ describe("selectTooltipPayloadConfigurations", () => {
       activeCoordinate: undefined,
       activeGraphicalItemId: exampleTooltipPayloadConfiguration2.settings.graphicalItemId,
     });
-    flush();
     expect(
       selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
     ).toEqual([exampleTooltipPayloadConfiguration2]);
@@ -1542,7 +1481,6 @@ describe("selectTooltipPayloadConfigurations", () => {
       activeGraphicalItemId: "foo",
       activeCoordinate: undefined,
     });
-    flush();
     expect(
       selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
     ).toEqual([]);
@@ -1550,7 +1488,6 @@ describe("selectTooltipPayloadConfigurations", () => {
       activeIndex: "1",
       activeDataKey: "dataKey2",
     });
-    flush();
     expect(
       selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", undefined),
     ).toEqual([]);
@@ -1563,7 +1500,6 @@ describe("selectTooltipPayloadConfigurations", () => {
       activeCoordinate: undefined,
       activeGraphicalItemId: "foo",
     });
-    flush();
     expect(
       selectTooltipPayloadConfigurations(exampleStore.state, "item", "click", undefined),
     ).toEqual([]);
@@ -1571,7 +1507,6 @@ describe("selectTooltipPayloadConfigurations", () => {
       activeIndex: "1",
       activeDataKey: "dataKey2",
     });
-    flush();
     expect(
       selectTooltipPayloadConfigurations(exampleStore.state, "item", "click", undefined),
     ).toEqual([]);
@@ -1591,7 +1526,6 @@ describe("selectTooltipPayloadConfigurations", () => {
         activeCoordinate: undefined,
         activeGraphicalItemId: exampleTooltipPayloadConfiguration2.settings.graphicalItemId,
       });
-      flush();
       expect(selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", "1")).toEqual([
         exampleTooltipPayloadConfiguration2,
       ]);
@@ -1604,7 +1538,6 @@ describe("selectTooltipPayloadConfigurations", () => {
         activeCoordinate: undefined,
         activeDataKey: "dataKey-notPresentInPayloads",
       });
-      flush();
       expect(selectTooltipPayloadConfigurations(exampleStore.state, "item", "hover", "1")).toEqual(
         [],
       );

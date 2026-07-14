@@ -2,7 +2,7 @@
 // FULL SOLID-NATIVE REWRITE (no Redux/immer). Registry of z-index -> element refs
 // used to portal components at each z-index. Z-index layering is wired into the
 // store so chart items can render through ZIndexLayer.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 
 type ZIndexEntry = {
@@ -70,57 +70,65 @@ export function createZIndexSlice(initialState: ZIndexState = initialZIndexState
 
   const actions: ZIndexActions = {
     registerZIndexPortal({ zIndex }) {
-      setState((s) => {
-        const entry = s.zIndexMap[zIndex];
-        if (entry) {
-          entry.consumers += 1;
-        } else {
-          s.zIndexMap[zIndex] = { consumers: 1, element: undefined, panoramaElement: undefined };
-        }
-      });
+      setState(
+        produce((s) => {
+          const entry = s.zIndexMap[zIndex];
+          if (entry) {
+            entry.consumers += 1;
+          } else {
+            s.zIndexMap[zIndex] = { consumers: 1, element: undefined, panoramaElement: undefined };
+          }
+        }),
+      );
     },
     unregisterZIndexPortal({ zIndex }) {
-      setState((s) => {
-        const entry = s.zIndexMap[zIndex];
-        if (entry) {
-          entry.consumers -= 1;
-          // Garbage-collect unused entries, except default z-indexes (always
-          // rendered, so their portal provider stays mounted and won't re-register).
-          if (entry.consumers <= 0 && !isDefaultZIndex(zIndex)) {
-            delete s.zIndexMap[zIndex];
+      setState(
+        produce((s) => {
+          const entry = s.zIndexMap[zIndex];
+          if (entry) {
+            entry.consumers -= 1;
+            // Garbage-collect unused entries, except default z-indexes (always
+            // rendered, so their portal provider stays mounted and won't re-register).
+            if (entry.consumers <= 0 && !isDefaultZIndex(zIndex)) {
+              delete s.zIndexMap[zIndex];
+            }
           }
-        }
-      });
+        }),
+      );
     },
     registerZIndexPortalElement({ zIndex, element, isPanorama }) {
-      setState((s) => {
-        const entry = s.zIndexMap[zIndex];
-        if (entry) {
-          if (isPanorama) {
-            entry.panoramaElement = element;
+      setState(
+        produce((s) => {
+          const entry = s.zIndexMap[zIndex];
+          if (entry) {
+            if (isPanorama) {
+              entry.panoramaElement = element;
+            } else {
+              entry.element = element;
+            }
           } else {
-            entry.element = element;
+            s.zIndexMap[zIndex] = {
+              consumers: 0,
+              element: isPanorama ? undefined : element,
+              panoramaElement: isPanorama ? element : undefined,
+            };
           }
-        } else {
-          s.zIndexMap[zIndex] = {
-            consumers: 0,
-            element: isPanorama ? undefined : element,
-            panoramaElement: isPanorama ? element : undefined,
-          };
-        }
-      });
+        }),
+      );
     },
     unregisterZIndexPortalElement({ zIndex, isPanorama }) {
-      setState((s) => {
-        const entry = s.zIndexMap[zIndex];
-        if (entry) {
-          if (isPanorama) {
-            entry.panoramaElement = undefined;
-          } else {
-            entry.element = undefined;
+      setState(
+        produce((s) => {
+          const entry = s.zIndexMap[zIndex];
+          if (entry) {
+            if (isPanorama) {
+              entry.panoramaElement = undefined;
+            } else {
+              entry.element = undefined;
+            }
           }
-        }
-      });
+        }),
+      );
     },
   };
 

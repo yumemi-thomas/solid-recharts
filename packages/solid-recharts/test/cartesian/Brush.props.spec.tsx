@@ -3,8 +3,8 @@
 // (fires once at drag release), and `leaveTimeOut` (drag ends after the pointer
 // leaves). Drag simulation mirrors the existing Brush.spec slide test.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { BarChart, Brush } from "../../src";
 import { fireEvent, render } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -31,7 +31,6 @@ describe("Brush dy / onDragEnd", () => {
         </BarChart>
       ),
     );
-    flush();
     expect(brushRectY(container)).toBe("80");
   });
 
@@ -44,16 +43,12 @@ describe("Brush dy / onDragEnd", () => {
         </BarChart>
       ),
     );
-    flush();
-
     const brushSlide = container.querySelector(".recharts-brush-slide");
     assertNotNull(brushSlide);
     fireEvent.mouseDown(brushSlide);
-    flush();
     expect(onDragEnd).not.toHaveBeenCalled();
 
     fireEvent.mouseUp(window);
-    flush();
     expect(onDragEnd).toHaveBeenCalledTimes(1);
     expect(onDragEnd).toHaveBeenLastCalledWith({
       startIndex: 0,

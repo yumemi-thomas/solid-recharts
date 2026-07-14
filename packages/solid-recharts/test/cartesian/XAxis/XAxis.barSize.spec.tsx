@@ -126,30 +126,30 @@ describe("XAxis barSize", () => {
       const totalAxisSize = useAppSelector((state) =>
         selectBarCartesianAxisSize(state, "my-bar-id"),
       );
-      createEffect(
-        () => chartData(),
-        (v) => chartDataSpy(v),
-      );
-      createEffect(
-        () => yTicks(),
-        (v) => yAxisTicksSpy(v),
-      );
-      createEffect(
-        () => bandSize(),
-        (v) => barBandSizeSpy(v),
-      );
-      createEffect(
-        () => positions(),
-        (v) => barPositionsSpy(v),
-      );
-      createEffect(
-        () => sizeList(),
-        (v) => barSizeListSpy(v),
-      );
-      createEffect(
-        () => totalAxisSize(),
-        (v) => totalAxisSizeSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => chartData())();
+        ((v) => chartDataSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => yTicks())();
+        ((v) => yAxisTicksSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => bandSize())();
+        ((v) => barBandSizeSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => positions())();
+        ((v) => barPositionsSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => sizeList())();
+        ((v) => barSizeListSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => totalAxisSize())();
+        ((v) => totalAxisSizeSpy(v))(value);
+      });
       return null;
     };
 

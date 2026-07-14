@@ -6,12 +6,12 @@
 // optional SVG-props object (className/styling); a custom cursor ELEMENT
 // (recharts' `ReactElement` + cloneElement) is PERMANENT-N/A — there is no Solid
 // equivalent of React.isValidElement/cloneElement. Solid deviations: `clsx` →
-// `class={[...]}`; the connected `Cursor` resolves context then delegates to
+// `class={[...].filter(Boolean).join(" ")}`; the connected `Cursor` resolves context then delegates to
 // `CursorInternal`, which (like recharts) takes fully-resolved props so it can be
 // rendered standalone in tests; all reactive reads live in a tracking memo that
 // returns plain shape DATA, so the <Show> children read only plain properties.
 import { createMemo, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import {
   ChartOffsetInternal,
   Coordinate,
@@ -77,7 +77,7 @@ type CursorShape =
 /**
  * The shared cursor class, with an optional extra className from an object-form
  * `cursor` appended (the shape components type `class` as a plain string, so this
- * is joined rather than passed as a `class={[...]}` array).
+ * is joined rather than passed as a `class={[...].filter(Boolean).join(" ")}` array).
  */
 function cursorClass(cursor: CursorDefinition): string {
   if (typeof cursor === "object" && cursor != null && typeof cursor.className === "string") {

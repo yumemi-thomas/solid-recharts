@@ -8,8 +8,8 @@
 // SVG passthrough props go through svgPropertiesAndEvents like the shape ports;
 // `React.ReactNode` children → `RenderableText`.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, For, merge, omit, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, mergeProps, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import type { Properties as CSSProperties } from "csstype";
 import { isNullish, isNumber, isNumOrStr } from "../util/DataUtils";
 import { Global } from "../util/Global";
@@ -314,7 +314,7 @@ const HANDLED_KEYS = [
 ] as const;
 
 export const Text = (props: Props): JSX.Element => {
-  const merged = merge(textDefaultProps, props);
+  const merged = mergeProps(textDefaultProps, props);
 
   const wordsByLines = createMemo<ReadonlyArray<Words>>(() =>
     getWordsByLines({
@@ -383,7 +383,7 @@ export const Text = (props: Props): JSX.Element => {
 
     // Pass-through SVG props (everything except the handled keys); the computed
     // transform is applied as its own attribute on the <text> below.
-    const rest = omit(merged, ...HANDLED_KEYS);
+    const rest = splitProps(merged, [...HANDLED_KEYS])[1];
 
     const textProps: Record<string, unknown> = {
       ...rest,
@@ -418,7 +418,7 @@ export const Text = (props: Props): JSX.Element => {
           x={g().x}
           y={g().y}
           transform={g().transform}
-          class={["recharts-text", g().class]}
+          class={["recharts-text", g().class].filter(Boolean).join(" ")}
           text-anchor={g().textAnchor}
           fill={g().fill}
         >

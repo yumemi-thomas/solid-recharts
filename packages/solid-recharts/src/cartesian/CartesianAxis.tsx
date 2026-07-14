@@ -17,8 +17,8 @@
 // auto-width. Solid deviations:
 // forwardRef dropped; React CSSProperties n/a; `className`→`class`.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { getTicks } from "./getTicks";
 import { Layer } from "../container/Layer";
 import {
@@ -281,9 +281,9 @@ const AxisLine = (props: {
 };
 
 export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
-  const merged = merge(cartesianAxisDefaults, props);
+  const merged = mergeProps(cartesianAxisDefaults, props);
 
-  // merge() keeps an explicit `stroke={undefined}` (e.g. forwarded from a
+  // mergeProps() keeps an explicit `stroke={undefined}` (e.g. forwarded from a
   // strokeless <YAxis/>) as undefined; resolve the default at use sites.
   const strokeColor = (): string => merged.stroke ?? cartesianAxisDefaults.stroke;
 

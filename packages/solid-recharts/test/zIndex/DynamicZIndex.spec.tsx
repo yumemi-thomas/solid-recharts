@@ -11,7 +11,7 @@
 //     propagation is driven by `flush()` instead.
 //   - `button.click()` → `fireEvent.click(button)`; `getByText` → `screen.getByText`.
 import { describe, it, expect } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { LineChart, Line, XAxis, YAxis } from "../../src";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 
@@ -37,8 +37,6 @@ describe("Dynamic zIndex updates", () => {
         </LineChart>
       </div>
     ));
-    flush();
-
     const initialLines = container.querySelectorAll(".recharts-line");
     expect(initialLines.length).toBe(2);
 
@@ -46,14 +44,10 @@ describe("Dynamic zIndex updates", () => {
 
     // Rapid zIndex updates should not cause lines to disappear
     fireEvent.click(button);
-    flush();
-
     let lines = container.querySelectorAll(".recharts-line");
     expect(lines.length).toBe(2);
 
     fireEvent.click(button);
-    flush();
-
     lines = container.querySelectorAll(".recharts-line");
     expect(lines.length).toBe(2);
   });
@@ -79,8 +73,6 @@ describe("Dynamic zIndex updates", () => {
         </LineChart>
       </div>
     ));
-    flush();
-
     const portalHasLine = (z: number): boolean => {
       const portal = container.querySelector(`.recharts-zIndex-layer_${z}`);
       return portal != null && portal.querySelector(".recharts-line") != null;
@@ -92,7 +84,6 @@ describe("Dynamic zIndex updates", () => {
     expect(portalHasLine(400)).toBe(true);
 
     fireEvent.click(screen.getByText("Increment zIndex"));
-    flush();
     // The uv line has moved to the zIndex=11 portal; the old 10 portal no longer
     // holds a line; the pv line stays at 400.
     expect(portalHasLine(11)).toBe(true);

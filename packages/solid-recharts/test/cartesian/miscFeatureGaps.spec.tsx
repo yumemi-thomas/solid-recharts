@@ -2,7 +2,7 @@
 // CartesianGrid object-form horizontal/vertical, and chart-level role/tabIndex
 // passthrough onto the root <svg>.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import {
   CartesianGrid,
   Line,
@@ -34,7 +34,6 @@ describe("PolarGrid background fill", () => {
         <Radar dataKey="v" />
       </RadarChart>
     ));
-    flush();
     const filled = Array.from(
       container.querySelectorAll(".recharts-polar-grid-concentric circle"),
     ).filter((c) => c.getAttribute("fill") === "#abcdef");
@@ -49,7 +48,6 @@ describe("PolarGrid background fill", () => {
         <Radar dataKey="v" />
       </RadarChart>
     ));
-    flush();
     const filled = Array.from(
       container.querySelectorAll(".recharts-polar-grid-concentric circle"),
     ).filter((c) => c.getAttribute("fill") !== "none");
@@ -67,7 +65,6 @@ describe("CartesianGrid object-form horizontal/vertical", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     const hLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
     expect(hLines.length).toBeGreaterThan(0);
     hLines.forEach((l) => expect(l.getAttribute("stroke-width")).toBe("4"));
@@ -81,7 +78,6 @@ describe("chart role / tabIndex passthrough", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     const svg = container.querySelector("svg.recharts-surface");
     expect(svg?.getAttribute("role")).toBe("img");
     expect(svg?.getAttribute("tabindex")).toBe("5");

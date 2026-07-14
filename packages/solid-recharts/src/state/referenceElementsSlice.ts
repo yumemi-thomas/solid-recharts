@@ -11,7 +11,7 @@
 // therefore carries a generated `id` (the Report* component mints it via
 // useUniqueId) and we match by `id`, the same proxy-safe strategy as
 // graphicalItemsSlice / tooltipSlice / legendSlice.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { createCollectionActions } from "./createCollectionActions";
 import type { AxisId } from "./cartesianAxisSlice";
 import type { IfOverflow } from "../util/IfOverflow";
@@ -88,32 +88,38 @@ export function createReferenceElementsSlice(
   // call site (ReferenceLine/Dot/Area), so only add + remove are wired.
   const dots = createCollectionActions<ReferenceDotSettings>(
     (updater) =>
-      setState((s) => {
-        const next = updater(s.dots);
-        if (next !== s.dots) {
-          s.dots = next;
-        }
-      }),
+      setState(
+        produce((s) => {
+          const next = updater(s.dots);
+          if (next !== s.dots) {
+            s.dots = next;
+          }
+        }),
+      ),
     (d) => d.id,
   );
   const areas = createCollectionActions<ReferenceAreaSettings>(
     (updater) =>
-      setState((s) => {
-        const next = updater(s.areas);
-        if (next !== s.areas) {
-          s.areas = next;
-        }
-      }),
+      setState(
+        produce((s) => {
+          const next = updater(s.areas);
+          if (next !== s.areas) {
+            s.areas = next;
+          }
+        }),
+      ),
     (a) => a.id,
   );
   const lines = createCollectionActions<ReferenceLineSettings>(
     (updater) =>
-      setState((s) => {
-        const next = updater(s.lines);
-        if (next !== s.lines) {
-          s.lines = next;
-        }
-      }),
+      setState(
+        produce((s) => {
+          const next = updater(s.lines);
+          if (next !== s.lines) {
+            s.lines = next;
+          }
+        }),
+      ),
     (l) => l.id,
   );
 

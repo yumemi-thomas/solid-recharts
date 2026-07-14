@@ -8,7 +8,7 @@
 // and relativeX === clientX. The point x-scale over 6 categories in [20, 380]
 // places index 2 ("Page C") at x = 164; a mousemove there selects it.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, Tooltip } from "../../src";
 import { PageData } from "../_data";
@@ -27,8 +27,6 @@ describe("<Tooltip /> hover (axis)", () => {
         <Tooltip />
       </LineChart>
     ));
-    flush();
-
     // The tooltip box is always in the DOM (visibility toggles); before any
     // interaction it carries no payload items.
     expect(container.querySelectorAll(".recharts-tooltip-item")).toHaveLength(0);
@@ -38,10 +36,7 @@ describe("<Tooltip /> hover (axis)", () => {
 
     // Hover over index 2 ("Page C") at x = 164, y mid-plot.
     fireEvent.mouseMove(wrapper as Element, { clientX: 164, clientY: 200 });
-    flush();
     vi.runOnlyPendingTimers();
-    flush();
-
     const label = container.querySelector(".recharts-tooltip-label");
     expect(label?.textContent).toBe("Page C");
     const values = [...container.querySelectorAll(".recharts-tooltip-item-value")].map(
@@ -54,7 +49,6 @@ describe("<Tooltip /> hover (axis)", () => {
 
     // Leaving the chart clears the active payload and the cursor.
     fireEvent.mouseLeave(wrapper as Element);
-    flush();
     expect(container.querySelectorAll(".recharts-tooltip-item")).toHaveLength(0);
     expect(container.querySelector(".recharts-tooltip-cursor")).toBeNull();
   });

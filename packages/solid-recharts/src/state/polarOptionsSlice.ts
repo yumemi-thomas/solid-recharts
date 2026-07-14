@@ -6,7 +6,7 @@
 // a reactive `polarOptions` getter so `state.polarOptions` stays `… | null`.
 // The reducer mutates fields in place when already set (preserving identity),
 // matching the reference.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 
 export type PolarChartOptions = {
   cx: number | string;
@@ -34,19 +34,21 @@ export function createPolarOptionsSlice(initialState: PolarChartState = null): P
 
   const actions: PolarOptionsActions = {
     updatePolarOptions(payload) {
-      setState((s) => {
-        const prev = s.current;
-        if (prev === null) {
-          s.current = payload;
-          return;
-        }
-        prev.startAngle = payload.startAngle;
-        prev.endAngle = payload.endAngle;
-        prev.cx = payload.cx;
-        prev.cy = payload.cy;
-        prev.innerRadius = payload.innerRadius;
-        prev.outerRadius = payload.outerRadius;
-      });
+      setState(
+        produce((s) => {
+          const prev = s.current;
+          if (prev === null) {
+            s.current = payload;
+            return;
+          }
+          prev.startAngle = payload.startAngle;
+          prev.endAngle = payload.endAngle;
+          prev.cx = payload.cx;
+          prev.cy = payload.cy;
+          prev.innerRadius = payload.innerRadius;
+          prev.outerRadius = payload.outerRadius;
+        }),
+      );
     },
   };
 

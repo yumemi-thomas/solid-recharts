@@ -24,8 +24,8 @@
 // semantics without cloneElement. `Customized` probes become plain probe
 // components rendered as chart children.
 import { describe, expect, it, test } from "vitest";
-import { createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { render, fireEvent, screen, waitFor } from "@solidjs/testing-library";
 import { BarChart, Brush, ComposedChart, Line, LineChart, ReferenceLine } from "../../src";
 import type { BrushProps } from "../../src";
@@ -127,11 +127,8 @@ describe("<Brush />", () => {
       // "isTravellerMoving" signal is visible before the move.
       const slider = container.querySelector(".recharts-brush-traveller") as SVGGElement;
       fireEvent.mouseDown(slider);
-      flush();
       window.dispatchEvent(mouseEventWithPageX("mousemove", 200));
       window.dispatchEvent(mouseEventWithPageX("mouseup", 200));
-      flush();
-
       expectLastCalledWith(spy, {
         chartData: data,
         dataStartIndex: 6,
@@ -153,7 +150,6 @@ describe("<Brush />", () => {
         <Brush x={100} y={50} width={400} height={40} />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-brush-traveller")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-brush-slide")).toHaveLength(0);
   });
@@ -168,7 +164,6 @@ describe("<Brush />", () => {
         <CustomBrush x={100} y={50} width={400} height={40} />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-brush-traveller")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-brush-slide")).toHaveLength(0);
   });
@@ -188,8 +183,6 @@ describe("<Brush />", () => {
         <Brush dataKey="date" height={90} stroke="#8884d8" />
       </BarChart>
     ));
-    flush();
-
     expectBrush(container, {
       height: "90",
       width: "300",
@@ -200,15 +193,11 @@ describe("<Brush />", () => {
     const brushSlide = container.querySelector(".recharts-brush-slide");
     assertNotNull(brushSlide);
     fireEvent.mouseDown(brushSlide);
-    flush();
-
     expect(container.querySelectorAll(".recharts-brush-texts")).toHaveLength(1);
     expect(screen.getAllByText(data[0]!.date)).toHaveLength(1);
     expect(screen.getAllByText(data[data.length - 1]!.date)).toHaveLength(1);
 
     fireEvent.mouseUp(window);
-    flush();
-
     expect(container.querySelectorAll(".recharts-brush-texts")).toHaveLength(0);
   });
 
@@ -218,8 +207,6 @@ describe("<Brush />", () => {
         <Brush x={100} y={50} width={400} height={40} alwaysShowText />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-layer.recharts-brush-texts")).toHaveLength(1);
   });
 
@@ -238,12 +225,9 @@ describe("<Brush />", () => {
         </Brush>
       </ComposedChart>
     ));
-    flush();
     const traveller = container.querySelectorAll(".recharts-brush-traveller")[1] as SVGGElement;
     expect(traveller).toBeDefined();
     fireEvent.focus(traveller);
-    flush();
-
     // Solid replaces the <Text> DOM node when its content changes (the captured
     // reference goes stale / disconnected), so re-query the text element on each
     // assertion instead of holding a single reference like the React original.
@@ -254,15 +238,12 @@ describe("<Brush />", () => {
     fireEvent.keyDown(traveller, {
       key: "ArrowLeft",
     });
-    flush();
     await waitFor(() => {
       expect(textContent()).toBe("4");
     });
     fireEvent.keyDown(traveller, {
       key: "ArrowRight",
     });
-    flush();
-
     await waitFor(() => {
       // there are 6 data points, left and then right should have index 5
       expect(textContent()).toBe("5");
@@ -276,8 +257,6 @@ describe("<Brush />", () => {
           <Brush dataKey="value" x={100} y={50} width={400} height={40} />
         </BarChart>
       ));
-      flush();
-
       const travellers = container.querySelectorAll(".recharts-brush-traveller");
       expect(travellers).toHaveLength(2);
       expect(container.querySelectorAll(".recharts-brush-slide")).toHaveLength(1);
@@ -321,24 +300,18 @@ describe("<Brush />", () => {
           <Brush dataKey="value" x={100} y={50} width={400} height={40} />
         </BarChart>
       ));
-      flush();
-
       // By default, no text should appear
       expect(container.querySelector(".recharts-brush-texts")).toBeNull();
 
       // After focusing on a traveller, the text should appear
       const traveller = container.querySelector(".recharts-brush-traveller") as SVGGElement;
       fireEvent.focus(traveller);
-      flush();
-
       await waitFor(() => {
         expect(container.querySelector(".recharts-brush-texts")).not.toBeNull();
       });
 
       // After blurring that traveller, the text should disappear again
       fireEvent.blur(traveller);
-      flush();
-
       await waitFor(() => {
         expect(container.querySelector(".recharts-brush-texts")).toBeNull();
       });
@@ -350,12 +323,8 @@ describe("<Brush />", () => {
           <Brush dataKey="value" x={100} y={50} width={400} height={40} />
         </BarChart>
       ));
-      flush();
-
       const traveller = container.querySelector(".recharts-brush-traveller") as SVGGElement;
       fireEvent.focus(traveller);
-      flush();
-
       await waitFor(() => {
         expect(container.querySelector(".recharts-brush-texts")).not.toBeNull();
       });
@@ -368,7 +337,6 @@ describe("<Brush />", () => {
       fireEvent.keyDown(traveller, {
         key: "ArrowRight",
       });
-      flush();
       await waitFor(() => {
         expect(textContent()).toBe("20");
       });
@@ -376,7 +344,6 @@ describe("<Brush />", () => {
       fireEvent.keyDown(traveller, {
         key: "ArrowLeft",
       });
-      flush();
       await waitFor(() => {
         expect(textContent()).toBe("10");
       });
@@ -388,18 +355,12 @@ describe("<Brush />", () => {
           <Brush dataKey="value" x={100} y={50} width={400} height={40} />
         </BarChart>
       ));
-      flush();
-
       const traveller = container.querySelector(".recharts-brush-traveller") as SVGGElement;
 
       fireEvent.mouseDown(traveller);
       fireEvent.mouseMove(traveller, { clientX: 30 });
       fireEvent.mouseUp(traveller);
-      flush();
-
       fireEvent.focus(traveller);
-      flush();
-
       await waitFor(() => {
         expect(container.querySelector(".recharts-brush-texts")).not.toBeNull();
       });
@@ -412,7 +373,6 @@ describe("<Brush />", () => {
       fireEvent.keyDown(traveller, {
         key: "ArrowRight",
       });
-      flush();
       await waitFor(() => {
         expect(textContent()).toBe("20");
       });
@@ -420,7 +380,6 @@ describe("<Brush />", () => {
       fireEvent.keyDown(traveller, {
         key: "ArrowLeft",
       });
-      flush();
       await waitFor(() => {
         expect(textContent()).toBe("10");
       });
@@ -470,19 +429,14 @@ describe("<Brush />", () => {
 
     test("Travellers should move and chart should update when brush start and end indexes are controlled", async () => {
       const { container } = renderControlled();
-      flush();
       assertNotNull(container);
 
       const traveller = container.querySelector(".recharts-brush-traveller");
       assertNotNull(traveller);
       fireEvent.focus(traveller);
-      flush();
-
       const button = container.querySelector('[data-testid="set-indexes"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
-
       await waitFor(() => {
         const brushTexts = container
           .getElementsByClassName("recharts-brush-texts")
@@ -496,8 +450,6 @@ describe("<Brush />", () => {
 
     test("Should render panorama in brush", () => {
       const { container } = renderControlled();
-      flush();
-
       const svgs = container.getElementsByTagName("svg");
       expect(svgs).toHaveLength(2);
 

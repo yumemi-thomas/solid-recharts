@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 test/state/selectors/containerSelectors.spec.tsx
 // (commit 7a23854). Solid deviations: rerender assertions are driven by signals.
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { afterEach, describe, expect, it } from "vitest";
 import { BarChart, ComposedChart } from "../../../src";
 import { createRechartsStore } from "../../../src/state/store";
@@ -38,7 +38,6 @@ describe("selectContainerScale", () => {
   it("should return scale after it was set using an action", () => {
     const store = createRechartsStore();
     store.actions.layout.setScale(1.25);
-    flush();
     expect(selectContainerScale(store.state)).toBe(1.25);
   });
 
@@ -120,7 +119,6 @@ describe("selectChartWidth", () => {
   it("should return width when set from action", () => {
     const store = createRechartsStore();
     store.actions.layout.setChartSize({ width: 500, height: 300 });
-    flush();
     expect(selectChartWidth(store.state)).toBe(500);
   });
 
@@ -147,7 +145,6 @@ describe("selectChartHeight", () => {
   it("should return height when set from action", () => {
     const store = createRechartsStore();
     store.actions.layout.setChartSize({ width: 500, height: 300 });
-    flush();
     expect(selectChartHeight(store.state)).toBe(300);
   });
 

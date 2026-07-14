@@ -1,4 +1,4 @@
-import { createEffect, createSignal, flush } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@solidjs/testing-library";
 import { ResponsiveContainer, useResponsiveContainerContext } from "../../src";
@@ -96,8 +96,6 @@ describe("<ResponsiveContainer />", () => {
     notifyResizeObserverChange([
       { contentRect: { width: 100, height: 100 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     expect(screen.getByTestId("inside")).toBeInTheDocument();
   });
 
@@ -172,8 +170,6 @@ describe("<ResponsiveContainer />", () => {
     ));
 
     notifyResizeObserverChange([{ contentRect: { width: 10, height: 10 } } as ResizeObserverEntry]);
-    flush();
-
     const testDivBefore = screen.getByTestId("inside");
     assertNotNull(testDivBefore);
     expect(testDivBefore).toHaveStyle({ width: "10px", height: "200px" });
@@ -181,8 +177,6 @@ describe("<ResponsiveContainer />", () => {
     notifyResizeObserverChange([
       { contentRect: { width: 100, height: 100 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     const testDivAfter = screen.getByTestId("inside");
     assertNotNull(testDivAfter);
     expect(testDivAfter).toHaveStyle({ width: "100px", height: "200px" });
@@ -198,8 +192,6 @@ describe("<ResponsiveContainer />", () => {
 
     notifyResizeObserverChange([{ contentRect: { width: 10, height: 10 } } as ResizeObserverEntry]);
     vi.advanceTimersByTime(300);
-    flush();
-
     const testDivBefore = screen.getByTestId("inside");
     assertNotNull(testDivBefore);
     expect(testDivBefore).toHaveStyle({ width: "10px", height: "200px" });
@@ -211,13 +203,11 @@ describe("<ResponsiveContainer />", () => {
     expect(testDivInBetween).toHaveStyle({ width: "10px", height: "200px" });
 
     vi.advanceTimersByTime(100);
-    flush();
     const testDivAfter100ms = screen.getByTestId("inside");
     assertNotNull(testDivAfter100ms);
     expect(testDivAfter100ms).toHaveStyle({ width: "10px", height: "200px" });
 
     vi.advanceTimersByTime(100);
-    flush();
     const testDivAfter = screen.getByTestId("inside");
     assertNotNull(testDivAfter);
     expect(testDivAfter).toHaveStyle({ width: "50px", height: "200px" });
@@ -235,16 +225,12 @@ describe("<ResponsiveContainer />", () => {
     notifyResizeObserverChange([
       { contentRect: { width: 100, height: 100 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     expect(onResize).toHaveBeenCalledTimes(1);
     expect(onResize).toHaveBeenLastCalledWith(100, 100);
 
     notifyResizeObserverChange([
       { contentRect: { width: 200, height: 200 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     expect(onResize).toHaveBeenCalledTimes(2);
     expect(onResize).toHaveBeenLastCalledWith(200, 200);
   });
@@ -367,16 +353,12 @@ describe("<ResponsiveContainer />", () => {
     expect(resizeObserverMock).toHaveBeenCalledTimes(1);
 
     setOnResize({ fn: onResize2 });
-    flush();
-
     expect(initialObserverInstance.disconnect).not.toHaveBeenCalled();
     expect(resizeObserverMock).toHaveBeenCalledTimes(1);
 
     notifyResizeObserverChange([
       { contentRect: { width: 100, height: 100 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     expect(onResize1).not.toHaveBeenCalled();
     expect(onResize2).toHaveBeenCalledTimes(1);
     expect(onResize2).toHaveBeenCalledWith(100, 100);
@@ -427,12 +409,12 @@ describe("<ResponsiveContainer />", () => {
     const childRenderSpy = vi.fn();
     function Child(): null {
       const size = useResponsiveContainerContext();
-      createEffect(
-        () => ({ width: size?.width, height: size?.height }),
-        ({ width, height }) => {
+      createEffect(() => {
+        const value = (() => ({ width: size?.width, height: size?.height }))();
+        (({ width, height }) => {
           childRenderSpy(width, height);
-        },
-      );
+        })(value);
+      });
       return null;
     }
     render(() => (
@@ -441,8 +423,6 @@ describe("<ResponsiveContainer />", () => {
       </ResponsiveContainer>
     ));
     notifyResizeObserverChange([{ contentRect: { width: 10, height: 10 } } as ResizeObserverEntry]);
-    flush();
-
     expect(childRenderSpy).toHaveBeenCalledTimes(1);
     expect(childRenderSpy).toHaveBeenLastCalledWith(10, 10);
     childRenderSpy.mockClear();
@@ -450,28 +430,22 @@ describe("<ResponsiveContainer />", () => {
     notifyResizeObserverChange([
       { contentRect: { width: 100, height: 100 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     expect(childRenderSpy).toHaveBeenCalledTimes(1);
     childRenderSpy.mockClear();
 
     notifyResizeObserverChange([
       { contentRect: { width: 100, height: 100 } } as ResizeObserverEntry,
     ]);
-    flush();
-
     expect(childRenderSpy).not.toHaveBeenCalled();
 
     notifyResizeObserverChange([
       { contentRect: { width: 100.4, height: 100.4 } } as ResizeObserverEntry,
     ]);
-    flush();
     expect(childRenderSpy).not.toHaveBeenCalled();
 
     notifyResizeObserverChange([
       { contentRect: { width: 101, height: 101 } } as ResizeObserverEntry,
     ]);
-    flush();
     expect(childRenderSpy).toHaveBeenCalledTimes(1);
   });
 

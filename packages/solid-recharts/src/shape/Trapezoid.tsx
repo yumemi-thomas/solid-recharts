@@ -4,7 +4,7 @@
  * Ported from recharts 3.8.1 src/shape/Trapezoid.tsx (commit 7a23854).
  * Pure `getTrapezoidPath` copied verbatim. Solid deviations: `className` →
  * `class` (Omit the wide SVG `class`); destructuring defaults → `?? default`;
- * `clsx` → `class={[...]}`; `return null` → `<Show>`.
+ * `clsx` → `class={[...].filter(Boolean).join(" ")}`; `return null` → `<Show>`.
  *
  * The update-animation path (`isUpdateAnimationActive`) is WIRED, mirroring the
  * Rectangle port: JavascriptAnimate keyed on a geometry animationId, per-frame
@@ -13,8 +13,8 @@
  * stays the static shape.
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createSignal, Show, omit, untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, Show, untrack, splitProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import type { AnimationDuration } from "../util/types";
 import type { EasingInput } from "../animation/easing";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
@@ -89,7 +89,7 @@ export const Trapezoid = (props: TrapezoidProps): JSX.Element => {
   const animationEasing = (): EasingInput => props.animationEasing ?? "ease";
   const animationBegin = (): number => props.animationBegin ?? 0;
 
-  const layerClass = (): Array<string | undefined> => ["recharts-trapezoid", props.class];
+  const layerClass = (): string => ["recharts-trapezoid", props.class].filter(Boolean).join(" ");
 
   // Animation (update path) state: a ref to read the path length + prev-value
   // closures the animation interpolates from. The ref only captures the element
@@ -102,27 +102,29 @@ export const Trapezoid = (props: TrapezoidProps): JSX.Element => {
     pathEl = el;
   };
   createEffect(
-    () => ({
-      x: x(),
-      y: y(),
-      upperWidth: upperWidth(),
-      lowerWidth: lowerWidth(),
-      height: height(),
-    }),
-    () => {
-      if (pathEl?.getTotalLength == null) {
-        return;
-      }
-      let len = 0;
-      try {
-        len = pathEl.getTotalLength();
-      } catch {
-        return; // getTotalLength can throw on detached/empty paths — keep the last value.
-      }
-      if (len) {
-        setTotalLength(len);
-      }
-    },
+    on(
+      () => ({
+        x: x(),
+        y: y(),
+        upperWidth: upperWidth(),
+        lowerWidth: lowerWidth(),
+        height: height(),
+      }),
+      () => {
+        if (pathEl?.getTotalLength == null) {
+          return;
+        }
+        let len = 0;
+        try {
+          len = pathEl.getTotalLength();
+        } catch {
+          return; // getTotalLength can throw on detached/empty paths — keep the last value.
+        }
+        if (len) {
+          setTotalLength(len);
+        }
+      },
+    ),
   );
 
   const animationId = useAnimationId(
@@ -145,7 +147,7 @@ export const Trapezoid = (props: TrapezoidProps): JSX.Element => {
 
   const staticPath = (): JSX.Element => (
     <path
-      {...svgPropertiesAndEvents({ ...omit(props, "class") })}
+      {...svgPropertiesAndEvents({ ...splitProps(props, ["class"])[1] })}
       class={layerClass()}
       d={getTrapezoidPath(x(), y(), upperWidth(), lowerWidth(), height())}
     />
@@ -210,7 +212,7 @@ export const Trapezoid = (props: TrapezoidProps): JSX.Element => {
                     typeof props.style === "object" && props.style != null ? props.style : {};
                   return (
                     <path
-                      {...svgPropertiesAndEvents({ ...omit(props, "class", "style") })}
+                      {...svgPropertiesAndEvents({ ...splitProps(props, ["class", "style"])[1] })}
                       ref={measurePath}
                       class={layerClass()}
                       d={getTrapezoidPath(currX, currY, currUpperWidth, currLowerWidth, currHeight)}

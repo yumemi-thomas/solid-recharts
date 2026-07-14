@@ -13,7 +13,7 @@
 //
 // Solid divergences / not ported:
 //   - createSelectorTestCase does NOT wire an animationManager, so each case renders
-//     directly with an explicit <AnimationControllerProvider value={manager.factory}>;
+//     directly with an explicit <AnimationControllerProvider.Provider value={manager.factory}>;
 //     re-animation (data-array swap / hide) is driven by an in-tree <button> + signal
 //     (NOT a React `key`/useState) — same mechanism as Funnel/Bar animation.
 //   - flush() after every setAnimationProgress/click: Solid defers reactive
@@ -31,7 +31,7 @@
 //     yet (tracked in the axis cluster), so the layout-dependent cx values cannot
 //     be reproduced.
 import { beforeEach, describe, expect, it } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { ScatterChart, Scatter, Legend } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -71,15 +71,12 @@ async function dotsDoNotMove(container: Element, animationManager: MockAnimation
   const initial = getDotsXY(container);
 
   await animationManager.setAnimationProgress(0.1);
-  flush();
   expect(getDotsXY(container)).toEqual(initial);
 
   await animationManager.setAnimationProgress(0.9);
-  flush();
   expect(getDotsXY(container)).toEqual(initial);
 
   await animationManager.completeAnimation();
-  flush();
   expect(getDotsXY(container)).toEqual(initial);
 
   return initial;
@@ -94,20 +91,17 @@ async function animatedScatterPoint(
   assertAllItemsAreEqual(initialPaths);
 
   await animationManager.setAnimationProgress(0.1);
-  flush();
   const step1Paths = getAllScatterPointPathsDs(container);
   assertAllItemsAreEqual(step1Paths);
   expect(step1Paths).not.toEqual(initialPaths);
 
   await animationManager.setAnimationProgress(0.5);
-  flush();
   const step2Paths = getAllScatterPointPathsDs(container);
   assertAllItemsAreEqual(step2Paths);
   expect(step2Paths).not.toEqual(initialPaths);
   expect(step2Paths).not.toEqual(step1Paths);
 
   await animationManager.setAnimationProgress(0.9);
-  flush();
   const step3Paths = getAllScatterPointPathsDs(container);
   assertAllItemsAreEqual(step3Paths);
   expect(step3Paths).not.toEqual(initialPaths);
@@ -115,7 +109,6 @@ async function animatedScatterPoint(
   expect(step3Paths).not.toEqual(step2Paths);
 
   await animationManager.setAnimationProgress(1);
-  flush();
   const finalPaths = getAllScatterPointPathsDs(container);
   assertAllItemsAreEqual(finalPaths);
   expect(finalPaths).not.toEqual(initialPaths);
@@ -124,7 +117,6 @@ async function animatedScatterPoint(
   expect(finalPaths).not.toEqual(step3Paths);
 
   await animationManager.completeAnimation();
-  flush();
   const pathsAfterCompletion = getAllScatterPointPathsDs(container);
   expect(pathsAfterCompletion).toEqual(finalPaths);
 
@@ -231,7 +223,6 @@ describe("Scatter Animation", () => {
           />
         </ScatterChart>
       ));
-      flush();
       expectScatterPoints(container, expectedUvPoints);
     });
 
@@ -246,7 +237,6 @@ describe("Scatter Animation", () => {
           />
         </ScatterChart>
       ));
-      flush();
       const pathsDs = getAllScatterPointPathsDs(container);
       expect(pathsDs[0]).toEqual("M4.514,0A4.514,4.514,0,1,1,-4.514,0A4.514,4.514,0,1,1,4.514,0");
       assertAllItemsAreEqual(pathsDs);
@@ -257,39 +247,36 @@ describe("Scatter Animation", () => {
     it("should start the animation", () => {
       const manager = new MockProgressAnimationManager("scatter-anim");
       render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <ScatterChart width={100} height={100}>
             <Scatter data={PageData} dataKey="uv" animationEasing="linear" />
           </ScatterChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       expect(manager.isAnimating()).toBe(true);
     });
 
     it("should not move dots during the animation", async () => {
       const manager = new MockProgressAnimationManager("scatter-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <ScatterChart width={100} height={100}>
             <Scatter data={PageData} dataKey="uv" animationEasing="linear" />
           </ScatterChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       expect(await dotsDoNotMove(container, manager)).toEqual(initialUvXY);
     });
 
     it("should animate dots size", async () => {
       const manager = new MockProgressAnimationManager("scatter-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <ScatterChart width={100} height={100}>
             <Scatter data={PageData} dataKey="uv" animationEasing="linear" />
           </ScatterChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       expectGrowsToSettled(await animatedScatterPoint(container, manager));
     });
   });
@@ -303,21 +290,19 @@ describe("Scatter Animation", () => {
       const manager = new MockProgressAnimationManager("scatter-anim-hide");
       const [visible, setVisible] = createSignal(true);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button type="button" data-testid="toggle" onClick={() => setVisible((p) => !p)} />
           <ScatterChart width={100} height={100}>
             <Scatter data={PageData} dataKey="uv" animationEasing="linear" hide={!visible()} />
           </ScatterChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       const toggle = (): void => {
         const button = container.querySelector<HTMLButtonElement>('[data-testid="toggle"]');
         if (button == null) {
           throw new Error("Missing toggle button");
         }
         fireEvent.click(button);
-        flush();
       };
       return { container, manager, toggle };
     }
@@ -325,7 +310,6 @@ describe("Scatter Animation", () => {
     it("should not crash and renders no dots while hidden mid-animation", async () => {
       const { container, manager, toggle } = renderWithToggle();
       await manager.setAnimationProgress(0.3);
-      flush();
       toggle();
       expectScatterPoints(container, []);
     });
@@ -349,14 +333,13 @@ describe("Scatter Animation", () => {
     it("should not move dots during the animation", async () => {
       const manager = new MockProgressAnimationManager("scatter-anim-legend");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <ScatterChart width={100} height={100}>
             <Legend />
             <Scatter data={PageData} dataKey="uv" animationEasing="linear" />
           </ScatterChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       // dotsDoNotMove asserts the dots stay at their initial positions across the
       // whole animation; we additionally assert there are 6 dots with stable x.
       const initial = await dotsDoNotMove(container, manager);
@@ -367,14 +350,13 @@ describe("Scatter Animation", () => {
     it("should animate dots size", async () => {
       const manager = new MockProgressAnimationManager("scatter-anim-legend");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <ScatterChart width={100} height={100}>
             <Legend />
             <Scatter data={PageData} dataKey="uv" animationEasing="linear" />
           </ScatterChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       expectGrowsToSettled(await animatedScatterPoint(container, manager));
     });
   });

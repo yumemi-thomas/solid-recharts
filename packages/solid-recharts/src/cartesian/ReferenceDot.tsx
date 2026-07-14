@@ -12,8 +12,8 @@
 //  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
 //    (React.cloneElement — use the render-function form);
 //    `children` is not rendered (CartesianLabelContext).
-import { createMemo, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Layer } from "../container/Layer";
 import { Dot, type DotProps } from "../shape/Dot";
 import {
@@ -183,7 +183,7 @@ const referenceDotDefaultProps = {
 } as const satisfies Partial<Props>;
 
 function ReferenceDotImpl(props: Props): JSX.Element {
-  const merged = merge(referenceDotDefaultProps, props);
+  const merged = mergeProps(referenceDotDefaultProps, props);
   const clipPathId = useClipPathId();
   const isPanorama = useIsPanorama();
   const xAxisScale = useAppSelector((s) => selectAxisScale(s, "xAxis", merged.xAxisId, isPanorama));
@@ -255,7 +255,7 @@ export function ReferenceDot<
   XValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
   YValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
 >(props: Props<XValueType, YValueType>): JSX.Element {
-  const merged = merge(referenceDotDefaultProps, props);
+  const merged = mergeProps(referenceDotDefaultProps, props);
   const id = useUniqueId("recharts-reference-dot");
   return (
     <>

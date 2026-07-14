@@ -2,9 +2,9 @@
 // Pure functions — no JSX/components.
 // Deviations from reference:
 //   - `clsx` replaced with hand-rolled class concatenation (no clsx dep, no class strings)
-//   - `CSSProperties` from 'react' → `JSX.CSSProperties` from '@solidjs/web'
+//   - `CSSProperties` from 'react' → `JSX.CSSProperties` from 'solid-js/web'
 
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { isNumber } from "../DataUtils";
 import type { Coordinate, CartesianViewBox, AllowInDimension } from "../types";
 

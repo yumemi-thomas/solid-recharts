@@ -24,7 +24,7 @@
 //     changes during animation" (×~5): React key remount / mid-animation prop-change
 //     scheduling — render-count coupled.
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -85,14 +85,12 @@ describe("Line animation", () => {
   it("draws the curve via stroke-dasharray (d unchanged) to fully revealed at t=1", async () => {
     const manager = new MockProgressAnimationManager("line-anim");
     const { container } = render(() => (
-      <AnimationControllerProvider value={manager.factory}>
+      <AnimationControllerProvider.Provider value={manager.factory}>
         <LineChart width={400} height={400} data={PageData}>
           <Line dataKey="uv" />
         </LineChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     const curve = container.querySelector(".recharts-line-curve");
     expect(curve).not.toBeNull();
     const dInitial = curve?.getAttribute("d");
@@ -100,8 +98,6 @@ describe("Line animation", () => {
     expect(curve?.getAttribute("stroke-dasharray") ?? "").toMatch(/^0px/);
 
     await manager.completeAnimation();
-    flush();
-
     // v3.9: a fully-revealed line removes its entrance stroke-dasharray entirely.
     expect(
       container.querySelector(".recharts-line-curve")?.getAttribute("stroke-dasharray"),
@@ -119,7 +115,6 @@ describe("Line animation", () => {
 
     it("should render the line without stroke-dasharray", () => {
       const { container } = renderStatic();
-      flush();
       const line = getLine(container);
       expect(line).toBeInTheDocument();
       expect(line).toHaveAttribute("d", "M5,5L23,27.5L41,27.5L59,50L77,32.45L95,52.475");
@@ -128,13 +123,11 @@ describe("Line animation", () => {
 
     it("should render all the dots without animation", () => {
       const { container } = renderStatic();
-      flush();
       expectDots(container, expectedDots);
     });
 
     it("should render all labels without animation", () => {
       const { container } = renderStatic();
-      flush();
       expectLabels(container, expectedUvLabels);
     });
   });
@@ -143,18 +136,17 @@ describe("Line animation", () => {
     const renderAnimated = () => {
       const manager = new MockProgressAnimationManager("line-simple");
       const result = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <LineChart data={PageData} width={100} height={100}>
             <Line dataKey="uv" animationEasing="linear" label />
           </LineChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
       return { ...result, animationManager: manager };
     };
 
     it("should start the line with fully generated path and a 0-length visible dash", () => {
       const { container } = renderAnimated();
-      flush();
       const line = getLine(container);
       expect(line).toBeInTheDocument();
       expect(line).toHaveAttribute("d", "M5,5L23,27.5L41,27.5L59,50L77,32.45L95,52.475");
@@ -167,79 +159,62 @@ describe("Line animation", () => {
 
     it("should animate line left-to-right by continually extending the stroke-dasharray", async () => {
       const { container, animationManager } = renderAnimated();
-      flush();
-
       await animationManager.setAnimationProgress(0.1);
-      flush();
       expect(getLine(container)).toHaveAttribute("stroke-dasharray", "10px 100px");
 
       await animationManager.setAnimationProgress(0.2);
-      flush();
       expect(getLine(container)).toHaveAttribute("stroke-dasharray", "20px 100px");
 
       // v3.9: once the line is fully revealed, useAnimatedLineLength returns null
       // and LineDrawShape removes the entrance stroke-dasharray (nothing to mask).
       await animationManager.setAnimationProgress(1);
-      flush();
       expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
       await animationManager.completeAnimation();
-      flush();
       expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
     });
 
     it("should remove the stroke-dasharray when the animation is completed", async () => {
       const { container, animationManager } = renderAnimated();
-      flush();
       await animationManager.setAnimationProgress(1);
-      flush();
       // v3.9: fully-revealed line carries no entrance stroke-dasharray.
       expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
     });
 
     it("should render all the dots without animation", () => {
       const { container } = renderAnimated();
-      flush();
       expectDots(container, expectedDots);
     });
 
     it("should hide all labels until the animation is completed", async () => {
       const { container, animationManager } = renderAnimated();
-      flush();
       // v3.9: onAnimationStart fires synchronously when the animation is created, so
       // labels are hidden from the very first render (matches recharts 3.9).
       expectLabels(container, []);
 
       await animationManager.setAnimationProgress(0.1);
-      flush();
       expectLabels(container, []);
 
       await animationManager.setAnimationProgress(0.9);
-      flush();
       expectLabels(container, []);
 
       await animationManager.completeAnimation();
-      flush();
       expectLabels(container, expectedUvLabels);
     });
 
     it("should not move the path itself during the animation", async () => {
       const { container, animationManager } = renderAnimated();
-      flush();
       const line = getLine(container);
       const initialPath = line.getAttribute("d");
       expect(initialPath).toBe("M5,5L23,27.5L41,27.5L59,50L77,32.45L95,52.475");
 
       await animationManager.setAnimationProgress(0.1);
-      flush();
       expect(getLine(container).getAttribute("d")).toBe(initialPath);
 
       await animationManager.setAnimationProgress(0.9);
-      flush();
       expect(getLine(container).getAttribute("d")).toBe(initialPath);
 
       await animationManager.completeAnimation();
-      flush();
       expect(getLine(container).getAttribute("d")).toBe(initialPath);
     });
   });
@@ -294,17 +269,16 @@ describe("Line animation", () => {
       const manager = new MockProgressAnimationManager("line-data-change");
       const [data, setData] = createSignal<DataType>(uvData);
       const result = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <LineChart data={data()} width={100} height={100}>
             <Line dataKey="val" animationEasing="linear" label />
           </LineChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
       // The reference's button click: swap uv <-> pv data, then flush the
       // deferred propagation so the keyed remount starts the new animation.
       const changeData = (): void => {
         setData((prev) => (prev === uvData ? pvData : uvData));
-        flush();
       };
       return { ...result, animationManager: manager, changeData };
     };
@@ -312,9 +286,7 @@ describe("Line animation", () => {
     describe("interrupting the initial animation", () => {
       it("should continue growing the line where it left off", async () => {
         const { container, animationManager, changeData } = renderDataSwitch();
-        flush();
         await animationManager.setAnimationProgress(0.3);
-        flush();
         expect(getLine(container)).toHaveAttribute("stroke-dasharray", "30px 100px");
 
         changeData();
@@ -323,34 +295,27 @@ describe("Line animation", () => {
         expect(getLine(container)).toHaveAttribute("stroke-dasharray", "30px 100px");
 
         await animationManager.setAnimationProgress(0.1);
-        flush();
         expect(getLine(container)).toHaveAttribute("stroke-dasharray", "40px 100px");
 
         await animationManager.setAnimationProgress(0.2);
-        flush();
         expect(getLine(container)).toHaveAttribute("stroke-dasharray", "50px 100px");
 
         await animationManager.setAnimationProgress(0.3);
-        flush();
         expect(getLine(container)).toHaveAttribute("stroke-dasharray", "60px 100px");
 
         // Because the animation had a head start, it arrives at full length
         // quicker than the initial animation would. v3.9: once fully revealed the
         // entrance stroke-dasharray is removed entirely.
         await animationManager.setAnimationProgress(0.7);
-        flush();
         expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
         await animationManager.completeAnimation();
-        flush();
         expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
       });
 
       it("should hide labels during the animation", async () => {
         const { container, animationManager, changeData } = renderDataSwitch();
-        flush();
         await animationManager.setAnimationProgress(0.3);
-        flush();
         changeData();
 
         // v3.9: the swap immediately starts the new animation (sync onAnimationStart),
@@ -358,15 +323,12 @@ describe("Line animation", () => {
         expectLabels(container, []);
 
         await animationManager.setAnimationProgress(0.2);
-        flush();
         expectLabels(container, []);
 
         await animationManager.setAnimationProgress(0.5);
-        flush();
         expectLabels(container, []);
 
         await animationManager.completeAnimation();
-        flush();
         expectLabels(container, expectedPvLabels);
       });
     });
@@ -377,9 +339,7 @@ describe("Line animation", () => {
         animationManager: MockProgressAnimationManager,
         changeData: () => void,
       ): Promise<void> => {
-        flush();
         await animationManager.completeAnimation();
-        flush();
         changeData();
       };
 
@@ -394,15 +354,12 @@ describe("Line animation", () => {
         expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
         await animationManager.setAnimationProgress(0.1);
-        flush();
         expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
         await animationManager.setAnimationProgress(0.5);
-        flush();
         expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
         await animationManager.completeAnimation();
-        flush();
         expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
       });
 
@@ -415,15 +372,12 @@ describe("Line animation", () => {
         expectLabels(container, []);
 
         await animationManager.setAnimationProgress(0.2);
-        flush();
         expectLabels(container, []);
 
         await animationManager.setAnimationProgress(0.5);
-        flush();
         expectLabels(container, []);
 
         await animationManager.completeAnimation();
-        flush();
         expectLabels(container, expectedPvLabels);
       });
 
@@ -437,25 +391,21 @@ describe("Line animation", () => {
         expect(getLine(container).getAttribute("d")).toBe(initialPath);
 
         await animationManager.setAnimationProgress(0.2);
-        flush();
         expect(getLine(container).getAttribute("d")).toBe(
           "M5,18.68L23,32.779L41,38.484L59,41.36L77,37.926L95,52.34",
         );
 
         await animationManager.setAnimationProgress(0.5);
-        flush();
         expect(getLine(container).getAttribute("d")).toBe(
           "M5,39.2L23,40.699L41,54.959L59,28.4L77,46.139L95,52.138",
         );
 
         await animationManager.setAnimationProgress(1);
-        flush();
         expect(getLine(container).getAttribute("d")).toBe(
           "M5,73.4L23,53.897L41,82.418L59,6.8L77,59.828L95,51.8",
         );
 
         await animationManager.completeAnimation();
-        flush();
         expect(getLine(container).getAttribute("d")).toBe(
           "M5,73.4L23,53.897L41,82.418L59,6.8L77,59.828L95,51.8",
         );
@@ -469,7 +419,6 @@ describe("Line animation", () => {
         expectDots(container, expectedDots);
 
         await animationManager.setAnimationProgress(0.2);
-        flush();
         expectDots(container, [
           { cx: "5", cy: "18.68" },
           { cx: "23", cy: "32.7794" },
@@ -480,7 +429,6 @@ describe("Line animation", () => {
         ]);
 
         await animationManager.setAnimationProgress(0.5);
-        flush();
         expectDots(container, [
           { cx: "5", cy: "39.2" },
           { cx: "23", cy: "40.6985" },
@@ -491,7 +439,6 @@ describe("Line animation", () => {
         ]);
 
         await animationManager.setAnimationProgress(1);
-        flush();
         const finalDotPositions = [
           { cx: "5", cy: "73.4" },
           { cx: "23", cy: "53.897000000000006" },
@@ -503,7 +450,6 @@ describe("Line animation", () => {
         expectDots(container, finalDotPositions);
 
         await animationManager.completeAnimation();
-        flush();
         expectDots(container, finalDotPositions);
       });
     });
@@ -521,15 +467,14 @@ describe("Line animation", () => {
       const manager = new MockProgressAnimationManager("line-add-data");
       const [data, setData] = createSignal(data1);
       const result = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <LineChart data={data()} width={100} height={100}>
             <Line dataKey="uv" animationEasing="linear" label />
           </LineChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
       const addMoreData = (): void => {
         setData((prev) => (prev === data1 ? data2 : data1));
-        flush();
       };
       return { ...result, animationManager: manager, addMoreData };
     };
@@ -538,9 +483,7 @@ describe("Line animation", () => {
       animationManager: MockProgressAnimationManager,
       addMoreData: () => void,
     ): Promise<void> => {
-      flush();
       await animationManager.completeAnimation();
-      flush();
       addMoreData();
     };
 
@@ -553,11 +496,9 @@ describe("Line animation", () => {
       expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
       await animationManager.setAnimationProgress(0.5);
-      flush();
       expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
 
       await animationManager.completeAnimation();
-      flush();
       expect(getLine(container)).not.toHaveAttribute("stroke-dasharray");
     });
 
@@ -569,26 +510,20 @@ describe("Line animation", () => {
       expect(getLine(container).getAttribute("d")).toBe(initialPath);
 
       await animationManager.setAnimationProgress(0.2);
-      flush();
       expect(getLine(container).getAttribute("d")).toBe("M5,5L11,9.5L89,27.5L95,32");
 
       await animationManager.setAnimationProgress(0.5);
-      flush();
       expect(getLine(container).getAttribute("d")).toBe("M5,5L20,16.25L80,27.5L95,38.75");
 
       await animationManager.setAnimationProgress(1);
-      flush();
       expect(getLine(container).getAttribute("d")).toBe("M5,5L35,27.5L65,27.5L95,50");
 
       await animationManager.completeAnimation();
-      flush();
       expect(getLine(container).getAttribute("d")).toBe("M5,5L35,27.5L65,27.5L95,50");
     });
 
     it("should add more dots and animate them", async () => {
       const { container, animationManager, addMoreData } = renderAddData();
-      flush();
-
       // Only 2 dots initially: the source data has 2 elements.
       expectDots(container, [
         { cx: "5", cy: "5" },
@@ -596,7 +531,6 @@ describe("Line animation", () => {
       ]);
 
       await animationManager.completeAnimation();
-      flush();
       addMoreData();
 
       // Two new dots appear, starting on top of their nearest predecessor.
@@ -608,7 +542,6 @@ describe("Line animation", () => {
       ]);
 
       await animationManager.setAnimationProgress(0.2);
-      flush();
       expectDots(container, [
         { cx: "5", cy: "5" },
         { cx: "11", cy: "9.5" },
@@ -617,7 +550,6 @@ describe("Line animation", () => {
       ]);
 
       await animationManager.setAnimationProgress(0.5);
-      flush();
       expectDots(container, [
         { cx: "5", cy: "5" },
         { cx: "20", cy: "16.25" },
@@ -626,7 +558,6 @@ describe("Line animation", () => {
       ]);
 
       await animationManager.setAnimationProgress(1);
-      flush();
       const finalDotPositions = [
         { cx: "5", cy: "5" },
         { cx: "35", cy: "27.5" },
@@ -636,7 +567,6 @@ describe("Line animation", () => {
       expectDots(container, finalDotPositions);
 
       await animationManager.completeAnimation();
-      flush();
       expectDots(container, finalDotPositions);
     });
   });

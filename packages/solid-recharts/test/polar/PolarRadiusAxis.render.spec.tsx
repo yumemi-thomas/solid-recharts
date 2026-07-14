@@ -7,7 +7,7 @@
 // Tier-A subset: structural parity (axis present, ≥1 tick with numeric labels, one
 // axis line). Exact nice-tick geometry comes online with Radar + the full spec.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RadarChart, PolarRadiusAxis } from "../../src";
 
@@ -24,8 +24,6 @@ describe("<PolarRadiusAxis /> in RadarChart", () => {
         <PolarRadiusAxis domain={[0, 150]} allowDataOverflow />
       </RadarChart>
     ));
-    flush();
-
     const axis = container.querySelector(".recharts-polar-radius-axis.radiusAxis");
     expect(axis).not.toBeNull();
 
@@ -45,8 +43,6 @@ describe("<PolarRadiusAxis /> in RadarChart", () => {
         <PolarRadiusAxis domain={[0, 150]} allowDataOverflow hide />
       </RadarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-polar-radius-axis-tick")).toHaveLength(0);
   });
 });

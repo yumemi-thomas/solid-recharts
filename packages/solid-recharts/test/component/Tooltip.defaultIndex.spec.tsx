@@ -7,7 +7,7 @@
 // `flush()` after render: the line/area register and the tooltip settings dispatch
 // through microtask-batched effects, and the portal target attaches via a ref.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, Tooltip } from "../../src";
 import { PageData } from "../_data";
@@ -26,8 +26,6 @@ describe("<Tooltip /> defaultIndex (first light)", () => {
         <Tooltip defaultIndex={2} />
       </LineChart>
     ));
-    flush();
-
     const tooltip = container.querySelector(".recharts-default-tooltip");
     expect(tooltip).not.toBeNull();
 

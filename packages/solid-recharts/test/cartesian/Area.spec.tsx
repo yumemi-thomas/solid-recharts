@@ -709,8 +709,14 @@ describe.each(chartsThatSupportArea)("<Area /> as a child of $testName", ({ Char
         const tooltip = useAppSelector((state) =>
           selectTooltipPayloadConfigurations(state, "axis", "hover", undefined),
         );
-        createEffect(legend, (v) => legendSpy(v));
-        createEffect(tooltip, (v) => tooltipSpy(v));
+        createEffect(() => {
+          const value = legend();
+          ((v) => legendSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = tooltip();
+          ((v) => tooltipSpy(v))(value);
+        });
         return null;
       };
 

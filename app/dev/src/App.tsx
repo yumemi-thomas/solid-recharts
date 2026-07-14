@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import {
   Area,
   AreaChart,

@@ -1,7 +1,7 @@
 // Spec for the ReferenceDot vertical: a circle at a data coordinate (x, y),
 // mapped to pixels through both cartesian scales (CartesianScaleHelperImpl).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ReferenceDot } from "../../src";
 
@@ -27,8 +27,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x={40} y={50} r={8} fill="#ff0000" />
       </LineChart>
     ));
-    flush();
-
     const dot = container.querySelector(".recharts-reference-dot-dot");
     expect(dot).not.toBeNull();
     // Y scale [0,100] → range [465, 5]: y=50 → cy=235.
@@ -48,8 +46,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x={40} y={500} r={8} fill="#ff0000" />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(0);
   });
 });

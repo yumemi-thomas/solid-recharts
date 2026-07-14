@@ -6,7 +6,7 @@
 // "auto" to active, which would clip the path mid-reveal). `flush()` because areas
 // register via effects and points compute from the store.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { AreaChart, Area } from "../../src";
 
@@ -40,8 +40,6 @@ describe("stacked <Area /> rendering", () => {
         <Area dataKey="pv" stackId="a" fill="#82ca9d" isAnimationActive={false} />
       </AreaChart>
     ));
-    flush();
-
     const areas = container.querySelectorAll(".recharts-area .recharts-area-area");
     expect(areas).toHaveLength(2);
 

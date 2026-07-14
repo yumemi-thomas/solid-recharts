@@ -20,10 +20,10 @@
 //     `any`); the value comes from `getValueByDataKey`, which is genuinely
 //     untyped, and only x/y are needed to draw. It flows through `scale.map`
 //     (which accepts `unknown`) unchanged.
-import { createEffect, createMemo, createSignal, merge, Show, untrack } from "solid-js";
+import { createMemo, createSignal, Show, untrack, mergeProps, createEffect, on } from "solid-js";
 import { useActiveTooltipDataPoints } from "../hooks";
 import { selectActiveTooltipIndex } from "../state/selectors/tooltipSelectors";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
   AnimatedItems,
@@ -341,7 +341,7 @@ export const lineDefaultProps = {
 
 export const Line = (props: LineProps): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(lineDefaultProps, props);
+  const merged = mergeProps(lineDefaultProps, props);
   const isPanorama = useIsPanorama();
   const layout = useCartesianChartLayout();
   const id = useUniqueId("recharts-line", props.id);
@@ -499,19 +499,21 @@ export const Line = (props: LineProps): JSX.Element => {
   // settled dasharray the new curve's true length — mirroring recharts, which
   // recomputes totalLength on the post-animation re-render.
   createEffect(
-    () => ({ points: points(), showLabels: !isAnimating() }),
-    () => {
-      if (curveEl?.getTotalLength == null) {
-        return;
-      }
-      let length = 0;
-      try {
-        length = curveEl.getTotalLength() || 0;
-      } catch {
-        return; // getTotalLength can throw on detached/empty paths — keep the last value.
-      }
-      setTotalLength(length);
-    },
+    on(
+      () => ({ points: points(), showLabels: !isAnimating() }),
+      () => {
+        if (curveEl?.getTotalLength == null) {
+          return;
+        }
+        let length = 0;
+        try {
+          length = curveEl.getTotalLength() || 0;
+        } catch {
+          return; // getTotalLength can throw on detached/empty paths — keep the last value.
+        }
+        setTotalLength(length);
+      },
+    ),
   );
 
   // Raw user event handlers forwarded to the curve. recharts' StaticCurve spreads

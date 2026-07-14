@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/XAxis/XAxis.datatypes.spec.tsx (commit 7a23854).
-import { flush } from "solid-js";
+
 import { describe, it } from "vitest";
 import { ComposedChart, XAxis } from "../../../src";
 import { coordinateWithValueData, dateWithValueData, pageData, timeData } from "../../_data";
@@ -23,8 +23,6 @@ describe("XAxis with different data types", () => {
         <XAxis dataKey="name" />
       </ComposedChart>
     ));
-    flush();
-
     expectXAxisTicks(container, [
       { textContent: "Page A", x: "5", y: "23" },
       { textContent: "Page B", x: "103.33333333333333", y: "23" },
@@ -42,8 +40,6 @@ describe("XAxis with different data types", () => {
         <XAxis dataKey="x" domain={["auto", "auto"]} type="number" />
       </ComposedChart>
     ));
-    flush();
-
     expectXAxisTicks(container, [
       { textContent: "0", x: "5", y: "23" },
       { textContent: "150", x: "152.5", y: "23" },
@@ -59,8 +55,6 @@ describe("XAxis with different data types", () => {
         <XAxis dataKey="time" domain={["auto", "auto"]} type="number" scale="time" />
       </ComposedChart>
     ));
-    flush();
-
     expectXAxisTicks(container, [
       { textContent: "1483142400000", x: "5", y: "23" },
       { textContent: "1483146000000", x: "64", y: "23" },
@@ -84,8 +78,6 @@ describe("XAxis with different data types", () => {
         <XAxis dataKey="x" />
       </ComposedChart>
     ));
-    flush();
-
     expectXAxisTicks(container, [
       {
         textContent: dateTickText(0),

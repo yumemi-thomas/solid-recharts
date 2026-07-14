@@ -3,7 +3,7 @@
 // `isAnimationActive={false}` for static geometry, so here we lock the two states:
 // settled (no transition) when off, and a transition present when animating.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { Treemap } from "../../src";
 import { exampleTreemapData } from "../_data";
 import { render } from "@solidjs/testing-library";
@@ -17,7 +17,6 @@ describe("Treemap animation", () => {
     const { container } = render(() => (
       <Treemap width={800} height={400} data={exampleTreemapData} isAnimationActive={false} />
     ));
-    flush();
     const layers = depthLayers(container);
     expect(layers.length).toBeGreaterThan(0);
     layers.forEach((l) => {
@@ -42,7 +41,6 @@ describe("Treemap animation", () => {
         animationEasing="linear"
       />
     ));
-    flush();
     // Same node set renders (the animation wrapper carries a transform style).
     expect(depthLayers(container).length).toBeGreaterThan(0);
     depthLayers(container).forEach((l) => {

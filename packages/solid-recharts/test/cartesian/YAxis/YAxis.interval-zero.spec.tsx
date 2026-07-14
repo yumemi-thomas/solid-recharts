@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/YAxis/YAxis.interval-zero.spec.tsx (commit 7a23854).
-import { flush } from "solid-js";
+
 import { describe, expect, it } from "vitest";
 import { Line, LineChart, XAxis, YAxis } from "../../../src";
 import { render } from "@solidjs/testing-library";
@@ -28,8 +28,6 @@ describe("YAxis interval={0} with custom ticks - comprehensive tests", () => {
         <Line dataKey="value" />
       </LineChart>
     ));
-    flush();
-
     expect(yAxisTickTexts(container)).toEqual([
       "-35",
       "-25",
@@ -51,8 +49,6 @@ describe("YAxis interval={0} with custom ticks - comprehensive tests", () => {
         <Line dataKey="value" />
       </LineChart>
     ));
-    flush();
-
     const tickTexts = yAxisTickTexts(container);
     expect(tickTexts.length).toBe(9);
     expect(tickTexts).toContain("0");
@@ -66,8 +62,6 @@ describe("YAxis interval={0} with custom ticks - comprehensive tests", () => {
         <Line dataKey="value" />
       </LineChart>
     ));
-    flush();
-
     const tickTexts = yAxisTickTexts(container);
     expect(tickTexts.length).toBe(9);
     expect(tickTexts).toContain("0");
@@ -81,8 +75,6 @@ describe("YAxis interval={0} with custom ticks - comprehensive tests", () => {
         <Line dataKey="value" />
       </LineChart>
     ));
-    flush();
-
     expect(yAxisTickTexts(container)).toEqual(["-35", "-15", "0", "15", "35"]);
   });
 });

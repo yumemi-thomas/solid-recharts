@@ -1,3 +1,4 @@
+import { splitProps } from "solid-js";
 // Ported from recharts 3.8.1 src/chart/PolarChart.tsx (commit 7a23854).
 //
 // Solid deviations: `forwardRef` → `ref` prop; `resolveDefaultProps` → per-field
@@ -7,8 +8,8 @@
 // The polar geometry props (cx/cy/innerRadius/outerRadius/startAngle/endAngle)
 // pass through to CategoricalChart exactly as in the reference — svgPropertiesNoEvents
 // forwards cx/cy onto the root <svg> (faithful) and drops the rest.
-import { omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { ChartOptions } from "../state/optionsSlice";
 import { RechartsStoreProvider } from "../state/RechartsStoreProvider";
 import { ChartDataContextProvider } from "../context/chartDataContext";
@@ -89,7 +90,7 @@ export const PolarChart = (props: PolarChartOptions): JSX.Element => {
       {/* Spread WITHOUT children (a `{...cp()}` spread eagerly evaluates the
           children getter here, before the provider sets context — running them
           outside the store); pass children as a lazy JSX child instead. */}
-      <CategoricalChart {...omit(cp(), "children")} ref={props.ref}>
+      <CategoricalChart {...splitProps(cp(), ["children"])[1]} ref={props.ref}>
         {cp().children}
       </CategoricalChart>
     </RechartsStoreProvider>

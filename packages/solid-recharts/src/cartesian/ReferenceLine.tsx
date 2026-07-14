@@ -16,8 +16,8 @@
 //    render-function form; the default-`<line>` branch is kept). <Label> CHILDREN
 //    are not rendered (the `label` prop is).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Layer } from "../container/Layer";
 import {
   CartesianLabelContextProvider,
@@ -282,7 +282,7 @@ const referenceLineDefaultProps = {
 } as const satisfies Partial<Props>;
 
 function ReferenceLineImpl(props: Props): JSX.Element {
-  const merged = merge(referenceLineDefaultProps, props);
+  const merged = mergeProps(referenceLineDefaultProps, props);
   const isPanorama = useIsPanorama();
   const clipPathId = useClipPathId();
   const viewBox = useViewBox();
@@ -384,7 +384,7 @@ export function ReferenceLine<
   XValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
   YValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
 >(props: Props<XValueType, YValueType>): JSX.Element {
-  const merged = merge(referenceLineDefaultProps, props);
+  const merged = mergeProps(referenceLineDefaultProps, props);
   const id = useUniqueId("recharts-reference-line");
   return (
     <>

@@ -1,6 +1,6 @@
 # solid-recharts
 
-[Recharts](https://recharts.org) for [SolidJS 2.0](https://www.solidjs.com/) — the composable
+[Recharts](https://recharts.org) for [SolidJS 1.x](https://www.solidjs.com/) — the composable
 charting API you know, rebuilt on fine-grained reactivity.
 
 A behavior-parity port of recharts (reference pinned at **v3.9.2**): same components, same props,
@@ -43,8 +43,8 @@ unchanged, so recharts documentation and examples translate 1:1.
 
 ## Requirements
 
-- `solid-js` and `@solidjs/web` **2.0** (currently `2.0.0-beta.x`) as peer dependencies.
-- Solid 2.0 is in beta; this library tracks it closely and pins the tested beta in CI.
+- `solid-js` **1.9 or newer** as a peer dependency.
+- This `1.x` branch is the Solid 1 maintenance line; `main` targets Solid 2.
 
 ## Repository layout
 
@@ -77,4 +77,4 @@ see the comment in `pnpm-workspace.yaml`).
 ## License
 
 [MIT](LICENSE). Derived from [recharts](https://github.com/recharts/recharts) (MIT), rebuilt for
-SolidJS 2.0.
+SolidJS 1.x.

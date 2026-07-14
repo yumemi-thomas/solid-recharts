@@ -4,7 +4,7 @@
 // each item holds an array of ErrorBarsSettings. recharts matches for
 // replace/remove by (dataKey, direction) — kept verbatim (these are the error
 // bar's identity within an item).
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import type { ErrorBarDirection } from "../cartesian/ErrorBar";
 import { DataKey } from "../util/types";
 import { GraphicalItemId } from "./graphicalItemsSlice";
@@ -58,25 +58,31 @@ export function createErrorBarSlice(
 
   const actions: ErrorBarsActions = {
     addErrorBar({ itemId, errorBar }) {
-      setState((s) => {
-        s[itemId] = [...(s[itemId] ?? []), errorBar];
-      });
+      setState(
+        produce((s) => {
+          s[itemId] = [...(s[itemId] ?? []), errorBar];
+        }),
+      );
     },
     replaceErrorBar({ itemId, prev, next }) {
-      setState((s) => {
-        const list = s[itemId];
-        if (list) {
-          s[itemId] = list.map((e) => (sameErrorBar(e, prev) ? next : e));
-        }
-      });
+      setState(
+        produce((s) => {
+          const list = s[itemId];
+          if (list) {
+            s[itemId] = list.map((e) => (sameErrorBar(e, prev) ? next : e));
+          }
+        }),
+      );
     },
     removeErrorBar({ itemId, errorBar }) {
-      setState((s) => {
-        const list = s[itemId];
-        if (list) {
-          s[itemId] = list.filter((e) => !sameErrorBar(e, errorBar));
-        }
-      });
+      setState(
+        produce((s) => {
+          const list = s[itemId];
+          if (list) {
+            s[itemId] = list.filter((e) => !sameErrorBar(e, errorBar));
+          }
+        }),
+      );
     },
   };
 

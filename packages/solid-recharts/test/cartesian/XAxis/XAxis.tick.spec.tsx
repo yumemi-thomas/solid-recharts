@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { Bar, BarChart, ComposedChart, Line, LineChart, XAxis, YAxis } from "../../../src";
 import type { CartesianTickContentProps } from "../../../src";
 import { render, fireEvent } from "@solidjs/testing-library";
@@ -207,12 +207,8 @@ describe("XAxis tick", () => {
       ));
     });
 
-    // Deviation from the verbatim spec (6 calls → 12): Solid registers axis
-    // settings in a deferred effect, so the first pass renders ticks with a
-    // provisional offset (y=8) and the settled pass re-invokes the renderer with
-    // the final geometry (y=373). recharts dispatches synchronously mid-render
-    // and only ever does the settled pass. The vendor's call 1..6 assertions are
-    // therefore checked against our settled calls 7..12 — same values.
+    // Solid 1 settles the axis through three synchronous geometry passes. The
+    // vendor values are asserted against the final six calls.
     it("should pass all TextProps and index and payload to custom tick component", () => {
       const myCustomTick: Mock = vi.fn<(props: XAxisTickContentProps) => JSX.Element>();
 
@@ -223,8 +219,8 @@ describe("XAxis tick", () => {
         </LineChart>
       ));
 
-      expect(myCustomTick).toHaveBeenCalledTimes(12);
-      expectNthCalledWith(myCustomTick, 7, {
+      expect(myCustomTick).toHaveBeenCalledTimes(18);
+      expectNthCalledWith(myCustomTick, 13, {
         angle: 0,
         // Deviation: `class` (Solid grammar), not recharts `className`.
         class: "recharts-xAxis xAxis recharts-cartesian-axis-tick-value",
@@ -255,7 +251,7 @@ describe("XAxis tick", () => {
         y: 373,
       });
 
-      expectNthCalledWith(myCustomTick, 8, {
+      expectNthCalledWith(myCustomTick, 14, {
         angle: 0,
         // Deviation: `class` (Solid grammar), not recharts `className`.
         class: "recharts-xAxis xAxis recharts-cartesian-axis-tick-value",

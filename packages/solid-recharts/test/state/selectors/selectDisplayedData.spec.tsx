@@ -47,10 +47,10 @@ describe("selectDisplayedData", () => {
     const spy = vi.fn();
     const Comp = () => {
       const result = useAppSelectorWithStableTest(selector);
-      createEffect(
-        () => result(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -65,10 +65,10 @@ describe("selectDisplayedData", () => {
     const spy = vi.fn();
     const Comp = () => {
       const result = useAppSelectorWithStableTest(selector);
-      createEffect(
-        () => result(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -93,10 +93,10 @@ describe("selectDisplayedData", () => {
     const spy = vi.fn();
     const Comp = () => {
       const result = useAppSelectorWithStableTest(selector);
-      createEffect(
-        () => result(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -116,10 +116,10 @@ describe("selectDisplayedData", () => {
       const result = useAppSelectorWithStableTest((state) =>
         selectAllAppliedValues(state, "xAxis", defaultAxisId, isPanorama),
       );
-      createEffect(
-        () => result(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -163,22 +163,22 @@ describe("selectDisplayedData", () => {
       const domain2 = useAppSelectorWithStableTest((state) =>
         selectAxisDomain(state, "xAxis", "some other ID", isPanorama),
       );
-      createEffect(
-        () => displayed1(),
-        (value) => displayedDataSpy1(value),
-      );
-      createEffect(
-        () => displayed2(),
-        (value) => displayedDataSpy2(value),
-      );
-      createEffect(
-        () => domain1(),
-        (value) => axisDomainSpy1(value),
-      );
-      createEffect(
-        () => domain2(),
-        (value) => axisDomainSpy2(value),
-      );
+      createEffect(() => {
+        const value = (() => displayed1())();
+        ((value) => displayedDataSpy1(value))(value);
+      });
+      createEffect(() => {
+        const value = (() => displayed2())();
+        ((value) => displayedDataSpy2(value))(value);
+      });
+      createEffect(() => {
+        const value = (() => domain1())();
+        ((value) => axisDomainSpy1(value))(value);
+      });
+      createEffect(() => {
+        const value = (() => domain2())();
+        ((value) => axisDomainSpy2(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -200,10 +200,10 @@ describe("selectDisplayedData", () => {
     const displayedDataSpy = vi.fn();
     const Comp = () => {
       const result = useAppSelectorWithStableTest(selector);
-      createEffect(
-        () => result(),
-        (value) => displayedDataSpy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => displayedDataSpy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -221,10 +221,10 @@ describe("selectDisplayedData", () => {
     const spy = vi.fn();
     const Comp = () => {
       const result = useAppSelectorWithStableTest(selector);
-      createEffect(
-        () => result(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -244,10 +244,10 @@ describe("selectDisplayedData", () => {
       const result = useAppSelectorWithStableTest((state) =>
         selectDisplayedData(state, "xAxis", "axis with this ID is not present", isPanorama),
       );
-      createEffect(
-        () => result(),
-        (value) => displayedDataSpy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => displayedDataSpy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -263,10 +263,10 @@ describe("selectDisplayedData", () => {
     const spy = vi.fn();
     const Comp = () => {
       const result = useAppSelectorWithStableTest(selector);
-      createEffect(
-        () => result(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => result())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (

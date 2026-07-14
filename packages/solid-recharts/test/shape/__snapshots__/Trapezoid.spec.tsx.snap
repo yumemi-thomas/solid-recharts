@@ -10,6 +10,7 @@ exports[`<Trapezoid /> > Don't render any Trapezoid when props are invalid 1`] =
   >
     <title />
     <desc />
+\x20\x20\x20\x20
   </svg>
 </div>
 `;

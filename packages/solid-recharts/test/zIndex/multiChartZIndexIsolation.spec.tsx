@@ -7,7 +7,7 @@
 //     it when the keyed target changed, so content ALSO stayed in the stale
 //     target — bar rectangles rendered duplicated inside a sibling pie chart.
 import { describe, expect, it } from "vitest";
-import { createSignal, flush, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { Bar, BarChart, Pie, PieChart } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
 import { render } from "@solidjs/testing-library";
@@ -36,8 +36,6 @@ describe("multi-chart zIndex portal isolation", () => {
         </PieChart>
       </>
     ));
-    flush();
-
     const surfaces = container.querySelectorAll("svg.recharts-surface");
     expect(surfaces).toHaveLength(2);
     const [barSvg, pieSvg] = Array.from(surfaces);
@@ -68,14 +66,11 @@ describe("multi-chart zIndex portal isolation", () => {
         </Show>
       </>
     ));
-    flush();
     expect(container.querySelectorAll("svg.recharts-surface")).toHaveLength(1);
 
     // Mounting the pie later used to overwrite the bar chart's registered portal
     // element (shared slice state) and re-portal the bars into the pie's svg.
     setShowPie(true);
-    flush();
-
     const surfaces = container.querySelectorAll("svg.recharts-surface");
     expect(surfaces).toHaveLength(2);
     const [barSvg, pieSvg] = Array.from(surfaces);

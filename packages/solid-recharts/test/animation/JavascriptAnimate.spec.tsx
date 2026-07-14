@@ -8,7 +8,7 @@
 // an inactive animation jumps straight to t=1. It drives the REAL engine via the
 // injected MockControllerAnimationManager (deterministic, no requestAnimationFrame).
 import { describe, it, expect, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { JavascriptAnimate } from "../../src/animation/JavascriptAnimate";
 import { MockControllerAnimationManager } from "./mockControllerAnimationManager";
@@ -29,13 +29,9 @@ describe("JavascriptAnimate", () => {
         {child}
       </JavascriptAnimate>
     ));
-    flush();
-
     expect(child).toHaveBeenCalledWith(0);
 
     await manager.completeAnimation();
-    flush();
-
     expect(child).toHaveBeenLastCalledWith(1);
   });
 
@@ -53,8 +49,6 @@ describe("JavascriptAnimate", () => {
         {child}
       </JavascriptAnimate>
     ));
-    flush();
-
     expect(child).toHaveBeenLastCalledWith(1);
     // Inactive → the controller is never invoked, so nothing is animating.
     expect(manager.isAnimating()).toBe(false);

@@ -3,7 +3,7 @@
 // (verified against released recharts: mobile [0,570]→[0°,56°], desktop
 // [570,1830]→[56°,180°] with endAngle=180 and total=1830).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RadialBarChart, RadialBar } from "../../src";
 
@@ -24,8 +24,6 @@ describe("RadialBar stacking", () => {
         <RadialBar dataKey="desktop" stackId="a" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
-
     const sectors = Array.from(container.querySelectorAll(".recharts-sector"));
     expect(sectors).toHaveLength(2);
     // cx=200 cy=150, outerRadius=110. Convert each path's arc endpoints to angles.

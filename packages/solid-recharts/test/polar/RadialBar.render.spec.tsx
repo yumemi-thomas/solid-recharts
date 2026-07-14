@@ -7,7 +7,7 @@
 // inside `.recharts-radial-bar-sectors`, fill forwarded). Stacks/background/
 // animation/label/exact geometry deferred.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RadialBarChart, RadialBar } from "../../src";
 import { PageData } from "../_data";
@@ -19,8 +19,6 @@ describe("<RadialBar /> in RadialBarChart", () => {
         <RadialBar dataKey="uv" fill="#8884d8" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
-
     const sectors = container.querySelectorAll(
       ".recharts-radial-bar-sectors .recharts-radial-bar-sector",
     );
@@ -42,8 +40,6 @@ describe("<RadialBar /> in RadialBarChart", () => {
         <RadialBar dataKey="uv" hide />
       </RadialBarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-radial-bar-sector")).toHaveLength(0);
   });
 
@@ -57,8 +53,6 @@ describe("<RadialBar /> in RadialBarChart", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     // No default sector <path>s; one custom circle per data row.
     expect(container.querySelectorAll(".recharts-radial-bar-sector path")).toHaveLength(0);
     expect(container.querySelectorAll("circle.custom-radial")).toHaveLength(PageData.length);

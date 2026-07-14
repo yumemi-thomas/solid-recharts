@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
-import { Show } from "@solidjs/web";
+import { createEffect, createSignal } from "solid-js";
+import { Show } from "solid-js";
 import {
   PolarAngleAxis,
   PolarRadiusAxis,
@@ -1788,10 +1788,10 @@ describe("<PolarAngleAxis />", () => {
       const [showAxis, setShowAxis] = createSignal(true);
       const Comp = (): null => {
         const settings = useAppSelector((state) => selectAngleAxis(state, 0));
-        createEffect(
-          () => settings(),
-          (v) => angleAxisSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => settings())();
+          ((v) => angleAxisSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -1802,8 +1802,6 @@ describe("<PolarAngleAxis />", () => {
           <Comp />
         </RadarChart>
       ));
-      flush();
-
       const expectedAxis = {
         allowDataOverflow: false,
         allowDecimals: false,
@@ -1825,8 +1823,6 @@ describe("<PolarAngleAxis />", () => {
       expect(angleAxisSpy).toHaveBeenLastCalledWith(expectedAxis);
 
       setShowAxis(false);
-      flush();
-
       expect(angleAxisSpy).toHaveBeenLastCalledWith({ ...implicitAngleAxis, type: "category" });
     });
 

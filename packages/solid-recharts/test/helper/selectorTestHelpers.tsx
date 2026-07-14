@@ -13,7 +13,7 @@ import { createRechartsStore } from "../../src/state/store";
 import type { RechartsRootState } from "../../src/state/store";
 import { useAppSelector } from "../../src/state/hooks";
 import { render } from "@solidjs/testing-library";
-import { flush, type Accessor } from "solid-js";
+import { type Accessor } from "solid-js";
 
 type Selector<T> = (state: RechartsRootState) => T;
 
@@ -40,7 +40,6 @@ export function shouldReturnUndefinedOutOfContext<T>(selector: Selector<T>): voi
       return null;
     };
     render(() => <Comp />);
-    flush();
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 }

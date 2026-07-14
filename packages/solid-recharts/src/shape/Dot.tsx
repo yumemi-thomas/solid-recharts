@@ -1,7 +1,7 @@
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
-import { Show, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { isNumber } from "../util/DataUtils";
 
 interface DotOwnProps {
@@ -33,13 +33,13 @@ export type DotProps = Omit<
  * because it is not a valid SVG attribute.
  */
 export const Dot = (props: DotProps) => {
-  const rest = omit(props, "class", "cx", "cy", "r", "clipDot");
+  const rest = splitProps(props, ["class", "cx", "cy", "r", "clipDot"])[1];
 
   return (
     <Show when={isNumber(props.cx) && isNumber(props.cy) && isNumber(props.r)}>
       <circle
         {...svgPropertiesAndEvents({ ...rest })}
-        class={["recharts-dot", props.class]}
+        class={["recharts-dot", props.class].filter(Boolean).join(" ")}
         cx={props.cx}
         cy={props.cy}
         r={props.r}

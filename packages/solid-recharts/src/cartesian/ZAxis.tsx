@@ -1,10 +1,11 @@
+import { mergeProps } from "solid-js";
 // Ported from recharts 3.8.1 src/cartesian/ZAxis.tsx (commit 7a23854).
 //
 // REGISTRATION-ONLY: ZAxis never renders (it has no ticks/line); it only pushes
 // settings into the cartesianAxis slice so Scatter can size its points by the z
 // value. Solid deviations: useLayoutEffect/prevRef → createEffect add/replace +
 // onCleanup remove (the XAxis/YAxis idiom); defaults via merge.
-import { merge } from "solid-js";
+
 import { useAppStore } from "../state/hooks";
 import { AxisId, ZAxisSettings } from "../state/cartesianAxisSlice";
 import { implicitZAxis } from "../state/selectors/axisSelectors";
@@ -35,7 +36,7 @@ export function ZAxis<DataPointType = unknown, DataValueType = unknown>(
   props: ZAxisProps<DataPointType, DataValueType>,
 ): null {
   const store = useAppStore();
-  const merged = merge(zAxisDefaultProps, props);
+  const merged = mergeProps(zAxisDefaultProps, props);
 
   if (store != null) {
     registerInStore<ZAxisSettings>(

@@ -10,7 +10,7 @@
 // + MockControllerAnimationManager pattern (the new engine). getTotalLength is
 // mocked on SVGElement.prototype (jsdom lacks it).
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { ComposedChart, Line, XAxis } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -59,14 +59,13 @@ describe("Line sparse animation path commands", () => {
   } {
     const animationManager = new MockProgressAnimationManager("line-sparse");
     const { container } = render(() => (
-      <AnimationControllerProvider value={animationManager.factory}>
+      <AnimationControllerProvider.Provider value={animationManager.factory}>
         <ComposedChart data={data} width={100} height={100}>
           <XAxis dataKey="index" type="number" />
           <Line dataKey="redLine" stroke="red" />
         </ComposedChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
     return { container, animationManager };
   }
 
@@ -74,8 +73,6 @@ describe("Line sparse animation path commands", () => {
     const { container, animationManager } = renderTestCase();
 
     await animationManager.setAnimationProgress(0.5);
-    flush();
-
     const lines = getAnimatedLines(container);
     expect(lines).toHaveLength(1);
     const path = lines[0];
@@ -87,8 +84,6 @@ describe("Line sparse animation path commands", () => {
     const { container, animationManager } = renderTestCase();
 
     await animationManager.completeAnimation();
-    flush();
-
     const lines = getAnimatedLines(container);
     expect(lines).toHaveLength(1);
     const path = lines[0];

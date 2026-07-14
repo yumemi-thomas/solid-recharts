@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/XAxis/XAxis.dataKey.spec.tsx (commit 7a23854).
-import { flush } from "solid-js";
+
 import { describe, expect, it } from "vitest";
 import { LineChart, Scatter, ScatterChart, XAxis, YAxis } from "../../../src";
 import { selectAxisScale } from "../../../src/state/selectors/axisSelectors";
@@ -37,8 +37,6 @@ describe("XAxis dataKey", () => {
     const { container, spy } = renderTestCase((state) =>
       selectAxisScale(state, "xAxis", 0, false)?.domain(),
     );
-    flush();
-
     expectXAxisTicks(container, [
       { textContent: "0", x: "5", y: "373" },
       { textContent: "1", x: "83", y: "373" },
@@ -60,8 +58,6 @@ describe("XAxis dataKey", () => {
     const { container, spy } = renderTestCase((state) =>
       selectAxisScale(state, "xAxis", 0, false)?.domain(),
     );
-    flush();
-
     expectXAxisTicks(container, []);
     expectLastCalledWith(spy, []);
   });
@@ -78,8 +74,6 @@ describe("XAxis dataKey", () => {
     const { container, spy } = renderTestCase((state) =>
       selectAxisScale(state, "xAxis", 0, false)?.domain(),
     );
-    flush();
-
     expect(container.querySelectorAll(".recharts-cartesian-axis-line")).toHaveLength(2);
     expectLastCalledWith(spy, [90, 100, 120, 170, 140, 150, 110]);
   });

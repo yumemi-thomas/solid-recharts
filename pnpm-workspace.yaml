@@ -15,30 +15,11 @@ allowBuilds:
 # Pre/post scripts must run so the library's `pretest` reference gate fires.
 enablePrePostScripts: true
 
-minimumReleaseAgeExclude:
-  - "@solidjs/signals@2.0.0-beta.17"
-  - "@solidjs/web@2.0.0-beta.17"
-  - solid-js@2.0.0-beta.17
-  - "@solidjs/testing-library@1.0.0-beta.2"
-
-# @solidjs/testing-library declares `solid-js >=2.0.0`, which a 2.0.0-beta.*
-# prerelease doesn't formally satisfy — allow it until Solid 2.0 stable ships.
-peerDependencyRules:
-  allowedVersions:
-    "@solidjs/testing-library>solid-js": "2.0.0-beta.17"
-    "@solidjs/testing-library>@solidjs/web": "2.0.0-beta.17"
-
-# Beta/preview toolchain (Solid 2.0, Vite+, vite-plugin-solid@next): hoisted layout so plugin
-# peer resolution and the `vp` bin behave like the npm-flat setup proven green.
+# Keep a hoisted layout so vite-plugin-solid and the `vp` binary resolve
+# consistently across the workspace.
 nodeLinker: hoisted
 
 # Remap vite/vitest to the Vite+ engines for every specifier, including plugin peer ranges.
 overrides:
   vite: "npm:@voidzero-dev/vite-plus-core@^0.1.24"
   vitest: "npm:@voidzero-dev/vite-plus-test@^0.1.24"
-
-# Portal patch (was: @solidjs/web@2.0.0-beta.14) REMOVED on the beta.15 bump.
-# beta.15 rewrote Portal natively — `mount` no longer wraps in createElementProxy
-# (the browser `contains` crash is gone) and the `{schedule: true}` render effect is
-# now paired with getOwner()/runWithOwner(owner, …)/createRoot, so apply-phase inserts
-# stay owned. No downstream patch needed.

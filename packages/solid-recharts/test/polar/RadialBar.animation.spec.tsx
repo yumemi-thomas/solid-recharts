@@ -21,8 +21,8 @@
 // ticks — matching recharts 3.9. So right after render onAnimationStart is already
 // called once (toHaveBeenCalledTimes(1)), not not.toHaveBeenCalled().
 import { describe, expect, it, vi } from "vitest";
-import type { JSX } from "@solidjs/web";
-import { createSignal, flush } from "solid-js";
+import type { JSX } from "solid-js";
+import { createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import { trim } from "../helper/trim";
@@ -66,14 +66,12 @@ async function expectAnimatedRadialBarPaths(
 ): Promise<ReadonlyArray<ReadonlyArray<string>>> {
   let progress = 0.1;
   await manager.setAnimationProgress(progress);
-  flush();
   const stepSize = (1 - progress) / steps;
   const initialPaths = getRadialBarPathStrings(container);
 
   const pathsDuringAnimation: Array<ReadonlyArray<string>> = [];
   for (progress += stepSize; progress < 1; progress += stepSize) {
     await manager.setAnimationProgress(progress);
-    flush();
     const currentPaths = getRadialBarPathStrings(container);
     pathsDuringAnimation.push(currentPaths);
     initialPaths.forEach((initial, index) => {
@@ -82,7 +80,6 @@ async function expectAnimatedRadialBarPaths(
   }
 
   await manager.completeAnimation();
-  flush();
   const finalPaths = getRadialBarPathStrings(container);
   finalPaths.forEach((final, index) => {
     expect(final).not.toBe(initialPaths[index]);
@@ -109,7 +106,6 @@ describe("RadialBar animation", () => {
           <RadialBar dataKey="uv" isAnimationActive={false} />
         </RadialBarChart>
       ));
-      flush();
       expect(getRadialBarPathStrings(container)).toEqual(settledPaths);
     });
 
@@ -126,7 +122,6 @@ describe("RadialBar animation", () => {
           />
         </RadialBarChart>
       ));
-      flush();
       expect(container.querySelectorAll(SECTOR)).toHaveLength(PageData.length);
       expect(start).not.toHaveBeenCalled();
       expect(end).not.toHaveBeenCalled();
@@ -137,19 +132,16 @@ describe("RadialBar animation", () => {
     it("grows the rings from zero-sweep (t=0) to full (t=1)", async () => {
       const manager = new MockProgressAnimationManager("radialbar-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <RadialBarChart width={500} height={500} data={PageData}>
             <RadialBar dataKey="uv" fill="#8884d8" />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // t=0: every ring has zero sweep (endAngle === startAngle) → no sector path.
       expect(container.querySelectorAll(SECTOR)).toHaveLength(0);
 
       await manager.completeAnimation();
-      flush();
       expect(container.querySelectorAll(SECTOR)).toHaveLength(PageData.length);
     });
 
@@ -158,7 +150,7 @@ describe("RadialBar animation", () => {
       onAnimationEnd.mockClear();
       const manager = new MockProgressAnimationManager("radialbar-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <RadialBarChart width={400} height={400} data={smallerData}>
             <RadialBar
               dataKey="uv"
@@ -167,10 +159,8 @@ describe("RadialBar animation", () => {
               onAnimationEnd={onAnimationEnd}
             />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // Tier-B: the exact intermediate easing frames are harness-coupled, so we assert
       // the animation runs (frames differ from the settled state) and lands on the
       // byte-identical settled rings.
@@ -187,7 +177,7 @@ describe("RadialBar animation", () => {
       const end = vi.fn();
       const manager = new MockProgressAnimationManager("radialbar-anim-cb");
       render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <RadialBarChart width={500} height={500} data={PageData}>
             <RadialBar
               dataKey="uv"
@@ -196,22 +186,18 @@ describe("RadialBar animation", () => {
               onAnimationEnd={end}
             />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // v3.9 engine: onAnimationStart fires synchronously in the JavascriptAnimation
       // constructor on first render (matching recharts 3.9).
       expect(start).toHaveBeenCalledTimes(1);
       expect(end).not.toHaveBeenCalled();
 
       await manager.setAnimationProgress(0.1);
-      flush();
       expect(start).toHaveBeenCalledTimes(1);
       expect(end).not.toHaveBeenCalled();
 
       await manager.completeAnimation();
-      flush();
       expect(start).toHaveBeenCalledTimes(1);
       expect(end).toHaveBeenCalledTimes(1);
     });
@@ -236,7 +222,7 @@ describe("RadialBar animation", () => {
     it("should pass animationElapsedTime, isAnimating, isEntrance props to the custom shape", async () => {
       const manager = new MockProgressAnimationManager("radialbar-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <RadialBarChart width={400} height={400} data={smallerData}>
             <RadialBar
               dataKey="uv"
@@ -245,12 +231,9 @@ describe("RadialBar animation", () => {
               shape={CustomShape}
             />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       await manager.setAnimationProgress(0.5);
-      flush();
       const shapeDuringAnimation = container.querySelector(".custom-radial-bar-shape");
       assertNotNull(shapeDuringAnimation);
       expect(shapeDuringAnimation.getAttribute("data-t")).toBe("0.5");
@@ -258,7 +241,6 @@ describe("RadialBar animation", () => {
       expect(shapeDuringAnimation.getAttribute("data-is-entrance")).toBe("true");
 
       await manager.completeAnimation();
-      flush();
       const shapeAfterAnimation = container.querySelector(".custom-radial-bar-shape");
       assertNotNull(shapeAfterAnimation);
       expect(shapeAfterAnimation.getAttribute("data-t")).toBe("1");
@@ -277,7 +259,7 @@ describe("RadialBar animation", () => {
       const registry = createManagerRegistry();
       const [dataKey, setDataKey] = createSignal("uv");
       const { container } = render(() => (
-        <AnimationControllerProvider value={registry.factory}>
+        <AnimationControllerProvider.Provider value={registry.factory}>
           <button
             type="button"
             data-testid="swap"
@@ -286,18 +268,14 @@ describe("RadialBar animation", () => {
           <RadialBarChart width={400} height={400} data={smallerData}>
             <RadialBar dataKey={dataKey()} isAnimationActive />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await registry.current().completeAnimation();
-      flush();
       const initial = getRadialBarPathStrings(container);
 
       const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
-
       const paths = await expectAnimatedRadialBarPaths(container, registry.current());
       const settled = paths[paths.length - 1];
       expect(paths).toHaveLength(5);
@@ -317,7 +295,7 @@ describe("RadialBar animation", () => {
       const [data, setData] =
         createSignal<ReadonlyArray<(typeof pageDataWithFillColor)[number]>>(data1);
       const { container } = render(() => (
-        <AnimationControllerProvider value={registry.factory}>
+        <AnimationControllerProvider.Provider value={registry.factory}>
           <button
             type="button"
             data-testid="swap"
@@ -326,18 +304,14 @@ describe("RadialBar animation", () => {
           <RadialBarChart width={400} height={400} data={data()}>
             <RadialBar dataKey="uv" isAnimationActive />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await registry.current().completeAnimation();
-      flush();
       expect(getRadialBarPathStrings(container)).toHaveLength(2);
 
       const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
-
       const paths = await expectAnimatedRadialBarPaths(container, registry.current());
       expect(paths).toHaveLength(5);
       // 3 bars after the swap; a mid frame differs from the settled frame.
@@ -351,24 +325,20 @@ describe("RadialBar animation", () => {
       const manager = new MockProgressAnimationManager("radialbar-anim");
       const [isVisible, setIsVisible] = createSignal(true);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button type="button" data-testid="toggle" onClick={() => setIsVisible((p) => !p)} />
           <RadialBarChart width={400} height={400} data={smallerData}>
             <RadialBar dataKey="uv" isAnimationActive hide={!isVisible()} />
           </RadialBarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // Advance mid-animation, then hide the bar: the sectors unmount without crashing.
       await manager.setAnimationProgress(0.3);
-      flush();
       expect(getRadialBarPathStrings(container).length).toBeGreaterThan(0);
 
       const button = container.querySelector<HTMLButtonElement>('[data-testid="toggle"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
       expect(getRadialBarPathStrings(container)).toHaveLength(0);
     });
   });

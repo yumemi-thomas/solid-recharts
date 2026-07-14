@@ -14,8 +14,8 @@
 // DefaultZIndexes.axis).
 // DEFERRED (documented): ELEMENT-form `tick` (Solid can't clone-and-inject
 // computed props into an evaluated node — use the function form instead).
-import { For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { svgPropertiesNoEvents } from "../util/svgPropertiesNoEvents";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { Layer } from "../container/Layer";
@@ -263,7 +263,7 @@ export function PolarRadiusAxis<DataPointType = unknown, DataValueType = unknown
 ): JSX.Element {
   const store = useAppStore();
   const layout = usePolarChartLayout();
-  const merged = merge(polarRadiusAxisDefaultProps, props);
+  const merged = mergeProps(polarRadiusAxisDefaultProps, props);
 
   if (store != null) {
     registerInStore<RadiusAxisSettings>(

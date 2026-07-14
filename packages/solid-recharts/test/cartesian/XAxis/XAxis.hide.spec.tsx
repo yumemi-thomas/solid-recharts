@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/XAxis/XAxis.hide.spec.tsx (commit 7a23854).
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import { Line, LineChart, Tooltip, XAxis } from "../../../src";
 import { selectAxisScale, selectXAxisPosition } from "../../../src/state/selectors/axisSelectors";
@@ -27,8 +27,6 @@ describe("XAxis hide", () => {
     const { container, spy } = renderTestCase((state) =>
       selectAxisScale(state, "xAxis", 0, false)?.domain(),
     );
-    flush();
-
     expect(container.querySelectorAll(".recharts-xAxis")).toHaveLength(0);
     expectLastCalledWith(spy, [0, 1, 2, 3, 4, 5, 6]);
   });
@@ -48,22 +46,22 @@ describe("XAxis hide", () => {
       const bPos = useAppSelector((state) => selectXAxisPosition(state, "b"));
       const cPos = useAppSelector((state) => selectXAxisPosition(state, "c"));
       const dPos = useAppSelector((state) => selectXAxisPosition(state, "d"));
-      createEffect(
-        () => aPos(),
-        (v) => axisAPositionSpy(v),
-      );
-      createEffect(
-        () => bPos(),
-        (v) => axisBPositionSpy(v),
-      );
-      createEffect(
-        () => cPos(),
-        (v) => axisCPositionSpy(v),
-      );
-      createEffect(
-        () => dPos(),
-        (v) => axisDPositionSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => aPos())();
+        ((v) => axisAPositionSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => bPos())();
+        ((v) => axisBPositionSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => cPos())();
+        ((v) => axisCPositionSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => dPos())();
+        ((v) => axisDPositionSpy(v))(value);
+      });
       return null;
     };
     const { container } = render(() => (
@@ -80,8 +78,6 @@ describe("XAxis hide", () => {
         <Comp />
       </LineChart>
     ));
-    flush();
-
     expectXAxisTicks(container, [
       { textContent: "Page A", x: "5", y: "37" },
       { textContent: "Page B", x: "120", y: "37" },

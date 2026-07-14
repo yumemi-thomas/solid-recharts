@@ -25,7 +25,7 @@
 // chart via a keyed <Show> (Solid has no React `key` prop) — same semantics: all
 // tween state resets and the entrance animation re-runs from the center.
 import { describe, expect, it, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal, type JSX } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -84,21 +84,18 @@ async function expectAnimatedRadarPolygons(
 ): Promise<ReadonlyArray<string>> {
   let progress = 0.1;
   await manager.setAnimationProgress(progress);
-  flush();
   const stepSize = (1 - progress) / steps;
   const initialPath = getPolygonPath(container);
 
   const polygonsDuringAnimation: Array<string> = [];
   for (progress += stepSize; progress < 1; progress += stepSize) {
     await manager.setAnimationProgress(progress);
-    flush();
     const currentPath = getPolygonPath(container);
     polygonsDuringAnimation.push(currentPath);
     expect(currentPath).not.toBe(initialPath);
   }
 
   await manager.completeAnimation();
-  flush();
   const finalPath = getPolygonPath(container);
   expect(finalPath).not.toBe(initialPath);
   polygonsDuringAnimation.push(finalPath);
@@ -144,14 +141,12 @@ async function expectAnimatedRadarDots(
 ): Promise<ReadonlyArray<ReadonlyArray<DotPos>>> {
   let progress = 0.1;
   await manager.setAnimationProgress(progress);
-  flush();
   const stepSize = (1 - progress) / steps;
   const initialDots = getRadarDots(container).map(getDotPosition);
 
   const dotsDuringAnimation: Array<ReadonlyArray<DotPos>> = [];
   for (progress += stepSize; progress < 1; progress += stepSize) {
     await manager.setAnimationProgress(progress);
-    flush();
     const currentDots = getRadarDots(container).map(getDotPosition);
     dotsDuringAnimation.push(currentDots);
     initialDots.forEach((initial, index) => {
@@ -162,7 +157,6 @@ async function expectAnimatedRadarDots(
   }
 
   await manager.completeAnimation();
-  flush();
   const finalDots = getRadarDots(container).map(getDotPosition);
   finalDots.forEach((final, index) => {
     const initial = initialDots[index];
@@ -183,14 +177,12 @@ async function expectAnimatedDotRadii(
 ): Promise<ReadonlyArray<ReadonlyArray<number>>> {
   let progress = 0.1;
   await manager.setAnimationProgress(progress);
-  flush();
   const stepSize = (1 - progress) / steps;
   const initialRadii = getRadarDotRadii(container);
 
   const radiiDuringAnimation: Array<ReadonlyArray<number>> = [];
   for (progress += stepSize; progress < 1; progress += stepSize) {
     await manager.setAnimationProgress(progress);
-    flush();
     const currentRadii = getRadarDotRadii(container);
     radiiDuringAnimation.push(currentRadii);
     initialRadii.forEach((initial, index) => {
@@ -199,7 +191,6 @@ async function expectAnimatedDotRadii(
   }
 
   await manager.completeAnimation();
-  flush();
   const finalRadii = getRadarDotRadii(container);
   finalRadii.forEach((final, index) => {
     expect(final).not.toBe(initialRadii[index]);
@@ -209,7 +200,7 @@ async function expectAnimatedDotRadii(
   return radiiDuringAnimation;
 }
 
-const renderRadarChart = (radar: () => unknown) => (
+const renderRadarChart = (radar: () => JSX.Element) => (
   <RadarChart
     cx={CX}
     cy={CY}
@@ -242,8 +233,6 @@ describe("Radar animation", () => {
           />
         )),
       );
-      flush();
-
       expect(getPolygonPath(container)).toBe("M50,34L76.3676,65.2233L41.9286,54.66L50,34Z");
     });
 
@@ -259,8 +248,6 @@ describe("Radar animation", () => {
           />
         )),
       );
-      flush();
-
       // Byte-identical to the reference (settled dots render at full-precision cx/cy).
       expectRadarDots(container, [
         { cx: "50", cy: "34" },
@@ -273,8 +260,6 @@ describe("Radar animation", () => {
       const { container } = render(() =>
         renderRadarChart(() => <Radar dataKey="pv" isAnimationActive={false} dot />),
       );
-      flush();
-
       const radii = getRadarDotRadii(container);
       expect(radii.map((r) => r.toFixed(2))).toEqual(["16.00", "30.45", "9.32"]);
     });
@@ -293,8 +278,6 @@ describe("Radar animation", () => {
           />
         )),
       );
-      flush();
-
       expect(onAnimationStart).not.toHaveBeenCalled();
       expect(onAnimationEnd).not.toHaveBeenCalled();
     });
@@ -307,7 +290,7 @@ describe("Radar animation", () => {
     it("should render polygons with animation", async () => {
       const manager = new MockProgressAnimationManager("radar-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           {renderRadarChart(() => (
             <Radar
               dot
@@ -317,10 +300,8 @@ describe("Radar animation", () => {
               onAnimationEnd={onAnimationEnd}
             />
           ))}
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // Tier-B (golden-anchored to behaviour + the byte-identical settled frame): the
       // exact intermediate easing-frame geometry is coupled to the mock manager's
       // progress→t mapping (a harness detail), so we assert the animation runs (frames
@@ -338,14 +319,12 @@ describe("Radar animation", () => {
     it("should render dots with initial animation", async () => {
       const manager = new MockProgressAnimationManager("radar-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           {renderRadarChart(() => (
             <Radar dot dataKey="amt" isAnimationActive />
           ))}
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // Tier-B: the dots move each step (they render from the interpolated stepData,
       // so they entrance-animate with the polygon) and land on the byte-identical
       // settled positions.
@@ -361,14 +340,12 @@ describe("Radar animation", () => {
     it("should render points radii with animation", async () => {
       const manager = new MockProgressAnimationManager("radar-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           {renderRadarChart(() => (
             <Radar dot dataKey="amt" isAnimationActive />
           ))}
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // Tier-B: each dot's radius grows from the center each step and settles at the
       // outer radius (40) for the "amt" series.
       const radii = await expectAnimatedDotRadii(container, manager);
@@ -396,7 +373,7 @@ describe("Radar animation", () => {
       const registry = createManagerRegistry();
       const [dataKey, setDataKey] = createSignal("amt");
       const { container } = render(() => (
-        <AnimationControllerProvider value={registry.factory}>
+        <AnimationControllerProvider.Provider value={registry.factory}>
           <button
             type="button"
             data-testid="swap"
@@ -415,16 +392,12 @@ describe("Radar animation", () => {
             <PolarRadiusAxis />
             <Radar dot dataKey={dataKey()} isAnimationActive />
           </RadarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await registry.current().completeAnimation();
-      flush();
-
       const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
       return { container, registry };
     }
 
@@ -432,7 +405,7 @@ describe("Radar animation", () => {
       const registry = createManagerRegistry();
       const [dataKey, setDataKey] = createSignal("amt");
       const { container } = render(() => (
-        <AnimationControllerProvider value={registry.factory}>
+        <AnimationControllerProvider.Provider value={registry.factory}>
           <button
             type="button"
             data-testid="swap"
@@ -451,17 +424,14 @@ describe("Radar animation", () => {
             <PolarRadiusAxis />
             <Radar dot dataKey={dataKey()} isAnimationActive />
           </RadarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await registry.current().completeAnimation();
-      flush();
       const initial = getPolygonPath(container);
 
       const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
       const reanimated = await expectAnimatedRadarPolygons(container, registry.current());
       const settled = reanimated[reanimated.length - 1];
 
@@ -505,7 +475,7 @@ describe("Radar animation", () => {
       const registry = createManagerRegistry();
       const [data, setData] = createSignal<ReadonlyArray<(typeof PageData)[number]>>(smallerData);
       const { container } = render(() => (
-        <AnimationControllerProvider value={registry.factory}>
+        <AnimationControllerProvider.Provider value={registry.factory}>
           <button
             type="button"
             data-testid="swap"
@@ -524,16 +494,12 @@ describe("Radar animation", () => {
             <PolarRadiusAxis />
             <Radar dot dataKey="pv" isAnimationActive />
           </RadarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await registry.current().completeAnimation();
-      flush();
-
       const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
       assertNotNull(button);
       fireEvent.click(button);
-      flush();
       return { container, registry };
     }
 

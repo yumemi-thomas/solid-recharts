@@ -1,10 +1,10 @@
+import { createEffect, on } from "solid-js";
 // Ported from recharts 3.8.1 src/state/ReportMainChartProps.tsx (commit 7a23854).
 //
 // Solid deviations: `memo(..., propsAreEqual)` is dropped (Solid doesn't
 // re-render; the comparator has no equivalent); `useAppDispatch` + action
 // creators → `useAppStore().actions`; `useEffect` → two-arg `createEffect`.
-import { createEffect } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { LayoutType, Margin } from "../util/types";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useAppStore } from "./hooks";
@@ -22,13 +22,15 @@ export const ReportMainChartProps = (props: MainChartProps): JSX.Element => {
   const isPanorama = useIsPanorama();
 
   createEffect(
-    () => ({ layout: props.layout, margin: props.margin }),
-    ({ layout, margin }) => {
-      if (!isPanorama) {
-        store?.actions.layout.setLayout(layout);
-        store?.actions.layout.setMargin(margin);
-      }
-    },
+    on(
+      () => ({ layout: props.layout, margin: props.margin }),
+      ({ layout, margin }) => {
+        if (!isPanorama) {
+          store?.actions.layout.setLayout(layout);
+          store?.actions.layout.setMargin(margin);
+        }
+      },
+    ),
   );
 
   return null;

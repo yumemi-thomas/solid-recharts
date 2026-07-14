@@ -1,5 +1,5 @@
 import { describe, expect, it, test, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { Pie, PieChart, Sector, Tooltip, Label, type PieProps } from "../../../src";
 import type {
   PieSectorDataItem,
@@ -132,11 +132,7 @@ describe("<Pie />", () => {
           <Tooltip />
         </PieChart>
       ));
-      flush();
-
       fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
-      flush();
-
       expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
     });
 
@@ -156,11 +152,7 @@ describe("<Pie />", () => {
           <Tooltip />
         </PieChart>
       ));
-      flush();
-
       fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
-      flush();
-
       expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
     });
 
@@ -186,12 +178,9 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
       expect(container.querySelectorAll(".customized-inactive-shape")).toHaveLength(0);
 
       fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
-      flush();
-
       expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
       expect(container.querySelectorAll(".customized-inactive-shape")).toHaveLength(
         PageData.length - 1,
@@ -216,7 +205,6 @@ describe("<Pie />", () => {
           <Tooltip />
         </PieChart>
       ));
-      flush();
       const renderedSectors = container.querySelectorAll(".recharts-sector");
       expect(renderedSectors).toHaveLength(PageData.length);
       renderedSectors.forEach((s) => {
@@ -224,8 +212,6 @@ describe("<Pie />", () => {
       });
 
       fireEvent.mouseEnter(container.querySelector(".recharts-pie-sector")!);
-      flush();
-
       const renderedSectors2 = container.querySelectorAll(".recharts-sector");
       expect(renderedSectors2[0]).toHaveAttribute("fill", "green");
       for (let i = 1; i < PageData.length; i += 1) {
@@ -255,7 +241,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
       expect(container.querySelectorAll(".customized-inactive-shape")).toHaveLength(0);
     });
 
@@ -265,8 +250,6 @@ describe("<Pie />", () => {
           <Pie data={[]} dataKey="cy" />
         </PieChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-pie")).toHaveLength(1);
       expect(container.querySelectorAll(".recharts-pie-sector")).toHaveLength(0);
     });
@@ -356,8 +339,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const labels = container.querySelectorAll(".recharts-pie-label-text");
       expect(labels).toHaveLength(sectorsData.length);
       expect(labels[0]!.textContent).toBe("A: 40");
@@ -383,8 +364,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".customized-label")).toHaveLength(sectorsData.length);
     });
 
@@ -418,8 +397,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".customized-label-line")).toHaveLength(sectorsData.length);
     });
 
@@ -438,8 +415,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-pie-label-text")).toHaveLength(
         sectorsData.length,
       );
@@ -463,8 +438,6 @@ describe("<Pie />", () => {
           </Pie>
         </PieChart>
       ));
-      flush();
-
       const label = container.querySelector(".recharts-label");
       expect(label).not.toBeNull();
       expect(label).toHaveAttribute("x", "250");
@@ -485,8 +458,6 @@ describe("<Pie />", () => {
           </Pie>
         </PieChart>
       ));
-      flush();
-
       const label = container.querySelector(".recharts-label");
       expect(label).not.toBeNull();
       expect(label).toHaveAttribute("x", "300");
@@ -511,8 +482,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const sector = container.querySelectorAll(".recharts-pie-sector")[1];
       assertNotNull(sector);
 
@@ -549,8 +518,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const sectors = container.querySelectorAll(".recharts-pie-sector");
       fireEvent.click(sectors[0]!);
       expect(handleClick).toHaveBeenCalledTimes(1);
@@ -587,8 +554,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const sectors = container.querySelectorAll(".recharts-pie-sector");
       fireEvent.mouseOver(sectors[0]!);
       expect(handleMouseOver).toHaveBeenCalledTimes(1);
@@ -618,8 +583,6 @@ describe("<Pie />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const sectors = container.querySelectorAll(".recharts-pie-sector");
       fireEvent.touchMove(sectors[0]!, { touches: [{ clientX: 200, clientY: 200 }] });
       expect(handleTouchMove).toHaveBeenCalledTimes(1);

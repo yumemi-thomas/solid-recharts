@@ -23,8 +23,8 @@
 // (drag overrides win mid-interaction, the Solid equivalent of recharts'
 // getDerivedStateFromProps "don't sync while interacting" guards). Covered by the
 // "with controlled startIndex/endIndex" Brush.spec block.
-import { createEffect, createMemo, createSignal, merge, onCleanup, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, createSignal, onCleanup, Show, mergeProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import { scalePoint } from "d3-scale";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { Layer } from "../container/Layer";
@@ -211,7 +211,7 @@ function DefaultTraveller(props: {
 
 export const Brush = (props: BrushProps): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(brushDefaultProps, props);
+  const merged = mergeProps(brushDefaultProps, props);
 
   const dimensions = useAppSelector(selectBrushDimensions);
   const dataState = useAppSelector(selectChartDataWithIndexes);
@@ -229,24 +229,28 @@ export const Brush = (props: BrushProps): JSX.Element => {
   // createEffect (compute → apply): the store write happens in the untracked apply
   // phase, like the other Set* registration components.
   createEffect(
-    () => ({
-      x: merged.x,
-      y: merged.y,
-      width: merged.width,
-      height: merged.height,
-      padding: { ...merged.padding },
-    }),
-    (settings) => store?.actions.brush.setBrushSettings(settings),
+    on(
+      () => ({
+        x: merged.x,
+        y: merged.y,
+        width: merged.width,
+        height: merged.height,
+        padding: { ...merged.padding },
+      }),
+      (settings) => store?.actions.brush.setBrushSettings(settings),
+    ),
   );
   unregisterOnCleanup(() => store?.actions.brush.setBrushSettings(null));
 
   // Sync controlled start/end index props into the store (recharts BrushInternal
   // useEffect — always dispatch; the reducer ignores undefined fields).
   createEffect(
-    () => ({ startIndex: merged.startIndex, endIndex: merged.endIndex }),
-    (idx) => {
-      store?.actions.chartData.setDataStartEndIndexes(idx);
-    },
+    on(
+      () => ({ startIndex: merged.startIndex, endIndex: merged.endIndex }),
+      (idx) => {
+        store?.actions.chartData.setDataStartEndIndexes(idx);
+      },
+    ),
   );
 
   // scalePoint over the data indices → pixel positions across the brush width.

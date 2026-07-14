@@ -10,8 +10,18 @@
 // Solid deviations: `resolveDefaultProps`→`merge`; RegisterGraphicalItemId +
 // Set* effect-dispatch components → a `createEffect` add/replace + `onCleanup`
 // remove (the same idiom as <Line>).
-import { createEffect, createMemo, createSignal, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import {
+  createMemo,
+  createSignal,
+  For,
+  Index,
+  Show,
+  mergeProps,
+  createEffect,
+  on,
+  onCleanup,
+} from "solid-js";
+import type { JSX } from "solid-js";
 import { noop } from "../util/DataUtils";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
@@ -573,23 +583,25 @@ function BarRectangleWithActiveState(props: {
   const [hasMountedActive, setHasMountedActive] = createSignal(false);
 
   createEffect(
-    () => isActive(),
-    (active) => {
-      let rafId: number | undefined;
-      if (active) {
-        setStayInLayer(true);
-        rafId = requestAnimationFrame(() => {
-          setHasMountedActive(true);
-        });
-      } else {
-        setHasMountedActive(false);
-      }
-      return () => {
-        if (rafId != null) {
-          cancelAnimationFrame(rafId);
+    on(
+      () => isActive(),
+      (active) => {
+        let rafId: number | undefined;
+        if (active) {
+          setStayInLayer(true);
+          rafId = requestAnimationFrame(() => {
+            setHasMountedActive(true);
+          });
+        } else {
+          setHasMountedActive(false);
         }
-      };
-    },
+        onCleanup(() => {
+          if (rafId != null) {
+            cancelAnimationFrame(rafId);
+          }
+        });
+      },
+    ),
   );
 
   const isVisuallyActive = (): boolean => isActive() && hasMountedActive();
@@ -849,7 +861,7 @@ const barErrorBarFormatter: ErrorBarDataPointFormatter = (entry, dataKey): Error
 
 export const Bar = (props: BarProps): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(barDefaultProps, props);
+  const merged = mergeProps(barDefaultProps, props);
   const isPanorama = useIsPanorama();
   const id = useUniqueId("recharts-bar", props.id);
   const stackId = useStackId(props.stackId);
@@ -1116,7 +1128,7 @@ export const Bar = (props: BarProps): JSX.Element => {
                             getter-wrapped props) and builds the handlers once per
                             slot. `r` is now an accessor — event handlers read `r()`
                             at dispatch time so they see the current frame's rect. */}
-                        <For each={frame} keyed={false}>
+                        <Index each={frame}>
                           {(r, i) => (
                             // Render every selector-output rectangle, matching recharts
                             // (zero-dimension genuinely-empty bars are already dropped at
@@ -1186,7 +1198,7 @@ export const Bar = (props: BarProps): JSX.Element => {
                               }
                             />
                           )}
-                        </For>
+                        </Index>
                       </Layer>
                     )}
                   </AnimatedItems>

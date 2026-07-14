@@ -2,7 +2,7 @@
 // TooltipPayloadConfiguration + a legend payload, mirroring the cartesian items).
 // `flush()` because registration + sectors compute via effects/selectors.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import {
   PieChart,
@@ -31,8 +31,6 @@ describe("polar tooltip + legend wiring", () => {
         <Tooltip />
       </PieChart>
     ));
-    flush();
-
     // One legend item per slice.
     expect(container.querySelectorAll(".recharts-legend-item")).toHaveLength(PageData.length);
     expect(container.querySelectorAll(".recharts-tooltip-item")).toHaveLength(0);
@@ -43,8 +41,6 @@ describe("polar tooltip + legend wiring", () => {
       throw new Error("expected a pie sector");
     }
     fireEvent.mouseEnter(firstSector);
-    flush();
-
     const values = [...container.querySelectorAll(".recharts-tooltip-item-value")].map(
       (n) => n.textContent,
     );
@@ -58,8 +54,6 @@ describe("polar tooltip + legend wiring", () => {
         <Legend />
       </RadarChart>
     ));
-    flush();
-
     const items = [...container.querySelectorAll(".recharts-legend-item-text")].map(
       (n) => n.textContent,
     );
@@ -73,8 +67,6 @@ describe("polar tooltip + legend wiring", () => {
         <Legend />
       </RadialBarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-legend-item").length).toBeGreaterThan(0);
   });
 });

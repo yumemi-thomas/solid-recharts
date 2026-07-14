@@ -6,7 +6,7 @@
 // (`store.actions.graphicalItems.addCartesianGraphicalItem(item)`) and state is
 // read via selectors against `store.state`. Expectations are unchanged.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { createRechartsStore } from "../../src/state/store";
 import { PageData } from "../_data";
 import { selectUnfilteredCartesianItems } from "../../src/state/selectors/axisSelectors";
@@ -65,11 +65,9 @@ describe("graphicalItemsSlice", () => {
     expect(selectUnfilteredCartesianItems(store.state)).toHaveLength(0);
 
     store.actions.graphicalItems.addCartesianGraphicalItem(item1);
-    flush();
     expect(selectUnfilteredCartesianItems(store.state)).toEqual([item1]);
 
     store.actions.graphicalItems.removeCartesianGraphicalItem(item1);
-    flush();
     expect(selectUnfilteredCartesianItems(store.state)).toHaveLength(0);
   });
 
@@ -79,13 +77,10 @@ describe("graphicalItemsSlice", () => {
 
     store.actions.graphicalItems.addCartesianGraphicalItem(item1);
     store.actions.graphicalItems.addCartesianGraphicalItem(item2);
-    flush();
     expect(selectUnfilteredCartesianItems(store.state)).toEqual([item1, item2]);
 
     // Replace item1 with item3
     store.actions.graphicalItems.replaceCartesianGraphicalItem({ prev: item1, next: item3 });
-    flush();
-
     // item3 is now in place of item1, and item2 remains on the second position
     expect(selectUnfilteredCartesianItems(store.state)).toEqual([item3, item2]);
   });

@@ -12,7 +12,8 @@
 //   storybook/stories/data/Page.ts).
 // - `flush()` drains Solid's microtask-batched store writes before DOM assertions.
 import { describe, expect, it, test } from "vitest";
-import { flush } from "solid-js";
+import type { JSX } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { exampleRadarData, pageData } from "../_data";
 import {
@@ -141,8 +142,6 @@ describe("<PolarGrid />", () => {
           />
         </Surface>
       ));
-      flush();
-
       expectPolarGridLines(container, [
         { x1: "250", x2: "450", y1: "250", y2: "250" },
         { x1: "250", x2: "423.20508075688775", y1: "250", y2: "150" },
@@ -195,8 +194,6 @@ describe("<PolarGrid />", () => {
           />
         </Surface>
       ));
-      flush();
-
       expectPolarGridLines(container, [
         { x1: "250", x2: "450", y1: "250", y2: "250" },
         { x1: "250", x2: "423.20508075688775", y1: "250", y2: "150" },
@@ -249,8 +246,6 @@ describe("<PolarGrid />", () => {
           <PolarGrid cx={250} cy={250} innerRadius={0} outerRadius={200} />
         </Surface>
       ));
-      flush();
-
       expectPolarGridLines(container, []);
       expectPolarGridPolygons(container, []);
       expectPolarGridCircles(container, []);
@@ -270,8 +265,6 @@ describe("<PolarGrid />", () => {
           />
         </Surface>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-polar-grid-angle line")).toHaveLength(9);
       expect(container.querySelectorAll(".recharts-polar-grid-concentric-circle")).toHaveLength(4);
     });
@@ -290,8 +283,6 @@ describe("<PolarGrid />", () => {
           />
         </Surface>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-polar-grid-angle line")).toHaveLength(0);
       expect(container.querySelectorAll(".recharts-polar-grid-concentric-circle")).toHaveLength(0);
     });
@@ -306,8 +297,6 @@ describe("<PolarGrid />", () => {
           <PolarGrid />
         </RadarChart>
       ));
-      flush();
-
       expectPolarGridLines(container, [
         { x1: "250", x2: "250", y1: "250", y2: "54" },
         { x1: "250", x2: "388.5929291125633", y1: "250", y2: "111.4070708874367" },
@@ -368,8 +357,6 @@ describe("<PolarGrid />", () => {
             <PolarGrid gridType={gridType} radialLines={radialLines} />
           </RadialBarChart>
         ));
-        flush();
-
         expectPolarGridLines(container, [
           { x1: "250", x2: "446", y1: "250", y2: "250" },
           { x1: "250", x2: "382.7471880386453", y1: "250", y2: "105.79811350806622" },
@@ -432,8 +419,6 @@ describe("<PolarGrid />", () => {
           <PolarGrid gridType="circle" />
         </RadialBarChart>
       ));
-      flush();
-
       expectPolarGridPolygons(container, []);
       expectPolarGridCircles(container, [
         { cx: 250, cy: 250, r: 14 },
@@ -455,8 +440,6 @@ describe("<PolarGrid />", () => {
           <PolarGrid radialLines={false} />
         </RadialBarChart>
       ));
-      flush();
-
       expectPolarGridLines(container, []);
     });
   });
@@ -601,9 +584,7 @@ describe("<PolarGrid />", () => {
   });
 
   describe("with multiple axes", () => {
-    function RadialBarChartWithMultipleAxesWrapper(props: {
-      children?: import("@solidjs/web").JSX.Element;
-    }) {
+    function RadialBarChartWithMultipleAxesWrapper(props: { children?: JSX.Element }) {
       return (
         <RadialBarChart width={300} height={300} data={pageData}>
           <RadialBar angleAxisId="axis-pv" radiusAxisId="axis-name" dataKey="pv" />
@@ -760,8 +741,6 @@ describe("<PolarGrid />", () => {
             <PolarGrid angleAxisId="axis-pv" />
           </RadialBarChartWithMultipleAxesWrapper>
         ));
-        flush();
-
         expectPolarGridPolygons(container, [
           {
             cx: 150,
@@ -874,8 +853,6 @@ describe("<PolarGrid />", () => {
           />
         </Surface>
       ));
-      flush();
-
       const polygons = container.querySelectorAll(".recharts-polar-grid-concentric-polygon");
       expect(polygons).toHaveLength(polarRadius.length);
       polygons.forEach((polygon) => {
@@ -906,8 +883,6 @@ describe("<PolarGrid />", () => {
           />
         </Surface>
       ));
-      flush();
-
       const circles = container.querySelectorAll(".recharts-polar-grid-concentric-circle");
       expect(circles).toHaveLength(polarRadius.length);
       circles.forEach((circle) => {

@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/YAxis/YAxis.tickFormatter.spec.tsx (commit 7a23854).
-import { flush } from "solid-js";
+
 import { describe, expect, it, vi } from "vitest";
 import { Line, LineChart, YAxis } from "../../../src";
 import { PageData } from "../../_data";
@@ -20,8 +20,6 @@ describe("YAxis with custom tickFormatter", () => {
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
-
     expectYAxisTicks(container, [
       { textContent: "formatted: Page A: 0", x: "72", y: "380" },
       { textContent: "formatted: Page B: 1", x: "72", y: "308" },
@@ -45,8 +43,6 @@ describe("YAxis with custom tickFormatter", () => {
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
-
     expect(tickFormatterSpy).toHaveBeenCalled();
     expect(tickFormatterSpy).toHaveBeenCalledWith("Page A", 0);
     expect(tickFormatterSpy).toHaveBeenCalledWith("Page F", 5);

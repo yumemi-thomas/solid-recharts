@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 src/chart/ScatterChart.tsx (commit 7a23854).
 // `forwardRef` → `ref` prop; thin user-facing wrapper over CartesianChart.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { arrayTooltipSearcher } from "../state/optionsSlice";
 import { CartesianChart } from "./CartesianChart";
 import { CartesianChartProps, TooltipEventType } from "../util/types";

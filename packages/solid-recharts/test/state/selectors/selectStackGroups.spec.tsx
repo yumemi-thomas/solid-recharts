@@ -9,8 +9,8 @@
 // Legend onClick + a fireEvent.click on the legend item. (Parity fix shipped alongside:
 // <Legend> now forwards onClick/onMouseEnter/onMouseLeave to <DefaultLegendContent>,
 // which already wires them onto each .recharts-legend-item.)
-import { createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { describe, expect, it } from "vitest";
 import { fireEvent } from "@solidjs/testing-library";
 import type { RechartsRootState } from "../../../src/state/store";
@@ -226,7 +226,6 @@ describe("selectStackGroups", () => {
           assertNotNull(uvItem);
           expect(uvItem.textContent).toBe("uv");
           fireEvent.click(uvItem);
-          flush();
         };
 
         clickUvLegendItem();

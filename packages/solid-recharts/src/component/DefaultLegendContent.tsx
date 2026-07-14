@@ -3,12 +3,12 @@
 // TYPES + component. The legend slice/selectors need these types; the component
 // renders the legend item list. Deviations: `ReactElement`→`Element`/dropped,
 // `DataKey<any>`→`DataKey<unknown>`, `ReactNode`→`Element`, `CSSProperties`→
-// `JSX.CSSProperties`, `className`→`class`, clsx→`class={[...]}`; `LegendItemSorter`
+// `JSX.CSSProperties`, `className`→`class`, clsx→`class={[...].filter(Boolean).join(" ")}`; `LegendItemSorter`
 // is co-located here (reference keeps it in Legend.tsx) so the slice can import it
 // without depending on the Legend component. `adaptEventsOfChild` events deferred.
-import { For, Show, merge } from "solid-js";
-import type { Element } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { For, Show, mergeProps } from "solid-js";
+type Element = JSX.Element;
+import type { JSX } from "solid-js";
 import { DataKey, LegendType, MousePointer } from "../util/types";
 import { Surface } from "../container/Surface";
 import { Symbols } from "../shape/Symbols";
@@ -134,7 +134,7 @@ const LegendIcon = (props: {
  * `content` prop to customize.
  */
 export const DefaultLegendContent = (props: Props): JSX.Element => {
-  const merged = merge(defaultLegendContentDefaultProps, props);
+  const merged = mergeProps(defaultLegendContentDefaultProps, props);
 
   const itemStyle = (): JSX.CSSProperties => ({
     display: merged.layout === "horizontal" ? "inline-block" : "block",
@@ -173,7 +173,9 @@ export const DefaultLegendContent = (props: Props): JSX.Element => {
                   "recharts-legend-item",
                   `legend-item-${i()}`,
                   entry.inactive ? "inactive" : undefined,
-                ]}
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 style={itemStyle()}
                 onClick={(event) => merged.onClick?.(entry, i(), event)}
                 onMouseEnter={(event) => merged.onMouseEnter?.(entry, i(), event)}

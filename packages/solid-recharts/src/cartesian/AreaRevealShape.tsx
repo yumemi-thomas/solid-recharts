@@ -12,7 +12,7 @@
 // reveal clip is gated with a TERNARY, not `<Show when={const}>` (the entrance
 // flags are read once per frame, not reactive — STRICT_READ discipline).
 import { createMemo, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { isNumber } from "../util/DataUtils";
 import { Curve, type BaseLineType, type CurveProps } from "../shape/Curve";
 import type { CartesianLayout, LayoutType, ShapeAnimationProps } from "../util/types";

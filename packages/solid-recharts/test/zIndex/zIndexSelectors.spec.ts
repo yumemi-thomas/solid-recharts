@@ -1,4 +1,3 @@
-import { flush } from "solid-js";
 import { describe, it, expect } from "vitest";
 import { createRechartsStore } from "../../src/state/store";
 import {
@@ -26,13 +25,10 @@ describe("zIndexSelectors", () => {
         element: element2,
         isPanorama: false,
       });
-      flush();
-
       expect(selectZIndexPortalElement(store.state, 1, false)).toBe(element1);
       expect(selectZIndexPortalElement(store.state, -1, false)).toBe(element2);
 
       store.actions.zIndex.unregisterZIndexPortalElement({ zIndex: 1, isPanorama: false });
-      flush();
       expect(selectZIndexPortalElement(store.state, 1, false)).toBeUndefined();
       expect(selectZIndexPortalElement(store.state, -1, false)).toBe(element2);
     });
@@ -58,8 +54,6 @@ describe("zIndexSelectors", () => {
         element: panoramaElement,
         isPanorama: true,
       });
-      flush();
-
       expect(selectZIndexPortalElement(store.state, 10, false)).toBe(mainElement);
       expect(selectZIndexPortalElement(store.state, 10, true)).toBe(panoramaElement);
     });

@@ -5,8 +5,8 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
 import {
@@ -472,8 +472,6 @@ describe("Tooltip payload", () => {
             <Tooltip />
           </Wrapper>
         ));
-        flush();
-
         expect(container.querySelector(".recharts-tooltip-item-name")).toBeNull();
         expect(container.querySelector(".recharts-tooltip-item-value")).toBeNull();
 
@@ -1154,7 +1152,7 @@ describe("Tooltip payload", () => {
           },
         },
       ]);
-      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it("should select Tooltip payload after mouse hover", () => {
@@ -1266,7 +1264,7 @@ describe("Tooltip payload", () => {
         activeIndex: null,
         isActive: false,
       });
-      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledTimes(1);
 
       showTooltipOnCoordinate(
         container,
@@ -1278,7 +1276,7 @@ describe("Tooltip payload", () => {
         activeIndex: "1",
         isActive: true,
       });
-      expect(spy).toHaveBeenCalledTimes(3);
+      expect(spy).toHaveBeenCalledTimes(2);
     });
 
     it("should select active coordinate", () => {
@@ -1435,8 +1433,6 @@ describe("Tooltip payload", () => {
           <Tooltip filterNull={filterNull} />
         </ScatterChart>
       ));
-      flush();
-
       showTooltip(container, ScatterChartTestCase.mouseHoverSelector, debug);
 
       expectTooltipPayload(container, "", ["y : 2"]);
@@ -1455,8 +1451,6 @@ describe("Tooltip payload", () => {
           <Tooltip filterNull={false} />
         </ScatterChart>
       ));
-      flush();
-
       showTooltip(container, ScatterChartTestCase.mouseHoverSelector, debug);
 
       expectTooltipPayload(container, "", ["x : ", "y : 2"]);
@@ -1500,8 +1494,6 @@ describe("Tooltip payload", () => {
         </ComposedChart>
       </div>
     ));
-    flush();
-
     showTooltip(container, ComposedChartTestCase.mouseHoverSelector, debug);
 
     expectTooltipPayload(container, "E", ["value : 0.7", "value : 0.4"]);
@@ -1518,8 +1510,6 @@ describe("Tooltip payload", () => {
             <Tooltip shared />
           </BarChart>
         ));
-        flush();
-
         showTooltip(container, barChartMouseHoverTooltipSelector, debug);
 
         const expectedTooltipTitle = "2";
@@ -1536,8 +1526,6 @@ describe("Tooltip payload", () => {
             <Tooltip shared={false} />
           </BarChart>
         ));
-        flush();
-
         showTooltip(container, barMouseHoverTooltipSelector, debug);
 
         const expectedTooltipTitle = "";
@@ -1560,9 +1548,6 @@ describe("Tooltip payload", () => {
             <Tooltip shared={false} filterNull={false} />
           </BarChart>
         ));
-        flush();
-        flush();
-
         // There are two Bar groups. bar1 renders one rect (row A), bar2 renders one rect (row B).
         const barGroups = container.querySelectorAll(".recharts-bar");
 
@@ -1573,12 +1558,9 @@ describe("Tooltip payload", () => {
           bar1Group.querySelector(".recharts-bar-stack-layer");
         assertNotNull(bar1Rect);
         fireEvent.mouseEnter(bar1Rect, { clientX: 100, clientY: 100 });
-        flush();
         expectTooltipPayload(container, "", ["bar1 : 0 ~ 10"]);
 
         fireEvent.mouseLeave(bar1Rect);
-        flush();
-
         // Hover bar2 (row B) — should show bar2's payload, not bar1's
         const bar2Group = barGroups[1]!;
         const bar2Rect =
@@ -1586,7 +1568,6 @@ describe("Tooltip payload", () => {
           bar2Group.querySelector(".recharts-bar-stack-layer");
         assertNotNull(bar2Rect);
         fireEvent.mouseEnter(bar2Rect, { clientX: 200, clientY: 200 });
-        flush();
         expectTooltipPayload(container, "", ["bar2 : 5 ~ 20"]);
       });
     });
@@ -1703,8 +1684,6 @@ describe("Tooltip payload", () => {
               <Tooltip shared={false} />
             </RadialBarChart>
           ));
-          flush();
-
           showTooltip(container, radialBarMouseHoverTooltipSelector, debug);
           const expectedTooltipTitle = "";
           const expectedTooltipContent = ["uv : 400"];

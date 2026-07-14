@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, createSignal, flush, Show } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import {
   Area,
   Bar,
@@ -499,7 +499,6 @@ describe("selectHasBar", () => {
     expect(spy).toHaveBeenLastCalledWith(true);
 
     setShowBar(false);
-    flush();
     expect(container.querySelector(".recharts-bar")).toBeNull();
     expect(spy).toHaveBeenLastCalledWith(false);
   });
@@ -529,7 +528,6 @@ describe("selectHasBar", () => {
         <StoreCapture />
       </BarChart>
     ));
-    flush();
     if (store == null) {
       throw new Error("Expected BarChart to provide a Recharts store");
     }
@@ -545,7 +543,6 @@ describe("selectHasBar", () => {
         <StoreCapture />
       </BarChart>
     ));
-    flush();
     if (store == null) {
       throw new Error("Expected BarChart to provide a Recharts store");
     }
@@ -558,10 +555,10 @@ describe("selectHasBar", () => {
     const spy = vi.fn();
     const Comp = () => {
       const selected = useAppSelectorWithStableTest(selectHasBar);
-      createEffect(
-        () => selected(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => selected())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     const { container } = render(() => (
@@ -572,12 +569,10 @@ describe("selectHasBar", () => {
         <Comp />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelector(".recharts-radial-bar-sectors")).toBeVisible();
     expect(spy).toHaveBeenLastCalledWith(true);
 
     setShowRadialBar(false);
-    flush();
     expect(container.querySelector(".recharts-radial-bar-sectors")).toBeNull();
     expect(spy).toHaveBeenLastCalledWith(false);
   });
@@ -586,10 +581,10 @@ describe("selectHasBar", () => {
     const spy = vi.fn();
     const Comp = () => {
       const selected = useAppSelectorWithStableTest(selectHasBar);
-      createEffect(
-        () => selected(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => selected())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     const { container } = render(() => (
@@ -597,7 +592,6 @@ describe("selectHasBar", () => {
         <Comp />
       </RadialBarChart>
     ));
-    flush();
     expect(container.querySelector(".recharts-radial-bar-sectors")).toBeNull();
     expect(spy).toHaveBeenLastCalledWith(false);
   });

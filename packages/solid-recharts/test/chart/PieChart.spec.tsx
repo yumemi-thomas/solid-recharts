@@ -10,7 +10,7 @@
 // with `.recharts-active-shape` click bubbling (chart-level onClick payload depends
 // on the unported PieChart-level mouse-state forwarding); reselect reference checks.
 import { describe, expect, it, test } from "vitest";
-import { flush } from "solid-js";
+
 import { Cell, Legend, Pie, PieChart, Sector, Tooltip } from "../../src";
 import type { PieSectorShapeProps } from "../../src/polar/Pie";
 import { useChartWidth, useChartHeight, useViewBox } from "../../src/context/chartLayoutContext";
@@ -90,8 +90,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     const sectors = container.querySelectorAll(SECTOR_SELECTOR);
     expect(sectors).toHaveLength(PageData.length);
     expect([...sectors].map((s) => trim(s.getAttribute("d")))).toEqual(pageDataSectorPaths);
@@ -112,8 +110,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(SECTOR_SELECTOR)).toHaveLength(0);
   });
 
@@ -132,8 +128,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(SECTOR_SELECTOR)).toHaveLength(0);
     const customs = container.querySelectorAll(".recharts-pie-sector circle.custom-slice");
     expect(customs).toHaveLength(PageData.length);
@@ -155,8 +149,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expectPieSectors(container, [{ d: "M 285,205 A 80,80,0, 1,0, 285,205.0014 L 205,205 Z" }]);
   });
 
@@ -181,8 +173,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expectPieSectorAngles(container, [
       { startAngle: 0, endAngle: 90 },
       { startAngle: 90, endAngle: 180 },
@@ -211,8 +201,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expectPieSectorAngles(container, [
       { startAngle: 0, endAngle: 300 },
       { startAngle: 300, endAngle: 330 },
@@ -236,8 +224,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expectPieSectors(container, [
       { d: "M 285,205 A 80,80,0, 0,0, 202.3541,125.0438 L 205,205 Z" },
       { d: "M 202.3541,125.0438 A 80,80,0, 0,0, 129.4422,178.7128 L 205,205 Z" },
@@ -255,15 +241,12 @@ describe("<PieChart />", () => {
       const [sector1, sector2] = Array.from(sectorNodes);
 
       fireEvent.mouseEnter(sector1!);
-      flush();
       expect(container.querySelectorAll(selectors)).toHaveLength(1);
 
       fireEvent.mouseEnter(sector2!);
-      flush();
       expect(container.querySelectorAll(selectors)).toHaveLength(1);
 
       fireEvent.mouseLeave(sector2!);
-      flush();
       expect(container.querySelectorAll(selectors)).toHaveLength(0);
     }
 
@@ -286,8 +269,6 @@ describe("<PieChart />", () => {
           <Tooltip />
         </PieChart>
       ));
-      flush();
-
       assertActiveShapeInteractions(container, ".recharts-active-shape");
       assertActiveShapeInteractions(container, ".customized-active-shape");
     });
@@ -309,8 +290,6 @@ describe("<PieChart />", () => {
           <Tooltip />
         </PieChart>
       ));
-      flush();
-
       assertActiveShapeInteractions(container, ".recharts-active-shape");
       assertActiveShapeInteractions(container, ".customized-active-shape");
     });
@@ -332,8 +311,6 @@ describe("<PieChart />", () => {
           <Tooltip />
         </PieChart>
       ));
-      flush();
-
       assertActiveShapeInteractions(container, ".recharts-active-shape");
     });
   });
@@ -357,8 +334,6 @@ describe("<PieChart />", () => {
         </Pie>
       </PieChart>
     ));
-    flush();
-
     expectPieSectors(container, [
       { d: "M 285,205 A 80,80,0, 0,0, 202.3541,125.0438 L 205,205 Z" },
       { d: "M 202.3541,125.0438 A 80,80,0, 0,0, 129.4422,178.7128 L 205,205 Z" },
@@ -475,8 +450,6 @@ describe("<PieChart />", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expectPieSectors(container, []);
   });
 
@@ -644,8 +617,6 @@ describe("<PieChart />", () => {
         <Tooltip />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-tooltip-wrapper")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-default-tooltip")).toHaveLength(1);
   });
@@ -695,8 +666,6 @@ describe("<PieChart />", () => {
         <Tooltip />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".label-custom-className")).toHaveLength(6);
     expect(container.querySelectorAll(".label-line-custom-className")).toHaveLength(6);
   });
@@ -725,8 +694,6 @@ describe("<PieChart />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const elementA = container.querySelector('path[name="Group A"]');
       const elementB = container.querySelector('path[name="Group B"]');
       expect(elementA).not.toBeNull();
@@ -756,8 +723,6 @@ describe("<PieChart />", () => {
           />
         </PieChart>
       ));
-      flush();
-
       const elementA = container.querySelector('path[name="Group A"]');
       const elementB = container.querySelector('path[name="Group B"]');
       expect(elementA).not.toBeNull();
@@ -786,7 +751,6 @@ describe("<PieChart />", () => {
 
     it("should default to dataKey = value", () => {
       const { container } = renderTestCase();
-      flush();
       expect(selectPieSectors(container)).toHaveLength(2);
     });
   });

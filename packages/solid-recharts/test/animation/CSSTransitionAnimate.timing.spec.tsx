@@ -21,7 +21,7 @@
 //     the `onStart`-set `from` value appear one cadence earlier than the reference. The
 //     load-bearing contracts (fresh `from`, settled `to`, gating) are asserted.
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { batch, createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { CSSTransitionAnimate } from "../../src/animation/CSSTransitionAnimate";
 import { MockControllerAnimationManager } from "./mockControllerAnimationManager";
@@ -56,8 +56,6 @@ describe("CSSTransitionAnimate timing", () => {
               {childFunction}
             </CSSTransitionAnimate>
           ));
-          flush();
-
           // NOTE (cadence divergence): the reference asserts the bare `{ opacity: '1' }`
           // snapshot here because React runs the start effect AFTER first render. Solid
           // flushes that effect eagerly, so by now the transition key is already present
@@ -69,8 +67,6 @@ describe("CSSTransitionAnimate timing", () => {
           });
 
           vi.advanceTimersByTime(700);
-          flush();
-
           expectLastCalledWith(childFunction, {
             opacity: "0",
             transition: "opacity 500ms ease",
@@ -97,13 +93,9 @@ describe("CSSTransitionAnimate timing", () => {
               {spy}
             </CSSTransitionAnimate>
           ));
-          flush();
-
           expect(handleAnimationEnd).not.toHaveBeenCalled();
 
           vi.advanceTimersByTime(700);
-          flush();
-
           expect(handleAnimationEnd).toHaveBeenCalledTimes(1);
         } finally {
           vi.useRealTimers();
@@ -129,16 +121,12 @@ describe("CSSTransitionAnimate timing", () => {
             {childFunction}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(childFunction).toHaveBeenLastCalledWith({
           transform: "scaleY(0)",
           transition: "transform 500ms ease",
         });
 
         await manager.completeAnimation();
-        flush();
-
         expect(childFunction).toHaveBeenLastCalledWith({
           transform: "scaleY(1)",
           transition: "transform 500ms ease",
@@ -163,15 +151,11 @@ describe("CSSTransitionAnimate timing", () => {
             {childFunction}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         // v3.9 engine: onAnimationStart fires synchronously when the animation is created.
         expect(handleAnimationStart).toHaveBeenCalledTimes(1);
         expect(handleAnimationEnd).not.toHaveBeenCalled();
 
         await manager.completeAnimation();
-        flush();
-
         expect(handleAnimationStart).toHaveBeenCalledTimes(1);
         expect(handleAnimationEnd).toHaveBeenCalledTimes(1);
       });
@@ -194,8 +178,6 @@ describe("CSSTransitionAnimate timing", () => {
             {childFunction}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(manager.isAnimating()).toBe(true);
 
         // Tier-B adaptation: the reference unmounts via `rerender(<></>)`; in Solid we
@@ -226,8 +208,6 @@ describe("CSSTransitionAnimate timing", () => {
             {child}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(manager.isAnimating()).toBe(false);
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expectLastCalledWith(child, { opacity: "1" });
@@ -251,8 +231,6 @@ describe("CSSTransitionAnimate timing", () => {
             {child}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(manager.isAnimating()).toBe(false);
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expectLastCalledWith(child, { opacity: "0" });
@@ -278,16 +256,14 @@ describe("CSSTransitionAnimate timing", () => {
             {child}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expect(child).toHaveBeenLastCalledWith({ opacity: "0" });
 
         // Activate (and change the duration, mirroring the reference rerender).
-        setIsActive(true);
-        setDuration(300);
-        flush();
-
+        batch(() => {
+          setIsActive(true);
+          setDuration(300);
+        });
         // v3.9 onStart fires synchronously, setting the style to the fresh `from`.
         expect(handleAnimationStart).toHaveBeenCalledTimes(1);
         expect(child).toHaveBeenLastCalledWith({
@@ -296,7 +272,6 @@ describe("CSSTransitionAnimate timing", () => {
         });
 
         await manager.completeAnimation();
-        flush();
         expect(child).toHaveBeenLastCalledWith({
           opacity: "0",
           transition: "opacity 300ms ease",
@@ -330,22 +305,17 @@ describe("CSSTransitionAnimate timing", () => {
         };
 
         const rendered = render(() => <MyTestComponent />);
-        flush();
-
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expect(child).toHaveBeenLastCalledWith({ opacity: "0" });
         expect(manager.isAnimating()).toBe(false);
 
         const button = rendered.getByText("Start Animation");
         fireEvent.click(button);
-        flush();
-
         expect(handleAnimationStart).toHaveBeenCalledTimes(1);
         expect(manager.isAnimating()).toBe(true);
         expect(child).toHaveBeenLastCalledWith({ opacity: "1", transition: "opacity 500ms ease" });
 
         await manager.completeAnimation();
-        flush();
         expect(child).toHaveBeenLastCalledWith({ opacity: "0", transition: "opacity 500ms ease" });
       });
 
@@ -368,8 +338,6 @@ describe("CSSTransitionAnimate timing", () => {
             {child}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expect(handleAnimationEnd).not.toHaveBeenCalled();
         expect(child).toHaveBeenLastCalledWith({ opacity: "0" });
@@ -377,8 +345,6 @@ describe("CSSTransitionAnimate timing", () => {
         // Mirror the reference rerender with new from/to (still inactive).
         setFrom("0.7");
         setTo("0.3");
-        flush();
-
         expect(child).toHaveBeenLastCalledWith({ opacity: "0.3" });
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expect(handleAnimationEnd).not.toHaveBeenCalled();
@@ -404,16 +370,12 @@ describe("CSSTransitionAnimate timing", () => {
             {child}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(manager.isAnimating()).toBe(false);
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expect(child).toHaveBeenLastCalledWith({ opacity: "1" });
 
         setFrom("0.7");
         setTo("0.3");
-        flush();
-
         // rerendering should not start the animation
         expect(manager.isAnimating()).toBe(false);
         // the child should now be rerendered with the fresh "from" state
@@ -441,16 +403,12 @@ describe("CSSTransitionAnimate timing", () => {
             {child}
           </CSSTransitionAnimate>
         ));
-        flush();
-
         expect(handleAnimationStart).not.toHaveBeenCalled();
         expect(child).toHaveBeenLastCalledWith({ opacity: "1" });
 
         setFrom("0.7");
         setTo("0.3");
         setCanBegin(true);
-        flush();
-
         // v3.9 onStart fires synchronously, setting the style to the FRESH `from` ('0.7'),
         // verifying the latest value is used — not the stale mount-time one.
         expect(handleAnimationStart).toHaveBeenCalledTimes(1);
@@ -460,7 +418,6 @@ describe("CSSTransitionAnimate timing", () => {
         });
 
         await manager.completeAnimation();
-        flush();
         expect(handleAnimationStart).toHaveBeenCalledTimes(1);
         // After the animation completes, we should receive the `to` value with transition applied.
         expect(child).toHaveBeenLastCalledWith({

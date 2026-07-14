@@ -9,8 +9,9 @@
 // createEffect; React `createPortal` → `<Portal mount>`; selectors are read via
 // useAppSelector accessors; `useElementOffset`'s dependency array is a no-op in
 // the Solid port (the ResizeObserver tracks the node directly).
-import { createEffect, createMemo, merge, Show } from "solid-js";
-import { JSX, Portal } from "@solidjs/web";
+import { createMemo, Show, mergeProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
+import { DirectPortal } from "../util/DirectPortal";
 import {
   DefaultTooltipContent,
   Formatter,
@@ -148,7 +149,7 @@ function renderContent(content: ContentType | undefined, props: TooltipContentPr
  * interaction or, before any interaction, from `defaultIndex`.
  */
 export const Tooltip = (props: TooltipProps): JSX.Element => {
-  const merged = merge(defaultTooltipProps, props);
+  const merged = mergeProps(defaultTooltipProps, props);
   const store = useAppStore();
   const viewBox = useViewBox();
   const accessibilityLayer = useAccessibilityLayer();
@@ -158,7 +159,7 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
   const defaultIndexAsString = (): TooltipIndex | undefined =>
     typeof merged.defaultIndex === "number" ? String(merged.defaultIndex) : merged.defaultIndex;
 
-  // merge() keeps an explicit `trigger={undefined}` as undefined (unlike React's
+  // mergeProps() keeps an explicit `trigger={undefined}` as undefined (unlike React's
   // resolveDefaultProps, which would apply the default). The interaction selectors
   // gate on `trigger === "hover"`, so resolve the default explicitly.
   const resolvedTrigger = (): TooltipTrigger => merged.trigger ?? defaultTooltipProps.trigger;
@@ -166,16 +167,18 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
   // Push the Tooltip's settings into the store so the interaction selectors can
   // read shared/trigger/axisId/active/defaultIndex.
   createEffect(
-    () => ({
-      shared: merged.shared,
-      trigger: resolvedTrigger(),
-      axisId: merged.axisId,
-      active: merged.active,
-      defaultIndex: defaultIndexAsString(),
-    }),
-    (settings) => {
-      store?.actions.tooltip.setTooltipSettingsState(settings);
-    },
+    on(
+      () => ({
+        shared: merged.shared,
+        trigger: resolvedTrigger(),
+        axisId: merged.axisId,
+        active: merged.active,
+        defaultIndex: defaultIndexAsString(),
+      }),
+      (settings) => {
+        store?.actions.tooltip.setTooltipSettingsState(settings);
+      },
+    ),
   );
 
   const tooltipEventType = useAppSelector((state) => selectTooltipEventType(state, merged.shared));
@@ -244,7 +247,7 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
       </Show>
       <Show when={viewBox() && tooltipEventType() && portal()}>
         {(mount) => {
-          // Built as a plain object (spreading the Solid merge() proxy leaks a
+          // Built as a plain object (spreading the Solid mergeProps() proxy leaks a
           // MERGE_SOURCE symbol into the bag handed to a function-form `content`).
           const contentProps = (): TooltipContentProps => ({
             accessibilityLayer: accessibilityLayer(),
@@ -262,7 +265,7 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
             formatter: merged.formatter,
             includeHidden: merged.includeHidden,
             isAnimationActive: merged.isAnimationActive,
-            // merge() leaves explicit `undefined`; React defaultProps would still apply defaults.
+            // mergeProps() leaves explicit `undefined`; React defaultProps would still apply defaults.
             itemSorter: props.itemSorter ?? defaultTooltipProps.itemSorter,
             itemStyle: merged.itemStyle,
             label: finalLabel(),
@@ -279,7 +282,7 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
             wrapperStyle: merged.wrapperStyle,
           });
           return (
-            <Portal mount={mount()}>
+            <DirectPortal mount={mount()}>
               <TooltipBoundingBox
                 allowEscapeViewBox={merged.allowEscapeViewBox}
                 animationDuration={merged.animationDuration}
@@ -300,7 +303,7 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
               >
                 {renderContent(merged.content, contentProps())}
               </TooltipBoundingBox>
-            </Portal>
+            </DirectPortal>
           );
         }}
       </Show>

@@ -13,7 +13,7 @@
 //   - the <Customized>/render-count state-integration case (Customized +
 //     toHaveBeenCalledTimes — no Customized, render-count coupling out of scope).
 import { describe, expect, it, test, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { Scatter, ScatterChart, ScatterProps, Tooltip, XAxis, YAxis, ZAxis } from "../../src";
 import { assertNotNull } from "../helper/assertNotNull";
 import { expectScatterPoints } from "../helper/expectScatterPoints";
@@ -370,8 +370,6 @@ describe("<Scatter />", () => {
 
         const scatterPoints = container.querySelectorAll(".recharts-scatter-symbol");
         fireEvent.mouseEnter(scatterPoints[0]!);
-        flush();
-
         const payloadFromFirstScatter = spy.mock.calls.at(-1)?.[0];
         assertNotNull(payloadFromFirstScatter);
         expect(payloadFromFirstScatter).toEqual(
@@ -386,8 +384,6 @@ describe("<Scatter />", () => {
         );
 
         fireEvent.mouseEnter(scatterPoints[2]!);
-        flush();
-
         const payloadFromSecondScatter = spy.mock.calls.at(-1)?.[0];
         assertNotNull(payloadFromSecondScatter);
         expect(payloadFromSecondScatter).toEqual(

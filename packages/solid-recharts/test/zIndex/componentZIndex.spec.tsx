@@ -3,7 +3,7 @@
 // a dedicated `.recharts-zIndex-layer_<n>` portal. recharts supports these props
 // but does not unit-test them on these components.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import {
   Area,
   AreaChart,
@@ -54,7 +54,6 @@ describe("component zIndex prop", () => {
         <ReferenceLine y={150} zIndex={1201} />
       </LineChart>
     ));
-    flush();
     expect(portalContains(container, 1201, ".recharts-reference-line")).toBe(true);
   });
 
@@ -67,7 +66,6 @@ describe("component zIndex prop", () => {
         <ReferenceDot x="b" y={200} r={6} zIndex={1202} />
       </LineChart>
     ));
-    flush();
     expect(portalContains(container, 1202, ".recharts-reference-dot")).toBe(true);
   });
 
@@ -80,7 +78,6 @@ describe("component zIndex prop", () => {
         <ReferenceArea x1="a" x2="c" y1={0} y2={300} zIndex={1203} />
       </LineChart>
     ));
-    flush();
     expect(portalContains(container, 1203, ".recharts-reference-area")).toBe(true);
   });
 
@@ -99,7 +96,6 @@ describe("component zIndex prop", () => {
         </Line>
       </LineChart>
     ));
-    flush();
     expect(portalContains(container, 1205, ".recharts-errorBar")).toBe(true);
   });
 
@@ -111,7 +107,6 @@ describe("component zIndex prop", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     expect(portalContains(container, 1206, ".recharts-xAxis")).toBe(true);
   });
 
@@ -122,7 +117,6 @@ describe("component zIndex prop", () => {
         <Radar dataKey="v" />
       </RadarChart>
     ));
-    flush();
     expect(portalContains(container, 1204, ".recharts-polar-grid")).toBe(true);
   });
 });
@@ -141,7 +135,6 @@ describe("graphical item zIndex relayering", () => {
         <Line dataKey="uv" isAnimationActive={false} />
       </LineChart>
     ));
-    flush();
     expect(portalContains(dflt, 400, ".recharts-line")).toBe(true);
 
     const { container } = render(() => (
@@ -151,7 +144,6 @@ describe("graphical item zIndex relayering", () => {
         <Line dataKey="uv" zIndex={1210} isAnimationActive={false} />
       </LineChart>
     ));
-    flush();
     expect(portalContains(container, 1210, ".recharts-line")).toBe(true);
   });
 
@@ -163,7 +155,6 @@ describe("graphical item zIndex relayering", () => {
         <Area dataKey="uv" isAnimationActive={false} />
       </AreaChart>
     ));
-    flush();
     expect(portalContains(dflt, 100, ".recharts-area")).toBe(true);
 
     const { container } = render(() => (
@@ -173,7 +164,6 @@ describe("graphical item zIndex relayering", () => {
         <Area dataKey="uv" zIndex={1211} isAnimationActive={false} />
       </AreaChart>
     ));
-    flush();
     expect(portalContains(container, 1211, ".recharts-area")).toBe(true);
   });
 
@@ -185,7 +175,6 @@ describe("graphical item zIndex relayering", () => {
         <Scatter data={data} dataKey="uv" isAnimationActive={false} />
       </ScatterChart>
     ));
-    flush();
     expect(portalContains(dflt, 600, ".recharts-scatter")).toBe(true);
 
     const { container } = render(() => (
@@ -195,7 +184,6 @@ describe("graphical item zIndex relayering", () => {
         <Scatter data={data} dataKey="uv" zIndex={1212} isAnimationActive={false} />
       </ScatterChart>
     ));
-    flush();
     expect(portalContains(container, 1212, ".recharts-scatter")).toBe(true);
   });
 
@@ -205,7 +193,6 @@ describe("graphical item zIndex relayering", () => {
         <Pie data={data} dataKey="uv" isAnimationActive={false} />
       </PieChart>
     ));
-    flush();
     expect(portalContains(dflt, 100, ".recharts-pie")).toBe(true);
 
     const { container } = render(() => (
@@ -213,7 +200,6 @@ describe("graphical item zIndex relayering", () => {
         <Pie data={data} dataKey="uv" zIndex={1213} isAnimationActive={false} />
       </PieChart>
     ));
-    flush();
     expect(portalContains(container, 1213, ".recharts-pie")).toBe(true);
   });
 
@@ -223,7 +209,6 @@ describe("graphical item zIndex relayering", () => {
         <Radar dataKey="v" isAnimationActive={false} />
       </RadarChart>
     ));
-    flush();
     expect(portalContains(dflt, 100, ".recharts-radar")).toBe(true);
 
     const { container } = render(() => (
@@ -231,7 +216,6 @@ describe("graphical item zIndex relayering", () => {
         <Radar dataKey="v" zIndex={1214} isAnimationActive={false} />
       </RadarChart>
     ));
-    flush();
     expect(portalContains(container, 1214, ".recharts-radar")).toBe(true);
   });
 
@@ -241,7 +225,6 @@ describe("graphical item zIndex relayering", () => {
         <RadialBar dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(portalContains(dflt, 300, ".recharts-radial-bar-sectors")).toBe(true);
 
     const { container } = render(() => (
@@ -249,7 +232,6 @@ describe("graphical item zIndex relayering", () => {
         <RadialBar dataKey="uv" zIndex={1215} isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect(portalContains(container, 1215, ".recharts-radial-bar-sectors")).toBe(true);
   });
 });

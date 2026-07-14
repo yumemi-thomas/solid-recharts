@@ -23,7 +23,7 @@
 //   - "should call the function and give it the latest data" / issue #4935: dataKey
 //     call-count spies (render-count coupling).
 import { describe, expect, it, test, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { Brush, CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "../../src";
 import type { CurveType } from "../../src/shape/Curve";
@@ -60,7 +60,6 @@ describe("<LineChart />", () => {
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const allLines = container.querySelectorAll(".recharts-line .recharts-line-curve");
     expect(allLines).toHaveLength(1);
     const line = allLines[0];
@@ -103,7 +102,6 @@ describe("<LineChart />", () => {
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const allLines = container.querySelectorAll(".recharts-line .recharts-line-curve");
     expect(allLines).toHaveLength(1);
     const line = allLines[0];
@@ -280,7 +278,6 @@ describe("<LineChart />", () => {
             <Line type={curve} dataKey="uv" stroke="#ff7300" />
           </LineChart>
         ));
-        flush();
         const curves = container.querySelectorAll(".recharts-line .recharts-line-curve");
         expect(curves).toHaveLength(1);
         expect(curves[0]).toHaveAttribute("d", expectedD);
@@ -301,7 +298,6 @@ describe("<LineChart />", () => {
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const curves = container.querySelectorAll(".recharts-line .recharts-line-curve");
     expect(curves).toHaveLength(1);
     expect(curves[0]!.getAttribute("d")?.indexOf("C")).not.toEqual(-1);
@@ -328,7 +324,6 @@ describe("<LineChart />", () => {
         <Line type="monotone" connectNulls={false} dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const curves = container.querySelectorAll(".recharts-line .recharts-line-curve");
     expect(curves).toHaveLength(1);
     const path = curves[0]!.getAttribute("d");
@@ -357,7 +352,6 @@ describe("<LineChart />", () => {
         <Line type="monotone" connectNulls dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const curves = container.querySelectorAll(".recharts-line .recharts-line-curve");
     expect(curves.length).toEqual(1);
     const path = curves[0]!.getAttribute("d");
@@ -376,7 +370,6 @@ describe("<LineChart />", () => {
         <Line isAnimationActive={false} label type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-line-curve")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-line-dot")).toHaveLength(1);
   });
@@ -392,7 +385,6 @@ describe("<LineChart />", () => {
         <Line isAnimationActive={false} label type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const labels = container.querySelectorAll(".recharts-label");
     expect(labels).toHaveLength(6);
 
@@ -452,7 +444,6 @@ describe("<LineChart />", () => {
         <Line isAnimationActive={false} label={renderLabel} dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     const labels = container.querySelectorAll(".customized-label");
     expect(labels).toHaveLength(6);
   });
@@ -470,12 +461,9 @@ describe("<LineChart />", () => {
         <XAxis dataKey="name" />
       </LineChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(6);
 
     setData((d) => [...d, { name: "Page X", uv: 23092, pv: 223, amt: 2322 }]);
-    flush();
-
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(7);
     expect(container.textContent).toContain("Page X");
   });
@@ -491,7 +479,6 @@ describe("<LineChart />", () => {
         <Line isAnimationActive={false} dot type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-line-dot")).toHaveLength(6);
   });
 
@@ -516,7 +503,6 @@ describe("<LineChart />", () => {
         />
       </LineChart>
     ));
-    flush();
     expect(container.querySelectorAll(".customized-dot")).toHaveLength(6);
   });
 
@@ -529,8 +515,6 @@ describe("<LineChart />", () => {
         <Brush />
       </LineChart>
     ));
-    flush();
-
     const lineDots = container.querySelectorAll(".recharts-line-dots");
     expect(lineDots).toHaveLength(1);
     expect(lineDots[0]!.children).toHaveLength(6);
@@ -551,7 +535,6 @@ describe("<LineChart />", () => {
       bubbles: true,
       cancelable: true,
     });
-    flush();
     fireEvent.mouseMove(window, {
       pageX: 200,
       clientX: 200,
@@ -560,8 +543,6 @@ describe("<LineChart />", () => {
       cancelable: true,
     });
     fireEvent.mouseUp(window);
-    flush();
-
     fireEvent.mouseDown(rightCursor, {
       pageX: 400,
       clientX: 400,
@@ -569,7 +550,6 @@ describe("<LineChart />", () => {
       bubbles: true,
       cancelable: true,
     });
-    flush();
     fireEvent.mouseMove(window, {
       pageX: 340,
       clientX: 340,
@@ -578,8 +558,6 @@ describe("<LineChart />", () => {
       cancelable: true,
     });
     fireEvent.mouseUp(window);
-    flush();
-
     const newLineDots = container.querySelectorAll(".recharts-line-dots");
     expect(newLineDots).toHaveLength(1);
     expect(newLineDots[0]!.children).toHaveLength(3);
@@ -627,7 +605,6 @@ describe("<LineChart />", () => {
         <XAxis dataKey="name" allowDataOverflow />
       </LineChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-line-curve")).toHaveLength(1);
     const clipPaths = container.getElementsByTagName("clipPath");
     for (let i = 0; i < clipPaths.length; i++) {
@@ -665,7 +642,6 @@ describe("<LineChart />", () => {
           <XAxis dataKey="name" />
         </LineChart>
       ));
-      flush();
       const captured = holder.node;
       assertNotNull(captured);
       expect(captured.tagName).toBe("svg");
@@ -678,10 +654,10 @@ describe("<LineChart />", () => {
       const spy = vi.fn();
       const Comp = () => {
         const vb = useViewBox();
-        createEffect(
-          () => vb(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => vb())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -689,7 +665,6 @@ describe("<LineChart />", () => {
           <Comp />
         </LineChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith({ height: 40, width: 90, x: 5, y: 5 });
     });
 
@@ -704,7 +679,6 @@ describe("<LineChart />", () => {
           <Comp />
         </LineChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(expect.stringMatching(/recharts\d+-clip/));
     });
 
@@ -712,10 +686,10 @@ describe("<LineChart />", () => {
       const spy = vi.fn();
       const Comp = () => {
         const w = useChartWidth();
-        createEffect(
-          () => w(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => w())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -723,7 +697,6 @@ describe("<LineChart />", () => {
           <Comp />
         </LineChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(100);
     });
 
@@ -731,10 +704,10 @@ describe("<LineChart />", () => {
       const spy = vi.fn();
       const Comp = () => {
         const h = useChartHeight();
-        createEffect(
-          () => h(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => h())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -742,7 +715,6 @@ describe("<LineChart />", () => {
           <Comp />
         </LineChart>
       ));
-      flush();
       expect(spy).toHaveBeenCalledWith(50);
     });
   });
@@ -766,7 +738,6 @@ describe("<LineChart /> and various data sources", () => {
         <XAxis dataKey="label" />
       </LineChart>
     ));
-    flush();
     expectLabels(container, ["258", "295", "193", "168", "117"]);
     expectXAxisTicks(container, [
       { textContent: "Iter: 0", x: "5", y: "373" },
@@ -785,7 +756,6 @@ describe("<LineChart /> and various data sources", () => {
         <XAxis dataKey="label" />
       </LineChart>
     ));
-    flush();
     expectLabels(container, ["258", "295", "193", "168", "117", "597", "745", "657", "538", "762"]);
     expectXAxisTicks(container, [
       { textContent: "Iter: 0", x: "5", y: "373" },
@@ -804,7 +774,6 @@ describe("<LineChart /> and various data sources", () => {
         <XAxis dataKey="label" />
       </LineChart>
     ));
-    flush();
     expectLabels(container, ["258", "295", "193", "168", "117", "597", "745", "657", "538", "762"]);
     expectXAxisTicks(container, [
       { textContent: "Iter: 0", x: "5", y: "373" },
@@ -828,7 +797,6 @@ describe("<LineChart /> and various data sources", () => {
         <XAxis dataKey="label" allowDuplicatedCategory={false} />
       </LineChart>
     ));
-    flush();
     expectLabels(container, ["258", "295", "193", "168", "117", "597", "745", "657", "538", "762"]);
     expectXAxisTicks(container, [
       { textContent: "Iter: 0", x: "5", y: "373" },
@@ -847,7 +815,6 @@ describe("<LineChart /> and various data sources", () => {
         <XAxis dataKey="label" />
       </LineChart>
     ));
-    flush();
     expectLabels(container, ["258", "295", "193", "168", "117", "770", "622", "670", "495", "603"]);
     expectXAxisTicks(container, [
       { textContent: "Iter: 0", x: "5", y: "373" },
@@ -871,7 +838,6 @@ describe("<LineChart /> and various data sources", () => {
         <XAxis dataKey="label" />
       </LineChart>
     ));
-    flush();
     expectLabels(container, ["258", "295", "193", "168", "117", "770", "622", "670", "495", "603"]);
     expectXAxisTicks(container, [
       { textContent: "Iter: 5", x: "5", y: "373" },
@@ -920,11 +886,9 @@ describe("<LineChart /> with dataKey as a function", () => {
         <Line dataKey={useData2() ? dataKey2 : dataKey1} isAnimationActive={false} />
       </LineChart>
     ));
-    flush();
     expectLines(container, [{ d: "M5,198.333L150,101.667L295,5" }]);
 
     setUseData2(true);
-    flush();
     expectLines(container, [{ d: "M5,5L150,101.667L295,198.333" }]);
   });
 });

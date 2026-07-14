@@ -3,8 +3,8 @@
 // Solid deviations: selector hooks return Accessors (since `useAppSelector`
 // does); `useAppDispatch` + action creators → `useAppStore().actions` +
 // `createEffect`. Brush/responsive reads go through the current stubs.
-import { createEffect, type Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { type Accessor, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import {
   CartesianLayout,
   CartesianViewBoxRequired,
@@ -135,12 +135,14 @@ export const ReportChartSize = (props: {
     responsive && responsive.height > 0 ? responsive.height : props.height;
 
   createEffect(
-    () => ({ width: width(), height: height() }),
-    ({ width: w, height: h }) => {
-      if (!isPanorama && isPositiveNumber(w) && isPositiveNumber(h)) {
-        store?.actions.layout.setChartSize({ width: w, height: h });
-      }
-    },
+    on(
+      () => ({ width: width(), height: height() }),
+      ({ width: w, height: h }) => {
+        if (!isPanorama && isPositiveNumber(w) && isPositiveNumber(h)) {
+          store?.actions.layout.setChartSize({ width: w, height: h });
+        }
+      },
+    ),
   );
 
   return null;
@@ -149,10 +151,12 @@ export const ReportChartSize = (props: {
 export const ReportChartMargin = (props: { margin: Partial<Margin> }): JSX.Element => {
   const store = useAppStore();
   createEffect(
-    () => props.margin,
-    (margin) => {
-      store?.actions.layout.setMargin(margin);
-    },
+    on(
+      () => props.margin,
+      (margin) => {
+        store?.actions.layout.setMargin(margin);
+      },
+    ),
   );
   return null;
 };

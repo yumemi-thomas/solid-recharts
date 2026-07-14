@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 test/cartesian/Bar.zeroDimensionFiltering.spec.tsx (commit 7a23854).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { Bar, BarChart, BarStack, XAxis, YAxis } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { render } from "@solidjs/testing-library";
@@ -89,8 +89,6 @@ describe("Bar zero-dimension filtering", () => {
         </BarStack>
       </BarChart>
     ));
-    flush();
-
     const clippedBarLayers = container.querySelectorAll(".recharts-bar-rectangle[clip-path]");
     expect(clippedBarLayers).toHaveLength(1);
     expect(clippedBarLayers[0]!.getAttribute("clip-path")).toBe(
@@ -146,8 +144,6 @@ describe("Bar zero-dimension filtering", () => {
         <Bar dataKey="stackA" stackId="stack" fill="#8884d8" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     const bars = getAllBars(container);
 
     expect(bars.length).toBeLessThanOrEqual(nonZeroCategories);
@@ -172,8 +168,6 @@ describe("Bar zero-dimension filtering", () => {
           <Bar dataKey="stackC" stackId="stack" fill="#ffc658" isAnimationActive={false} />
         </BarChart>
       ));
-      flush();
-
       const actualBars = getAllBars(container).length;
       const potentialBars = totalCategories * 3;
       const reductionPercent = Math.round((1 - actualBars / potentialBars) * 100);
@@ -254,8 +248,6 @@ describe("Bar zero-dimension filtering", () => {
         ))}
       </BarChart>
     ));
-    flush();
-
     const actualBars = getAllBars(container).length;
     const potentialBars = months * metrics;
 
@@ -282,8 +274,6 @@ describe("Bar zero-dimension filtering", () => {
         <Bar dataKey="info" stackId="log" fill="#4488ff" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     const actualBars = getAllBars(container).length;
     const potentialBars = dataPoints * 3;
 

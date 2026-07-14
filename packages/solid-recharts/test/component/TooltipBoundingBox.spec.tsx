@@ -2,7 +2,7 @@
 // Harness adaptations: React render -> Solid render(() => <…/>) + flush();
 // @testing-library/react -> @solidjs/testing-library;
 // userEvent.keyboard('{Escape}') -> fireEvent.keyDown(document, { key: 'Escape' }).
-import { flush } from "solid-js";
+
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@solidjs/testing-library";
 import { TooltipBoundingBox } from "../../src/component/TooltipBoundingBox";
@@ -65,7 +65,6 @@ describe("TooltipBoundingBox", () => {
     expect(element).toBeVisible();
 
     fireEvent.keyDown(document, { key: "Escape" });
-    flush();
     expect(element).toBeInTheDocument();
     expect(element).not.toBeVisible();
   });

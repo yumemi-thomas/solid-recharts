@@ -2,7 +2,7 @@
 // 7a23854). Solid deviations: this first batch covers the base three-dimensional
 // scatter render, clip path, empty data, and item mouse-enter callback.
 import { describe, expect, it, test, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import {
   Bar,
   Brush,
@@ -786,10 +786,10 @@ describe("ScatterChart layout context", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const viewBox = useViewBox();
-      createEffect(
-        () => viewBox(),
-        (v) => spy(v),
-      );
+      createEffect(() => {
+        const value = (() => viewBox())();
+        ((v) => spy(v))(value);
+      });
       return null;
     };
     render(() => (
@@ -804,10 +804,10 @@ describe("ScatterChart layout context", () => {
   it("should provide clipPathId", () => {
     const spy = vi.fn();
     const Comp = (): null => {
-      createEffect(
-        () => useClipPathId(),
-        (v) => spy(v),
-      );
+      createEffect(() => {
+        const value = (() => useClipPathId())();
+        ((v) => spy(v))(value);
+      });
       return null;
     };
     render(() => (
@@ -823,10 +823,10 @@ describe("ScatterChart layout context", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const width = useChartWidth();
-      createEffect(
-        () => width(),
-        (v) => spy(v),
-      );
+      createEffect(() => {
+        const value = (() => width())();
+        ((v) => spy(v))(value);
+      });
       return null;
     };
     render(() => (
@@ -842,10 +842,10 @@ describe("ScatterChart layout context", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const height = useChartHeight();
-      createEffect(
-        () => height(),
-        (v) => spy(v),
-      );
+      createEffect(() => {
+        const value = (() => height())();
+        ((v) => spy(v))(value);
+      });
       return null;
     };
     render(() => (
@@ -2513,16 +2513,13 @@ describe("ScatterChart customized active shape", () => {
     expect(sectorNodes.length).toBeGreaterThanOrEqual(2);
     const sector1 = sectorNodes[0]!;
     fireEvent.mouseEnter(sector1, { clientX: 200, clientY: 200 });
-    flush();
     expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(1);
 
     const sector2 = container.querySelectorAll(".recharts-scatter-symbol")[1]!;
     fireEvent.mouseEnter(sector2, { clientX: 200, clientY: 200 });
-    flush();
     expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(1);
 
     fireEvent.mouseLeave(container.querySelectorAll(".recharts-scatter-symbol")[1]!);
-    flush();
     expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(0);
   }
 
@@ -2606,8 +2603,6 @@ describe("ScatterChart customized active shape", () => {
 
     const sector = container.querySelectorAll(".recharts-scatter-symbol")[0]!;
     fireEvent.mouseEnter(sector, { clientX: 200, clientY: 200 });
-    flush();
-
     expect(container.querySelectorAll(".recharts-active-shape")).toHaveLength(0);
   });
 });

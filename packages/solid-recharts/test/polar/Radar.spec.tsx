@@ -4,9 +4,9 @@
 // geometry tests inline the golden `d` (recharts' `expectRadarPolygons` value)
 // because the port has no `expectRadarPolygons` helper. `flush()` because Radar
 // registers via an effect and points compute from the store.
-import { createEffect, createSignal, flush } from "solid-js";
-import { Show } from "@solidjs/web";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal } from "solid-js";
+import { Show } from "solid-js";
+import type { JSX } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import { Radar, RadarChart } from "../../src";
 import type { RadarProps } from "../../src";
@@ -61,8 +61,6 @@ describe("<Radar />", () => {
           <Radar dataKey="value" isAnimationActive={false} />
         </RadarChart>
       ));
-      flush();
-
       const polygon = container.querySelector(".recharts-radar-polygon path");
       expect(polygon?.getAttribute("d")).toBe(GOLDEN_RADAR_PATH);
       expect(polygon?.getAttribute("fill")).toBeNull();
@@ -87,8 +85,6 @@ describe("<Radar />", () => {
         <Radar dataKey="value" isAnimationActive={false} shape={CustomizedShape} />
       </RadarChart>
     ));
-    flush();
-
     expect(screen.getAllByTestId("customized-shape")).toHaveLength(1);
   });
 
@@ -100,8 +96,6 @@ describe("<Radar />", () => {
         <Radar dataKey="value" isAnimationActive={false} label={CustomizedLabel} />
       </RadarChart>
     ));
-    flush();
-
     expect(screen.getAllByTestId("customized-label")).toHaveLength(exampleRadarData.length);
   });
 
@@ -115,8 +109,6 @@ describe("<Radar />", () => {
         <Radar dataKey="value" isAnimationActive={false} dot={CustomizedDot} />
       </RadarChart>
     ));
-    flush();
-
     expect(screen.getAllByTestId("customized-dot")).toHaveLength(exampleRadarData.length);
   });
 
@@ -137,8 +129,6 @@ describe("<Radar />", () => {
         />
       </RadarChart>
     ));
-    flush();
-
     expect(screen.getAllByTestId("customized-dot")).toHaveLength(exampleRadarData.length);
   });
 
@@ -152,8 +142,6 @@ describe("<Radar />", () => {
         <CustomRadar dataKey="value" isAnimationActive={false} />
       </RadarChart>
     ));
-    flush();
-
     const polygon = container.querySelector(".recharts-radar-polygon path");
     expect(polygon).not.toBeNull();
     expect(polygon?.getAttribute("d")).toBe(GOLDEN_RADAR_PATH);
@@ -166,8 +154,6 @@ describe("<Radar />", () => {
         <Radar dataKey="value" isAnimationActive={false} />
       </RadarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-radar-polygon")).toHaveLength(0);
   });
 
@@ -184,8 +170,6 @@ describe("<Radar />", () => {
           <Radar dataKey="value" isAnimationActive={false} onClick={handleClick} />
         </RadarChart>
       ));
-      flush();
-
       const polygon = container.querySelector(".recharts-polygon");
       expect(polygon).not.toBeNull();
       fireEvent.click(polygon!);
@@ -206,8 +190,6 @@ describe("<Radar />", () => {
           />
         </RadarChart>
       ));
-      flush();
-
       const polygon = container.querySelector(".recharts-polygon");
       expect(polygon).not.toBeNull();
       fireEvent.touchMove(polygon!, { touches: [{ clientX: 200, clientY: 200 }] });
@@ -226,10 +208,10 @@ describe("<Radar />", () => {
       const [showRadar, setShowRadar] = createSignal(true);
       const Comp = (): null => {
         const items = useAppSelector((state) => selectPolarItemsSettings(state, "angleAxis", 0));
-        createEffect(
-          () => items(),
-          (v) => polarItemsSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => items())();
+          ((v) => polarItemsSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -240,8 +222,6 @@ describe("<Radar />", () => {
           <Comp />
         </RadarChart>
       ));
-      flush();
-
       const expectedPolarItemsSettings: RadarSettings = {
         // `id` is a documented Solid deviation: recharts matches reference
         // elements by object identity, but the port mints a stable id for
@@ -257,8 +237,6 @@ describe("<Radar />", () => {
       expect(polarItemsSpy).toHaveBeenLastCalledWith([expectedPolarItemsSettings]);
 
       setShowRadar(false);
-      flush();
-
       expect(polarItemsSpy).toHaveBeenLastCalledWith([]);
     });
   });

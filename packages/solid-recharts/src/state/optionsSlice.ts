@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 src/state/optionsSlice.ts (commit 7a23854).
 // Solid-native slice.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { TooltipEventType } from "../util/types";
 import { TooltipIndex, TooltipPayloadSearcher } from "./tooltipSlice";
 import { isNan } from "../util/DataUtils";
@@ -52,11 +52,13 @@ export function createOptionsSlice(initialState: ChartOptions = initialOptionsSt
 
   const actions: OptionsActions = {
     createEventEmitter() {
-      setState((s) => {
-        if (s.eventEmitter == null) {
-          s.eventEmitter = Symbol("rechartsEventEmitter");
-        }
-      });
+      setState(
+        produce((s) => {
+          if (s.eventEmitter == null) {
+            s.eventEmitter = Symbol("rechartsEventEmitter");
+          }
+        }),
+      );
     },
   };
 

@@ -11,7 +11,7 @@
 // v3.9 GOTCHA: the new JavascriptAnimation state machine calls onAnimationStart
 // SYNCHRONOUSLY in its constructor (on first render), not lazily on the first tick.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { PieChart, Pie, Legend } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -34,7 +34,7 @@ describe("initial animation when the chart has Legend in it (https://github.com/
   function renderTestCase() {
     const manager = new MockProgressAnimationManager("pie-legend-anim");
     const { container } = render(() => (
-      <AnimationControllerProvider value={manager.factory}>
+      <AnimationControllerProvider.Provider value={manager.factory}>
         <PieChart width={100} height={100}>
           <Pie
             data={smallerData}
@@ -45,9 +45,8 @@ describe("initial animation when the chart has Legend in it (https://github.com/
           />
           <Legend />
         </PieChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
     return { container, animationManager: manager };
   }
 
@@ -59,7 +58,6 @@ describe("initial animation when the chart has Legend in it (https://github.com/
         <Legend />
       </PieChart>
     ));
-    flush();
     return selectPieSectors(container).map((s) => trim(s.getAttribute("d")) ?? "");
   }
 
@@ -75,12 +73,10 @@ describe("initial animation when the chart has Legend in it (https://github.com/
     expect(onAnimationStart).toHaveBeenCalledTimes(1);
 
     await animationManager.setAnimationProgress(0.1);
-    flush();
     expect(onAnimationStart).toHaveBeenCalledTimes(1);
     expect(onAnimationStart).toHaveBeenCalledWith();
 
     await animationManager.completeAnimation();
-    flush();
     expect(onAnimationStart).toHaveBeenCalledTimes(1);
   });
 
@@ -89,11 +85,9 @@ describe("initial animation when the chart has Legend in it (https://github.com/
 
     expect(onAnimationEnd).not.toHaveBeenCalled();
     await animationManager.setAnimationProgress(0.9);
-    flush();
     expect(onAnimationEnd).not.toHaveBeenCalled();
 
     await animationManager.completeAnimation();
-    flush();
     expect(onAnimationEnd).toHaveBeenCalledTimes(1);
     expect(onAnimationEnd).toHaveBeenCalledWith();
   });
@@ -106,14 +100,12 @@ describe("initial animation when the chart has Legend in it (https://github.com/
 
     // Mid-animation: all sectors render, but with in-flight (non-settled) geometry.
     await animationManager.setAnimationProgress(0.5);
-    flush();
     const midPaths = selectPieSectors(container).map((s) => trim(s.getAttribute("d")) ?? "");
     expect(midPaths).toHaveLength(smallerData.length);
     expect(midPaths).not.toEqual(settledPaths);
 
     // t=1: byte-identical to the isAnimationActive={false} render.
     await animationManager.completeAnimation();
-    flush();
     const finalPaths = selectPieSectors(container).map((s) => trim(s.getAttribute("d")) ?? "");
     expect(finalPaths).toEqual(settledPaths);
   });
@@ -122,12 +114,10 @@ describe("initial animation when the chart has Legend in it (https://github.com/
     const { container, animationManager } = renderTestCase();
 
     await animationManager.setAnimationProgress(0.3);
-    flush();
     const anglesAt03 = getPieSectorAngles(selectPieSectors(container));
     expect(anglesAt03).toHaveLength(smallerData.length);
 
     await animationManager.setAnimationProgress(0.7);
-    flush();
     const anglesAt07 = getPieSectorAngles(selectPieSectors(container));
     expect(anglesAt07).toHaveLength(smallerData.length);
 

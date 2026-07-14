@@ -10,6 +10,7 @@ exports[`<Sector /> > Don't render any sector when props is invalid 1`] = `
   >
     <title />
     <desc />
+\x20\x20\x20\x20
   </svg>
 </div>
 `;

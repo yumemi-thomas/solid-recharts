@@ -18,7 +18,7 @@
 // here. Contrast (and real geometry) must be validated by a browser-based axe
 // run (Playwright + @axe-core/playwright). Every OTHER axe rule — ARIA validity,
 // roles, accessible names, structure, duplicate ids, etc. — runs for real.
-import { flush } from "solid-js";
+
 import { describe, expect, test } from "vitest";
 import { axe } from "vitest-axe";
 import {
@@ -66,7 +66,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
       </AreaChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -77,7 +76,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
       </AreaChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -88,7 +86,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Area type="monotone" dataKey="uv" stroke="#ff7300" fill="#ff7300" />
       </AreaChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).not.toHaveAttribute("role");
   });
@@ -110,7 +107,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Brush />
       </AreaChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
   });
 
@@ -120,7 +116,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Bar dataKey="uv" fill="#ff7300" />
       </BarChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -131,7 +126,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Funnel dataKey="value" data={data} />
       </FunnelChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -142,7 +136,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Line type="monotone" dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -153,7 +146,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Pie dataKey="value" data={[data[0]]} cx={200} cy={200} outerRadius={80} fill="#ff7300" />
       </PieChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -164,7 +156,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Radar dataKey="value" />
       </RadarChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -184,7 +175,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <RadialBar dataKey="uv" isAnimationActive={false} />
       </RadialBarChart>
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
     expect(document.querySelector("svg")).toHaveAttribute("role", "application");
   });
@@ -193,7 +183,6 @@ describe("Static scanning for accessibility markup issues", () => {
     const { container } = render(() => (
       <Sankey width={1000} height={500} data={exampleSankeyData} />
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
   });
 
@@ -206,7 +195,6 @@ describe("Static scanning for accessibility markup issues", () => {
         <Tooltip />
       </ScatterChart>
     ));
-    flush();
     expectScatterPoints(container, [
       {
         cx: "92.5",
@@ -265,7 +253,6 @@ describe("Static scanning for accessibility markup issues", () => {
     const { container } = render(() => (
       <SunburstChart width={500} height={500} data={exampleSunburstData} />
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
   });
 
@@ -280,7 +267,6 @@ describe("Static scanning for accessibility markup issues", () => {
         dataKey="value"
       />
     ));
-    flush();
     expect((await axe(container, AXE_OPTIONS)).violations).toHaveLength(0);
   });
 });

@@ -6,7 +6,7 @@
 // through `<Show>`. Not yet wired into <Line> (clip is a deferred Line feature);
 // this is the shared clip-path primitive for graphical items.
 import { createMemo, Show, type Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { AxisId } from "../state/cartesianAxisSlice";
 import { useAppSelector } from "../state/hooks";
 import {

@@ -3,7 +3,7 @@
 // per data node / link. `flush()` because the chart size is reported via an effect
 // before the layout computes.
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { Sankey, Tooltip, XAxis, YAxis } from "../../src";
 import { computeData, sankeyPayloadSearcher } from "../../src/chart/Sankey";
@@ -106,16 +106,12 @@ const getLinkYAtX = (path: Element, x: number): number => {
 describe("<Sankey />", () => {
   it("renders one node rect per node and one link path per link", () => {
     const { container } = render(() => <Sankey width={600} height={400} data={data} />);
-    flush();
-
     expect(container.querySelectorAll(".recharts-sankey-node")).toHaveLength(data.nodes.length);
     expect(container.querySelectorAll(".recharts-sankey-link")).toHaveLength(data.links.length);
   });
 
   it("draws nodes at the default nodeWidth and links with a cubic-Bézier path", () => {
     const { container } = render(() => <Sankey width={600} height={400} data={data} />);
-    flush();
-
     const node = container.querySelector(".recharts-sankey-node");
     expect(node).not.toBeNull();
     // Default nodeWidth is 10.
@@ -133,8 +129,6 @@ describe("<Sankey />", () => {
     const { container } = render(() => (
       <Sankey width={600} height={400} data={data} onClick={onClick} />
     ));
-    flush();
-
     fireEvent.click(container.querySelector(".recharts-sankey-node")!);
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(onClick.mock.calls[0]![1]).toBe("node");
@@ -144,8 +138,6 @@ describe("<Sankey />", () => {
     const { container } = render(() => (
       <Sankey width={1000} height={500} data={exampleSankeyData} />
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-sankey-node")).toHaveLength(48);
   });
 
@@ -153,16 +145,12 @@ describe("<Sankey />", () => {
     const { container } = render(() => (
       <Sankey width={1000} height={500} data={exampleSankeyData} />
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-sankey-link")).toHaveLength(68);
   });
 
   it("re-renders links and nodes when data changes", () => {
     const [data2, setData2] = createSignal(exampleSankeyData);
     const { container } = render(() => <Sankey width={1000} height={500} data={data2()} />);
-    flush();
-
     expect(container.querySelectorAll(".recharts-sankey-node")).toHaveLength(48);
     expect(container.querySelectorAll(".recharts-sankey-link")).toHaveLength(68);
 
@@ -173,8 +161,6 @@ describe("<Sankey />", () => {
         { source: 2, target: exampleSankeyData.nodes.length, value: 100.0 },
       ],
     });
-    flush();
-
     expect(container.querySelectorAll(".recharts-sankey-node")).toHaveLength(49);
     expect(container.querySelectorAll(".recharts-sankey-link")).toHaveLength(69);
   });
@@ -186,10 +172,10 @@ describe("<Sankey />", () => {
       const Comp = (): null => {
         clipPathSpy(useClipPathId());
         const viewBox = useViewBox();
-        createEffect(
-          () => viewBox(),
-          (v) => viewBoxSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => viewBox())();
+          ((v) => viewBoxSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -197,7 +183,6 @@ describe("<Sankey />", () => {
           <Comp />
         </Sankey>
       ));
-      flush();
       expect(clipPathSpy).toHaveBeenLastCalledWith(undefined);
       expect(viewBoxSpy).toHaveBeenLastCalledWith({ x: 5, y: 5, width: 990, height: 490 });
     });
@@ -208,14 +193,14 @@ describe("<Sankey />", () => {
       const Comp = (): null => {
         const width = useChartWidth();
         const height = useChartHeight();
-        createEffect(
-          () => width(),
-          (v) => widthSpy(v),
-        );
-        createEffect(
-          () => height(),
-          (v) => heightSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => width())();
+          ((v) => widthSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = (() => height())();
+          ((v) => heightSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -223,7 +208,6 @@ describe("<Sankey />", () => {
           <Comp />
         </Sankey>
       ));
-      flush();
       expect(widthSpy).toHaveBeenLastCalledWith(100);
       expect(heightSpy).toHaveBeenLastCalledWith(50);
     });
@@ -249,8 +233,6 @@ describe("<Sankey />", () => {
           <Tooltip trigger="hover" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       expect(tooltip).not.toBeVisible();
 
@@ -271,8 +253,6 @@ describe("<Sankey />", () => {
           <Tooltip trigger="hover" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       expect(tooltip).not.toBeVisible();
 
@@ -293,16 +273,12 @@ describe("<Sankey />", () => {
           <Tooltip trigger="hover" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       const tooltipTriggerElement = container.querySelector(sankeyLinkMouseHoverTooltipSelector);
       assertNotNull(tooltipTriggerElement);
       expect(tooltip).not.toBeVisible();
 
       fireEvent.click(tooltipTriggerElement);
-      flush();
-
       expect(tooltip).not.toBeVisible();
     });
 
@@ -314,16 +290,12 @@ describe("<Sankey />", () => {
           <Tooltip trigger="hover" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       const tooltipTriggerElement = container.querySelector(sankeyNodeMouseHoverTooltipSelector);
       assertNotNull(tooltipTriggerElement);
       expect(tooltip).not.toBeVisible();
 
       fireEvent.click(tooltipTriggerElement);
-      flush();
-
       expect(tooltip).not.toBeVisible();
     });
   });
@@ -337,21 +309,15 @@ describe("<Sankey />", () => {
           <Tooltip trigger="click" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       expect(tooltip).not.toBeVisible();
 
       const tooltipTriggerElement = container.querySelector(sankeyLinkMouseHoverTooltipSelector);
       assertNotNull(tooltipTriggerElement);
       fireEvent.click(tooltipTriggerElement);
-      flush();
-
       expect(tooltip).toBeVisible();
 
       fireEvent.click(tooltipTriggerElement);
-      flush();
-
       expect(tooltip).toBeVisible();
     });
 
@@ -363,21 +329,15 @@ describe("<Sankey />", () => {
           <Tooltip trigger="click" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       expect(tooltip).not.toBeVisible();
 
       const tooltipTriggerElement = container.querySelector(sankeyNodeMouseHoverTooltipSelector);
       assertNotNull(tooltipTriggerElement);
       fireEvent.click(tooltipTriggerElement);
-      flush();
-
       expect(tooltip).toBeVisible();
 
       fireEvent.click(tooltipTriggerElement);
-      flush();
-
       expect(tooltip).toBeVisible();
     });
 
@@ -389,8 +349,6 @@ describe("<Sankey />", () => {
           <Tooltip trigger="click" />
         </Sankey>
       ));
-      flush();
-
       const tooltip = getTooltip(container);
       showTooltip(container, sankeyLinkMouseHoverTooltipSelector);
       showTooltip(container, sankeyNodeMouseHoverTooltipSelector);
@@ -404,13 +362,10 @@ describe("<Sankey />", () => {
       const { container } = render(() => (
         <Sankey width={1000} height={500} data={exampleSankeyData} onClick={onClick} />
       ));
-      flush();
-
       const link = container.querySelector(sankeyLinkMouseHoverTooltipSelector);
       assertNotNull(link);
 
       fireEvent.click(link, { clientX: 200, clientY: 200 });
-      flush();
       expect(onClick).toHaveBeenCalledTimes(1);
       const expectedLinkProps: SankeyLinkProps = {
         index: 0,
@@ -469,13 +424,10 @@ describe("<Sankey />", () => {
       const { container } = render(() => (
         <Sankey width={1000} height={500} data={exampleSankeyData} onClick={onClick} />
       ));
-      flush();
-
       const node = container.querySelector(sankeyNodeMouseHoverTooltipSelector);
       assertNotNull(node);
 
       fireEvent.click(node, { clientX: 200, clientY: 200 });
-      flush();
       expect(onClick).toHaveBeenCalledTimes(1);
       const expectedNodeProps: SankeyNodeProps = {
         height: 13.172337974085991,
@@ -517,13 +469,10 @@ describe("<Sankey />", () => {
           onMouseLeave={onMouseLeave}
         />
       ));
-      flush();
-
       const link = container.querySelector(sankeyLinkMouseHoverTooltipSelector);
       assertNotNull(link);
 
       fireEvent.mouseEnter(link, { clientX: 200, clientY: 200 });
-      flush();
       expect(onMouseEnter).toHaveBeenCalledTimes(1);
       const expectedLinkProps: SankeyLinkProps = {
         sourceX: 15,
@@ -577,7 +526,6 @@ describe("<Sankey />", () => {
       );
 
       fireEvent.mouseLeave(link);
-      flush();
       expect(onMouseLeave).toHaveBeenCalledTimes(1);
       expectLastCalledWith(
         onMouseLeave,
@@ -592,13 +540,10 @@ describe("<Sankey />", () => {
       const { container } = render(() => (
         <Sankey width={1000} height={500} data={exampleSankeyData} onMouseMove={onMouseMove} />
       ));
-      flush();
-
       const link = container.querySelector(sankeyLinkMouseHoverTooltipSelector);
       assertNotNull(link);
 
       fireEvent.mouseMove(link, { clientX: 200, clientY: 200 });
-      flush();
       expect(onMouseMove).toHaveBeenCalledTimes(0);
     });
 
@@ -614,13 +559,10 @@ describe("<Sankey />", () => {
           onMouseLeave={onMouseLeave}
         />
       ));
-      flush();
-
       const node = container.querySelector(sankeyNodeMouseHoverTooltipSelector);
       assertNotNull(node);
 
       fireEvent.mouseEnter(node, { clientX: 200, clientY: 200 });
-      flush();
       expect(onMouseEnter).toHaveBeenCalledTimes(1);
       const expectedNodeProps: SankeyNodeProps = {
         height: 13.172337974085991,
@@ -650,7 +592,6 @@ describe("<Sankey />", () => {
       );
 
       fireEvent.mouseLeave(node);
-      flush();
       expect(onMouseLeave).toHaveBeenCalledTimes(1);
       expectLastCalledWith(
         onMouseLeave,
@@ -665,13 +606,10 @@ describe("<Sankey />", () => {
       const { container } = render(() => (
         <Sankey width={1000} height={500} data={exampleSankeyData} onMouseMove={onMouseMove} />
       ));
-      flush();
-
       const node = container.querySelector(sankeyNodeMouseHoverTooltipSelector);
       assertNotNull(node);
 
       fireEvent.mouseMove(node, { clientX: 200, clientY: 200 });
-      flush();
       expect(onMouseMove).toHaveBeenCalledTimes(0);
     });
 
@@ -688,17 +626,13 @@ describe("<Sankey />", () => {
           onTouchEnd={onTouchEnd}
         />
       ));
-      flush();
-
       const link = container.querySelector(sankeyLinkMouseHoverTooltipSelector);
       assertNotNull(link);
 
       fireEvent.touchMove(link, { touches: [{ clientX: 200, clientY: 200 }] });
-      flush();
       expect(onTouchMove).toHaveBeenCalledTimes(0);
 
       fireEvent.touchEnd(link, { changedTouches: [{ clientX: 200, clientY: 200 }] });
-      flush();
       expect(onTouchEnd).toHaveBeenCalledTimes(0);
     });
 
@@ -715,17 +649,13 @@ describe("<Sankey />", () => {
           onTouchEnd={onTouchEnd}
         />
       ));
-      flush();
-
       const node = container.querySelector(sankeyNodeMouseHoverTooltipSelector);
       assertNotNull(node);
 
       fireEvent.touchMove(node, { touches: [{ clientX: 200, clientY: 200 }] });
-      flush();
       expect(onTouchMove).toHaveBeenCalledTimes(0);
 
       fireEvent.touchEnd(node, { changedTouches: [{ clientX: 200, clientY: 200 }] });
-      flush();
       expect(onTouchEnd).toHaveBeenCalledTimes(0);
     });
   });
@@ -740,8 +670,6 @@ describe("<Sankey />", () => {
     };
 
     const { container } = render(() => <Sankey width={500} height={300} data={zeroData} />);
-    flush();
-
     // Rectangle component drops 0-height rectangles, so no nodes render
     const nodes = container.querySelectorAll(".recharts-sankey-node");
     expect(nodes.length).toBe(0);
@@ -770,8 +698,6 @@ describe("<Sankey />", () => {
     };
 
     const { container } = render(() => <Sankey width={500} height={300} data={mixedData} />);
-    flush();
-
     const nodes = container.querySelectorAll(".recharts-sankey-node");
     // A and B should render because they have >0 values.
     // C and D have 0 values, so they get 0 height and do not render.
@@ -798,8 +724,6 @@ describe("<Sankey />", () => {
     };
 
     const { container } = render(() => <Sankey width={760} height={420} data={overlappingData} />);
-    flush();
-
     const nodes = Array.from(container.querySelectorAll(".recharts-sankey-node"));
     const link = container.querySelector(".recharts-sankey-link");
 
@@ -906,8 +830,6 @@ describe("<Sankey />", () => {
       const { container } = render(() => (
         <Sankey width={1000} height={500} data={{ nodes, links }} />
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-sankey-node")).toHaveLength(nodes.length);
       expect(container.querySelectorAll(".recharts-sankey-link")).toHaveLength(links.length);
     });

@@ -1,6 +1,6 @@
 # AGENTS.md — solid-recharts
 
-A port of **recharts** (reference pinned at **v3.9.2**) to **SolidJS 2.0** with behavior parity
+A port of **recharts** (reference pinned at **v3.9.2**) to **SolidJS 1.x** with behavior parity
 and stronger types. The port is complete; work here is maintenance, upstream syncs, and features.
 **READ THIS BEFORE WRITING ANY CODE.**
 
@@ -25,8 +25,8 @@ stores/projections mirroring the same selector graph). That mismatch is the #1 c
   - Tier A (DOM/behavioral): assertions **byte-identical**; change only the harness.
   - Tier B (state-internal): equivalent tests, expectations **anchored to recharts** (golden capture).
 - **Red first.** Implement the minimum that goes green.
-- Before writing or debugging any test, read `.claude/skills/testing/SKILL.md` (diagnostics
-  discipline + `@solidjs/testing-library` harness).
+- Use the Solid 1-compatible `@solidjs/testing-library` harness. Solid 2 structured diagnostics
+  and `flush()` conventions do not apply on this branch.
 
 ## Props
 
@@ -35,13 +35,13 @@ Match recharts props **exactly**, except this **closed** list of framework-idiom
 delegated handlers; `forwardRef` → `ref` prop; `children` typed as `JSX.Element`. **No other prop
 renames or restructuring.**
 
-## SolidJS 2.0
+## SolidJS 1.x
 
-This is a **Solid 2.0 (beta)** codebase. **Before writing ANY Solid code, read `.claude/skills/solidjs-2/SKILL.md`.**
-Patterns from React or Solid 1.x are bugs here. Highest-frequency rules: two-arg
-`createEffect(compute, apply)`; never destructure `props` (pass through, read `props.x` in JSX); props
-are values, not accessors; no `batch()`; `class` not `classList`/`className`; store APIs from `solid-js`,
-JSX/`render` from `@solidjs/web`; `tsconfig` `jsxImportSource: "@solidjs/web"`.
+This branch targets **Solid 1.9+**. Use single-callback `createEffect`, `onMount`/`onCleanup`,
+`batch()` only for deliberate atomic updates, stores from `solid-js/store`, DOM APIs from
+`solid-js/web`, and `jsxImportSource: "solid-js"`. Context providers use `.Provider`; index-keyed
+lists use `<Index>`. Never destructure reactive props: pass `props` through and read `props.x`
+inside JSX or a tracked computation.
 
 ## Toolchain — Vite+
 

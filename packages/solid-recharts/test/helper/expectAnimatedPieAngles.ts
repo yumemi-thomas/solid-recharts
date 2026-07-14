@@ -5,7 +5,7 @@
 // the DOM before it is read. Otherwise a faithful port — same 0.1 start, same
 // `(1 - 0.1) / steps` step size, same per-frame change assertions.
 import { expect } from "vitest";
-import { flush } from "solid-js";
+
 import type { MockAnimationManager } from "../animation/mockControllerAnimationManager";
 import { assertNotNull } from "./assertNotNull";
 import { getPieSectorAngles, selectPieSectors } from "./expectPieSectors";
@@ -22,7 +22,6 @@ export async function expectAnimatedPieAngles(
    */
   let animationProgress = 0.1;
   await animationManager.setAnimationProgress(animationProgress);
-  flush();
   const stepSize = (1 - animationProgress) / steps;
   const initialPieSectors = selectPieSectors(container);
   const initialAngles = getPieSectorAngles(initialPieSectors);
@@ -35,7 +34,6 @@ export async function expectAnimatedPieAngles(
   for (animationProgress += stepSize; animationProgress < 1; animationProgress += stepSize) {
     // eslint-disable-next-line no-await-in-loop
     await animationManager.setAnimationProgress(animationProgress);
-    flush();
     const currentPieSectors = selectPieSectors(container);
     const currentAngles = getPieSectorAngles(currentPieSectors);
     anglesDuringAnimation.push(currentAngles);
@@ -67,7 +65,6 @@ export async function expectAnimatedPieAngles(
   }
 
   await animationManager.completeAnimation();
-  flush();
   // Final check to ensure the animation completed
   const finalPieSectors = selectPieSectors(container);
   expect(finalPieSectors).toHaveLength(initialPieSectors.length);

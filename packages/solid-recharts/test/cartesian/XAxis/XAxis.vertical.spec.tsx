@@ -179,18 +179,18 @@ describe("<XAxis />", () => {
         const itemData = useAppSelector((state) =>
           selectCartesianGraphicalItemsData(state, "xAxis", 0),
         );
-        createEffect(
-          () => settings(),
-          (v) => axisSettingsSpy(v),
-        );
-        createEffect(
-          () => displayed(),
-          (v) => displayedDataSpy(v),
-        );
-        createEffect(
-          () => itemData(),
-          (v) => itemDataSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => settings())();
+          ((v) => axisSettingsSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = (() => displayed())();
+          ((v) => displayedDataSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = (() => itemData())();
+          ((v) => itemDataSpy(v))(value);
+        });
         return null;
       };
       const { container } = render(() => (

@@ -4,7 +4,7 @@
  * Ported from recharts 3.8.1 src/shape/Rectangle.tsx (commit 7a23854).
  * Pure `getRectanglePath` copied verbatim. Solid deviations: `className` →
  * `class` (Omit the wide SVG `class`); destructuring defaults → `?? default`;
- * `clsx` → `class={[...]}`; `return null` → `<Show>`; the radius is rendered as
+ * `clsx` → `class={[...].filter(Boolean).join(" ")}`; `return null` → `<Show>`; the radius is rendered as
  * a number-or-undefined attribute (overriding the spread).
  *
  * The update-animation path (`isUpdateAnimationActive`) is WIRED: it drives
@@ -14,8 +14,8 @@
  * (e.g. Bar's rectangles) stays static — wiring is regression-safe.
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createSignal, Show, omit, untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, Show, untrack, splitProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import type { AnimationDuration } from "../util/types";
 import type { EasingInput } from "../animation/easing";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
@@ -154,14 +154,14 @@ export const Rectangle = (props: RectangleProps): JSX.Element => {
   const animationEasing = (): EasingInput => props.animationEasing ?? "ease";
   const animationBegin = (): number => props.animationBegin ?? 0;
 
-  const layerClass = (): Array<string | undefined> => ["recharts-rectangle", props.class];
+  const layerClass = (): string => ["recharts-rectangle", props.class].filter(Boolean).join(" ");
 
   // recharts renders x/y/width/height/radius on the <path> (React allows extra
   // attrs). Solid's PathSVGAttributes is stricter, so route them through the
   // (loosely-typed) svgPropertiesAndEvents spread rather than explicit attrs.
   // `radius` is rendered only when it's a number (array radius → undefined).
   const basePathProps = (): Record<string, unknown> => ({
-    ...omit(props, "class", "style"),
+    ...splitProps(props, ["class", "style"])[1],
     radius: typeof radius() === "number" ? radius() : undefined,
   });
 
@@ -178,21 +178,23 @@ export const Rectangle = (props: RectangleProps): JSX.Element => {
     pathEl = el;
   };
   createEffect(
-    () => ({ x: x(), y: y(), width: width(), height: height(), radius: radius() }),
-    () => {
-      if (pathEl?.getTotalLength == null) {
-        return;
-      }
-      let len = 0;
-      try {
-        len = pathEl.getTotalLength();
-      } catch {
-        return; // getTotalLength can throw on detached/empty paths — keep the last value.
-      }
-      if (len) {
-        setTotalLength(len);
-      }
-    },
+    on(
+      () => ({ x: x(), y: y(), width: width(), height: height(), radius: radius() }),
+      () => {
+        if (pathEl?.getTotalLength == null) {
+          return;
+        }
+        let len = 0;
+        try {
+          len = pathEl.getTotalLength();
+        } catch {
+          return; // getTotalLength can throw on detached/empty paths — keep the last value.
+        }
+        if (len) {
+          setTotalLength(len);
+        }
+      },
+    ),
   );
 
   const animationId = useAnimationId(

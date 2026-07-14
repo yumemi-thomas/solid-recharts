@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { BarChart, Line, LineChart, XAxis } from "../../../src";
 import { render } from "@solidjs/testing-library";
 import { expectXAxisTicks } from "../../helper/expectAxisTicks";
@@ -316,7 +316,6 @@ describe("numerical domain", () => {
       expectLastCalledWith(spy, [-100, 170]);
 
       setDomain([130, 175]);
-      flush();
       expectXAxisTicks(container, [
         { textContent: "90", x: "5", y: "273" },
         { textContent: "115", x: "90.29411764705883", y: "273" },
@@ -327,7 +326,6 @@ describe("numerical domain", () => {
       expectLastCalledWith(spy, [90, 175]);
 
       setDomain([130, 150]);
-      flush();
       expectXAxisTicks(container, [
         { textContent: "90", x: "5", y: "273" },
         { textContent: "110", x: "77.5", y: "273" },
@@ -673,7 +671,6 @@ describe("numerical domain", () => {
       expect(domainPropSpy).toHaveBeenCalledWith([90, 170], true);
 
       setAllowDataOverflow(false);
-      flush();
       expectXAxisTicks(container, [
         {
           textContent: "-500",

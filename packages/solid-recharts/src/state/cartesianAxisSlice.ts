@@ -9,7 +9,7 @@
 // `any`). `castDraft`/immer are unnecessary — Solid's setter takes a mutable
 // draft. The `add/replace/remove` reducers (RTK `prepareAutoBatched`) become
 // plain action functions; batching is handled by Solid's store microtask.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import type {
   AxisDomain,
   AxisInterval,
@@ -203,23 +203,29 @@ export function createCartesianAxisSlice(
   function axisCollection<A extends { id: AxisId }>(pick: (s: AxisMapState) => Record<AxisId, A>) {
     return {
       add: (axis: A) =>
-        setState((s) => {
-          pick(s)[axis.id] = axis;
-        }),
+        setState(
+          produce((s) => {
+            pick(s)[axis.id] = axis;
+          }),
+        ),
       replace: ({ prev, next }: { prev: A; next: A }) =>
-        setState((s) => {
-          const map = pick(s);
-          if (map[prev.id] !== undefined) {
-            if (prev.id !== next.id) {
-              delete map[prev.id];
+        setState(
+          produce((s) => {
+            const map = pick(s);
+            if (map[prev.id] !== undefined) {
+              if (prev.id !== next.id) {
+                delete map[prev.id];
+              }
+              map[next.id] = next;
             }
-            map[next.id] = next;
-          }
-        }),
+          }),
+        ),
       remove: (axis: A) =>
-        setState((s) => {
-          delete pick(s)[axis.id];
-        }),
+        setState(
+          produce((s) => {
+            delete pick(s)[axis.id];
+          }),
+        ),
     };
   }
   const x = axisCollection<XAxisSettings>((s) => s.xAxis);
@@ -237,30 +243,32 @@ export function createCartesianAxisSlice(
     replaceZAxis: z.replace,
     removeZAxis: z.remove,
     updateYAxisWidth({ id, width }) {
-      setState((s) => {
-        const axis = s.yAxis[id];
-        if (axis) {
-          const history = axis.widthHistory || [];
-          // An oscillation is detected when the new width matches the width
-          // before the last one — a simple A -> B -> A pattern. If the next
-          // width is B and the difference is under 1 pixel, we ignore it.
-          if (
-            history.length === 3 &&
-            history[0] === history[2] &&
-            width === history[1] &&
-            width !== axis.width &&
-            Math.abs(width - (history[0] ?? 0)) <= 1
-          ) {
-            return;
+      setState(
+        produce((s) => {
+          const axis = s.yAxis[id];
+          if (axis) {
+            const history = axis.widthHistory || [];
+            // An oscillation is detected when the new width matches the width
+            // before the last one — a simple A -> B -> A pattern. If the next
+            // width is B and the difference is under 1 pixel, we ignore it.
+            if (
+              history.length === 3 &&
+              history[0] === history[2] &&
+              width === history[1] &&
+              width !== axis.width &&
+              Math.abs(width - (history[0] ?? 0)) <= 1
+            ) {
+              return;
+            }
+            const newHistory = [...history, width].slice(-3);
+            s.yAxis[id] = {
+              ...axis,
+              width,
+              widthHistory: newHistory,
+            };
           }
-          const newHistory = [...history, width].slice(-3);
-          s.yAxis[id] = {
-            ...axis,
-            width,
-            widthHistory: newHistory,
-          };
-        }
-      });
+        }),
+      );
     },
   };
 

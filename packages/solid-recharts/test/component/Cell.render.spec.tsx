@@ -2,10 +2,9 @@
 // overrides (fill / stroke / class) to Bar, Pie, and RadialBar. The Solid port
 // can't introspect children element-types like React's findAllByType — instead
 // each <Cell> registers its props during synchronous child resolution
-// (collectCells). `isAnimationActive={false}` so shapes are at final geometry,
-// and `flush()` because the items register via effects and compute from the store.
+// (collectCells). `isAnimationActive={false}` keeps shapes at final geometry.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import {
   BarChart,
@@ -39,8 +38,6 @@ describe("<Cell /> presentation overrides", () => {
         </Bar>
       </BarChart>
     ));
-    flush();
-
     const rects = [
       ...container.querySelectorAll(
         ".recharts-bar .recharts-bar-rectangle path.recharts-rectangle",
@@ -62,8 +59,6 @@ describe("<Cell /> presentation overrides", () => {
         </Bar>
       </BarChart>
     ));
-    flush();
-
     const rects = [
       ...container.querySelectorAll(
         ".recharts-bar .recharts-bar-rectangle path.recharts-rectangle",
@@ -93,8 +88,6 @@ describe("<Cell /> presentation overrides", () => {
         </Pie>
       </PieChart>
     ));
-    flush();
-
     const sectors = [...container.querySelectorAll(".recharts-pie-sector .recharts-sector")];
     expect(sectors).toHaveLength(data.length);
     sectors.forEach((s, i) => {
@@ -121,8 +114,6 @@ describe("<Cell /> presentation overrides", () => {
         </RadialBar>
       </RadialBarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".unit-test-class")).toHaveLength(data.length);
   });
 
@@ -144,12 +135,18 @@ describe("<Cell /> presentation overrides", () => {
         </Scatter>
       </ScatterChart>
     ));
-    flush();
-
     const paths = [...container.querySelectorAll(".recharts-scatter-symbol path")];
     expect(paths).toHaveLength(scatterData.length);
     paths.forEach((p, i) => {
       expect(p).toHaveAttribute("fill", colors[i]!);
     });
+  });
+
+  it("accepts attributes used by different SVG shape elements", () => {
+    const { container } = render(() => (
+      <Cell width={20} height={10} rx={4} cx={5} cy={6} d="M0,0L1,1" />
+    ));
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

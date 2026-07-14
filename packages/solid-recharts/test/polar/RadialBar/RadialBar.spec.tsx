@@ -14,7 +14,7 @@
 // not on the inner path; the handler-arg assertions are unchanged except for the
 // extra `clockWise: false` field the Solid sector shape carries (see the selector
 // cases above).
-import { createEffect, createSignal, flush, Show } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import type { Mock } from "vitest";
 import type { RadialBarDataItem } from "../../../src/polar/RadialBar";
 import { describe, expect, it, vi } from "vitest";
@@ -1020,8 +1020,6 @@ describe("<RadialBar />", () => {
         <RadialBar dataKey="uv" />
       </RadialBarChart>
     ));
-    flush();
-
     expectRadialBars(container, []);
   });
 
@@ -1035,8 +1033,6 @@ describe("<RadialBar />", () => {
         <CustomRadialBar dataKey="uv" />
       </RadialBarChart>
     ));
-    flush();
-
     expectRadialBars(container, []);
   });
 
@@ -1049,8 +1045,6 @@ describe("<RadialBar />", () => {
         <RadialBar isAnimationActive={false} dataKey="uv" stroke="#111" strokeWidth={4} />
       </RadialBarChart>
     ));
-    flush();
-
     const sectors = container.querySelectorAll(
       ".recharts-radial-bar-sectors path.recharts-radial-bar-sector",
     );
@@ -1079,8 +1073,6 @@ describe("<RadialBar />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     // Handlers sit on the sector path itself (matching recharts), so fire on
     // `.recharts-sector` — the same element the reference targets.
     const sector = container.querySelectorAll(".recharts-sector")[0];
@@ -1150,8 +1142,6 @@ describe("<RadialBar />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     const sector = container.querySelectorAll(".recharts-sector")[0];
     assertNotNull(sector);
 
@@ -1189,8 +1179,6 @@ describe("<RadialBar />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     const sector = container.querySelectorAll(".recharts-sector")[0];
     assertNotNull(sector);
 
@@ -1246,7 +1234,6 @@ describe("<RadialBar />", () => {
         <Tooltip defaultIndex={0} />
       </RadialBarChart>
     ));
-    flush();
     expect(withActive.container.querySelector(".custom-active-radial")).not.toBeNull();
 
     // Without an active index, the regular shape is used (no activeShape).
@@ -1259,7 +1246,6 @@ describe("<RadialBar />", () => {
         />
       </RadialBarChart>
     ));
-    flush();
     expect(noActive.container.querySelector(".custom-active-radial")).toBeNull();
   });
 
@@ -1277,7 +1263,6 @@ describe("<RadialBar />", () => {
         <Tooltip defaultIndex={0} />
       </RadialBarChart>
     ));
-    flush();
     // Exactly the active sector (index 0) picks up the merged fill.
     expect(
       withActive.container.querySelectorAll('.recharts-radial-bar-sector[fill="red"]'),
@@ -1289,7 +1274,6 @@ describe("<RadialBar />", () => {
         <RadialBar isAnimationActive={false} dataKey="amt" activeShape={{ fill: "red" }} />
       </RadialBarChart>
     ));
-    flush();
     expect(
       noActive.container.querySelectorAll('.recharts-radial-bar-sector[fill="red"]'),
     ).toHaveLength(0);
@@ -1301,10 +1285,10 @@ describe("<RadialBar />", () => {
       const polarItemsSpy = vi.fn();
       const Comp = (): null => {
         const selected = useAppSelector((state) => selectPolarItemsSettings(state, "angleAxis", 0));
-        createEffect(
-          () => selected(),
-          (value) => polarItemsSpy(value),
-        );
+        createEffect(() => {
+          const value = (() => selected())();
+          ((value) => polarItemsSpy(value))(value);
+        });
         return null;
       };
       render(() => (
@@ -1315,10 +1299,6 @@ describe("<RadialBar />", () => {
           <Comp />
         </RadialBarChart>
       ));
-      flush();
-      flush();
-      flush();
-
       const expectedPolarItemsSettings: RadialBarSettings = {
         id: expect.stringMatching("recharts-radial-bar-"),
         barSize: undefined,
@@ -1335,10 +1315,6 @@ describe("<RadialBar />", () => {
       expect(polarItemsSpy).toHaveBeenLastCalledWith([expectedPolarItemsSettings]);
 
       setShowBar(false);
-      flush();
-      flush();
-      flush();
-
       expect(polarItemsSpy).toHaveBeenLastCalledWith([]);
     });
   });
@@ -1356,8 +1332,6 @@ describe("RadialBar background zIndex", () => {
         <RadialBar background isAnimationActive={false} dataKey="pv" />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
     const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
@@ -1372,8 +1346,6 @@ describe("RadialBar background zIndex", () => {
         <RadialBar background={{ fill: "#eee" }} isAnimationActive={false} dataKey="pv" />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
     const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
@@ -1393,8 +1365,6 @@ describe("RadialBar background zIndex", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
     const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
@@ -1413,8 +1383,6 @@ describe("RadialBar background zIndex", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
     const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
@@ -1433,8 +1401,6 @@ describe("RadialBar background zIndex", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
     const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
@@ -1454,8 +1420,6 @@ describe("RadialBar background zIndex", () => {
         />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
     const radialBarSectors = container.querySelectorAll(".recharts-radial-bar-sector");
@@ -1470,8 +1434,6 @@ describe("RadialBar background zIndex", () => {
         <RadialBar background={undefined} isAnimationActive={false} dataKey="pv" />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(0);
   });
@@ -1482,8 +1444,6 @@ describe("RadialBar background zIndex", () => {
         <RadialBar background={false} isAnimationActive={false} dataKey="pv" />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(0);
   });
@@ -1497,8 +1457,6 @@ describe("RadialBar background zIndex", () => {
           <RadialBar background={background} isAnimationActive={false} dataKey="pv" />
         </RadialBarChart>
       ));
-      flush();
-
       const backgroundSectors = container.querySelectorAll(
         ".recharts-radial-bar-background-sector",
       );
@@ -1513,8 +1471,6 @@ describe("RadialBar background zIndex", () => {
         <RadialBar background="invalid" isAnimationActive={false} dataKey="pv" />
       </RadialBarChart>
     ));
-    flush();
-
     const backgroundSectors = container.querySelectorAll(".recharts-radial-bar-background-sector");
     expect(backgroundSectors).toHaveLength(dataWithBackground.length);
   });

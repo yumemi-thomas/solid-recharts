@@ -6,7 +6,7 @@
 //  - React render(element) + button-click `prime` -> Solid render(() => …) driven by
 //    a `width` signal (`prime` toggles 80<->100 and flush()es).
 //  - createSelectorTestCase -> a local `renderTestCase(params)` that wires the
-//    ported MockControllerAnimationManager through <AnimationControllerProvider> and
+//    ported MockControllerAnimationManager through <AnimationControllerProvider.Provider> and
 //    returns { container, animationManager, prime } (createSelectorTestCase does not
 //    expose an animationManager in this repo).
 //  - React's `act()` around stepping -> the mock's promises + `flush()`.
@@ -36,7 +36,7 @@
 //     (no transition when isAnimationActive=false; a stroke-dasharray reveal when true)
 //     is preserved.
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { trim } from "../helper/trim";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -89,15 +89,12 @@ async function expectPathDoesNotAnimate(
   expect(getRectPath(container)).toBe(initialPath);
 
   await animationManager.setAnimationProgress(0.1);
-  flush();
   expect(getRectPath(container)).toBe(initialPath);
 
   await animationManager.setAnimationProgress(0.5);
-  flush();
   expect(getRectPath(container)).toBe(initialPath);
 
   await animationManager.setAnimationProgress(1);
-  flush();
   expect(getRectPath(container)).toBe(initialPath);
 }
 
@@ -114,14 +111,12 @@ async function expectAnimatedPath(
   for (let i = 0.1; i <= 1; i += 0.3) {
     // eslint-disable-next-line no-await-in-loop
     await animationManager.setAnimationProgress(i);
-    flush();
     const currentPath = getRectPath(container);
     assertNotNull(currentPath);
     allPaths.push(currentPath);
   }
 
   await animationManager.completeAnimation();
-  flush();
   const finalPath = getRectPath(container);
   expect(allPaths[allPaths.length - 1]).toEqual(finalPath);
 
@@ -183,7 +178,6 @@ async function expectAnimatedStrokeDasharray(
   allStyles.push(initialStyle);
 
   await animationManager.setAnimationProgress(0.1);
-  flush();
   const currentStyle = getStyle(container);
   allStyles.push(currentStyle);
 
@@ -206,7 +200,7 @@ function rectangleTestCase(params: RectangleParams): () => RenderedTestCase {
     const manager = new MockControllerAnimationManager("rectangle-");
     const [width, setWidth] = createSignal(80);
     const { container } = render(() => (
-      <AnimationControllerProvider value={manager.factory}>
+      <AnimationControllerProvider.Provider value={manager.factory}>
         <Surface width={400} height={400}>
           <Rectangle
             x={50}
@@ -219,13 +213,10 @@ function rectangleTestCase(params: RectangleParams): () => RenderedTestCase {
             isUpdateAnimationActive={params.isUpdateAnimationActive}
           />
         </Surface>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     const prime = async (): Promise<void> => {
       setWidth((w) => (w === 100 ? 80 : 100));
-      flush();
     };
 
     return { container: container, animationManager: manager, prime };
@@ -311,7 +302,6 @@ describe("Rectangle animation", () => {
           // static (equal dashes, NO transition), matching upstream's expected value.
           const { container, animationManager } = renderTestCase();
           await animationManager.setAnimationProgress(0.1);
-          flush();
           expect(getStyle(container)).toEqual("stroke-dasharray: 1234px 1234px;");
         });
       });
@@ -335,7 +325,6 @@ describe("Rectangle animation", () => {
           const { container, animationManager, prime } = renderTestCase();
           await prime();
           await animationManager.setAnimationProgress(0.1);
-          flush();
           expect(getStyle(container)).toEqual("stroke-dasharray: 1234px 1234px;");
         });
       });

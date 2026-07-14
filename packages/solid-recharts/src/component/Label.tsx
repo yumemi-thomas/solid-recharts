@@ -16,9 +16,9 @@
 //  - context value carries an `Accessor<TrapezoidViewBox>` (Solid context is fixed
 //    at provide-time; the accessor keeps the box reactive).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createContext, createMemo, merge, omit, Show, useContext } from "solid-js";
+import { createContext, createMemo, Show, useContext, mergeProps, splitProps } from "solid-js";
 import type { Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { type RenderableText, Text } from "./Text";
 import { useUniqueId } from "../util/useUniqueId";
 import { isNullish, isNumber, isNumOrStr } from "../util/DataUtils";
@@ -109,7 +109,11 @@ export function CartesianLabelContextProvider(
     width: props.width,
     height: props.height,
   }));
-  return <CartesianLabelContext value={viewBox}>{props.children}</CartesianLabelContext>;
+  return (
+    <CartesianLabelContext.Provider value={viewBox}>
+      {props.children}
+    </CartesianLabelContext.Provider>
+  );
 }
 
 export function useCartesianLabelContext(): Accessor<TrapezoidViewBox | undefined> {
@@ -141,7 +145,7 @@ export function PolarLabelContextProvider(
     endAngle: props.endAngle,
     clockWise: props.clockWise,
   }));
-  return <PolarLabelContext value={viewBox}>{props.children}</PolarLabelContext>;
+  return <PolarLabelContext.Provider value={viewBox}>{props.children}</PolarLabelContext.Provider>;
 }
 
 export function usePolarLabelContext(): Accessor<PolarViewBoxRequired | undefined> {
@@ -223,7 +227,7 @@ const getDeltaAngle = (startAngle: number, endAngle: number): number => {
  * @consumes CartesianLabelContext
  */
 export function Label(outerProps: Props): JSX.Element {
-  const props = merge(defaultLabelProps, outerProps);
+  const props = mergeProps(defaultLabelProps, outerProps);
   const cartesianViewBox = useCartesianLabelContext();
   const polarLabelContext = usePolarLabelContext();
   const generatedRadialPathId = useUniqueId("recharts-radial-line");
@@ -252,8 +256,7 @@ export function Label(outerProps: Props): JSX.Element {
 
   const textSvgProps = createMemo(() =>
     svgPropertiesAndEvents(
-      omit(
-        props,
+      splitProps(props, [
         "content",
         "viewBox",
         "parentViewBox",
@@ -267,7 +270,7 @@ export function Label(outerProps: Props): JSX.Element {
         "index",
         "id",
         "class",
-      ),
+      ])[1],
     ),
   );
 
@@ -389,7 +392,7 @@ export function Label(outerProps: Props): JSX.Element {
     if (vb == null || typeof content !== "function") {
       return undefined;
     }
-    return { content, args: omit({ ...props, viewBox: vb }, "content") };
+    return { content, args: splitProps({ ...props, viewBox: vb }, ["content"])[1] };
   });
 
   // Render the default/polar/radial text labels inline under <Show> (their render
@@ -441,7 +444,7 @@ export function Label(outerProps: Props): JSX.Element {
             <text
               {...textSvgProps()}
               dominant-baseline="central"
-              class={["recharts-radial-bar-label", props.class]}
+              class={["recharts-radial-bar-label", props.class].filter(Boolean).join(" ")}
             >
               <defs>
                 <path id={radialPathId()} d={d().path} />

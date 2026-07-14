@@ -4,11 +4,11 @@
  * Ported from recharts 3.8.1 src/shape/Sector.tsx (commit 7a23854).
  * Pure geometry helpers copied verbatim. Solid deviations: `resolveDefaultProps`
  * → per-prop `?? default` accessors; `className` → `class` (Omit the wide SVG
- * `class`); `clsx` → `class={[...]}`; `return null` → `<Show>`.
+ * `class`); `clsx` → `class={[...].filter(Boolean).join(" ")}`; `return null` → `<Show>`.
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { Show, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { GeometrySector, GeometrySectorWithCornerRadius } from "../util/types";
 import { polarToCartesian, RADIAN } from "../util/PolarUtils";
 import { getPercentValue, mathSign } from "../util/DataUtils";
@@ -280,7 +280,7 @@ export const Sector = (props: SectorProps): JSX.Element => {
   };
 
   const passthrough = (): Record<string, unknown> => ({
-    ...omit(props, "class"),
+    ...splitProps(props, ["class"])[1],
     cx: cx(),
     cy: cy(),
     innerRadius: innerRadius(),
@@ -296,7 +296,7 @@ export const Sector = (props: SectorProps): JSX.Element => {
     <Show when={valid()}>
       <path
         {...svgPropertiesAndEvents(passthrough())}
-        class={["recharts-sector", props.class]}
+        class={["recharts-sector", props.class].filter(Boolean).join(" ")}
         d={path()}
       />
     </Show>

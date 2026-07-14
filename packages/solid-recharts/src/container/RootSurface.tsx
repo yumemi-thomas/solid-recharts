@@ -4,7 +4,7 @@
 // hooks return Accessors → call them; `return null` → keyed `<Show>` (which also
 // narrows width/height to numbers without a non-null `!`).
 import { Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { useChartHeight, useChartWidth } from "../context/chartLayoutContext";
 import { useAccessibilityLayer } from "../context/accessibilityContext";
 import { useIsPanorama } from "../context/PanoramaContext";

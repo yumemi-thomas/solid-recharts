@@ -4,7 +4,7 @@
 // their final geometry (jsdom resolves "auto" to active). `flush()` because bars
 // register via effects and rects compute from the store.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { BarChart, Bar } from "../../src";
 
@@ -35,8 +35,6 @@ describe("stacked <Bar /> rendering", () => {
         <Bar dataKey="pv" stackId="a" fill="#82ca9d" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     const bars = container.querySelectorAll(".recharts-bar");
     expect(bars).toHaveLength(2);
     const series1 = rectsOf(bars[0]!);

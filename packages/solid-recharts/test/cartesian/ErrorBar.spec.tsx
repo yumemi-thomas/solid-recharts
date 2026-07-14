@@ -6,7 +6,7 @@
 // "with animation delay" case also covers the bare `begin` SVG-attr passthrough
 // onto the whisker group via svgPropertiesNoEvents).
 import { describe, expect, it, test } from "vitest";
-import { createSignal, flush, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import {
   Bar,
   BarChart,
@@ -1467,8 +1467,6 @@ describe("<ErrorBar />", () => {
         expect(spy).toHaveBeenCalledWith([0, 3400]);
 
         setWithError(true);
-        flush();
-
         expect(spy).toHaveBeenLastCalledWith([0, 3600]);
       });
 
@@ -1505,8 +1503,6 @@ describe("<ErrorBar />", () => {
         ]);
 
         setWithError(true);
-        flush();
-
         expectYAxisTicks(container, [
           {
             textContent: "0",
@@ -1543,8 +1539,6 @@ describe("<ErrorBar />", () => {
         expectErrorBars(container, []);
 
         setWithError(true);
-        flush();
-
         expectErrorBars(container, [
           {
             x1: "60",
@@ -2028,8 +2022,6 @@ describe("<ErrorBar />", () => {
         expect(spy).toHaveBeenCalledWith([0, 3400]);
 
         setWithError(true);
-        flush();
-
         expect(spy).toHaveBeenLastCalledWith([0, 3600]);
       });
 
@@ -2066,8 +2058,6 @@ describe("<ErrorBar />", () => {
         ]);
 
         setWithError(true);
-        flush();
-
         expectXAxisTicks(container, [
           {
             textContent: "0",
@@ -2104,8 +2094,6 @@ describe("<ErrorBar />", () => {
         expectErrorBars(container, []);
 
         setWithError(true);
-        flush();
-
         expectErrorBars(container, [
           {
             x1: "284.02777777777777",
@@ -2299,19 +2287,15 @@ describe("<ErrorBar />", () => {
   it("Renders Error Bars with animation delay", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationControllerProvider value={registry.controller}>
+      <AnimationControllerProvider.Provider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive begin={200} dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     await registry.completeAll();
-    flush();
-
     expectErrorBars(container, expectedErrorBars);
     assertAnimationStyles(container, true, {
       transition: "transform 400ms ease-in-out",
@@ -2330,19 +2314,15 @@ describe("<ErrorBar />", () => {
   it("Renders Error Bars with animation", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationControllerProvider value={registry.controller}>
+      <AnimationControllerProvider.Provider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     await registry.completeAll();
-    flush();
-
     expectErrorBars(container, expectedErrorBars);
     assertAnimationStyles(container, true, {
       transition: "transform 400ms ease-in-out",
@@ -2358,8 +2338,6 @@ describe("<ErrorBar />", () => {
         </Bar>
       </BarChart>
     ));
-    flush();
-
     expectErrorBars(container, expectedErrorBars);
     assertAnimationStyles(container, false, {
       transform: "scaleY(1)",
@@ -2369,19 +2347,15 @@ describe("<ErrorBar />", () => {
   it("Renders Error Bars with animation duration", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationControllerProvider value={registry.controller}>
+      <AnimationControllerProvider.Provider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive animationDuration={400} dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     await registry.completeAll();
-    flush();
-
     expectErrorBars(container, expectedErrorBars);
     assertAnimationStyles(container, true, {
       transition: "transform 400ms ease-in-out",
@@ -2392,19 +2366,15 @@ describe("<ErrorBar />", () => {
   it("Renders Error Bars with animation easing", async () => {
     const registry = createManagerRegistry();
     const { container } = render(() => (
-      <AnimationControllerProvider value={registry.controller}>
+      <AnimationControllerProvider.Provider value={registry.controller}>
         <BarChart data={dataWithError} width={500} height={500}>
           <Bar isAnimationActive={false} dataKey="uv">
             <ErrorBar isAnimationActive animationEasing="linear" dataKey="uvError" />
           </Bar>
         </BarChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     await registry.completeAll();
-    flush();
-
     expectErrorBars(container, expectedErrorBars);
     assertAnimationStyles(container, true, {
       transition: "transform 400ms linear",

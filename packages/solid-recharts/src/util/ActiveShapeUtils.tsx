@@ -7,8 +7,8 @@
 // includes the element constituent; the default shape is rendered via `<Dynamic>`.
 // `className`→`class`.
 import { Layer } from "../container/Layer";
-import type { JSX } from "@solidjs/web";
-import { Dynamic } from "@solidjs/web";
+import type { JSX } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ActiveShape } from "./types";
 
 type ShapeRenderer<PropsType> = (props: PropsType) => JSX.Element;

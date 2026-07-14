@@ -51,10 +51,10 @@ describe("time scale", () => {
     const scaleTypeSpy = vi.fn();
     const Comp = (): null => {
       const scaleType = useAppSelector((state) => selectRealScaleType(state, "xAxis", 0));
-      createEffect(
-        () => scaleType(),
-        (v) => scaleTypeSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => scaleType())();
+        ((v) => scaleTypeSpy(v))(value);
+      });
       return null;
     };
 
@@ -148,10 +148,10 @@ describe("time scale", () => {
       const scaleTypeSpy = vi.fn();
       const Comp = (): null => {
         const scaleType = useAppSelector((state) => selectRealScaleType(state, "xAxis", 0));
-        createEffect(
-          () => scaleType(),
-          (v) => scaleTypeSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => scaleType())();
+          ((v) => scaleTypeSpy(v))(value);
+        });
         return null;
       };
 

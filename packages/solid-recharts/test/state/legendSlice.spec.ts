@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { flush } from "solid-js";
+
 import { createRechartsStore } from "../../src/state/store";
 import type { LegendPayloadEntry } from "../../src/state/legendSlice";
 
@@ -22,23 +22,18 @@ describe("legendSlice", () => {
     const entry2: LegendPayloadEntry = { id: "b", items: [{ dataKey: "key", value: "value" }] };
 
     store.actions.legend.addLegendPayload(entry1);
-    flush();
     expect(store.state.legend.payload).toHaveLength(1);
 
     store.actions.legend.addLegendPayload(entry2);
-    flush();
     expect(store.state.legend.payload).toHaveLength(2);
 
     store.actions.legend.removeLegendPayload(entry1);
-    flush();
     expect(store.state.legend.payload).toHaveLength(1);
 
     store.actions.legend.removeLegendPayload(entry2);
-    flush();
     expect(store.state.legend.payload).toHaveLength(0);
 
     store.actions.legend.removeLegendPayload(entry1);
-    flush();
     expect(store.state.legend.payload).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import { BarChart, Legend, type LegendPayload } from "../../../src";
 import type { LegendSettings } from "../../../src/state/legendSlice";
@@ -31,10 +31,10 @@ describe("selectLegendSettings", () => {
     const legendSettingsSpy = vi.fn();
     const Comp = (): null => {
       const legend = useAppSelectorWithStableTest(selectLegendSettings);
-      createEffect(
-        () => legend(),
-        (value) => legendSettingsSpy(value),
-      );
+      createEffect(() => {
+        const value = (() => legend())();
+        ((value) => legendSettingsSpy(value))(value);
+      });
       return null;
     };
     mockGetBoundingClientRect({ width: 17, height: 71 });
@@ -44,7 +44,6 @@ describe("selectLegendSettings", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     const expected: LegendSettings = {
       align: "left",
       layout: "vertical",
@@ -66,10 +65,10 @@ describe("selectLegendSize", () => {
     const legendSettingsSpy = vi.fn();
     const Comp = (): null => {
       const legend = useAppSelectorWithStableTest(selectLegendSize);
-      createEffect(
-        () => legend(),
-        (value) => legendSettingsSpy(value),
-      );
+      createEffect(() => {
+        const value = (() => legend())();
+        ((value) => legendSettingsSpy(value))(value);
+      });
       return null;
     };
     mockGetBoundingClientRect({ width: 17, height: 71 });
@@ -79,7 +78,6 @@ describe("selectLegendSize", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     const expected: Size = { width: 17, height: 71 };
     expect(legendSettingsSpy).toHaveBeenLastCalledWith(expected);
   });
@@ -93,10 +91,10 @@ describe("selectLegendPayload", () => {
     const legendPayloadSpy = vi.fn();
     const Comp = (): null => {
       const legend = useAppSelectorWithStableTest(selectLegendPayload);
-      createEffect(
-        () => legend(),
-        (value) => legendPayloadSpy(value),
-      );
+      createEffect(() => {
+        const value = (() => legend())();
+        ((value) => legendPayloadSpy(value))(value);
+      });
       return null;
     };
     mockGetBoundingClientRect({ width: 17, height: 71 });
@@ -106,7 +104,6 @@ describe("selectLegendPayload", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     const expected: ReadonlyArray<LegendPayload> = [];
     expect(legendPayloadSpy).toHaveBeenLastCalledWith(expected);
   });

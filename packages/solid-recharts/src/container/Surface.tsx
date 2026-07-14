@@ -1,7 +1,7 @@
+import { splitProps } from "solid-js";
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
-import { omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 
 export interface CartesianViewBox {
   x?: number;
@@ -37,8 +37,7 @@ export type SurfaceProps = Omit<
  */
 export const Surface = (props: SurfaceProps) => {
   const svgView = () => props.viewBox ?? { width: props.width, height: props.height, x: 0, y: 0 };
-  const rest = omit(
-    props,
+  const rest = splitProps(props, [
     "children",
     "width",
     "height",
@@ -48,14 +47,14 @@ export const Surface = (props: SurfaceProps) => {
     "title",
     "desc",
     "ref",
-  );
+  ])[1];
 
   // Parity with recharts Surface: the passthrough props go through the SVG
   // filter (camelCase props → DOM attribute names), not a verbatim spread.
   return (
     <svg
       {...svgPropertiesAndEvents({ ...rest })}
-      class={["recharts-surface", props.class]}
+      class={["recharts-surface", props.class].filter(Boolean).join(" ")}
       width={props.width}
       height={props.height}
       style={props.style}

@@ -19,9 +19,9 @@ export function ExpectAxisDomain(props: {
   const scale = useAppSelector((state) =>
     selectAxisScale(state, props.axisType, props.axisId ?? 0, false),
   );
-  createEffect(
-    () => scale()?.domain(),
-    (domain) => props.assert(domain),
-  );
+  createEffect(() => {
+    const value = (() => scale()?.domain())();
+    ((domain) => props.assert(domain))(value);
+  });
   return null;
 }

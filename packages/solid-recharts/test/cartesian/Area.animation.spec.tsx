@@ -9,7 +9,7 @@
 // Migrated from the old-engine spec (mechanical, mirroring Bar.animation.spec):
 //   - AnimationManagerContext (legacy) → AnimationControllerProvider (v3.9).
 //   - MockProgressAnimationManager (legacy) → MockControllerAnimationManager.
-//   - <AnimationManagerContext value={() => manager}> → <AnimationControllerProvider
+//   - <AnimationManagerContext.Provider value={() => manager}> → <AnimationControllerProvider.Provider
 //     value={manager.factory}>.
 //   - GOTCHA: the v3.9 JavascriptAnimation state machine calls onAnimationStart
 //     SYNCHRONOUSLY in its constructor (on render), so `not.toHaveBeenCalled()`
@@ -18,7 +18,7 @@
 // flush() after every setAnimationProgress/click: Solid defers reactive
 // propagation to a flush boundary.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { AreaChart, Area } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -41,7 +41,6 @@ describe("Area animation", () => {
           <Area dataKey="uv" isAnimationActive={false} />
         </AreaChart>
       ));
-      flush();
       const curve = container.querySelector(".recharts-area-curve");
       expect(curve?.getAttribute("d")).toBe("M5,5L23,27.5L41,27.5L59,50L77,32.45L95,52.475");
     });
@@ -50,7 +49,7 @@ describe("Area animation", () => {
   describe("initial animation with simple props", () => {
     function renderTestCase(manager: MockProgressAnimationManager) {
       return render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <AreaChart data={PageData} width={100} height={100}>
             <Area
               dataKey="uv"
@@ -59,66 +58,54 @@ describe("Area animation", () => {
               onAnimationEnd={onAnimationEnd}
             />
           </AreaChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
     }
 
     it("should call onAnimationStart synchronously on render (v3.9 engine)", async () => {
       const manager = new MockProgressAnimationManager("area-anim");
       renderTestCase(manager);
-      flush();
       // v3.9 engine: the JavascriptAnimation state machine calls onAnimationStart
       // in its constructor (on first render), not lazily — matching recharts 3.9.
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
 
       await manager.setAnimationProgress(0.5);
-      flush();
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
 
       await manager.completeAnimation();
-      flush();
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
     });
 
     it("should call onAnimationEnd when the animation ends", async () => {
       const manager = new MockProgressAnimationManager("area-anim");
       renderTestCase(manager);
-      flush();
       expect(onAnimationEnd).not.toHaveBeenCalled();
 
       await manager.setAnimationProgress(0.9);
-      flush();
       expect(onAnimationEnd).not.toHaveBeenCalled();
 
       await manager.completeAnimation();
-      flush();
       expect(onAnimationEnd).toHaveBeenCalledTimes(1);
     });
 
     it("should start the area with a fully generated path and not change it during the reveal", async () => {
       const manager = new MockProgressAnimationManager("area-anim");
       const { container } = renderTestCase(manager);
-      flush();
-
       const areaPath = container.querySelector(".recharts-area-area");
       expect(areaPath).not.toBeNull();
       const dInitial = areaPath?.getAttribute("d");
       expect(dInitial).toBeTruthy();
 
       await manager.setAnimationProgress(0.5);
-      flush();
       expect(container.querySelector(".recharts-area-area")?.getAttribute("d")).toBe(dInitial);
 
       await manager.completeAnimation();
-      flush();
       expect(container.querySelector(".recharts-area-area")?.getAttribute("d")).toBe(dInitial);
     });
 
     it("should reveal the area via a growing clip-path rect", async () => {
       const manager = new MockProgressAnimationManager("area-anim");
       const { container } = renderTestCase(manager);
-      flush();
-
       // t=0: the clip-rect has zero width (area fully hidden).
       const clipRect = container.querySelector(".recharts-area clipPath rect");
       expect(clipRect).not.toBeNull();
@@ -130,7 +117,6 @@ describe("Area animation", () => {
       const height = clipRect?.getAttribute("height");
 
       await manager.setAnimationProgress(0.5);
-      flush();
       const midRect = container.querySelector(".recharts-area clipPath rect");
       expect(midRect?.getAttribute("x")).toBe(x);
       expect(midRect?.getAttribute("y")).toBe(y);
@@ -140,7 +126,6 @@ describe("Area animation", () => {
 
       // t=1: the reveal clip is REMOVED (recharts' settled DOM has no reveal clip).
       await manager.completeAnimation();
-      flush();
       expect(container.querySelector(".recharts-area clipPath rect")).toBeNull();
     });
   });
@@ -153,15 +138,14 @@ describe("Area animation", () => {
       const manager = new MockProgressAnimationManager("area-datakey-change");
       const [dataKey, setDataKey] = createSignal("uv");
       const result = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <AreaChart data={PageData} width={100} height={100}>
             <Area dataKey={dataKey()} animationEasing="linear" dot label />
           </AreaChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
       const changeDataKey = (): void => {
         setDataKey((prev) => (prev === "uv" ? "pv" : "uv"));
-        flush();
       };
       return { ...result, animationManager: manager, changeDataKey };
     };
@@ -170,9 +154,7 @@ describe("Area animation", () => {
       animationManager: MockProgressAnimationManager,
       changeDataKey: () => void,
     ): Promise<void> => {
-      flush();
       await animationManager.completeAnimation();
-      flush();
       changeDataKey();
     };
 
@@ -197,11 +179,9 @@ describe("Area animation", () => {
       expect(container.querySelector(".recharts-area clipPath")).toBeNull();
 
       await animationManager.setAnimationProgress(0.5);
-      flush();
       expect(container.querySelector(".recharts-area clipPath")).toBeNull();
 
       await animationManager.completeAnimation();
-      flush();
       expect(container.querySelector(".recharts-area clipPath")).toBeNull();
     });
 
@@ -213,23 +193,19 @@ describe("Area animation", () => {
       expect(getAreaCurveD(container)).toBe("M5,5L23,27.5L41,27.5L59,50L77,32.45L95,52.475");
 
       await animationManager.setAnimationProgress(0.1);
-      flush();
       expect(getAreaCurveD(container)).toBe(
         "M5,11.84L23,30.14L41,32.992L59,45.68L77,35.188L95,52.408",
       );
 
       await animationManager.setAnimationProgress(0.9);
-      flush();
       expect(getAreaCurveD(container)).toBe(
         "M5,66.56L23,51.257L41,76.926L59,11.12L77,57.09L95,51.868",
       );
 
       await animationManager.setAnimationProgress(1);
-      flush();
       expect(getAreaCurveD(container)).toBe("M5,73.4L23,53.897L41,82.418L59,6.8L77,59.828L95,51.8");
 
       await animationManager.completeAnimation();
-      flush();
       expect(getAreaCurveD(container)).toBe("M5,73.4L23,53.897L41,82.418L59,6.8L77,59.828L95,51.8");
     });
 
@@ -247,7 +223,6 @@ describe("Area animation", () => {
       ]);
 
       await animationManager.setAnimationProgress(0.1);
-      flush();
       expectDots(container, [
         { cx: "5", cy: "11.84" },
         { cx: "23", cy: "30.1397" },
@@ -258,7 +233,6 @@ describe("Area animation", () => {
       ]);
 
       await animationManager.setAnimationProgress(0.9);
-      flush();
       expectDots(container, [
         { cx: "5", cy: "66.56" },
         { cx: "23", cy: "51.2573" },
@@ -269,7 +243,6 @@ describe("Area animation", () => {
       ]);
 
       await animationManager.setAnimationProgress(1);
-      flush();
       const finalDotPositions = [
         { cx: "5", cy: "73.4" },
         { cx: "23", cy: "53.897000000000006" },
@@ -281,7 +254,6 @@ describe("Area animation", () => {
       expectDots(container, finalDotPositions);
 
       await animationManager.completeAnimation();
-      flush();
       expectDots(container, finalDotPositions);
     });
   });
@@ -304,21 +276,18 @@ describe("Area animation", () => {
 
     function renderShapeTestCase(manager: MockProgressAnimationManager) {
       return render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <AreaChart width={100} height={100} data={PageData}>
             <Area dataKey="uv" animationEasing="linear" shape={CustomShape} />
           </AreaChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
     }
 
     it("should render the custom shape instead of the default Curve", async () => {
       const manager = new MockProgressAnimationManager("area-shape");
       const { container } = renderShapeTestCase(manager);
-      flush();
       await manager.completeAnimation();
-      flush();
-
       const customShapes = container.querySelectorAll(".custom-area-shape");
       expect(customShapes.length).toBeGreaterThan(0);
     });
@@ -326,24 +295,17 @@ describe("Area animation", () => {
     it("should skip the clipPath entrance animation when a custom shape is provided", async () => {
       const manager = new MockProgressAnimationManager("area-shape");
       const { container } = renderShapeTestCase(manager);
-      flush();
-
       await manager.setAnimationProgress(0.5);
-      flush();
       expect(container.querySelector(".recharts-area clipPath")).toBeNull();
 
       await manager.completeAnimation();
-      flush();
       expect(container.querySelector(".recharts-area clipPath")).toBeNull();
     });
 
     it("should pass animationElapsedTime / isAnimating / isEntrance to the custom shape", async () => {
       const manager = new MockProgressAnimationManager("area-shape");
       const { container } = renderShapeTestCase(manager);
-      flush();
-
       await manager.setAnimationProgress(0.5);
-      flush();
       const during = container.querySelector(".custom-area-shape");
       expect(during).not.toBeNull();
       expect(during?.getAttribute("data-t")).toBe("0.5");
@@ -352,7 +314,6 @@ describe("Area animation", () => {
 
       // After the animation completes: isEntrance becomes false (previous items stored).
       await manager.completeAnimation();
-      flush();
       const after = container.querySelector(".custom-area-shape");
       expect(after).not.toBeNull();
       expect(after?.getAttribute("data-t")).toBe("1");

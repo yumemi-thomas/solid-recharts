@@ -10,7 +10,7 @@
 // frame ticks — so `onAnimationStart` is already called once right after render
 // (matching recharts 3.9 Pie.animation.spec).
 import { describe, expect, it, vi } from "vitest";
-import { createSignal, flush, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { PieChart, Pie } from "../../src";
 import { expectPieSectors } from "../helper/expectPieSectors";
@@ -42,21 +42,17 @@ describe("Pie animation", () => {
   it("grows the sectors from collapsed (t=0) to the final geometry (t=1)", async () => {
     const manager = new MockProgressAnimationManager("pie-anim");
     const { container } = render(() => (
-      <AnimationControllerProvider value={manager.factory}>
+      <AnimationControllerProvider.Provider value={manager.factory}>
         <PieChart width={500} height={500}>
           <Pie cx={250} cy={250} innerRadius={0} outerRadius={200} data={PageData} dataKey="uv" />
         </PieChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
-
     // t=0: every sector has zero sweep (start === end) → no sector path renders.
     expect(container.querySelectorAll(SECTOR_SELECTOR)).toHaveLength(0);
 
     // Drive to completion → t=1 → full, byte-identical sectors.
     await manager.completeAnimation();
-    flush();
-
     const sectors = container.querySelectorAll(SECTOR_SELECTOR);
     expect(sectors).toHaveLength(PageData.length);
     expect([...sectors].map((s) => trim(s.getAttribute("d")))).toEqual(pageDataSectorPaths);
@@ -76,8 +72,6 @@ describe("Pie animation", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(SECTOR_SELECTOR)).toHaveLength(PageData.length);
   });
 
@@ -96,8 +90,6 @@ describe("Pie animation", () => {
           />
         </PieChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(SECTOR_SELECTOR)).toHaveLength(smallerData.length);
       expect(onAnimationStart).not.toHaveBeenCalled();
       expect(onAnimationEnd).not.toHaveBeenCalled();
@@ -110,7 +102,7 @@ describe("Pie animation", () => {
       const onAnimationEnd = vi.fn();
       const manager = new MockProgressAnimationManager("pie-cb");
       render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <PieChart width={100} height={100}>
             <Pie
               data={smallerData}
@@ -120,22 +112,18 @@ describe("Pie animation", () => {
               onAnimationEnd={onAnimationEnd}
             />
           </PieChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // v3.9 engine: JavascriptAnimation calls onAnimationStart synchronously in its
       // constructor (on render), so it has already fired once here.
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
       expect(onAnimationEnd).not.toHaveBeenCalled();
 
       await manager.setAnimationProgress(0.1);
-      flush();
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
       expect(onAnimationEnd).not.toHaveBeenCalled();
 
       await manager.completeAnimation();
-      flush();
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
       expect(onAnimationEnd).toHaveBeenCalledTimes(1);
     });
@@ -148,13 +136,12 @@ describe("Pie animation", () => {
     } {
       const manager = new MockProgressAnimationManager("pie-angles");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <PieChart width={100} height={100}>
             <Pie data={smallerData} dataKey="amt" isAnimationActive />
           </PieChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       return { container, animationManager: manager };
     }
 
@@ -229,16 +216,14 @@ describe("Pie animation", () => {
       const manager = new MockProgressAnimationManager("pie-datakey");
       const [dataKey, setDataKey] = createSignal("amt");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <PieChart width={100} height={100}>
             <Pie data={smallerData} dataKey={dataKey()} isAnimationActive />
           </PieChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       const changeDataKey = (): void => {
         setDataKey((prev) => (prev === "amt" ? "pv" : "amt"));
-        flush();
       };
       return { container, animationManager: manager, changeDataKey };
     }
@@ -248,7 +233,6 @@ describe("Pie animation", () => {
         const { container, animationManager, changeDataKey } = renderTestCase();
         // Run the initial ('amt') animation to completion, then switch dataKey.
         await animationManager.completeAnimation();
-        flush();
         changeDataKey();
 
         const angles = await expectAnimatedPieAngles(container, animationManager, 3);
@@ -277,7 +261,6 @@ describe("Pie animation", () => {
         const { container, animationManager, changeDataKey } = renderTestCase();
         // Let the initial animation run half way, then switch dataKey.
         await animationManager.setAnimationProgress(0.5);
-        flush();
         changeDataKey();
 
         const angles = await expectAnimatedPieAngles(container, animationManager, 3);
@@ -314,18 +297,16 @@ describe("Pie animation", () => {
       const manager = new MockProgressAnimationManager("pie-key");
       const [dataKey, setDataKey] = createSignal("amt");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <PieChart width={100} height={100}>
             <Show when={dataKey()} keyed>
               {(key) => <Pie data={smallerData} dataKey={key} isAnimationActive />}
             </Show>
           </PieChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       const changeDataKey = (): void => {
         setDataKey((prev) => (prev === "amt" ? "pv" : "amt"));
-        flush();
       };
       return { container, animationManager: manager, changeDataKey };
     }
@@ -333,7 +314,6 @@ describe("Pie animation", () => {
     it("should re-run the initial animation from the beginning", async () => {
       const { container, animationManager, changeDataKey } = renderTestCase();
       await animationManager.completeAnimation();
-      flush();
       changeDataKey();
 
       // A remount re-runs the ENTER animation, so it starts collapsed (no sectors).
@@ -372,16 +352,14 @@ describe("Pie animation", () => {
       const manager = new MockProgressAnimationManager("pie-data");
       const [data, setData] = createSignal(data1);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <PieChart width={100} height={100}>
             <Pie data={data()} dataKey="amt" isAnimationActive />
           </PieChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       const changeData = (): void => {
         setData((prev) => (prev === data1 ? data2 : data1));
-        flush();
       };
       return { container, animationManager: manager, changeData };
     }
@@ -390,7 +368,6 @@ describe("Pie animation", () => {
       it("should animate from 2 to 3 sectors", async () => {
         const { container, animationManager, changeData } = renderTestCase();
         await animationManager.completeAnimation();
-        flush();
         changeData();
 
         const angles = await expectAnimatedPieAngles(container, animationManager, 3);
@@ -418,7 +395,6 @@ describe("Pie animation", () => {
       it("should animate from 2 to 3 sectors from the intermediate state", async () => {
         const { container, animationManager, changeData } = renderTestCase();
         await animationManager.setAnimationProgress(0.5);
-        flush();
         changeData();
 
         const angles = await expectAnimatedPieAngles(container, animationManager, 3);
@@ -457,7 +433,7 @@ describe("Pie animation", () => {
       const manager = new MockProgressAnimationManager("pie-hide");
       const [isVisible, setIsVisible] = createSignal(true);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button
             type="button"
             data-testid="toggle"
@@ -466,16 +442,14 @@ describe("Pie animation", () => {
           <PieChart width={100} height={100}>
             <Pie data={smallerData} dataKey="amt" isAnimationActive hide={!isVisible()} />
           </PieChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       const button = container.querySelector<HTMLButtonElement>('[data-testid="toggle"]');
       if (button == null) {
         throw new Error("Missing toggle button");
       }
       const toggleVisibility = (): void => {
         fireEvent.click(button);
-        flush();
       };
       return { container, animationManager: manager, toggleVisibility };
     }
@@ -484,7 +458,6 @@ describe("Pie animation", () => {
       const { container, animationManager, toggleVisibility } = renderTestCase();
 
       await animationManager.setAnimationProgress(0.3);
-      flush();
       toggleVisibility();
 
       expectPieSectors(container, []);
@@ -494,7 +467,6 @@ describe("Pie animation", () => {
       const { container, animationManager, toggleVisibility } = renderTestCase();
 
       await animationManager.setAnimationProgress(0.3);
-      flush();
       toggleVisibility();
 
       expectPieSectors(container, []);

@@ -6,8 +6,8 @@
 // autobatch, so this is simpler: render the chart with a Spy child that spies the
 // VALUE — via an effect for accessor results, directly for plain-value results.
 // (No animation-manager wiring; the empty chart doesn't need it.)
-import { createEffect, createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { vi, type Mock } from "vitest";
 import { render } from "@solidjs/testing-library";
 import { useAppSelector, useAppStore } from "../../src/state/hooks";
@@ -57,13 +57,13 @@ export function createSelectorTestCase(Component: Wrapper) {
       if (typeof result === "function") {
         // Accessor: spy its value, re-running as it settles.
         const accessor = result as () => unknown;
-        createEffect(
-          () => {
+        createEffect(() => {
+          const value = (() => {
             version();
             return accessor();
-          },
-          (value) => spy(value),
-        );
+          })();
+          ((value) => spy(value))(value);
+        });
       } else {
         spy(result);
       }
@@ -80,14 +80,8 @@ export function createSelectorTestCase(Component: Wrapper) {
     ));
     // Store writes are microtask-batched, and registration effects (axes/ticks/
     // items) dispatch during flush. Drain a few times so everything settles.
-    flush();
-    flush();
-    flush();
     const rerenderSameComponent = (): void => {
       setVersion((v) => v + 1);
-      flush();
-      flush();
-      flush();
     };
 
     return { container, spy, rerenderSameComponent, unmount };
@@ -129,10 +123,10 @@ export function createSynchronisedSelectorTestCase(
           return null;
         }
         const accessor = useAppSelector(selector);
-        createEffect(
-          () => accessor(),
-          (value) => spy(value),
-        );
+        createEffect(() => {
+          const value = (() => accessor())();
+          ((value) => spy(value))(value);
+        });
         return null;
       };
     const SpyA = makeSpy(spyA);
@@ -160,10 +154,6 @@ export function createSynchronisedSelectorTestCase(
         ) : null}
       </>
     ));
-    flush();
-    flush();
-    flush();
-
     const wrapperA = container.querySelector("#wrapperA");
     const wrapperB = container.querySelector("#wrapperB");
     const wrapperC = container.querySelector("#wrapperC");

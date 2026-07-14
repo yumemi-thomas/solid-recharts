@@ -13,8 +13,8 @@
 // full GridLineTypeFunctionProps payload (matching recharts) including the
 // xAxis/yAxis/offset bundle.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useChartHeight, useChartWidth, useOffsetInternal } from "../context/chartLayoutContext";
@@ -227,7 +227,7 @@ const defaultHorizontalCoordinatesGenerator: HorizontalCoordinatesGenerator = (
   );
 
 export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
-  const merged = merge(cartesianGridDefaults, props);
+  const merged = mergeProps(cartesianGridDefaults, props);
   const isPanorama = useIsPanorama();
   const offset = useOffsetInternal();
   const chartWidth = useChartWidth();
@@ -379,7 +379,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
 
   // Builds the props payload passed to a custom line render-prop function.
   // Enumerates exactly the keys recharts' LineItem receives — no `...props`
-  // spread (that would leak the merge()-proxy MERGE_SOURCE symbol into the
+  // spread (that would leak the mergeProps()-proxy MERGE_SOURCE symbol into the
   // payload and break deep-equality assertions).
   const lineItemProps = (
     index: number,
@@ -486,7 +486,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
           Show child — see Bar). Default grid zIndex is -100: the grid portals
           BELOW the graphical items, mirroring the reference's settled DOM. */}
       <ZIndexLayer zIndex={merged.zIndex}>
-        <g class={["recharts-cartesian-grid", merged.class]}>
+        <g class={["recharts-cartesian-grid", merged.class].filter(Boolean).join(" ")}>
           <Show when={merged.fill != null && merged.fill !== "none"}>
             <rect
               x={geom().x}

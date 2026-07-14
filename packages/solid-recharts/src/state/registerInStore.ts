@@ -1,9 +1,10 @@
+import { createEffect, on } from "solid-js";
 // The register-while-mounted idiom, concentrated.
 //
 // A graphical item / axis / reference element / tooltip / legend entry adds its
 // settings to the chart store while it is mounted and removes them on unmount.
 // Every such component used to hand-roll the identical dance: a two-argument
-// `createEffect(compute, apply)` (the compute phase builds the settings, the
+// `createEffect(on(compute, apply))` (the compute phase builds the settings, the
 // apply phase adds-or-replaces — this shape is what keeps the reactive reads out
 // of the apply body, avoiding STRICT_READ_UNTRACKED), reference-based add/replace
 // tracking through a `let prev`, and an `unregisterOnCleanup` removal (which runs
@@ -18,7 +19,6 @@
 // `prev` — exactly the early-return the sites used for every guard (store absent,
 // inside a Panorama, an axis whose type is not yet resolved). Callers fold those
 // guards into the compute closure, so there is a single skip path.
-import { createEffect } from "solid-js";
 import { unregisterOnCleanup } from "./unregisterOnCleanup";
 
 /**
@@ -47,17 +47,19 @@ export function registerInStore<T>(
 ): void {
   let prev: T | null = null;
 
-  createEffect(compute, (next: T | undefined) => {
-    if (next == null) {
-      return;
-    }
-    if (prev === null) {
-      handlers.add(next);
-    } else if (prev !== next) {
-      handlers.replace(prev, next);
-    }
-    prev = next;
-  });
+  createEffect(
+    on(compute, (next: T | undefined) => {
+      if (next == null) {
+        return;
+      }
+      if (prev === null) {
+        handlers.add(next);
+      } else if (prev !== next) {
+        handlers.replace(prev, next);
+      }
+      prev = next;
+    }),
+  );
 
   unregisterOnCleanup(() => {
     if (prev !== null) {

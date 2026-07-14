@@ -3,7 +3,7 @@
 // The v3.9 new-engine equivalent of the legacy MockProgressAnimationManager:
 // it drives an AnimationHandle deterministically (no requestAnimationFrame) via
 // mockAnimationController + MockTimeoutController, and exposes a `factory`
-// (an AnimationController) to inject through <AnimationControllerProvider>.
+// (an AnimationController) to inject through <AnimationControllerProvider.Provider>.
 //
 // Solid deviation: React's `act()` (used upstream around `complete()`) is dropped
 // — this repo has no React; the spec calls `flush()` after each step instead.
@@ -21,7 +21,7 @@ export interface MockAnimationManager {
 
 /**
  * A higher-level mock manager that steps a (new-engine) AnimationHandle to an
- * absolute progress percentage. Wire it via `<AnimationControllerProvider value={manager.factory}>`.
+ * absolute progress percentage. Wire it via `<AnimationControllerProvider.Provider value={manager.factory}>`.
  */
 export class MockControllerAnimationManager implements MockAnimationManager {
   private readonly onStop?: () => void;
@@ -48,7 +48,7 @@ export class MockControllerAnimationManager implements MockAnimationManager {
     this.onStop = onStop;
   }
 
-  /** AnimationController to inject through `<AnimationControllerProvider>`. */
+  /** AnimationController to inject through `<AnimationControllerProvider.Provider>`. */
   readonly factory: AnimationController = (_timeoutController, animationHandle, listener) => {
     this.start(animationHandle, listener);
     return () => this.stop();

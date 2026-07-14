@@ -14,9 +14,9 @@
 //  - element `content` (React.cloneElement) DROPPED; function `content` kept.
 //  - ZIndexLayer / `fill`-passthrough deferred (Label forwards no per-label fill).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createContext, createMemo, For, omit, Show, useContext } from "solid-js";
+import { createContext, createMemo, For, Show, useContext, splitProps } from "solid-js";
 import type { Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import {
   type LabelContentType,
   type LabelFormatter,
@@ -135,7 +135,9 @@ export function CartesianLabelListContextProvider(props: {
   children: JSX.Element;
 }): JSX.Element {
   return (
-    <CartesianLabelListContext value={props.value}>{props.children}</CartesianLabelListContext>
+    <CartesianLabelListContext.Provider value={props.value}>
+      {props.children}
+    </CartesianLabelListContext.Provider>
   );
 }
 
@@ -147,7 +149,11 @@ export function PolarLabelListContextProvider(props: {
   value: Accessor<ReadonlyArray<PolarLabelListEntry> | undefined>;
   children: JSX.Element;
 }): JSX.Element {
-  return <PolarLabelListContext value={props.value}>{props.children}</PolarLabelListContext>;
+  return (
+    <PolarLabelListContext.Provider value={props.value}>
+      {props.children}
+    </PolarLabelListContext.Provider>
+  );
 }
 
 /**
@@ -165,8 +171,7 @@ export function LabelList(props: Props): JSX.Element {
     const list = cartesianData?.() ?? polarData?.();
     return list != null && list.length > 0 ? list : undefined;
   });
-  const others = omit(
-    props,
+  const others = splitProps(props, [
     "valueAccessor",
     "clockWise",
     "dataKey",
@@ -177,7 +182,7 @@ export function LabelList(props: Props): JSX.Element {
     "offset",
     "angle",
     "formatter",
-  );
+  ])[1];
 
   const valueOf = (
     entry: CartesianLabelListEntry | PolarLabelListEntry,

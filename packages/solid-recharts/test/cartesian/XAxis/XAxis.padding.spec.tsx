@@ -41,22 +41,22 @@ describe("XAxis padding", () => {
       );
       const bandSize = useAppSelector((state) => selectBarBandSize(state, "my-bar-id", false));
       const offset = useAppSelector(selectChartOffsetInternal);
-      createEffect(
-        () => yRange(),
-        (v) => yAxisRangeSpy(v),
-      );
-      createEffect(
-        () => barTicks(),
-        (v) => barTicksSpy(v),
-      );
-      createEffect(
-        () => bandSize(),
-        (v) => barBandSizeSpy(v),
-      );
-      createEffect(
-        () => offset(),
-        (v) => offsetSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => yRange())();
+        ((v) => yAxisRangeSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => barTicks())();
+        ((v) => barTicksSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => bandSize())();
+        ((v) => barBandSizeSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => offset())();
+        ((v) => offsetSpy(v))(value);
+      });
       return null;
     };
 

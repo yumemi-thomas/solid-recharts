@@ -11,8 +11,8 @@
 // registration components → `createEffect` add/replace + `onCleanup` (Line idiom);
 // React `useRef` prev-frame state → plain `{ current }` MutableRef objects driven
 // by AnimatedItems/useAnimationStartSnapshot.
-import { createMemo, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
   AnimatedItems,
@@ -416,7 +416,7 @@ function interpolateScalarBaseLine(
 
 export const Area = (props: AreaProps): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(areaDefaultProps, props);
+  const merged = mergeProps(areaDefaultProps, props);
   const isPanorama = useIsPanorama();
   const layout = useCartesianChartLayout();
   const id = useUniqueId("recharts-area", props.id);
@@ -474,7 +474,7 @@ export const Area = (props: AreaProps): JSX.Element => {
 
   // Legend payload entry for this area (color = stroke, like recharts' getLegendItemColor).
   // `payload` mirrors recharts' resolved Area props (built explicitly — spreading the
-  // Solid merge() proxy would leak a MERGE_SOURCE symbol).
+  // Solid mergeProps() proxy would leak a MERGE_SOURCE symbol).
   const legendPayload = createMemo<ReadonlyArray<LegendPayload>>(() => [
     {
       inactive: merged.hide,

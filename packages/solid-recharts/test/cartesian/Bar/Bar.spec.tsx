@@ -4,8 +4,8 @@
 // activeBar+null data, ScatterChart matrix, state integration.
 // Deferred: full unsupported-chart matrix.
 // label spy call-count is data.length (not ×2 — no React StrictMode double-mount).
-import { createEffect, createSignal, flush, omit, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal, Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import {
   Bar,
@@ -79,9 +79,6 @@ const data = [
 
 function renderChart(ui: () => JSX.Element): { container: HTMLElement } {
   const result = render(ui);
-  flush();
-  flush();
-  flush();
   return result;
 }
 
@@ -869,8 +866,6 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
             <Bar isAnimationActive label dataKey="value" />
           </ChartElement>
         ));
-        flush();
-
         const labels = container.querySelectorAll(".recharts-text.recharts-label");
         expect(labels).toHaveLength(0);
       });
@@ -1043,8 +1038,7 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
           <g
             class="my-mock-class"
             {...svgPropertiesAndEvents(
-              omit(
-                labelProps as Record<string, unknown>,
+              splitProps(labelProps as Record<string, unknown>, [
                 "content",
                 "viewBox",
                 "formatter",
@@ -1058,7 +1052,7 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
                 "zIndex",
                 "parentViewBox",
                 "class",
-              ),
+              ])[1],
             )}
           />
         );
@@ -1385,10 +1379,10 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
 
       const Comp = (): null => {
         const cartesianItems = useAppSelector((state) => state.graphicalItems.cartesianItems);
-        createEffect(
-          () => cartesianItems(),
-          (items) => spy(items),
-        );
+        createEffect(() => {
+          const value = (() => cartesianItems())();
+          ((items) => spy(items))(value);
+        });
         return null;
       };
 
@@ -1431,8 +1425,6 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
       expectLastCalledWith(spy, expected);
 
       setShowBar(false);
-      flush();
-      flush();
       expectLastCalledWith(spy, []);
     });
 
@@ -1441,10 +1433,10 @@ describe.each(chartsThatSupportBar)("<Bar /> as a child of $testName", ({ ChartE
 
       const Comp = (): null => {
         const cartesianItems = useAppSelector((state) => state.graphicalItems.cartesianItems);
-        createEffect(
-          () => cartesianItems(),
-          (items) => spy(items),
-        );
+        createEffect(() => {
+          const value = (() => cartesianItems())();
+          ((items) => spy(items))(value);
+        });
         return null;
       };
 
@@ -1619,8 +1611,6 @@ describe("mouse interactions in stacked bar: https://github.com/recharts/rechart
         clientY: 10,
       });
       vi.runOnlyPendingTimers();
-      flush();
-
       expectActiveBars(container, stackedBars);
     });
   });
@@ -1997,12 +1987,12 @@ describe("Bar with a signal-driven dataKey", () => {
 
     function ActiveDataKeySpy(): JSX.Element {
       const activeDataKey = useAppSelector(selectActiveTooltipDataKey);
-      createEffect(
-        () => activeDataKey(),
-        (dk) => {
+      createEffect(() => {
+        const value = (() => activeDataKey())();
+        ((dk) => {
           activeDataKeySpy(dk);
-        },
-      );
+        })(value);
+      });
       return null;
     }
 
@@ -2021,7 +2011,6 @@ describe("Bar with a signal-driven dataKey", () => {
 
     // Exercise the item-dispatch path while the dataKey comes from a signal.
     showTooltipOnCoordinate(getAllBars(container)[0]!, undefined, { clientX: 10, clientY: 10 });
-    flush();
     expect(activeDataKeySpy).toHaveBeenLastCalledWith("value");
     fireEvent.click(getAllBars(container)[0]!);
     expect(handleClick).toHaveBeenCalledTimes(1);
@@ -2033,8 +2022,6 @@ describe("Bar with a signal-driven dataKey", () => {
     );
 
     setBarDataKey("value2");
-    flush();
-
     // The chart re-rendered against the new dataKey…
     const after = Array.from(getAllBarPaths(container)).map((bar) => bar.getAttribute("d"));
     expect(after).toHaveLength(dualKeyData.length);
@@ -2043,7 +2030,6 @@ describe("Bar with a signal-driven dataKey", () => {
     // …and a fresh interaction dispatches the NEW dataKey (the by-value hook
     // captured the mount-time "value" forever).
     showTooltipOnCoordinate(getAllBars(container)[1]!, undefined, { clientX: 11, clientY: 11 });
-    flush();
     expect(activeDataKeySpy).toHaveBeenLastCalledWith("value2");
     fireEvent.click(getAllBars(container)[1]!);
     expect(handleClick).toHaveBeenCalledTimes(2);
@@ -2115,8 +2101,6 @@ describe("Bar background zIndex", () => {
         />
       </BarChart>
     ));
-    flush();
-
     const bars = container.querySelectorAll(".recharts-bar-rectangle");
     const backgroundRects = container.querySelectorAll(".recharts-bar-background-rectangle");
     assertZIndexLayerOrder({ back: bars[0]!, front: backgroundRects[0]! });
@@ -2144,8 +2128,6 @@ describe("Bar background zIndex", () => {
         />
       </BarChart>
     ));
-    flush();
-
     const backgroundRects = container.querySelectorAll(".recharts-bar-background-rectangle");
     const bars = container.querySelectorAll(".recharts-bar-rectangle");
     assertZIndexLayerOrder({ front: bars[0]!, back: backgroundRects[0]! });
@@ -2226,8 +2208,6 @@ describe("activeBar with missing data", () => {
     expectLastCalledWith(spy, "4");
 
     vi.runOnlyPendingTimers();
-    flush();
-
     const activeBars = container.querySelectorAll(".recharts-active-bar");
     expect(activeBars).toHaveLength(1);
 
@@ -2263,8 +2243,6 @@ describe("activeBar with missing data", () => {
     expectLastCalledWith(spy, "2");
 
     vi.runOnlyPendingTimers();
-    flush();
-
     const activeBars = container.querySelectorAll(".recharts-active-bar");
     expect(activeBars).toHaveLength(1);
 

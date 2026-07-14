@@ -13,8 +13,8 @@
 //   - "...to the background" cases: the `rect.recharts-cartesian-grid-bg` rect.
 //   - "uses offset.width and offset.height when width and height are NaN".
 import { describe, expect, it, type Mock, test, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect } from "solid-js";
+import type { JSX } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import {
   CartesianGrid,
@@ -102,7 +102,6 @@ describe("CartesianGrid", () => {
         <CartesianGrid />
       </AreaChart>
     ));
-    flush();
     expectHorizontalGridLines(container, [
       {
         y: "5",
@@ -128,7 +127,6 @@ describe("CartesianGrid", () => {
         <CartesianGrid />
       </AreaChart>
     ));
-    flush();
     expectHorizontalGridLines(container, [
       {
         y: "495",
@@ -180,7 +178,6 @@ describe("CartesianGrid", () => {
         <CartesianGrid />
       </AreaChart>
     ));
-    flush();
     expectHorizontalGridLines(container, [
       {
         y: "465",
@@ -222,7 +219,6 @@ describe("CartesianGrid", () => {
         <Brush startIndex={0} endIndex={2} />
       </AreaChart>
     ));
-    flush();
     expectHorizontalGridLines(container, [
       {
         y: "455",
@@ -258,10 +254,10 @@ describe("CartesianGrid", () => {
     // Inline probe — the Solid-idiomatic equivalent of recharts' <Customized> spy.
     const Comp = (): null => {
       const scale = useAppSelector((state) => selectAxisScale(state, "yAxis", "left", false));
-      createEffect(
-        () => scale()?.domain(),
-        (domain) => scaleSpy(domain),
-      );
+      createEffect(() => {
+        const value = (() => scale()?.domain())();
+        ((domain) => scaleSpy(domain))(value);
+      });
       return null;
     };
     const { container } = render(() => (
@@ -287,8 +283,6 @@ describe("CartesianGrid", () => {
         <Comp />
       </LineChart>
     ));
-    flush();
-
     expect(scaleSpy).toHaveBeenLastCalledWith([0, 1200]);
     expectHorizontalGridLines(container, [
       {
@@ -383,7 +377,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
               />
             </ChartElement>
           ));
-          flush();
           const background = container.querySelector("rect.recharts-cartesian-grid-bg");
           expect.soft(background).toHaveAttribute("x", "1");
           expect.soft(background).toHaveAttribute("y", "2");
@@ -402,7 +395,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
               />
             </ChartElement>
           ));
-          flush();
           const horizontalLines = container.querySelectorAll(
             ".recharts-cartesian-grid-horizontal line",
           );
@@ -474,7 +466,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
               />
             </ChartElement>
           ));
-          flush();
           const background = container.querySelector("rect.recharts-cartesian-grid-bg");
           expect.soft(background).toHaveAttribute("x", "12");
           expect.soft(background).toHaveAttribute("y", "14");
@@ -488,7 +479,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
               <CartesianGrid verticalPoints={verticalPoints} horizontalPoints={horizontalPoints} />
             </ChartElement>
           ));
-          flush();
           const horizontalLines = container.querySelectorAll(
             ".recharts-cartesian-grid-horizontal line",
           );
@@ -524,7 +514,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             const allLines = container.querySelectorAll("line");
             expect.soft(allLines).toHaveLength(9);
             for (let i = 0; i < allLines.length; i++) {
@@ -550,7 +539,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(9);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -571,7 +559,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect(container.querySelectorAll("line")).toHaveLength(0);
           });
 
@@ -586,7 +573,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(9);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -607,7 +593,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect(container.querySelectorAll("line")).toHaveLength(0);
           });
         });
@@ -624,7 +609,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(verticalPoints.length);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -645,7 +629,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(9);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -665,7 +648,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(9);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -688,7 +670,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(horizontalPoints.length);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -709,7 +690,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(9);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -729,7 +709,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect.soft(container.querySelectorAll("line")).toHaveLength(9);
             expect
               .soft(container.querySelectorAll(".recharts-cartesian-grid-horizontal line"))
@@ -753,8 +732,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
 
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
@@ -787,8 +764,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(horizontalCoordinatesGenerator).not.toHaveBeenCalled();
 
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
@@ -807,8 +782,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
             const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
               angle: 0,
@@ -856,8 +829,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
             const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
               angle: 0,
@@ -906,8 +877,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </ChartElement>
               ));
-              flush();
-
               expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
               const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
                 angle: 0,
@@ -957,8 +926,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </ChartElement>
               ));
-              flush();
-
               expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
               const expectedYAxis: AxisPropsForCartesianGridTicksGeneration = {
                 angle: 0,
@@ -1011,8 +978,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
 
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
@@ -1025,8 +990,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 <CartesianGrid x={0} y={0} width={500} height={500} />
               </ChartElement>
             ));
-            flush();
-
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-horizontal line");
             expect(allLines).toHaveLength(2);
             expect.soft(allLines[0]).toHaveAttribute("x", "0");
@@ -1057,8 +1020,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
 
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
@@ -1091,8 +1052,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(verticalCoordinatesGenerator).not.toHaveBeenCalled();
 
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
@@ -1111,8 +1070,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
             const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
               angle: 0,
@@ -1160,8 +1117,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
             const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
               angle: 0,
@@ -1210,8 +1165,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </ChartElement>
               ));
-              flush();
-
               expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
               const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
                 angle: 0,
@@ -1261,8 +1214,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </ChartElement>
               ));
-              flush();
-
               expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
               const expectedXAxis: AxisPropsForCartesianGridTicksGeneration = {
                 angle: 0,
@@ -1315,8 +1266,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
 
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
@@ -1329,8 +1278,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 <CartesianGrid {...exampleCartesianGridDimensions} />
               </LineChart>
             ));
-            flush();
-
             const allLines = container.querySelectorAll(".recharts-cartesian-grid-vertical line");
             expect(allLines).toHaveLength(2);
             expect.soft(allLines[0]).toHaveAttribute("x", "1");
@@ -1367,7 +1314,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect(horizontal).toHaveBeenCalledTimes(horizontalPoints.length);
 
             const expectedProps: GridLineTypeFunctionProps = {
@@ -1466,7 +1412,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
             expect(vertical).toHaveBeenCalledTimes(verticalPoints.length);
 
             const expectedProps: GridLineTypeFunctionProps = {
@@ -1573,7 +1518,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </svg>
               ));
-              flush();
               const allStripes = container.querySelectorAll(
                 ".recharts-cartesian-gridstripes-horizontal rect",
               );
@@ -1629,8 +1573,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(horizontalCoordinatesGenerator).toHaveBeenCalledTimes(1);
 
             const allLines = container.querySelectorAll(
@@ -1654,7 +1596,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1675,7 +1616,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </svg>
               ));
-              flush();
               const allStripes = container.querySelectorAll(
                 ".recharts-cartesian-gridstripes-horizontal rect",
               );
@@ -1696,7 +1636,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1716,7 +1655,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1736,7 +1674,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1755,7 +1692,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1776,7 +1712,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1798,7 +1733,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-horizontal rect",
             );
@@ -1832,7 +1766,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </svg>
               ));
-              flush();
               const allStripes = container.querySelectorAll(
                 ".recharts-cartesian-gridstripes-vertical rect",
               );
@@ -1890,8 +1823,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </ChartElement>
             ));
-            flush();
-
             expect(verticalCoordinatesGenerator).toHaveBeenCalledTimes(1);
 
             const allLines = container.querySelectorAll(
@@ -1914,7 +1845,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -1934,7 +1864,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                   />
                 </svg>
               ));
-              flush();
               const allStripes = container.querySelectorAll(
                 ".recharts-cartesian-gridstripes-vertical rect",
               );
@@ -1954,7 +1883,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -1973,7 +1901,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -1991,7 +1918,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -2009,7 +1935,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -2029,7 +1954,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -2054,7 +1978,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 />
               </svg>
             ));
-            flush();
             const allStripes = container.querySelectorAll(
               ".recharts-cartesian-gridstripes-vertical rect",
             );
@@ -2089,7 +2012,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
               />
             </ChartElement>
           ));
-          flush();
           const allElements = container.querySelectorAll("*");
           expect(allElements.length).toBeGreaterThan(0);
           for (let i = 0; i < allElements.length; i++) {

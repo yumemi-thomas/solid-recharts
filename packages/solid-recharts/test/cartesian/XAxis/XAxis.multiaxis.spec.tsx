@@ -22,22 +22,22 @@ describe("XAxis multiaxis", () => {
       const bPos = useAppSelector((state) => selectXAxisPosition(state, "b"));
       const cPos = useAppSelector((state) => selectXAxisPosition(state, "c"));
       const dPos = useAppSelector((state) => selectXAxisPosition(state, "d"));
-      createEffect(
-        () => aPos(),
-        (v) => axisAPositionSpy(v),
-      );
-      createEffect(
-        () => bPos(),
-        (v) => axisBPositionSpy(v),
-      );
-      createEffect(
-        () => cPos(),
-        (v) => axisCPositionSpy(v),
-      );
-      createEffect(
-        () => dPos(),
-        (v) => axisDPositionSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => aPos())();
+        ((v) => axisAPositionSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => bPos())();
+        ((v) => axisBPositionSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => cPos())();
+        ((v) => axisCPositionSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => dPos())();
+        ((v) => axisDPositionSpy(v))(value);
+      });
       return null;
     };
     const { container } = render(() => (

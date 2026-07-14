@@ -2,7 +2,7 @@
 // (props-first `(tickItem, index, event)`). recharts declares these but does not
 // unit-test them; behaviour mirrors the PolarAngleAxis events.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { PolarAngleAxis, PolarRadiusAxis, RadarChart } from "../../src";
 import { fireEvent, render } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -34,8 +34,6 @@ describe("PolarRadiusAxis events", () => {
         />
       </RadarChart>
     ));
-    flush();
-
     const tick = container.querySelector(".recharts-polar-radius-axis-tick");
     assertNotNull(tick);
 

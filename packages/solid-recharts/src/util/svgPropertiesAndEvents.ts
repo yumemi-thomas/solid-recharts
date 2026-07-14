@@ -5,7 +5,7 @@
 // is deferred until the Tier-2 "shape can be an element or a props object"
 // pattern lands (ActiveShapeUtils). Element inputs currently fall through to
 // `null`. React's `SVGProps`/`CSSProperties` types are replaced with JSX.*
-// from '@solidjs/web'.
+// from 'solid-js/web'.
 import { isEventKey } from "./excludeEventProps";
 import { isDataAttribute, isSvgElementPropKey, toSvgAttributeName } from "./svgPropertiesNoEvents";
 import { svgPropertiesNoEventsKeepCase } from "./svgPropertiesNoEvents";

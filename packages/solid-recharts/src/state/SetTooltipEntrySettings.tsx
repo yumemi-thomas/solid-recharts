@@ -4,7 +4,7 @@
 // on change) + onCleanup (remove), the same effect-dispatch idiom Line/Bar/Area
 // use for their graphical-item registration. Returns null (renders nothing) — it
 // exists purely to register the item's tooltip payload entry in the store.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { useAppStore } from "./hooks";
 import { TooltipPayloadConfiguration } from "./tooltipSlice";
 import { useIsPanorama } from "../context/PanoramaContext";

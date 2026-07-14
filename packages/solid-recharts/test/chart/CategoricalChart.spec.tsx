@@ -5,8 +5,8 @@
 // mouse handlers are NOT throttled by default, so they dispatch synchronously —
 // recharts' `act(() => vi.runOnlyPendingTimers())` drains throttled events; here a
 // `flush()` settles the Solid graph). `rechartsTestRender` -> the repo's `render`.
-import type { JSX } from "@solidjs/web";
-import { flush } from "solid-js";
+import type { JSX } from "solid-js";
+
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   Area,
@@ -244,9 +244,6 @@ describe("CategoricalChart", () => {
       fireEvent.click(surface);
       fireEvent.doubleClick(surface);
       fireEvent.contextMenu(surface);
-
-      flush();
-
       expect(handleClickMock).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
       expect(handleDoubleClickMock).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
       expect(handleContextMenuMock).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));

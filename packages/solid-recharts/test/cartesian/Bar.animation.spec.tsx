@@ -29,7 +29,7 @@
 //     mechanism (no Solid equivalent); the data-swap re-animation cases cover the
 //     same "restart from the beginning" behaviour.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -59,7 +59,6 @@ async function expectBarHeightAnimation(
   // Bars at 0% progress do not render at all, so start a little into the animation.
   let animationProgress = 0.1;
   await animationManager.setAnimationProgress(animationProgress);
-  flush();
   const stepSize = (1 - animationProgress) / steps;
   const initialBarPaths = getAllBarPaths(container);
   const initialHeights = Array.from(initialBarPaths).map((bar) => bar.getAttribute("height"));
@@ -77,7 +76,6 @@ async function expectBarHeightAnimation(
   for (animationProgress += stepSize; animationProgress < 1; animationProgress += stepSize) {
     // eslint-disable-next-line no-await-in-loop
     await animationManager.setAnimationProgress(animationProgress);
-    flush();
     const currentBarPaths = getAllBarPaths(container);
     heightsDuringAnimation.push(
       Array.from(currentBarPaths).map((bar) => bar.getAttribute("height")),
@@ -101,7 +99,6 @@ async function expectBarHeightAnimation(
   }
 
   await animationManager.completeAnimation();
-  flush();
   // Final check to ensure the animation completed.
   const finalBarPaths = getAllBarPaths(container);
   expect(finalBarPaths).toHaveLength(initialBarPaths.length);
@@ -165,7 +162,6 @@ describe("Bar animation", () => {
 
     it("should render without animation", () => {
       const { container } = renderTestCase();
-      flush();
       // Byte-identical settled geometry from the reference.
       expectBars(container, [
         {
@@ -189,7 +185,6 @@ describe("Bar animation", () => {
 
     it("should not call animation start or end callbacks", () => {
       renderTestCase();
-      flush();
       expect(onAnimationStart).not.toHaveBeenCalled();
       expect(onAnimationEnd).not.toHaveBeenCalled();
     });
@@ -198,52 +193,45 @@ describe("Bar animation", () => {
   describe("initial animation with simple props", () => {
     function renderTestCase(manager: MockProgressAnimationManager) {
       return render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <BarChart width={100} height={100} data={smallerData}>
             <Bar dataKey="pv" onAnimationStart={onAnimationStart} onAnimationEnd={onAnimationEnd} />
           </BarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
     }
 
     it("should first render with no bars at all", () => {
       const manager = new MockProgressAnimationManager("bar-anim");
       const { container } = renderTestCase(manager);
-      flush();
       expectBars(container, []);
     });
 
     it("should call onAnimationStart callback when the animation begins", async () => {
       const manager = new MockProgressAnimationManager("bar-anim");
       renderTestCase(manager);
-      flush();
       // v3.9 engine: the JavascriptAnimation state machine calls onAnimationStart
       // synchronously in its constructor (on first render), not lazily when the first
       // frame ticks — matching recharts 3.9 Bar.animation.spec.
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
 
       await manager.setAnimationProgress(0.1);
-      flush();
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
       expect(onAnimationStart).toHaveBeenCalledWith();
 
       await manager.completeAnimation();
-      flush();
       expect(onAnimationStart).toHaveBeenCalledTimes(1);
     });
 
     it("should call onAnimationEnd callback when the animation ends", async () => {
       const manager = new MockProgressAnimationManager("bar-anim");
       renderTestCase(manager);
-      flush();
       expect(onAnimationEnd).not.toHaveBeenCalled();
 
       await manager.setAnimationProgress(0.9);
-      flush();
       expect(onAnimationEnd).not.toHaveBeenCalled();
 
       await manager.completeAnimation();
-      flush();
       expect(onAnimationEnd).toHaveBeenCalledTimes(1);
       expect(onAnimationEnd).toHaveBeenCalledWith();
     });
@@ -251,8 +239,6 @@ describe("Bar animation", () => {
     it("should animate bars", async () => {
       const manager = new MockProgressAnimationManager("bar-anim");
       const { container } = renderTestCase(manager);
-      flush();
-
       const { heights, yCoordinates, pathDs } = await expectBarHeightAnimation(
         container,
         manager,
@@ -284,7 +270,7 @@ describe("Bar animation", () => {
     } {
       const [data, setData] = createSignal(data1);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button
             type="button"
             data-testid="change-data"
@@ -293,7 +279,7 @@ describe("Bar animation", () => {
           <BarChart width={100} height={100} data={data()}>
             <Bar dataKey="pv" isAnimationActive />
           </BarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
       const changeData = (): void => {
         const button = container.querySelector<HTMLButtonElement>('[data-testid="change-data"]');
@@ -301,7 +287,6 @@ describe("Bar animation", () => {
           throw new Error("Missing change-data button");
         }
         fireEvent.click(button);
-        flush();
       };
       return { container, changeData };
     }
@@ -310,10 +295,7 @@ describe("Bar animation", () => {
       it("should animate the bars", async () => {
         const manager = new MockProgressAnimationManager("bar-anim");
         const { container, changeData } = renderTestCase(manager);
-        flush();
         await manager.completeAnimation();
-        flush();
-
         changeData();
 
         const { heights } = await expectBarHeightAnimation(container, manager, 3);
@@ -328,10 +310,7 @@ describe("Bar animation", () => {
       it("should animate the bars from the intermediate state", async () => {
         const manager = new MockProgressAnimationManager("bar-anim");
         const { container, changeData } = renderTestCase(manager);
-        flush();
         await manager.setAnimationProgress(0.5);
-        flush();
-
         changeData();
 
         const { heights } = await expectBarHeightAnimation(container, manager, 3);
@@ -349,7 +328,7 @@ describe("Bar animation", () => {
     } {
       const [isVisible, setIsVisible] = createSignal(true);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button
             type="button"
             data-testid="toggle"
@@ -358,7 +337,7 @@ describe("Bar animation", () => {
           <BarChart width={100} height={100} data={smallerData}>
             <Bar dataKey="pv" isAnimationActive hide={!isVisible()} />
           </BarChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
       const toggle = (): void => {
         const button = container.querySelector<HTMLButtonElement>('[data-testid="toggle"]');
@@ -366,7 +345,6 @@ describe("Bar animation", () => {
           throw new Error("Missing toggle button");
         }
         fireEvent.click(button);
-        flush();
       };
       return { container, toggle };
     }
@@ -374,11 +352,7 @@ describe("Bar animation", () => {
     it("should not crash when the bar hides during the animation", async () => {
       const manager = new MockProgressAnimationManager("bar-anim-hide");
       const { container, toggle } = renderTestCase(manager);
-      flush();
-
       await manager.setAnimationProgress(0.3);
-      flush();
-
       toggle();
       expectBars(container, []);
     });
@@ -386,11 +360,7 @@ describe("Bar animation", () => {
     it("should re-animate and settle when the bar appears again", async () => {
       const manager = new MockProgressAnimationManager("bar-anim-hide");
       const { container, toggle } = renderTestCase(manager);
-      flush();
-
       await manager.setAnimationProgress(0.3);
-      flush();
-
       toggle();
       expectBars(container, []);
 
@@ -400,9 +370,7 @@ describe("Bar animation", () => {
       // current progress rather than t=0 — re-mount-from-zero is PERMANENT-N/A.
       // We anchor on the settled result, which is byte-identical.)
       toggle();
-      flush();
       await manager.completeAnimation();
-      flush();
       expectBars(container, [
         {
           d: "M 9.5,59 h 36 v 36 h -36 Z",

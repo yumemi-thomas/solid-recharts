@@ -1,7 +1,7 @@
 // Port of recharts 3.8.1 test/chart/LineChart.multiseries.spec.tsx (commit 7a23854).
 // Tier A — verbatim assertions; harness only (render thunk via createSelectorTestCase).
 import { describe, expect, it, test } from "vitest";
-import { snapshot } from "solid-js";
+import { unwrap } from "solid-js/store";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { Line, LineChart, Tooltip, useActiveTooltipDataPoints } from "../../src";
 import { expectLastCalledWith } from "../helper/expectLastCalledWith";
@@ -33,11 +33,11 @@ describe("LineChart with multiple data series", () => {
   ));
 
   test("useActiveTooltipDataPoints", () => {
-    // The hook returns store-proxied data rows; `snapshot` produces the plain
+    // The hook returns store-proxied data rows; `unwrap` produces the plain
     // values so the deep comparison sees real `Date`s (a Solid-store Tier-B delta).
     const { spy } = renderTestCase(() => {
       const dataPoints = useActiveTooltipDataPoints();
-      return () => snapshot(dataPoints());
+      return () => unwrap(dataPoints());
     });
     expectLastCalledWith(spy, [data1[1], data2[1]]);
   });

@@ -1,14 +1,14 @@
 // Ported from recharts 3.8.1 src/component/TooltipBoundingBox.tsx (commit 7a23854).
 //
 // Deviations: React.useState → createSignal; the keydown (Escape-to-dismiss)
-// listener moves from useEffect to onSettled (single listener; the handler reads
+// listener moves from useEffect to onMount (single listener; the handler reads
 // the live props.coordinate at event time); the "reset dismissed when the
 // coordinate moves" inline setState becomes a createEffect; `React.memo` dropped
 // (Solid is fine-grained); `className`→`class`, `tabIndex`→`tabindex`, React
 // CSSProperties → JSX.CSSProperties (kebab keys); the `xmlns` attribute is dropped
 // (the tooltip renders into an HTML portal div, not inside the SVG).
-import { createEffect, createSignal, onSettled } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, onCleanup, onMount, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import {
   AllowInDimension,
   AnimationDuration,
@@ -77,31 +77,33 @@ export const TooltipBoundingBox = (props: TooltipBoundingBoxProps): JSX.Element 
     y: props.coordinate?.y ?? 0,
   });
 
-  onSettled(() => {
+  onMount(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setState({ dismissed: true, dismissedAtCoordinate: coordinate() });
       }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
+    onCleanup(() => {
       document.removeEventListener("keydown", handleKeyDown);
-    };
+    });
   });
 
   // Re-show after dismissal once the coordinate moves to a new spot. Both the
   // coordinate and the dismiss state are read in the compute (a tracking scope);
   // the apply only writes, so no untracked read fires.
   createEffect(
-    () => ({ coord: coordinate(), st: state() }),
-    ({ coord, st }) => {
-      if (
-        st.dismissed &&
-        (coord.x !== st.dismissedAtCoordinate.x || coord.y !== st.dismissedAtCoordinate.y)
-      ) {
-        setState({ ...st, dismissed: false });
-      }
-    },
+    on(
+      () => ({ coord: coordinate(), st: state() }),
+      ({ coord, st }) => {
+        if (
+          st.dismissed &&
+          (coord.x !== st.dismissedAtCoordinate.x || coord.y !== st.dismissedAtCoordinate.y)
+        ) {
+          setState({ ...st, dismissed: false });
+        }
+      },
+    ),
   );
 
   const translate = (): { cssProperties: JSX.CSSProperties; cssClasses: string } =>
@@ -145,7 +147,7 @@ export const TooltipBoundingBox = (props: TooltipBoundingBoxProps): JSX.Element 
   };
 
   return (
-    <div tabindex={-1} class={translate().cssClasses} style={outerStyle()} ref={props.innerRef}>
+    <div tabIndex={-1} class={translate().cssClasses} style={outerStyle()} ref={props.innerRef}>
       {props.children}
     </div>
   );

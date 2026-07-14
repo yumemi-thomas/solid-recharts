@@ -4,12 +4,12 @@
  * Ported from recharts 3.8.1 src/shape/Symbols.tsx (commit 7a23854).
  * Pure d3-shape symbol math copied verbatim. Solid deviations: `className` →
  * `class` (Omit the wide SVG `class`); destructuring defaults → `?? default`
- * accessors; `clsx` → `class={[...]}`; `return null` → `<Show>`; the
+ * accessors; `clsx` → `class={[...].filter(Boolean).join(" ")}`; `return null` → `<Show>`; the
  * `registerSymbol` static is attached via `Object.assign` (no `as`).
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { Show, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import {
   symbol as shapeSymbol,
   symbolCircle,
@@ -123,7 +123,7 @@ const SymbolsComponent = (props: SymbolsProps): JSX.Element => {
   };
 
   const passthrough = (): Record<string, unknown> => ({
-    ...omit(props, "class", "type", "size", "sizeType"),
+    ...splitProps(props, ["class", "type", "size", "sizeType"])[1],
     type: type(),
     size: size(),
     sizeType: sizeType(),
@@ -133,7 +133,7 @@ const SymbolsComponent = (props: SymbolsProps): JSX.Element => {
     <Show when={isNumber(props.cx) && isNumber(props.cy) && isNumber(size())}>
       <path
         {...svgPropertiesAndEvents(passthrough())}
-        class={["recharts-symbols", props.class]}
+        class={["recharts-symbols", props.class].filter(Boolean).join(" ")}
         transform={`translate(${props.cx}, ${props.cy})`}
         d={getPath()}
       />

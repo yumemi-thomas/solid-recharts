@@ -7,8 +7,8 @@
 //     the default <Dot> (recharts does this via svgPropertiesAndEventsFromUnknown).
 //   - `ZIndexLayer` wrapper deferred (zIndex layering not ported) → plain <Layer>.
 //   - `clsx` → class string composed inline; `className` → `class`.
-import { createMemo, For, omit, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Index, Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Dot, type DotProps } from "../shape/Dot";
 import { Layer } from "../container/Layer";
 import { DataKey, DotItemDotProps, DotPoint, DotType } from "../util/types";
@@ -92,7 +92,7 @@ function DotRenderer(props: DotRendererProps): JSX.Element {
         renderFn()?.(dotProps())
       ) : (
         <Dot
-          {...omit(dotProps(), "index", "dataKey", "value", "payload", "points")}
+          {...splitProps(dotProps(), ["index", "dataKey", "value", "payload", "points"])[1]}
           class={props.dotClass}
         />
       )}
@@ -113,7 +113,7 @@ export function Dots(props: DotsProps): JSX.Element {
             array with fresh point objects every frame; reference-keyed <For>
             would dispose+recreate every dot's DOM node per frame. Index-keying
             reuses the rows and only updates cx/cy reactively. */}
-        <For each={props.points} keyed={false}>
+        <Index each={props.points}>
           {(entry, i) => (
             <DotRenderer
               entry={entry()}
@@ -125,7 +125,7 @@ export function Dots(props: DotsProps): JSX.Element {
               points={props.points}
             />
           )}
-        </For>
+        </Index>
       </Layer>
     </Show>
   );

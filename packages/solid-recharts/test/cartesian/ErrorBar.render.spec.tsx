@@ -2,7 +2,7 @@
 // and the error values extend the numerical axis domain (the un-deferred
 // selectAllErrorBarSettings → getErrorDomainByDataKey path).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ErrorBar } from "../../src";
 
@@ -35,8 +35,6 @@ describe("<ErrorBar />", () => {
         </Line>
       </LineChart>
     ));
-    flush();
-
     const groups = container.querySelectorAll(".recharts-errorBar");
     expect(groups).toHaveLength(data.length);
     // Each whisker is 3 lines (|--|): top serif, middle, bottom serif.
@@ -58,8 +56,6 @@ describe("<ErrorBar />", () => {
         </Line>
       </LineChart>
     ));
-    flush();
-
     // uv max is 100; with err=20 the error bar reaches 120, so the niced Y domain
     // must exceed 100 (proof the error values entered the domain computation).
     const ticks = yTickValues(container);

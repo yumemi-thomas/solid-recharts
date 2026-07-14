@@ -3,7 +3,7 @@
 // data node), laid out so children tile their parent's rect. `flush()` because the
 // chart size is reported via an effect before the layout computes.
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { render, fireEvent, screen } from "@solidjs/testing-library";
 import { Tooltip, Treemap, XAxis, YAxis } from "../../src";
 import { getTooltip, showTooltip } from "../component/Tooltip/tooltipTestHelpers";
@@ -43,16 +43,12 @@ const data = [
 describe("<Treemap />", () => {
   it("renders one rectangle per node (implicit root + every data node)", () => {
     const { container } = render(() => <Treemap width={500} height={250} data={data} />);
-    flush();
-
     // root(1) + 6 top-level (A..F) + 3 nested (U,V,W under A) = 10.
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(10);
   });
 
   it("nests children by depth (depth-1 wraps depth-2 rects)", () => {
     const { container } = render(() => <Treemap width={500} height={250} data={data} />);
-    flush();
-
     expect(container.querySelector(".recharts-treemap-depth-0")).not.toBeNull();
     expect(container.querySelectorAll(".recharts-treemap-depth-1").length).toBeGreaterThan(0);
     // "A" has children → there are depth-2 rects (U/V/W).
@@ -61,8 +57,6 @@ describe("<Treemap />", () => {
 
   it("tiles the full chart area at the root and packs children within it", () => {
     const { container } = render(() => <Treemap width={500} height={250} data={data} />);
-    flush();
-
     const rootRect = container.querySelector(".recharts-treemap-depth-0 .recharts-rectangle");
     expect(rootRect).not.toBeNull();
     // The root rect spans the whole surface.
@@ -75,8 +69,6 @@ describe("<Treemap />", () => {
     const { container } = render(() => (
       <Treemap width={500} height={250} data={data} onClick={onClick} />
     ));
-    flush();
-
     // In flat mode recharts only fires onClick on leaf nodes. "A" has children, so
     // click the leaf "B" rect (the 2nd depth-1 node in depth-first order).
     const leafRect = container.querySelectorAll(
@@ -96,8 +88,6 @@ describe("<Treemap />", () => {
         content={(node) => <circle class="custom-node" data-name={node.name} />}
       />
     ));
-    flush();
-
     // No default rects; one custom circle per node (root + 6 + 3 = 10).
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(0);
     expect(container.querySelectorAll("circle.custom-node")).toHaveLength(10);
@@ -116,8 +106,6 @@ describe("<Treemap />", () => {
         content={(node) => <circle class="custom-node" data-name={node.name} />}
       />
     ));
-    flush();
-
     // Leaf "B" (flat mode gates onClick to leaves).
     fireEvent.click(container.querySelector("circle.custom-node[data-name='B']")!);
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -135,8 +123,6 @@ describe("<Treemap />", () => {
         dataKey="value"
       />
     ));
-    flush();
-
     // root(1) + 20 top-level (A..T) + 3 nested (U,V,W under A) = 24.
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(24);
   });
@@ -153,8 +139,6 @@ describe("<Treemap />", () => {
         type="nest"
       />
     ));
-    flush();
-
     // root(1) + 20 top-level (A..T); nested U/V/W are NOT shown until you drill in.
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(21);
   });
@@ -172,8 +156,6 @@ describe("<Treemap />", () => {
         type="nest"
       />
     ));
-    flush();
-
     const depth0Rect = container.querySelector(".recharts-treemap-depth-0 .recharts-rectangle");
     assertNotNull(depth0Rect);
     // nest mode subtracts the 30px breadcrumb strip.
@@ -194,15 +176,11 @@ describe("<Treemap /> nest navigation", () => {
         type="nest"
       />
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(21);
     expect(container.querySelectorAll(".recharts-treemap-depth-1")).toHaveLength(20);
 
     const nodeWithChildren = screen.getByText("A");
     fireEvent.click(nodeWithChildren);
-    flush();
-
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(4);
     expect(container.querySelectorAll(".recharts-treemap-depth-1")).toHaveLength(3);
     expect(container.querySelectorAll(".recharts-treemap-depth-1")[0]).toHaveTextContent("U");
@@ -220,14 +198,10 @@ describe("<Treemap /> nest navigation", () => {
         type="nest"
       />
     ));
-    flush();
-
     const initialNodeCount = container.querySelectorAll(".recharts-rectangle").length;
     expect(initialNodeCount).toBeGreaterThan(4);
 
     fireEvent.click(screen.getByText("A"));
-    flush();
-
     expect(container.querySelectorAll(".recharts-rectangle").length).toBeLessThan(initialNodeCount);
 
     const breadcrumbWrapper = container.querySelector(".recharts-treemap-nest-index-wrapper");
@@ -237,8 +211,6 @@ describe("<Treemap /> nest navigation", () => {
     expect(rootBreadcrumb).toBeInTheDocument();
     assertNotNull(rootBreadcrumb);
     fireEvent.click(rootBreadcrumb);
-    flush();
-
     expect(container.querySelectorAll(".recharts-rectangle").length).toBe(initialNodeCount);
   });
 
@@ -254,11 +226,7 @@ describe("<Treemap /> nest navigation", () => {
         type="nest"
       />
     ));
-    flush();
-
     fireEvent.click(screen.getByText("A"));
-    flush();
-
     const breadcrumbCountBefore = container.querySelectorAll(
       ".recharts-treemap-nest-index-box",
     ).length;
@@ -268,8 +236,6 @@ describe("<Treemap /> nest navigation", () => {
     assertNotNull(currentRootCell);
 
     fireEvent.click(currentRootCell);
-    flush();
-
     const breadcrumbCountAfter = container.querySelectorAll(
       ".recharts-treemap-nest-index-box",
     ).length;
@@ -288,11 +254,7 @@ describe("<Treemap /> nest navigation", () => {
         type="nest"
       />
     ));
-    flush();
-
     fireEvent.click(screen.getByText("A"));
-    flush();
-
     const rootLayer = container.querySelector(".recharts-treemap-depth-0");
     assertNotNull(rootLayer);
     expect(rootLayer.querySelector(".recharts-polygon")).not.toBeInTheDocument();
@@ -315,11 +277,7 @@ describe("<Treemap /> nest navigation", () => {
         nestIndexContent={customContent}
       />
     ));
-    flush();
-
     fireEvent.click(screen.getByText("A"));
-    flush();
-
     expect(customContent).toHaveBeenCalled();
     expect(screen.getByTestId("breadcrumb-0")).toBeInTheDocument();
     expect(screen.getByTestId("breadcrumb-1")).toBeInTheDocument();
@@ -337,20 +295,14 @@ describe("<Treemap /> nest navigation", () => {
         type="nest"
       />
     ));
-    flush();
-
     const initialNodeCount = container.querySelectorAll(".recharts-rectangle").length;
 
     fireEvent.click(screen.getByText("A"));
-    flush();
-
     const nestedNodeCount = container.querySelectorAll(".recharts-rectangle").length;
     expect(nestedNodeCount).toBeLessThan(initialNodeCount);
 
     // "U" is a leaf — clicking it should not drill further.
     fireEvent.click(screen.getByText("U"));
-    flush();
-
     expect(container.querySelectorAll(".recharts-rectangle").length).toBe(nestedNodeCount);
   });
 });
@@ -368,8 +320,6 @@ describe("<Treemap /> mouse events", () => {
     const { container } = render(() => (
       <Treemap width={500} height={250} data={mouseData} nameKey="name" dataKey="size" />
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-treemap-depth-1")).toHaveLength(mouseData.length);
   });
 
@@ -391,8 +341,6 @@ describe("<Treemap /> mouse events", () => {
         isAnimationActive={false}
       />
     ));
-    flush();
-
     const firstNode = container.querySelectorAll(".recharts-treemap-depth-1 g")[0]!;
     expect(firstNode).toBeInTheDocument();
 
@@ -525,8 +473,6 @@ describe("<Treemap /> mouse events", () => {
         isAnimationActive={false}
       />
     ));
-    flush();
-
     const nodes = container.querySelectorAll(".recharts-treemap-depth-1 g");
     expect(nodes[0]).toBeInTheDocument();
     expect(nodes[1]).toBeInTheDocument();
@@ -570,8 +516,6 @@ describe("<Treemap /> mouse events", () => {
         isAnimationActive={false}
       />
     ));
-    flush();
-
     const firstNode = container.querySelectorAll(".recharts-treemap-depth-1 g")[0]!;
     expect(firstNode).toBeInTheDocument();
 
@@ -608,8 +552,6 @@ describe("<Treemap /> mouse events", () => {
         isAnimationActive={false}
       />
     ));
-    flush();
-
     const firstNode = container.querySelectorAll(".recharts-treemap-depth-1 g")[0]!;
     expect(firstNode).toBeInTheDocument();
 
@@ -625,8 +567,6 @@ describe("with Tooltip trigger=hover", () => {
         <Tooltip trigger="hover" />
       </Treemap>
     ));
-    flush();
-
     const tooltip = getTooltip(container);
     expect(tooltip).not.toBeVisible();
 
@@ -693,8 +633,6 @@ describe("with Tooltip trigger=hover", () => {
         <Tooltip trigger="hover" />
       </Treemap>
     ));
-    flush();
-
     const tooltip = getTooltip(container);
     expect(tooltip).not.toBeVisible();
 
@@ -713,8 +651,6 @@ describe("with Tooltip trigger=hover", () => {
         <Tooltip trigger="hover" />
       </Treemap>
     ));
-    flush();
-
     const tooltip = getTooltip(container);
     const tooltipTriggerElement = container.querySelector(
       treemapNodeChartMouseHoverTooltipSelector,
@@ -735,8 +671,6 @@ describe("with Tooltip trigger=click", () => {
         <Tooltip trigger="click" />
       </Treemap>
     ));
-    flush();
-
     const tooltip = getTooltip(container);
     expect(tooltip).not.toBeVisible();
 
@@ -745,13 +679,9 @@ describe("with Tooltip trigger=click", () => {
     );
     assertNotNull(tooltipTriggerElement);
     fireEvent.click(tooltipTriggerElement);
-    flush();
-
     expect(tooltip).toBeVisible();
 
     fireEvent.click(tooltipTriggerElement);
-    flush();
-
     expect(tooltip).toBeVisible();
   });
 
@@ -761,8 +691,6 @@ describe("with Tooltip trigger=click", () => {
         <Tooltip trigger="click" />
       </Treemap>
     ));
-    flush();
-
     const tooltip = getTooltip(container);
     showTooltip(container, treemapNodeChartMouseHoverTooltipSelector);
     expect(tooltip).not.toBeVisible();
@@ -798,8 +726,6 @@ describe("Treemap geometry (nodeInset / nodeGap)", () => {
         nameKey="name"
       />
     ));
-    flush();
-
     const depth1Rect = container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle");
     const depth2Rect = container.querySelector(".recharts-treemap-depth-2 .recharts-rectangle");
     assertNotNull(depth1Rect);
@@ -824,8 +750,6 @@ describe("Treemap geometry (nodeInset / nodeGap)", () => {
         nodeInset={nodeInset}
       />
     ));
-    flush();
-
     const depth1Rect = container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle");
     const depth2Rect = container.querySelector(".recharts-treemap-depth-2 .recharts-rectangle");
     assertNotNull(depth1Rect);
@@ -857,8 +781,6 @@ describe("Treemap geometry (nodeInset / nodeGap)", () => {
         nameKey="name"
       />
     ));
-    flush();
-
     const depth1Rects = container.querySelectorAll(".recharts-treemap-depth-1 .recharts-rectangle");
     expect(depth1Rects).toHaveLength(2);
 
@@ -894,8 +816,6 @@ describe("Treemap geometry (nodeInset / nodeGap)", () => {
         nodeGap={nodeGap}
       />
     ));
-    flush();
-
     const depth1Rects = container.querySelectorAll(".recharts-treemap-depth-1 .recharts-rectangle");
     expect(depth1Rects).toHaveLength(2);
 
@@ -929,18 +849,18 @@ describe("Treemap layout context", () => {
       const height = useChartHeight();
       const viewBox = useViewBox();
       const margin = useMargin();
-      createEffect(
-        () => ({ width: width(), height: height() }),
-        (v) => sizeSpy(v),
-      );
-      createEffect(
-        () => viewBox(),
-        (v) => viewBoxSpy(v),
-      );
-      createEffect(
-        () => margin(),
-        (v) => marginSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => ({ width: width(), height: height() }))();
+        ((v) => sizeSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => viewBox())();
+        ((v) => viewBoxSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => margin())();
+        ((v) => marginSpy(v))(value);
+      });
       return null;
     };
     render(() => (

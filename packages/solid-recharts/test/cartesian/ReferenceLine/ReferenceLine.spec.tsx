@@ -25,7 +25,7 @@
 //    meaningless `r={3}` prop from the reference is dropped (a `<line>` has no `r`;
 //    it is type-incompatible with the kebab LineSVGAttributes and has no effect).
 import { describe, expect, it, test, vi } from "vitest";
-import { createEffect, createSignal, flush, Show } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { Bar, BarChart, Line, LineChart, ReferenceLine, XAxis, YAxis } from "../../../src";
 import { useAppSelector } from "../../../src/state/hooks";
@@ -90,8 +90,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={0} stroke="#666" label="0" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, [
       {
         x1: "412.72727272727275",
@@ -127,8 +125,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine x={0} stroke="#666" label="0" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, [
       {
         x1: "980",
@@ -163,8 +159,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={0} stroke="#666" label="0" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, [
       {
         x1: "412.72727272727275",
@@ -198,8 +192,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine stroke="#666" label="0" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -221,8 +213,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine x="20150201" stroke="#666" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -244,7 +234,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={20} stroke="#666" label="20" ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
     expectReferenceLines(container, [
       {
         x1: "123.63636363636368",
@@ -282,7 +271,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={20} stroke="#666" label="20" ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
     expectReferenceLines(container, [
       {
         x1: "123.63636363636368",
@@ -324,8 +312,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={20} stroke="#666" label={renderLabel} ifOverflow="visible" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, [
       {
         x1: "80",
@@ -353,8 +339,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={20} stroke="#666" label />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
 
@@ -364,8 +348,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
   });
 
@@ -376,8 +358,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine x={20} />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
   });
 
@@ -388,8 +368,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={20} />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
   });
 
@@ -401,8 +379,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine xAxisId="this ID definitely does not exist anywhere" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
   });
 
@@ -421,15 +397,11 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine yAxisId="this ID definitely does not exist anywhere" />
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
   });
 
   it("should not render anything when rendered alone, outside of context", () => {
     const { container } = render(() => <ReferenceLine x={20} />);
-    flush();
-
     expectReferenceLines(container, []);
   });
 
@@ -443,8 +415,6 @@ describe("<ReferenceLine />", () => {
         </p>
       </BarChart>
     ));
-    flush();
-
     expectReferenceLines(container, []);
   });
 
@@ -458,8 +428,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={firstDataItem.name} ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
-
     const allLines = container.querySelectorAll(".recharts-reference-line-line");
     expect(allLines).toHaveLength(1);
     // Is this correct? That looks like a category, not pixel coordinate.
@@ -491,8 +459,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={dataMax + 100} ifOverflow="extendDomain" />
       </LineChart>
     ));
-    flush();
-
     const refLine = container.querySelectorAll(".recharts-reference-line-line");
     const yAxis = container.querySelector(".recharts-yAxis");
     assertNotNull(yAxis);
@@ -513,10 +479,10 @@ describe("<ReferenceLine />", () => {
       const [showLine, setShowLine] = createSignal(true);
       const Comp = (): null => {
         const lines = useAppSelector((state) => selectReferenceLinesByAxis(state, "yAxis", 0));
-        createEffect(
-          () => lines(),
-          (v) => lineSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => lines())();
+          ((v) => lineSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -529,8 +495,6 @@ describe("<ReferenceLine />", () => {
           <Comp />
         </BarChart>
       ));
-      flush();
-
       expect(lineSpy).toHaveBeenLastCalledWith([
         {
           // `id` is a documented Solid deviation: recharts matches reference
@@ -546,8 +510,6 @@ describe("<ReferenceLine />", () => {
       ]);
 
       setShowLine(false);
-      flush();
-
       expect(lineSpy).toHaveBeenLastCalledWith([]);
     });
 
@@ -555,10 +517,10 @@ describe("<ReferenceLine />", () => {
       const lineSpy = vi.fn();
       const Comp = (): null => {
         const lines = useAppSelector((state) => selectReferenceLinesByAxis(state, "yAxis", 0));
-        createEffect(
-          () => lines(),
-          (v) => lineSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => lines())();
+          ((v) => lineSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -576,8 +538,6 @@ describe("<ReferenceLine />", () => {
           <Comp />
         </BarChart>
       ));
-      flush();
-
       expect(lineSpy).toHaveBeenLastCalledWith([
         {
           id: expect.stringMatching(/^recharts-reference-line-/) as unknown as string,
@@ -625,8 +585,6 @@ describe("<ReferenceLine />", () => {
           />
         </LineChart>
       ));
-      flush();
-
       const dot = container.querySelector(".recharts-reference-line .recharts-reference-line-line");
       assertNotNull(dot);
 
@@ -686,7 +644,6 @@ describe("<ReferenceLine />", () => {
           <ReferenceLine x={1} shape={() => <g data-testid="my-custom-line-shape" />} />
         </LineChart>
       ));
-      flush();
       expect(screen.getByTestId("my-custom-line-shape")).toBeVisible();
       // The default `<line>` is replaced by the custom shape.
       expect(container.querySelectorAll(".recharts-reference-line-line")).toHaveLength(0);
@@ -701,7 +658,6 @@ describe("<ReferenceLine />", () => {
           <ReferenceLine x={1} shape={spy} />
         </LineChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           x1: expect.any(Number),
@@ -736,7 +692,6 @@ describe("<ReferenceLine />", () => {
           <ReferenceLine y={150} yAxisId="left" stroke="#f00" />
         </BarChart>
       ));
-      flush();
       // Only the line targeting the "right" axis (domain 0..200) is in range.
       expect(container.querySelectorAll(".recharts-reference-line-line")).toHaveLength(1);
     });

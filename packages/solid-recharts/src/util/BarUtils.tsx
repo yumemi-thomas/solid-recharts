@@ -2,8 +2,8 @@
 //
 // Exports `BarRectangle`/`defaultBarShape` for background bars and custom shapes;
 // `MinPointSize` + `minPointSizeCallback` for computeBarRectangles.
-import { createMemo, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Rectangle, type RectangleProps } from "../shape/Rectangle";
 import type { BarShapeProps } from "../cartesian/Bar";
 import { Shape } from "./ActiveShapeUtils";
@@ -32,7 +32,9 @@ export function BarRectangle(props: BarRectangleProps): JSX.Element {
   // fails to exclude `option` and leaks it to custom shape/background functions.
   // Spreading into a plain object keeps the downstream <Shape> reads a static
   // snapshot (no STRICT_READ), while the memo re-runs when any prop changes.
-  const shapeProps = createMemo((): BarRectangleShapeProps => ({ ...omit(props, "option") }));
+  const shapeProps = createMemo(
+    (): BarRectangleShapeProps => ({ ...splitProps(props, ["option"])[1] }),
+  );
   return (
     <Shape<BarRectangleShapeProps, SVGPathElement>
       option={props.option}

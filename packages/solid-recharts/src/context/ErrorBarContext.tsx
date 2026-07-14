@@ -9,7 +9,7 @@
 // cleanup remove → createEffect + onCleanup. useGraphicalItemId provides the id.
 import { createContext, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { AxisId } from "../state/cartesianAxisSlice";
 import type { ErrorBarDataPointFormatter } from "../cartesian/ErrorBar";
 import type { ErrorBarsSettings } from "../state/errorBarSlice";
@@ -45,7 +45,7 @@ export function SetErrorBarContext(
     dataPointFormatter: props.dataPointFormatter,
     errorBarOffset: props.errorBarOffset,
   });
-  return <ErrorBarContext value={value}>{props.children}</ErrorBarContext>;
+  return <ErrorBarContext.Provider value={value}>{props.children}</ErrorBarContext.Provider>;
 }
 
 export const useErrorBarContext = (): Accessor<ErrorBarContextValue> => useContext(ErrorBarContext);

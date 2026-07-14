@@ -1,7 +1,7 @@
 import { describe, expect, it, test, vi } from "vitest";
 import type { Mock } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import {
   Area,
   AreaChart,
@@ -467,10 +467,10 @@ describe("<YAxis />", () => {
         }): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         const { container } = render(() => (
@@ -501,10 +501,10 @@ describe("<YAxis />", () => {
         }): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         const { container } = render(() => (
@@ -533,10 +533,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -619,10 +619,10 @@ describe("<YAxis />", () => {
         const settings = useAppSelector((state) =>
           selectRenderableAxisSettings(state, "yAxis", "foo"),
         );
-        createEffect(
-          () => settings(),
-          (v) => props.spy(v as YAxisSettings),
-        );
+        createEffect(() => {
+          const value = (() => settings())();
+          ((v) => props.spy(v as YAxisSettings))(value);
+        });
         return null;
       }
       const fakeTickFormatter = () => "";
@@ -754,10 +754,10 @@ describe("<YAxis />", () => {
       const makeComp = (spy: Mock) => (): null => {
         const foo = useAppSelector((state) => selectRenderableAxisSettings(state, "yAxis", "foo"));
         const bar = useAppSelector((state) => selectRenderableAxisSettings(state, "yAxis", "bar"));
-        createEffect(
-          () => ({ foo: foo(), bar: bar() }),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => ({ foo: foo(), bar: bar() }))();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
 
@@ -847,10 +847,6 @@ describe("<YAxis />", () => {
       expect(Object.keys(lastCallArgs1)).toEqual(["1"]);
 
       fireEvent.click(container.getElementsByClassName("pushbutton")[0]!);
-      flush();
-      flush();
-      flush();
-
       // only id "2" exists
       const lastCallArgs2 = spy.mock.lastCall?.[0];
       assertNotNull(lastCallArgs2);
@@ -874,10 +870,10 @@ describe("<YAxis />", () => {
         }): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         // variant A: single Bar
@@ -935,10 +931,10 @@ describe("<YAxis />", () => {
         }): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         const { container } = render(() => (
@@ -973,10 +969,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       // variant A: stacked
@@ -1032,10 +1028,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -1070,10 +1066,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -1107,10 +1103,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -1144,10 +1140,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -1181,10 +1177,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -1221,10 +1217,10 @@ describe("<YAxis />", () => {
       }): null {
         const isPanorama = useIsPanorama();
         const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-        createEffect(
-          () => domain(),
-          (d) => props.domainSpy(d),
-        );
+        createEffect(() => {
+          const value = (() => domain())();
+          ((d) => props.domainSpy(d))(value);
+        });
         return null;
       }
       const { container } = render(() => (
@@ -1252,10 +1248,10 @@ describe("<YAxis />", () => {
         function Comp(): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         return (
@@ -1311,10 +1307,10 @@ describe("<YAxis />", () => {
         function Comp(): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         return (
@@ -1369,10 +1365,10 @@ describe("<YAxis />", () => {
         }): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.axisDomainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.axisDomainSpy(d))(value);
+          });
           return null;
         }
         const { container } = render(() => (
@@ -1413,10 +1409,10 @@ describe("<YAxis />", () => {
         function Comp(): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         return (
@@ -1471,10 +1467,10 @@ describe("<YAxis />", () => {
         function Comp(): null {
           const isPanorama = useIsPanorama();
           const domain = useAppSelector((state) => selectAxisDomain(state, "yAxis", 0, isPanorama));
-          createEffect(
-            () => domain(),
-            (d) => props.domainSpy(d),
-          );
+          createEffect(() => {
+            const value = (() => domain())();
+            ((d) => props.domainSpy(d))(value);
+          });
           return null;
         }
         return (

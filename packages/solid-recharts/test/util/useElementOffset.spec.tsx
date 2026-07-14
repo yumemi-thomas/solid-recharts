@@ -6,7 +6,7 @@
 // `unmount()` → the Solid renderHook's `cleanup()`. All assertions/expected
 // values are byte-identical to recharts.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { flush } from "solid-js";
+
 import { renderHook } from "@solidjs/testing-library";
 import { useElementOffset } from "../../src/util/useElementOffset";
 import { getMockDomRect } from "../helper/mockGetBoundingClientRect";
@@ -15,7 +15,6 @@ import { getMockDomRect } from "../helper/mockGetBoundingClientRect";
 // accessor reflects the latest value, mirroring React Testing Library's `act`.
 const act = (fn: () => void): void => {
   fn();
-  flush();
 };
 
 describe("useElementOffset", () => {

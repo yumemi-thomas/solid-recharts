@@ -3,7 +3,7 @@
 // <g> (`.recharts-polar-angle-axis-tick`); handlers keep the props-first
 // (tickItem, index, event) signature.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { PolarAngleAxis, PolarRadiusAxis, RadarChart } from "../../../src";
 import type { TickItem } from "../../../src/util/types";
 import { fireEvent, render } from "@solidjs/testing-library";
@@ -38,8 +38,6 @@ describe("PolarAngleAxis events", () => {
         />
       </RadarChart>
     ));
-    flush();
-
     const tick = container.querySelector(".recharts-polar-angle-axis-tick");
     assertNotNull(tick);
 

@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/state/brushSlice.ts (commit 7a23854).
 // FULL SOLID-NATIVE REWRITE (no Redux). Brush is a deferred vertical; this slice
 // is wired into the store so the offset can read `brush.height` (0 by default).
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { Padding } from "../util/types";
 
 /**
@@ -46,13 +46,15 @@ export function createBrushSlice(initialState: BrushSettings = initialBrushState
     // null); draft-first assignment of every field applies the full replacement.
     setBrushSettings(payload) {
       const next = payload ?? initialBrushState;
-      setState((s) => {
-        s.x = next.x;
-        s.y = next.y;
-        s.width = next.width;
-        s.height = next.height;
-        s.padding = { ...next.padding };
-      });
+      setState(
+        produce((s) => {
+          s.x = next.x;
+          s.y = next.y;
+          s.width = next.width;
+          s.height = next.height;
+          s.padding = { ...next.padding };
+        }),
+      );
     },
   };
 

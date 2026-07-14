@@ -3,7 +3,7 @@
 // the `id`-based identity deviation (recharts matches by object reference; Solid
 // store proxies break that, so each settings object carries a stable `id`).
 import { describe, it, expect } from "vitest";
-import { flush } from "solid-js";
+
 import type {
   ReferenceAreaSettings,
   ReferenceDotSettings,
@@ -27,11 +27,9 @@ describe("referenceElementsSlice", () => {
     };
 
     store.actions.referenceElements.addDot(dot);
-    flush();
     expect(store.state.referenceElements.dots).toEqual([dot]);
 
     store.actions.referenceElements.removeDot(dot);
-    flush();
     expect(store.state.referenceElements.dots).toEqual([]);
   });
 
@@ -51,11 +49,9 @@ describe("referenceElementsSlice", () => {
     };
 
     store.actions.referenceElements.addArea(area);
-    flush();
     expect(store.state.referenceElements.areas).toEqual([area]);
 
     store.actions.referenceElements.removeArea(area);
-    flush();
     expect(store.state.referenceElements.areas).toEqual([]);
   });
 
@@ -74,11 +70,9 @@ describe("referenceElementsSlice", () => {
     };
 
     store.actions.referenceElements.addLine(line);
-    flush();
     expect(store.state.referenceElements.lines).toEqual([line]);
 
     store.actions.referenceElements.removeLine(line);
-    flush();
     expect(store.state.referenceElements.lines).toEqual([]);
   });
 });

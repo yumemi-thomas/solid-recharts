@@ -7,7 +7,7 @@
 // cycle" contract — we just read the accessor again. The hook is created inside
 // `createRoot` (the memo needs an owner); signal writes happen outside the owned scope.
 import { describe, expect, it } from "vitest";
-import { createRoot, createSignal, flush } from "solid-js";
+import { createRoot, createSignal } from "solid-js";
 import { useAnimationStartSnapshot } from "../../src/animation/useAnimationStartSnapshot";
 import type { MutableRef } from "../../src/animation/useAnimationStartSnapshot";
 
@@ -54,8 +54,6 @@ describe("useAnimationStartSnapshot", () => {
     expect(snapshot.startValue()).toBe("frame-40");
 
     setAnimationInput("animation-b");
-    flush();
-
     expect(snapshot.startValue()).toBe("frame-40");
 
     snapshot.syncStepValue("frame-52", 0.4);
@@ -72,7 +70,6 @@ describe("useAnimationStartSnapshot", () => {
     expect(snapshot.startValue()).toBe("frame-40");
 
     setAnimationInput("animation-b");
-    flush();
     expect(snapshot.startValue()).toBe("frame-40");
 
     snapshot.syncStepValue("frame-40", 0);
@@ -92,7 +89,6 @@ describe("useAnimationStartSnapshot", () => {
     expect(snapshot.startValue()).toBe("frame-40");
 
     setAnimationInput("animation-b");
-    flush();
     expect(snapshot.startValue()).toBe("frame-40");
 
     snapshot.syncStepValue("frame-40", 0);
@@ -117,8 +113,6 @@ describe("useAnimationStartSnapshot", () => {
     expect(previousValueRef.current).toBe("frame-100");
 
     setAnimationInput("animation-b");
-    flush();
-
     expect(snapshot.startValue()).toBe("frame-100");
     dispose();
   });

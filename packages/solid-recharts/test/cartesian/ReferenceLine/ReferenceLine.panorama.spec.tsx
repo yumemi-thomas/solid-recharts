@@ -17,7 +17,7 @@
 //    state-integration block in ReferenceLine.spec.tsx), rather than calling the
 //    hook directly in a render body.
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { Brush, ComposedChart, Line, LineChart, ReferenceLine, XAxis, YAxis } from "../../../src";
 import { useAppSelector } from "../../../src/state/hooks";
@@ -70,22 +70,22 @@ describe("<ReferenceLine /> panorama", () => {
       const rootXRange = useAppSelector((state) =>
         selectAxisRangeWithReverse(state, "xAxis", 0, false),
       );
-      createEffect(
-        () => dims(),
-        (v) => brushDimensionsSpy(v),
-      );
-      createEffect(
-        () => padding(),
-        (v) => brushPaddingSpy(v),
-      );
-      createEffect(
-        () => rootYRange(),
-        (v) => rootYAxisRangeSpy(v),
-      );
-      createEffect(
-        () => rootXRange(),
-        (v) => rootXAxisRangeSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => dims())();
+        ((v) => brushDimensionsSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => padding())();
+        ((v) => brushPaddingSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => rootYRange())();
+        ((v) => rootYAxisRangeSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => rootXRange())();
+        ((v) => rootXAxisRangeSpy(v))(value);
+      });
       return null;
     };
 
@@ -96,14 +96,14 @@ describe("<ReferenceLine /> panorama", () => {
       const panoXRange = useAppSelector((state) =>
         selectAxisRangeWithReverse(state, "xAxis", 0, true),
       );
-      createEffect(
-        () => panoYRange(),
-        (v) => panoramaYAxisRangeSpy(v),
-      );
-      createEffect(
-        () => panoXRange(),
-        (v) => panoramaXAxisRangeSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => panoYRange())();
+        ((v) => panoramaYAxisRangeSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => panoXRange())();
+        ((v) => panoramaXAxisRangeSpy(v))(value);
+      });
       return null;
     };
 
@@ -132,8 +132,6 @@ describe("<ReferenceLine /> panorama", () => {
         <RootComp />
       </ComposedChart>
     ));
-    flush();
-
     expect(rootYAxisRangeSpy).toHaveBeenLastCalledWith([211, 11]);
     expect(panoramaYAxisRangeSpy).toHaveBeenLastCalledWith([39, 9]);
 

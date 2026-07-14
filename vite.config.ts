@@ -16,17 +16,6 @@ const libRoot = resolve(here, "packages/solid-recharts");
 // the vendored recharts reference under vendor/.
 export default defineConfig({
   plugins: [solid()],
-  // Solid 2.0's `development` export condition selects `dist/dev.js`, the build
-  // that emits structured diagnostics (the `node` default selects the SSR build,
-  // where reactivity — and diagnostics — are stripped). Forcing it on means our
-  // test discipline (`expectClean`/`expectOnly`) has events to assert against.
-  resolve: { conditions: ["development", "browser"] },
-  // Belt-and-suspenders: force Solid's dev guards on so vite-plugin-solid compiles
-  // in dev-only registration (owner names, graph hooks) for richer diagnostics.
-  define: {
-    _SOLID_DEV_: "true",
-    __DEV__: "true",
-  },
   test: {
     // Scope the test run to the library package: include/setup globs resolve under
     // this dir, so the vendored reference (vendor/recharts-reference/test) is never
@@ -48,8 +37,9 @@ export default defineConfig({
   },
 
   // Oxfmt (`vp fmt` / `vp check`): keep the formatter out of the vendored recharts
-  // reference (its `www/` app has unresolved imports that abort `vp check`) and
-  // build output. ignorePatterns here mirrors the lint ignore below.
+  // reference (its `www/` app has unresolved imports that abort `vp check`), the
+  // independently installed Solid 2 docs app, and build output. ignorePatterns
+  // here mirrors the lint ignore below.
   // *.gen.ts files are tool-generated (e.g. TanStack Router's routeTree.gen.ts in
   // app/docs) — reformatting them just creates churn against the generator.
   fmt: {
@@ -59,6 +49,7 @@ export default defineConfig({
       "node_modules/**",
       "scripts/**",
       "bench/**",
+      "app/docs/**",
       "**/*.gen.ts",
     ],
   },
@@ -79,6 +70,7 @@ export default defineConfig({
       "node_modules/**",
       "scripts/**",
       "bench/**",
+      "app/docs/**",
       "**/*.gen.ts",
     ],
     options: {

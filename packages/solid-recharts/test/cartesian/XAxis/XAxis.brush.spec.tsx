@@ -23,10 +23,10 @@ describe("brush and startIndex + endIndex", () => {
     const ticksSpy = vi.fn();
     const Comp = (): null => {
       const ticks = useAppSelector((state) => selectTicksOfAxis(state, "xAxis", 0, false));
-      createEffect(
-        () => ticks(),
-        (v) => ticksSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => ticks())();
+        ((v) => ticksSpy(v))(value);
+      });
       return null;
     };
     const { container } = render(() => (
@@ -95,10 +95,10 @@ describe("brush and startIndex + endIndex", () => {
     const ticksSpyA = vi.fn();
     const CompA = (): null => {
       const ticks = useAppSelector((state) => selectTicksOfAxis(state, "xAxis", 0, false));
-      createEffect(
-        () => ticks(),
-        (v) => ticksSpyA(v),
-      );
+      createEffect(() => {
+        const value = (() => ticks())();
+        ((v) => ticksSpyA(v))(value);
+      });
       return null;
     };
     const first = render(() => (
@@ -197,10 +197,10 @@ describe("brush and startIndex + endIndex", () => {
     const ticksSpyB = vi.fn();
     const CompB = (): null => {
       const ticks = useAppSelector((state) => selectTicksOfAxis(state, "xAxis", 0, false));
-      createEffect(
-        () => ticks(),
-        (v) => ticksSpyB(v),
-      );
+      createEffect(() => {
+        const value = (() => ticks())();
+        ((v) => ticksSpyB(v))(value);
+      });
       return null;
     };
     const second = render(() => (

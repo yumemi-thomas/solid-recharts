@@ -31,8 +31,8 @@
 // recharts (the empty/hidden root Layer stays inline, mounting no portal).
 // DEFERRED: `maxRadius`/`cornerRadius` rounding edge cases, float-precise per-frame
 // animation angle matrices.
-import { createEffect, createMemo, For, merge, Show, untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, untrack, mergeProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
 import {
@@ -580,7 +580,7 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
   props: PieProps<DataPointType, DataValueType>,
 ): JSX.Element {
   const store = useAppStore();
-  const merged = merge(pieDefaultProps, props);
+  const merged = mergeProps(pieDefaultProps, props);
   const id = useUniqueId("recharts-pie", props.id);
 
   if (store != null) {
@@ -703,18 +703,19 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
   // re-appears re-runs the ENTER animation from a collapsed state instead of resuming the
   // tween from the last visible (mid-progress) frame. Plain-ref write (no reactive graph).
   createEffect(
-    () => merged.hide || sectors() == null,
-    (shouldReset) => {
-      if (shouldReset) {
-        previousSectorsRef.current = null;
-      }
-    },
+    on(
+      () => merged.hide || sectors() == null,
+      (shouldReset) => {
+        if (shouldReset) {
+          previousSectorsRef.current = null;
+        }
+      },
+    ),
   );
   const polarLayout = usePolarChartLayout();
 
-  // Tracks animation in-progress (gates the labels). ownedWrite: handleAnimationEnd
-  // can fire from the driver's effect-cleanup when a mid-animation chart is disposed
-  // (route/soft navigation) — a legal teardown write.
+  // Tracks animation in-progress (gates the labels). handleAnimationEnd can fire
+  // from the driver's cleanup when a mid-animation chart is disposed.
   const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks(
     () => props.onAnimationStart?.(),
     () => props.onAnimationEnd?.(),

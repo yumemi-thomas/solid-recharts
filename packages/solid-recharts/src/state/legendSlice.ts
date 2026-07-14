@@ -7,7 +7,7 @@
 // entry carries the graphical item's `id` (`{ id, items }`) and replace/remove
 // match by it (the same proxy-safe strategy as graphicalItemsSlice/tooltipSlice).
 // `selectLegendPayload` flattens `items` back to the reference's flat shape.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { createCollectionActions } from "./createCollectionActions";
 import { patched } from "./patched";
 import { LayoutType, Size } from "../util/types";
@@ -70,31 +70,37 @@ export function createLegendSlice(initialState: LegendState = initialLegendState
 
   const payload = createCollectionActions<LegendPayloadEntry>(
     (updater) =>
-      setState((s) => {
-        const next = updater(s.payload);
-        if (next !== s.payload) {
-          s.payload = next;
-        }
-      }),
+      setState(
+        produce((s) => {
+          const next = updater(s.payload);
+          if (next !== s.payload) {
+            s.payload = next;
+          }
+        }),
+      ),
     (e) => e.id,
   );
 
   const actions: LegendActions = {
     setLegendSize(payload) {
       // Slice immutability contract (ADR-0002): replace the node, not leaves.
-      setState((s) => {
-        s.size = patched(s.size, { width: payload.width, height: payload.height });
-      });
+      setState(
+        produce((s) => {
+          s.size = patched(s.size, { width: payload.width, height: payload.height });
+        }),
+      );
     },
     setLegendSettings(payload) {
-      setState((s) => {
-        s.settings = patched(s.settings, {
-          align: payload.align,
-          layout: payload.layout,
-          verticalAlign: payload.verticalAlign,
-          itemSorter: payload.itemSorter,
-        });
-      });
+      setState(
+        produce((s) => {
+          s.settings = patched(s.settings, {
+            align: payload.align,
+            layout: payload.layout,
+            verticalAlign: payload.verticalAlign,
+            itemSorter: payload.itemSorter,
+          });
+        }),
+      );
     },
     addLegendPayload: payload.add,
     replaceLegendPayload: payload.replace,

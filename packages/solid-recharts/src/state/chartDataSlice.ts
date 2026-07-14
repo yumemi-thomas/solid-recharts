@@ -7,7 +7,7 @@
 // functions directly, and selectors read `state` inside a `createMemo`.
 //
 // `castDraft`/immer are unnecessary — Solid's store setter takes a mutable draft.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { BrushStartEndIndex } from "../context/brushUpdateContext";
 
 /**
@@ -82,32 +82,38 @@ export function createChartDataSlice(
 
   const actions: ChartDataActions = {
     setChartData(chartData) {
-      setState((s) => {
-        s.chartData = chartData;
-        if (chartData == null) {
-          s.dataStartIndex = 0;
-          s.dataEndIndex = 0;
-          return;
-        }
-        if (chartData.length > 0 && s.dataEndIndex !== chartData.length - 1) {
-          s.dataEndIndex = chartData.length - 1;
-        }
-      });
+      setState(
+        produce((s) => {
+          s.chartData = chartData;
+          if (chartData == null) {
+            s.dataStartIndex = 0;
+            s.dataEndIndex = 0;
+            return;
+          }
+          if (chartData.length > 0 && s.dataEndIndex !== chartData.length - 1) {
+            s.dataEndIndex = chartData.length - 1;
+          }
+        }),
+      );
     },
     setComputedData(computedData) {
-      setState((s) => {
-        s.computedData = computedData;
-      });
+      setState(
+        produce((s) => {
+          s.computedData = computedData;
+        }),
+      );
     },
     setDataStartEndIndexes({ startIndex, endIndex }) {
-      setState((s) => {
-        if (startIndex != null) {
-          s.dataStartIndex = startIndex;
-        }
-        if (endIndex != null) {
-          s.dataEndIndex = endIndex;
-        }
-      });
+      setState(
+        produce((s) => {
+          if (startIndex != null) {
+            s.dataStartIndex = startIndex;
+          }
+          if (endIndex != null) {
+            s.dataEndIndex = endIndex;
+          }
+        }),
+      );
     },
   };
 

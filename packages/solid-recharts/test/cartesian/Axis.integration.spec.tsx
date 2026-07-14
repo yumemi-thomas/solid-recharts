@@ -7,7 +7,7 @@
 // offset is still margin-only (axis-size subtraction is a separate vertical), so
 // coords would diverge from recharts for reasons unrelated to axis logic.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis } from "../../src";
 
@@ -41,7 +41,6 @@ describe("axis integration", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     expect(tickTexts(container, ".recharts-yAxis")).toEqual(["0", "100", "200", "300", "400"]);
   });
 
@@ -52,7 +51,6 @@ describe("axis integration", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     expect(tickTexts(container, ".recharts-xAxis")).toEqual(["A", "B", "C", "D", "E"]);
   });
 
@@ -63,7 +61,6 @@ describe("axis integration", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     expect(tickTexts(container, ".recharts-yAxis")).toEqual(["0", "400", "800", "1200"]);
   });
 
@@ -74,7 +71,6 @@ describe("axis integration", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     expect(tickTexts(container, ".recharts-yAxis")).toEqual(["0", "250", "500", "750", "1000"]);
   });
 
@@ -91,7 +87,6 @@ describe("axis integration", () => {
         <Line dataKey="pv" />
       </LineChart>
     ));
-    flush();
     // Integer nice-ticks over [13.98, 98] — byte-identical to recharts' output.
     expect(tickTexts(container, ".recharts-yAxis")).toEqual(["14", "59", "98"]);
   });
@@ -103,15 +98,12 @@ describe("axis integration", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     const reversed = render(() => (
       <LineChart width={400} height={400} data={numericData} margin={margin}>
         <YAxis reversed />
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
-
     // Same tick values either way.
     expect(tickTexts(reversed.container, ".recharts-yAxis")).toEqual(
       tickTexts(normal.container, ".recharts-yAxis"),
@@ -136,7 +128,6 @@ describe("axis integration", () => {
         <Line dataKey="pv" yAxisId="right" />
       </LineChart>
     ));
-    flush();
     // Two distinct axis layers, each with its own (non-empty) tick set.
     expect(container.querySelectorAll(".recharts-yAxis").length).toBe(2);
     const allYTicks = container.querySelectorAll(
@@ -152,7 +143,6 @@ describe("axis integration", () => {
         <Line dataKey="uv" />
       </LineChart>
     ));
-    flush();
     expect(tickTexts(container, ".recharts-yAxis")).toEqual([]);
   });
 });

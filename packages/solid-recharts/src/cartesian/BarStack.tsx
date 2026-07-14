@@ -1,8 +1,8 @@
 // Ported from recharts 3.8.1 src/cartesian/BarStack.tsx (commit 7a23854).
 // Solid deviations: `resolveDefaultProps`→`merge`; React context → Solid `createContext`;
 // `useMemo`→plain object; `React.memo`/`propsAreEqual` omitted (Solid comp granularity).
-import { createContext, createMemo, For, merge, Show, useContext } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createContext, createMemo, For, Show, useContext, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { getNormalizedStackId, type NormalizedStackId, type StackId } from "../util/ChartUtils";
 import { useUniqueId } from "../util/useUniqueId";
 import { useAppSelector } from "../state/hooks";
@@ -136,16 +136,16 @@ const BarStackClipPath = (props: {
 };
 
 export const BarStack = (props: BarStackProps): JSX.Element => {
-  const merged = merge(defaultBarStackProps, props);
+  const merged = mergeProps(defaultBarStackProps, props);
   const resolvedStackId = useUniqueId("recharts-bar-stack", getNormalizedStackId(merged.stackId));
   const context: BarStackSettings = {
     stackId: resolvedStackId,
     radius: merged.radius,
   };
   return (
-    <BarStackContext value={context}>
+    <BarStackContext.Provider value={context}>
       <BarStackClipPath stackId={resolvedStackId} radius={merged.radius} />
       {props.children}
-    </BarStackContext>
+    </BarStackContext.Provider>
   );
 };

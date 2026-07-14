@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, test } from "vitest";
-import { flush } from "solid-js";
 
 import { createRechartsStore } from "../../../src/state/store";
 import {
@@ -7,7 +6,7 @@ import {
   selectActiveIndex,
   selectIsTooltipActive,
 } from "../../../src/state/selectors/tooltipSelectors";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import {
   Area,
   AreaChart,
@@ -79,7 +78,6 @@ describe("Tooltip synchronization", () => {
         activeDataKey: "uv",
         activeIndex: "1",
       });
-      flush();
       const actual = selectActiveCoordinate(store.state, "axis", "hover", undefined);
       expect(actual).toEqual({ x: 3, y: 4 });
     });
@@ -95,7 +93,6 @@ describe("Tooltip synchronization", () => {
         sourceViewBox: { x: 0, y: 0, width: 100, height: 100 },
         graphicalItemId: undefined,
       });
-      flush();
       const actual = selectActiveCoordinate(store.state, "axis", "hover", undefined);
       expect(actual).toEqual({ x: 5, y: 6 });
     });
@@ -118,7 +115,6 @@ describe("Tooltip synchronization", () => {
         activeDataKey: "uv",
         activeIndex: "1",
       });
-      flush();
       const actual = selectIsTooltipActive(store.state, "axis", "hover", undefined);
       expect(actual).toEqual({
         activeIndex: "1",
@@ -137,7 +133,6 @@ describe("Tooltip synchronization", () => {
         sourceViewBox: { x: 0, y: 0, width: 100, height: 100 },
         graphicalItemId: undefined,
       });
-      flush();
       const actual = selectIsTooltipActive(store.state, "axis", "hover", undefined);
       expect(actual).toEqual({
         activeIndex: "1",
@@ -160,7 +155,6 @@ describe("Tooltip synchronization", () => {
         activeDataKey: "uv",
         activeIndex: "1",
       });
-      flush();
       const actual = selectActiveIndex(store.state, "axis", "hover", undefined);
       expect(actual).toEqual("1");
     });
@@ -176,7 +170,6 @@ describe("Tooltip synchronization", () => {
         sourceViewBox: { x: 0, y: 0, width: 100, height: 100 },
         graphicalItemId: undefined,
       });
-      flush();
       const actual = selectActiveIndex(store.state, "axis", "hover", undefined);
       expect(actual).toEqual("2");
     });

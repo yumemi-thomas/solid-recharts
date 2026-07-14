@@ -2,12 +2,12 @@
 // Context-value-is-provider in Solid 2.0; default `null` (a real value) so
 // `useContext` returns it without throwing outside a provider.
 import { createContext, useContext } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 
 const PanoramaContext = createContext<boolean | null>(null);
 
 export const useIsPanorama = (): boolean => useContext(PanoramaContext) != null;
 
 export const PanoramaContextProvider = (props: { children: JSX.Element }): JSX.Element => (
-  <PanoramaContext value={true}>{props.children}</PanoramaContext>
+  <PanoramaContext.Provider value={true}>{props.children}</PanoramaContext.Provider>
 );

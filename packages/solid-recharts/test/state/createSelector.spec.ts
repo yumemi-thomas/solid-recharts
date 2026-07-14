@@ -2,7 +2,8 @@
 // counterpart to port — upstream gets this contract from reselect itself; this
 // spec pins the same contract for our implementation.
 import { describe, expect, it, vi } from "vitest";
-import { createMemo, createStore, flush } from "solid-js";
+import { createMemo } from "solid-js";
+import { createStore } from "solid-js/store";
 import { renderHook } from "@solidjs/testing-library";
 import { createSelector } from "../../src/state/createSelector";
 
@@ -124,16 +125,12 @@ describe("createSelector", () => {
     const selector = createSelector([(s: TestState) => s.axis.domain], combiner);
 
     const { result: upper } = renderHook(() => createMemo(() => selector(state)));
-    flush();
     expect(upper()).toBe(1);
 
     // A cache-hit evaluation in between must not drop the input subscription.
     expect(selector(state)).toBe(1);
 
-    setState((s) => {
-      s.axis = { domain: [0, 5] };
-    });
-    flush();
+    setState("axis", { domain: [0, 5] });
     expect(upper()).toBe(5);
     expect(combiner).toHaveBeenCalledTimes(2);
   });
@@ -144,13 +141,9 @@ describe("createSelector", () => {
     const impure = createSelector([(s: TestState) => s.axis.domain], () => state.unrelated.counter);
 
     const { result } = renderHook(() => createMemo(() => impure(state)));
-    flush();
     expect(result()).toBe(0);
 
-    setState((s) => {
-      s.unrelated = { counter: 7 };
-    });
-    flush();
+    setState("unrelated", { counter: 7 });
     // No input reference changed and the combiner's read was untracked:
     // the memo must NOT have re-run. This documents the purity contract.
     expect(result()).toBe(0);

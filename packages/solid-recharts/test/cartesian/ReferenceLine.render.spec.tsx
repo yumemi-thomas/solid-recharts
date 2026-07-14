@@ -4,7 +4,7 @@
 // at y=value spans the full plot width at the y the Y scale maps `value` to, and
 // a vertical line at x=category spans the full plot height at that band's x.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ReferenceLine } from "../../src";
 
@@ -39,8 +39,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={50} stroke="#ff0000" />
       </LineChart>
     ));
-    flush();
-
     // viewBox: x=65 (margin.left 5 + Y axis width 60), width=430 (500-5-65);
     // Y scale [0,100] → range [465, 5], so y=50 maps to 235. Orientation 'left'
     // reverses the points → [{x:65}, {x:495}].
@@ -61,8 +59,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine x="B" stroke="#0000ff" />
       </LineChart>
     ));
-    flush();
-
     const coords = lineCoords(container);
     expect(coords).toHaveLength(1);
     // Vertical line: x1 === x2 (one band position), spanning the plot height
@@ -85,8 +81,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={200} ifOverflow="extendDomain" stroke="#ff0000" />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-line-line")).toHaveLength(1);
   });
 
@@ -100,8 +94,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={500} stroke="#ff0000" />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-line-line")).toHaveLength(0);
   });
 
@@ -122,8 +114,6 @@ describe("<ReferenceLine />", () => {
         <ReferenceLine y={50} stroke="#ff0000" strokeWidth={3} strokeDasharray="4 2" />
       </LineChart>
     ));
-    flush();
-
     const line = container.querySelector(".recharts-reference-line-line");
     expect(line).not.toBeNull();
     expect(line).toHaveAttribute("stroke-width", "3");

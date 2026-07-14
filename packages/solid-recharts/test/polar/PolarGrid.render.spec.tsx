@@ -7,7 +7,7 @@
 // concentric polygons by default, circles when gridType="circle"). Exact grid
 // geometry comes online with the full spec.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RadarChart, Radar, PolarGrid } from "../../src";
 
@@ -30,8 +30,6 @@ describe("<PolarGrid /> in RadarChart", () => {
         <PolarGrid />
       </RadarChart>
     ));
-    flush();
-
     expect(container.querySelector(".recharts-polar-grid")).not.toBeNull();
 
     // 8 categories → 8 radial lines.
@@ -53,8 +51,6 @@ describe("<PolarGrid /> in RadarChart", () => {
         <PolarGrid gridType="circle" />
       </RadarChart>
     ));
-    flush();
-
     expect(
       container.querySelectorAll(".recharts-polar-grid-concentric-circle").length,
     ).toBeGreaterThan(0);
@@ -68,8 +64,6 @@ describe("<PolarGrid /> in RadarChart", () => {
         <PolarGrid radialLines={false} />
       </RadarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-polar-grid-angle line")).toHaveLength(0);
   });
 });

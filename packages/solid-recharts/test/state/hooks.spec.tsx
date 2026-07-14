@@ -13,7 +13,7 @@
 // The provider is supplied via renderHook's `wrapper`; reactive reads are
 // asserted after `flush()` (Solid batches writes on microtasks).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { renderHook } from "@solidjs/testing-library";
 import { useAppSelector, useAppStore } from "../../src/state/hooks";
 import { RechartsStoreProvider } from "../../src/state/RechartsStoreProvider";
@@ -48,8 +48,6 @@ describe("useAppSelector", () => {
     expect(result.chartData()).toBeUndefined();
 
     result.store?.actions.chartData.setChartData([]);
-    flush();
-
     expect(result.chartData()).toEqual([]);
   });
 });

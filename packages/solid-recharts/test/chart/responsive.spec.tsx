@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { mockGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
@@ -429,8 +429,6 @@ describe("responsive prop", () => {
       expect(result.getByTestId("chart-size").textContent).toBe("500x400");
 
       resizeObserverCallback([{ contentRect: { width: 300, height: 200 } } as ResizeObserverEntry]);
-      flush();
-
       expect(svg).toHaveAttribute("width", "300");
       expect(svg).toHaveAttribute("height", "200");
       expect(result.getByTestId("chart-size").textContent).toBe("300x200");
@@ -545,8 +543,6 @@ describe("responsive prop", () => {
       expect(result.getByTestId("chart-size").textContent).toBe("500x400");
 
       resizeObserverCallback([{ contentRect: { width: 300, height: 200 } } as ResizeObserverEntry]);
-      flush();
-
       expect(svg).toHaveAttribute("width", "300");
       expect(svg).toHaveAttribute("height", "200");
       expect(result.getByTestId("chart-size").textContent).toBe("300x200");

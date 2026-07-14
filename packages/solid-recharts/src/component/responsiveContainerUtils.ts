@@ -2,7 +2,7 @@
 // Deviations: `CSSProperties` from csstype (camelCase, matching React's), and the
 // `satisfies Partial<Props>` on the defaults is dropped (the ResponsiveContainer
 // component is deferred) — kept as `as const`.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { isPercent } from "../util/DataUtils";
 import type { Percent } from "../util/types";
 

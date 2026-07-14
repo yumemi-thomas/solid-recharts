@@ -22,7 +22,7 @@ import { render } from "@solidjs/testing-library";
 import { Funnel, FunnelChart, Trapezoid, Tooltip } from "../../src";
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { funnelChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import type { FunnelTrapezoidItem } from "../../src/cartesian/Funnel";
 
 const funnelData = [

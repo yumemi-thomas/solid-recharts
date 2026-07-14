@@ -3,7 +3,7 @@
 // binding wrapper spreads the user props then sets `layout` as a static
 // attribute LAST, so the bound layout wins over any passed value; the public
 // type omits `layout` so TS rejects it too.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { AreaChart as OriginalAreaChart } from "../chart/AreaChart";
 import { BarChart as OriginalBarChart } from "../chart/BarChart";
 import { LineChart as OriginalLineChart } from "../chart/LineChart";

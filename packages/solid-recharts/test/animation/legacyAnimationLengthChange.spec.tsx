@@ -28,8 +28,8 @@
 // dot sits at the midpoint between the center-start and its settled position — matching the
 // reference's proportional-matching assertions.
 import { beforeEach, describe, expect, it } from "vitest";
-import { createSignal, flush, Show, type Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, Show, type Accessor } from "solid-js";
+import type { JSX } from "solid-js";
 import {
   Area,
   AreaChart,
@@ -300,7 +300,7 @@ function renderLengthChangeChart(
   const [data, setData] = createSignal<SmallData | PolarData>(initialData);
   const [next, setNext] = createSignal<SmallData | PolarData | null>(null);
   const { container } = render(() => (
-    <AnimationControllerProvider value={registry.controller}>
+    <AnimationControllerProvider.Provider value={registry.controller}>
       <button
         type="button"
         data-testid="swap-data"
@@ -314,9 +314,8 @@ function renderLengthChangeChart(
       <Show when={data()} keyed>
         {(d) => chart(() => d)}
       </Show>
-    </AnimationControllerProvider>
+    </AnimationControllerProvider.Provider>
   ));
-  flush();
   const button = container.querySelector<HTMLButtonElement>('[data-testid="swap-data"]');
   if (button == null) {
     throw new Error("Missing swap-data button");
@@ -325,9 +324,7 @@ function renderLengthChangeChart(
     container,
     setData: (nextData) => {
       setNext(() => nextData);
-      flush();
       fireEvent.click(button);
-      flush();
     },
     registry,
   };
@@ -345,14 +342,11 @@ describe("legacy animation behavior when data length changes", () => {
       </AreaChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     const initialCurve = getCurvePoints(r.container, ".recharts-area-curve");
     r.setData(largeData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midCurve = getCurvePoints(r.container, ".recharts-area-curve");
     await r.registry.current().completeAnimation();
-    flush();
     const finalCurve = getCurvePoints(r.container, ".recharts-area-curve");
 
     expect(initialCurve).not.toEqual(finalCurve);
@@ -366,14 +360,11 @@ describe("legacy animation behavior when data length changes", () => {
       </AreaChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     const initialCurve = getCurvePoints(r.container, ".recharts-area-curve");
     r.setData(smallData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midCurve = getCurvePoints(r.container, ".recharts-area-curve");
     await r.registry.current().completeAnimation();
-    flush();
     const finalCurve = getCurvePoints(r.container, ".recharts-area-curve");
 
     expect(initialCurve).not.toEqual(finalCurve);
@@ -387,14 +378,11 @@ describe("legacy animation behavior when data length changes", () => {
       </LineChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     const initialCurve = getCurvePoints(r.container, ".recharts-line-curve");
     r.setData(largeData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midCurve = getCurvePoints(r.container, ".recharts-line-curve");
     await r.registry.current().completeAnimation();
-    flush();
     const finalCurve = getCurvePoints(r.container, ".recharts-line-curve");
 
     expect(initialCurve).not.toEqual(finalCurve);
@@ -408,14 +396,11 @@ describe("legacy animation behavior when data length changes", () => {
       </LineChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     const initialCurve = getCurvePoints(r.container, ".recharts-line-curve");
     r.setData(smallData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midCurve = getCurvePoints(r.container, ".recharts-line-curve");
     await r.registry.current().completeAnimation();
-    flush();
     const finalCurve = getCurvePoints(r.container, ".recharts-line-curve");
 
     expect(initialCurve).not.toEqual(finalCurve);
@@ -434,14 +419,11 @@ describe("legacy animation behavior when data length changes", () => {
   it("Radar keeps proportional point matching", async () => {
     const r = renderLengthChangeChart(smallData, renderRadar);
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(largeData);
     const initialDots = getCapturedDots(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midDots = getCapturedDots(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalDots = getCapturedDots(r.container);
 
     expect(initialDots).toHaveLength(3);
@@ -460,14 +442,11 @@ describe("legacy animation behavior when data length changes", () => {
   it("Radar keeps proportional point matching when data length decreases", async () => {
     const r = renderLengthChangeChart(largeData, renderRadar);
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(smallData);
     const initialDots = getCapturedDots(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midDots = getCapturedDots(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalDots = getCapturedDots(r.container);
 
     expect(initialDots).toHaveLength(2);
@@ -490,13 +469,10 @@ describe("legacy animation behavior when data length changes", () => {
       </ScatterChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(largeData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midPoints = getCapturedScatterPoints(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalPoints = getCapturedScatterPoints(r.container);
 
     expect(midPoints).toHaveLength(3);
@@ -518,13 +494,10 @@ describe("legacy animation behavior when data length changes", () => {
       </BarChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(largeData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midBars = getCapturedBars(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalBars = getCapturedBars(r.container);
 
     expect(midBars).toHaveLength(3);
@@ -546,13 +519,10 @@ describe("legacy animation behavior when data length changes", () => {
       </PieChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(largeData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midSectors = getCapturedSectors(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalSectors = getCapturedSectors(r.container);
 
     expect(midSectors).toHaveLength(3);
@@ -575,13 +545,10 @@ describe("legacy animation behavior when data length changes", () => {
       </RadialBarChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(largePolarData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midSectors = getCapturedSectors(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalSectors = getCapturedSectors(r.container);
 
     expect(midSectors).toHaveLength(3);
@@ -604,13 +571,10 @@ describe("legacy animation behavior when data length changes", () => {
       </FunnelChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(largeData);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midFunnels = getCapturedFunnels(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalFunnels = getCapturedFunnels(r.container);
 
     expect(midFunnels).toHaveLength(3);
@@ -638,14 +602,11 @@ describe("legacy animation behavior when data length changes", () => {
       </BarChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(smallData);
     const initialBars = getCapturedBars(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midBars = getCapturedBars(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalBars = getCapturedBars(r.container);
 
     expect(initialBars).toHaveLength(2);
@@ -673,14 +634,11 @@ describe("legacy animation behavior when data length changes", () => {
       </FunnelChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(smallData);
     const initialFunnels = getCapturedFunnels(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midFunnels = getCapturedFunnels(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalFunnels = getCapturedFunnels(r.container);
 
     expect(initialFunnels).toHaveLength(2);
@@ -708,14 +666,11 @@ describe("legacy animation behavior when data length changes", () => {
       </ScatterChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(smallData);
     const initialPoints = getCapturedScatterPoints(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midPoints = getCapturedScatterPoints(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalPoints = getCapturedScatterPoints(r.container);
 
     expect(initialPoints).toHaveLength(2);
@@ -743,14 +698,11 @@ describe("legacy animation behavior when data length changes", () => {
       </PieChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(smallData);
     const initialSectors = getCapturedSectors(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midSectors = getCapturedSectors(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalSectors = getCapturedSectors(r.container);
 
     expect(initialSectors).toHaveLength(0);
@@ -774,14 +726,11 @@ describe("legacy animation behavior when data length changes", () => {
       </RadialBarChart>
     ));
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(smallPolarData);
     const initialSectors = getCapturedSectors(r.container);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     const midSectors = getCapturedSectors(r.container);
     await r.registry.current().completeAnimation();
-    flush();
     const finalSectors = getCapturedSectors(r.container);
 
     expect(initialSectors).toHaveLength(2);

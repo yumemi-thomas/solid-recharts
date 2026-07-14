@@ -10,8 +10,8 @@
 // default DefaultZIndexes.grid). DEFERRED (documented): background fill rect (fill
 // defaults to "none"), generic SVG-prop passthrough beyond
 // stroke/strokeWidth/strokeDasharray.
-import { For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector } from "../state/hooks";
 import { AxisId } from "../state/cartesianAxisSlice";
 import { selectPolarGridAngles, selectPolarGridRadii } from "../state/selectors/polarGridSelectors";
@@ -107,7 +107,7 @@ const ConcentricRing = (
     fallback={
       <path
         {...concentricPolygonAttrs(props.cx, props.cy)}
-        class={["recharts-polar-grid-concentric-polygon", props.class]}
+        class={["recharts-polar-grid-concentric-polygon", props.class].filter(Boolean).join(" ")}
         fill={props.fill ?? "none"}
         fill-opacity={props.fillOpacity}
         stroke={props.stroke}
@@ -118,7 +118,7 @@ const ConcentricRing = (
     }
   >
     <circle
-      class={["recharts-polar-grid-concentric-circle", props.class]}
+      class={["recharts-polar-grid-concentric-circle", props.class].filter(Boolean).join(" ")}
       fill={props.fill ?? "none"}
       fill-opacity={props.fillOpacity}
       stroke={props.stroke}
@@ -155,7 +155,7 @@ const RadialLine = (
 };
 
 export const PolarGrid = (props: PolarGridProps): JSX.Element => {
-  const merged = merge(polarGridDefaultProps, props);
+  const merged = mergeProps(polarGridDefaultProps, props);
   const polarViewBox = useAppSelector(selectPolarViewBox);
   const anglesFromStore = useAppSelector((state) =>
     selectPolarGridAngles(state, merged.angleAxisId),

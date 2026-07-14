@@ -4,12 +4,12 @@
 // <Provider>. In Solid the component body runs once, so creating the store in the
 // body is the natural "create once per chart instance" — each chart gets its own
 // independent store (recharts supports many charts per page). The context value
-// IS the provider in Solid 2.0: `<RechartsStoreContext value={store}>`.
+// IS the provider in Solid 2.0: `<RechartsStoreContext.Provider value={store}>`.
 //
 // NOTE: the panorama branch (Brush's preview chart reuses the parent store by
 // rendering no Provider) is deferred until PanoramaContext is ported.
 import { untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { RechartsStoreContext } from "./RechartsStoreContext";
 import { createRechartsStore, type RechartsRootState } from "./store";
 
@@ -23,5 +23,7 @@ export function RechartsStoreProvider(props: RechartsStoreProviderProps): JSX.El
   // untracked (it should not make store creation reactive).
   const store = createRechartsStore(untrack(() => props.preloadedState));
 
-  return <RechartsStoreContext value={store}>{props.children}</RechartsStoreContext>;
+  return (
+    <RechartsStoreContext.Provider value={store}>{props.children}</RechartsStoreContext.Provider>
+  );
 }

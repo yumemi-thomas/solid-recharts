@@ -5,7 +5,7 @@
 // overwrote every other chart's portal element and graphical items portal'd
 // into a different chart's svg (bars rendered inside a sibling pie chart).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { createRechartsStore } from "../../src/state/store";
 import { initialZIndexState } from "../../src/state/zIndexSlice";
 import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
@@ -24,14 +24,11 @@ describe("zIndexSlice", () => {
       element: elementA,
       isPanorama: false,
     });
-    flush();
     storeB.actions.zIndex.registerZIndexPortalElement({
       zIndex: DefaultZIndexes.bar,
       element: elementB,
       isPanorama: false,
     });
-    flush();
-
     // Pre-fix, B's registration overwrote the shared default entry, so A
     // resolved B's element here.
     expect(selectZIndexPortalElement(storeA.state, DefaultZIndexes.bar, false)).toBe(elementA);
@@ -47,8 +44,6 @@ describe("zIndexSlice", () => {
       element,
       isPanorama: false,
     });
-    flush();
-
     const initialEntry = initialZIndexState.zIndexMap[DefaultZIndexes.bar];
     assertNotNull(initialEntry);
     expect(initialEntry.element).toBeUndefined();
@@ -71,14 +66,10 @@ describe("zIndexSlice", () => {
       element: elementB,
       isPanorama: false,
     });
-    flush();
-
     storeB.actions.zIndex.unregisterZIndexPortalElement({
       zIndex: DefaultZIndexes.bar,
       isPanorama: false,
     });
-    flush();
-
     expect(selectZIndexPortalElement(storeA.state, DefaultZIndexes.bar, false)).toBe(elementA);
     expect(selectZIndexPortalElement(storeB.state, DefaultZIndexes.bar, false)).toBeUndefined();
   });

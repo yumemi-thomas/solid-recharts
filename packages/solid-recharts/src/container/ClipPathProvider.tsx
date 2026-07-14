@@ -4,7 +4,7 @@
 // once); `return null` when no plot area → keyed `<Show>`; context-value-is-
 // provider; default `null` (not undefined, which would make `useContext` throw).
 import { createContext, useContext, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { uniqueId } from "../util/DataUtils";
 import { usePlotArea } from "../hooks";
 
@@ -24,14 +24,14 @@ export const ClipPathProvider = (props: { children: JSX.Element }): JSX.Element 
   return (
     <Show when={plotArea()}>
       {(area) => (
-        <ClipPathIdContext value={clipPathId}>
+        <ClipPathIdContext.Provider value={clipPathId}>
           <defs>
             <clipPath id={clipPathId}>
               <rect x={area().x} y={area().y} height={area().height} width={area().width} />
             </clipPath>
           </defs>
           {props.children}
-        </ClipPathIdContext>
+        </ClipPathIdContext.Provider>
       )}
     </Show>
   );

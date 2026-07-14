@@ -30,8 +30,8 @@
 // (final frame), element-form shape, per-sector item-hover dispatch (sectors lack
 // tooltipPosition).
 // Cells ARE wired: a <Cell> child overrides the per-sector fill/stroke/class.
-import { createMemo, For, merge, Show, untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, untrack, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
 import {
@@ -481,7 +481,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
   props: RadialBarProps<DataPointType, DataValueType>,
 ): JSX.Element {
   const store = useAppStore();
-  const merged = merge(radialBarDefaultProps, props);
+  const merged = mergeProps(radialBarDefaultProps, props);
   const id = useUniqueId("recharts-radial-bar", props.id);
 
   const settings = (): RadialBarSettings => ({

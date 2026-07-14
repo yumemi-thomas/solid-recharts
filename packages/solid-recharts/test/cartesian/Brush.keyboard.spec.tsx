@@ -3,7 +3,7 @@
 // dispatches through the store before the chart re-filters (separate tasks in a
 // real browser; here we flush manually).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, Brush } from "../../src";
 
@@ -44,26 +44,19 @@ const renderBrushChart = () =>
 describe("<Brush /> keyboard", () => {
   it("ArrowRight on the start traveller advances the window start by one index", () => {
     const { container } = renderBrushChart();
-    flush();
     expect(dotCount(container)).toBe(data.length);
 
     const startTraveller = container.querySelectorAll(".recharts-brush-traveller")[0]!;
     fireEvent.focus(startTraveller);
     fireEvent.keyDown(startTraveller, { key: "ArrowRight" });
-    flush();
-
     // Window narrowed from the left by one row.
     expect(dotCount(container)).toBe(data.length - 1);
   });
 
   it("ArrowLeft at the start edge is a no-op (cannot go below index 0)", () => {
     const { container } = renderBrushChart();
-    flush();
-
     const startTraveller = container.querySelectorAll(".recharts-brush-traveller")[0]!;
     fireEvent.keyDown(startTraveller, { key: "ArrowLeft" });
-    flush();
-
     expect(dotCount(container)).toBe(data.length);
   });
 });
@@ -71,17 +64,13 @@ describe("<Brush /> keyboard", () => {
 describe("<Brush /> touch", () => {
   it("narrows the window when the start traveller is touch-dragged right", () => {
     const { container } = renderBrushChart();
-    flush();
     expect(dotCount(container)).toBe(data.length);
 
     const startTraveller = container.querySelectorAll(".recharts-brush-traveller")[0]!;
     // touchStart begins the drag (pageX 5); window touchmove/touchend carry pageX.
     fireEvent.touchStart(startTraveller, { changedTouches: [{ pageX: 5 }] });
-    flush();
     window.dispatchEvent(touchEvent("touchmove", 300));
     window.dispatchEvent(touchEvent("touchend", 300));
-    flush();
-
     expect(dotCount(container)).toBeLessThan(data.length);
     expect(dotCount(container)).toBeGreaterThan(0);
   });

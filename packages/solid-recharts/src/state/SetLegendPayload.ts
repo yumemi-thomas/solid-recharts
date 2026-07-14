@@ -5,7 +5,7 @@
 // explicit `id` prop (the graphical item's id) keys the entry so replace/remove are
 // proxy-safe (recharts matches the array by reference, which Solid stores break).
 // `SetPolarLegendPayload` lands with the polar vertical. Returns nothing.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { useAppStore } from "./hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { LegendPayload } from "../component/DefaultLegendContent";

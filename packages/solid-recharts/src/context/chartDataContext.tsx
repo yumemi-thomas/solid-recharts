@@ -1,15 +1,14 @@
 // Ported from recharts 3.8.1 src/context/chartDataContext.tsx (commit 7a23854).
 //
 // Solid deviations: `useAppDispatch` + action creators → `useAppStore()` + slice
-// actions (`store.actions.chartData.*`); `useEffect` → two-arg `createEffect`
-// (the cleanup is returned from the apply phase); selector hooks return
+// actions (`store.actions.chartData.*`); `useEffect` → `createEffect` + `onCleanup`;
+// selector hooks return
 // Accessors (since `useAppSelector` does). `SetComputedData` and the BrushStartEndIndex
 // type are kept local; the latter re-homes to brushUpdateContext when ported.
-import { createEffect, type Accessor } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { type Accessor, createEffect, on, onCleanup } from "solid-js";
+import type { JSX } from "solid-js";
 import { ChartData } from "../state/chartDataSlice";
 import { useAppSelector, useAppStore } from "../state/hooks";
-import { unregisterCleanup } from "../state/unregisterOnCleanup";
 import { RechartsRootState } from "../state/store";
 import { useIsPanorama } from "./PanoramaContext";
 
@@ -25,17 +24,19 @@ export const ChartDataContextProvider = (props: {
   const isPanorama = useIsPanorama();
 
   createEffect(
-    () => props.chartData,
-    (chartData) => {
-      // Panorama mode reuses the main chart's data — don't overwrite it.
-      if (isPanorama) {
-        return undefined;
-      }
-      store?.actions.chartData.setChartData(chartData);
-      return unregisterCleanup(() => {
-        store?.actions.chartData.setChartData(undefined);
-      });
-    },
+    on(
+      () => props.chartData,
+      (chartData) => {
+        // Panorama mode reuses the main chart's data — don't overwrite it.
+        if (isPanorama) {
+          return undefined;
+        }
+        store?.actions.chartData.setChartData(chartData);
+        onCleanup(() => {
+          store?.actions.chartData.setChartData(undefined);
+        });
+      },
+    ),
   );
 
   return null;
@@ -45,13 +46,15 @@ export const SetComputedData = (props: { computedData: unknown }): JSX.Element =
   const store = useAppStore();
 
   createEffect(
-    () => props.computedData,
-    (computedData) => {
-      store?.actions.chartData.setComputedData(computedData);
-      return unregisterCleanup(() => {
-        store?.actions.chartData.setChartData(undefined);
-      });
-    },
+    on(
+      () => props.computedData,
+      (computedData) => {
+        store?.actions.chartData.setComputedData(computedData);
+        onCleanup(() => {
+          store?.actions.chartData.setChartData(undefined);
+        });
+      },
+    ),
   );
 
   return null;

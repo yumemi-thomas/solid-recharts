@@ -9,7 +9,7 @@
 // boundary), so `act(() => { dispatch; vi.runOnlyPendingTimers() })` becomes
 // `store.actions.zIndex.registerZIndexPortal(…)` + `flush()`.
 import { beforeEach, describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RechartsStoreContext } from "../../src/state/RechartsStoreContext";
 import { AllZIndexPortals } from "../../src/zIndex/ZIndexPortal";
@@ -28,13 +28,11 @@ describe("AllZIndexPortals", () => {
   it("should add z-index portal when z-index consumer is registered", () => {
     const { container } = render(() => (
       <svg>
-        <RechartsStoreContext value={store}>
+        <RechartsStoreContext.Provider value={store}>
           <AllZIndexPortals isPanorama={false}>child</AllZIndexPortals>
-        </RechartsStoreContext>
+        </RechartsStoreContext.Provider>
       </svg>
     ));
-    flush();
-
     const allZIndexes = selectAllRegisteredZIndexes(store.state);
 
     const newZIndexDefinitelyNotOneOfTheDefaults =
@@ -47,8 +45,6 @@ describe("AllZIndexPortals", () => {
     expect(container.querySelectorAll('g[tabindex="-1"]')).toHaveLength(allZIndexes.length);
 
     store.actions.zIndex.registerZIndexPortal({ zIndex: newZIndexDefinitelyNotOneOfTheDefaults });
-    flush();
-
     // After registering, should have one more z-index portal
     const zIndexPortals = container.querySelectorAll('g[tabindex="-1"]');
     expect(zIndexPortals).toHaveLength(allZIndexes.length + 1);
@@ -57,15 +53,13 @@ describe("AllZIndexPortals", () => {
   it("should render one child for each of the registered elements", () => {
     const { container } = render(() => (
       <svg>
-        <RechartsStoreContext value={store}>
+        <RechartsStoreContext.Provider value={store}>
           <AllZIndexPortals isPanorama={false}>
             <div data-testid="child">child</div>
           </AllZIndexPortals>
-        </RechartsStoreContext>
+        </RechartsStoreContext.Provider>
       </svg>
     ));
-    flush();
-
     const state = store.state;
 
     const renderedElements = Array.from(container.querySelectorAll('g[tabindex="-1"]'));

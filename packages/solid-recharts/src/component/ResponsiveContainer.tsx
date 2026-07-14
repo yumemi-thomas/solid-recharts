@@ -3,18 +3,19 @@
 // prop, and two-arg createEffect. Prop deviation: className -> class.
 import {
   Accessor,
+  batch,
   createContext,
-  createEffect,
   createMemo,
   createSignal,
-  flush,
-  omit,
   onCleanup,
-  onSettled,
+  onMount,
   untrack,
   useContext,
+  splitProps,
+  createEffect,
+  on,
 } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import {
   calculateChartDimensions,
   defaultResponsiveContainerProps,
@@ -93,9 +94,9 @@ function ResponsiveContainerContextProvider(props: {
   });
 
   return (
-    <ResponsiveContainerContext value={size}>
+    <ResponsiveContainerContext.Provider value={size}>
       {size() == null ? null : props.children}
-    </ResponsiveContainerContext>
+    </ResponsiveContainerContext.Provider>
   );
 }
 
@@ -181,8 +182,7 @@ function SizeDetectorContainer(props: Props): JSX.Element {
   // forwarded onto the wrapper div, mirroring recharts' `{...others}` spread.
   // We omit every prop this component consumes itself so they don't leak onto
   // the DOM. (`omit` keeps the rest reactive — no destructuring.)
-  const others = omit(
-    props,
+  const others = splitProps(props, [
     "aspect",
     "width",
     "height",
@@ -198,7 +198,7 @@ function SizeDetectorContainer(props: Props): JSX.Element {
     "onResize",
     "ref",
     "data-testid",
-  );
+  ])[1];
   const initialDimension = (): { width: number; height: number } =>
     props.initialDimension ?? defaultResponsiveContainerProps.initialDimension;
   const width = (): Percent | number | undefined => props.width;
@@ -217,13 +217,14 @@ function SizeDetectorContainer(props: Props): JSX.Element {
     if (untrack(containerWidth) === roundedWidth && untrack(containerHeight) === roundedHeight) {
       return;
     }
-    setContainerWidth(roundedWidth);
-    setContainerHeight(roundedHeight);
+    batch(() => {
+      setContainerWidth(roundedWidth);
+      setContainerHeight(roundedHeight);
+    });
   };
 
   const setContainerSize = (newWidth: number, newHeight: number): void => {
     writeContainerSize(newWidth, newHeight);
-    flush();
   };
 
   let containerEl: HTMLDivElement | undefined;
@@ -240,10 +241,8 @@ function SizeDetectorContainer(props: Props): JSX.Element {
   // i.e. AFTER the committed DOM is laid out. The ref callback runs at element
   // creation (possibly before insertion/layout), where getBoundingClientRect()
   // returns 0x0 and a bogus "width(0) and height(0)" warning fires on every
-  // mount. `onSettled` is the post-layout equivalent. The initial measure must
-  // not flush (onSettled is a leaf scope); the write propagates at the next
-  // flush boundary, matching React's setState-in-effect timing.
-  onSettled(() => {
+  // mount. Measure after insertion in onMount.
+  onMount(() => {
     const el = containerEl;
     if (el == null || typeof ResizeObserver === "undefined") {
       return;
@@ -292,49 +291,53 @@ function SizeDetectorContainer(props: Props): JSX.Element {
     ]);
 
   createEffect(
-    () => props.aspect,
-    (aspect) => {
-      warn(!aspect || aspect > 0, "The aspect(%s) must be greater than zero.", aspect);
-    },
+    on(
+      () => props.aspect,
+      (aspect) => {
+        warn(!aspect || aspect > 0, "The aspect(%s) must be greater than zero.", aspect);
+      },
+    ),
   );
 
   createEffect(
-    () => ({
-      containerWidth: containerWidth(),
-      containerHeight: containerHeight(),
-      calculatedWidth: calculated().calculatedWidth,
-      calculatedHeight: calculated().calculatedHeight,
-      width: width(),
-      height: height(),
-      minWidth: minWidth(),
-      minHeight: props.minHeight,
-      aspect: props.aspect,
-    }),
-    (value) => {
-      warn(
-        value.containerWidth < 0 ||
-          value.containerHeight < 0 ||
-          (value.calculatedWidth != null && value.calculatedWidth > 0) ||
-          (value.calculatedHeight != null && value.calculatedHeight > 0),
-        `The width(%s) and height(%s) of chart should be greater than 0,
+    on(
+      () => ({
+        containerWidth: containerWidth(),
+        containerHeight: containerHeight(),
+        calculatedWidth: calculated().calculatedWidth,
+        calculatedHeight: calculated().calculatedHeight,
+        width: width(),
+        height: height(),
+        minWidth: minWidth(),
+        minHeight: props.minHeight,
+        aspect: props.aspect,
+      }),
+      (value) => {
+        warn(
+          value.containerWidth < 0 ||
+            value.containerHeight < 0 ||
+            (value.calculatedWidth != null && value.calculatedWidth > 0) ||
+            (value.calculatedHeight != null && value.calculatedHeight > 0),
+          `The width(%s) and height(%s) of chart should be greater than 0,
        please check the style of container, or the props width(%s) and height(%s),
        or add a minWidth(%s) or minHeight(%s) or use aspect(%s) to control the
        height and width.`,
-        value.calculatedWidth,
-        value.calculatedHeight,
-        value.width,
-        value.height,
-        value.minWidth,
-        value.minHeight,
-        value.aspect,
-      );
-    },
+          value.calculatedWidth,
+          value.calculatedHeight,
+          value.width,
+          value.height,
+          value.minWidth,
+          value.minHeight,
+          value.aspect,
+        );
+      },
+    ),
   );
 
   return (
     <div
       id={props.id ? `${props.id}` : undefined}
-      class={["recharts-responsive-container", props.class]}
+      class={["recharts-responsive-container", props.class].filter(Boolean).join(" ")}
       style={wrapperStyle()}
       ref={setRef}
       data-testid={props["data-testid"]}

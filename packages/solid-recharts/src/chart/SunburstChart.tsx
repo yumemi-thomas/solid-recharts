@@ -12,8 +12,8 @@
 // NON-GAP: `responsive` defaults to false in the reference too, and
 // ResponsiveContainer sizing flows via the wrapper context.
 // DEFERRED: event throttling nuances.
-import { createMemo, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { children, createMemo, For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { scaleLinear } from "d3-scale";
 import { Surface } from "../container/Surface";
 import { Layer } from "../container/Layer";
@@ -166,7 +166,8 @@ const SunburstChartImpl = (
   props: Required<Pick<SunburstChartProps, "data">> & SunburstChartProps & { id: string },
 ): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(sunburstDefaultProps, props);
+  const merged = mergeProps(sunburstDefaultProps, props);
+  const resolvedChildren = children(() => props.children);
   const width = useChartWidth();
   const height = useChartHeight();
 
@@ -348,7 +349,7 @@ const SunburstChartImpl = (
             </For>
           </Layer>
           <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
-          {merged.children}
+          {resolvedChildren()}
         </Surface>
       )}
     </Show>

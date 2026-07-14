@@ -1,7 +1,7 @@
 // Spec for the ReferenceArea vertical: a rectangle spanning a data-coordinate
 // range (x1..x2, y1..y2), mapped to pixels through both cartesian scales.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, ReferenceArea } from "../../src";
 
@@ -27,8 +27,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea x1={20} x2={50} y1={20} y2={80} fill="#ff0000" />
       </LineChart>
     ));
-    flush();
-
     const rect = container.querySelector(".recharts-reference-area-rect");
     expect(rect).not.toBeNull();
     // Number X axis nices its domain to [0,80] → range [65,495]: x1=20 → 172.5,
@@ -53,8 +51,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea y1={20} y2={80} fill="#00ff00" />
       </LineChart>
     ));
-    flush();
-
     const rect = container.querySelector(".recharts-reference-area-rect");
     expect(rect).not.toBeNull();
     // x spans rangeMin..rangeMax = 65..495 (width 430), y from 97..373 (height 276).

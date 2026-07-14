@@ -8,7 +8,7 @@
 // and state is read off `store.state.cartesianAxis`. Expectations are unchanged.
 // Store writes are microtask-batched, so each action is followed by `flush()`.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { createRechartsStore } from "../../../src/state/store";
 import type { YAxisSettings } from "../../../src/state/cartesianAxisSlice";
 
@@ -46,24 +46,19 @@ describe("cartesianAxisSlice", () => {
       const store = createRechartsStore();
 
       store.actions.cartesianAxis.addYAxis(yAxis);
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe("auto");
 
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 50 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(50);
 
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 51 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(51);
 
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 50 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(50);
 
       // This is the 4th action. The oscillation should be detected and the update ignored.
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 51 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(50);
     });
 
@@ -72,24 +67,19 @@ describe("cartesianAxisSlice", () => {
       const store = createRechartsStore();
 
       store.actions.cartesianAxis.addYAxis(yAxis);
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe("auto");
 
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 50 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(50);
 
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 52 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(52);
 
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 50 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(50);
 
       // This is the 4th action. The oscillation is larger than 1 pixel, so the update should be accepted.
       store.actions.cartesianAxis.updateYAxisWidth({ id: "test-axis", width: 52 });
-      flush();
       expect(store.state.cartesianAxis.yAxis["test-axis"]?.width).toBe(52);
     });
   });

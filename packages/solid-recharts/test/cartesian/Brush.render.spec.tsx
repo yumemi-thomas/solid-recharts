@@ -4,7 +4,7 @@
 // window via setDataStartEndIndexes (the main chart then re-filters its data).
 // `flush()` because the brush registers settings + reads indices via effects.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, Brush } from "../../src";
 
@@ -44,8 +44,6 @@ describe("<Brush />", () => {
         <Brush dataKey="name" height={40} />
       </LineChart>
     ));
-    flush();
-
     const brush = container.querySelector(".recharts-brush");
     expect(brush).not.toBeNull();
     // background rect + slide + 2 travellers (each traveller draws a rect).
@@ -70,10 +68,7 @@ describe("<Brush />", () => {
       ));
 
     const without = renderWith(false);
-    flush();
     const withBrush = renderWith(true);
-    flush();
-
     // The plot-area clip rect height shrinks by ~the brush height (40).
     const clipHeight = (c: Element): number =>
       Number(c.querySelector("clipPath rect")?.getAttribute("height") ?? 0);
@@ -94,8 +89,6 @@ describe("<Brush />", () => {
         <Brush dataKey="name" height={40} />
       </LineChart>
     ));
-    flush();
-
     // Initially the full window → one dot per row.
     expect(dotCount(container)).toBe(data.length);
 
@@ -105,11 +98,8 @@ describe("<Brush />", () => {
     // window move so the "isTravellerMoving" signal is visible (in a browser these
     // are separate tasks). The window move/up carry an explicit pageX.
     fireEvent.mouseDown(startTraveller);
-    flush();
     window.dispatchEvent(mouseEventWithPageX("mousemove", 300));
     window.dispatchEvent(mouseEventWithPageX("mouseup", 300));
-    flush();
-
     // The window shrank → fewer dots than the full dataset.
     expect(dotCount(container)).toBeLessThan(data.length);
     expect(dotCount(container)).toBeGreaterThan(0);

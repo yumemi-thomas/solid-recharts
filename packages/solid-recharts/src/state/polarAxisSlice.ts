@@ -2,7 +2,7 @@
 // FULL SOLID-NATIVE REWRITE (no Redux/immer): createStore + draft-first actions.
 // Polar charts are a deferred vertical; this slice is wired into the store so the
 // polar axis registration path is ready when Radar/RadialBar/Pie land.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { AxisId, BaseCartesianAxis, TicksSettings } from "./cartesianAxisSlice";
 
 export type RadiusAxisSettings = BaseCartesianAxis & TicksSettings;
@@ -40,24 +40,32 @@ export function createPolarAxisSlice(
 
   const actions: PolarAxisActions = {
     addRadiusAxis(axis) {
-      setState((s) => {
-        s.radiusAxis[axis.id] = axis;
-      });
+      setState(
+        produce((s) => {
+          s.radiusAxis[axis.id] = axis;
+        }),
+      );
     },
     removeRadiusAxis(axis) {
-      setState((s) => {
-        delete s.radiusAxis[axis.id];
-      });
+      setState(
+        produce((s) => {
+          delete s.radiusAxis[axis.id];
+        }),
+      );
     },
     addAngleAxis(axis) {
-      setState((s) => {
-        s.angleAxis[axis.id] = axis;
-      });
+      setState(
+        produce((s) => {
+          s.angleAxis[axis.id] = axis;
+        }),
+      );
     },
     removeAngleAxis(axis) {
-      setState((s) => {
-        delete s.angleAxis[axis.id];
-      });
+      setState(
+        produce((s) => {
+          delete s.angleAxis[axis.id];
+        }),
+      );
     },
   };
 

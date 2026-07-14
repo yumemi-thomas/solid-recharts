@@ -7,7 +7,7 @@
 // per-bar coords) comes online when those features land. `flush()` after render
 // because the bar registers via an effect and its rectangles compute from the store.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar, ComposedChart, Rectangle, Tooltip, XAxis, YAxis } from "../../src";
 import type { BarChartProps, BarProps, BarRectangleItem } from "../../src";
@@ -77,8 +77,6 @@ describe("<BarChart />", () => {
         <Bar isAnimationActive={false} dataKey="uv" label fill="#ff7300" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-label-list")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(4);
   });
@@ -91,8 +89,6 @@ describe("<BarChart />", () => {
         <Tooltip />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-default-tooltip")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-tooltip-wrapper")).toHaveLength(1);
   });
@@ -103,8 +99,6 @@ describe("<BarChart />", () => {
         <Bar dataKey="uv" label fill="#ff7300" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -123,16 +117,11 @@ describe("<BarChart />", () => {
     // First timer clears the mouse-event handler; second shows the active bar after
     // its initial inactive render (so the CSS transition can start).
     vi.runOnlyPendingTimers();
-    flush();
     vi.runOnlyPendingTimers();
-    flush();
-
     expect(container.querySelectorAll(".recharts-active-bar")).toHaveLength(1);
 
     hideTooltip(container, barChartMouseHoverTooltipSelector);
     vi.runOnlyPendingTimers();
-    flush();
-
     expect(container.querySelectorAll(".recharts-active-bar")).toHaveLength(0);
   }
 
@@ -148,14 +137,11 @@ describe("<BarChart />", () => {
           <Tooltip />
         </BarChart>
       ));
-      flush();
-
       showTooltipOnCoordinate(container, barChartMouseHoverTooltipSelector, {
         clientX: 100,
         clientY: 100,
       });
       vi.runOnlyPendingTimers();
-      flush();
       expect(container.querySelectorAll(".recharts-active-bar")).toHaveLength(0);
     });
 
@@ -171,7 +157,6 @@ describe("<BarChart />", () => {
           <Tooltip />
         </BarChart>
       ));
-      flush();
       assertActiveBarInteractions(container);
     });
 
@@ -182,7 +167,6 @@ describe("<BarChart />", () => {
           <Tooltip />
         </BarChart>
       ));
-      flush();
       assertActiveBarInteractions(container);
     });
 
@@ -193,14 +177,11 @@ describe("<BarChart />", () => {
           <Tooltip />
         </BarChart>
       ));
-      flush();
-
       showTooltipOnCoordinate(container, barChartMouseHoverTooltipSelector, {
         clientX: 100,
         clientY: 100,
       });
       vi.runOnlyPendingTimers();
-      flush();
       expect(container.querySelectorAll(".recharts-active-bar")).toHaveLength(0);
     });
 
@@ -220,7 +201,6 @@ describe("<BarChart />", () => {
           <Tooltip />
         </BarChart>
       ));
-      flush();
       assertActiveBarInteractions(container);
     });
   });
@@ -238,7 +218,6 @@ describe("<BarChart />", () => {
           />
         </BarChart>
       ));
-      flush();
       expect(container.querySelectorAll(".customized-shape")).toHaveLength(4);
     });
   });
@@ -249,10 +228,10 @@ describe("<BarChart />", () => {
       const [margin, setMargin] = createSignal({ top: 1, right: 2, bottom: 3, left: 4 });
       const Spy = (): null => {
         const m = useMargin();
-        createEffect(
-          () => m(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => m())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -260,11 +239,9 @@ describe("<BarChart />", () => {
           <Spy />
         </BarChart>
       ));
-      flush();
       expectLastCalledWith(spy, { bottom: 3, left: 4, right: 2, top: 1 });
 
       setMargin({ top: 10, right: 20, bottom: 30, left: 40 });
-      flush();
       expectLastCalledWith(spy, { bottom: 30, left: 40, right: 20, top: 10 });
     });
   });
@@ -278,8 +255,6 @@ describe("<BarChart />", () => {
         <Bar dataKey="pv" fill="#387908" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     const layers = container.querySelectorAll(".recharts-bar .recharts-bar-rectangle");
     expect(layers).toHaveLength(8);
     const path0 = layers[0]!.querySelector("path.recharts-rectangle");
@@ -302,8 +277,6 @@ describe("<BarChart />", () => {
         <Bar dataKey="uv" fill="#ff7300" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     const paths = container.querySelectorAll(
       ".recharts-bar .recharts-bar-rectangle path.recharts-rectangle",
     );
@@ -341,8 +314,6 @@ describe("<BarChart />", () => {
         />
       </BarChart>
     ));
-    flush();
-
     // No default rectangle shapes; one custom circle per data point, each wrapped in
     // a `.recharts-bar-rectangle` layer that received the bar's geometry.
     expect(container.querySelectorAll("rect.recharts-bar-rectangle")).toHaveLength(0);
@@ -368,14 +339,10 @@ describe("<BarChart />", () => {
         <Tooltip shared={false} />
       </BarChart>
     ));
-    flush();
-
     // Handlers live on the wrapping `.recharts-bar-rectangle` layer (mouseenter
     // doesn't bubble from the circle, so hover the layer itself).
     const layers = container.querySelectorAll(".recharts-bar .recharts-bar-rectangle");
     fireEvent.mouseEnter(layers[0]!);
-    flush();
-
     const values = [...container.querySelectorAll(".recharts-tooltip-item-value")].map(
       (n) => n.textContent,
     );
@@ -387,10 +354,10 @@ describe("<BarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const viewBox = useViewBox();
-        createEffect(
-          () => viewBox(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => viewBox())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -405,10 +372,10 @@ describe("<BarChart />", () => {
     it("should provide clipPathId", () => {
       const spy = vi.fn();
       const Comp = (): null => {
-        createEffect(
-          () => useClipPathId(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => useClipPathId())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -424,10 +391,10 @@ describe("<BarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const width = useChartWidth();
-        createEffect(
-          () => width(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => width())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -443,10 +410,10 @@ describe("<BarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const height = useChartHeight();
-        createEffect(
-          () => height(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => height())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -2693,14 +2660,14 @@ describe("rendering bar rectangles", () => {
     const Comp = (): null => {
       const bars = useAppSelector((state) => selectAllVisibleBars(state, "my-bar-id", false));
       const sizeList = useAppSelector((state) => selectBarSizeList(state, "my-bar-id", false));
-      createEffect(
-        () => bars(),
-        (v) => barSpy(v),
-      );
-      createEffect(
-        () => sizeList(),
-        (v) => sizeListSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => bars())();
+        ((v) => barSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => sizeList())();
+        ((v) => sizeListSpy(v))(value);
+      });
       return null;
     };
     const { container } = render(() => (
@@ -3120,14 +3087,14 @@ describe("rendering bar rectangles", () => {
     const Spy = (): null => {
       const a = useAppSelector((state) => selectBarRectangles(state, "bar-uv", false, []));
       const b = useAppSelector((state) => selectBarRectangles(state, "bar-pv", false, []));
-      createEffect(
-        () => a()?.[0],
-        (v) => seriesOne(v),
-      );
-      createEffect(
-        () => b()?.[0],
-        (v) => seriesTwo(v),
-      );
+      createEffect(() => {
+        const value = (() => a()?.[0])();
+        ((v) => seriesOne(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => b()?.[0])();
+        ((v) => seriesTwo(v))(value);
+      });
       return null;
     };
 
@@ -3140,8 +3107,6 @@ describe("rendering bar rectangles", () => {
         </Bar>
       </BarChart>
     ));
-    flush();
-
     expect(seriesOne.mock.lastCall?.[0]?.value).toEqual([0, 400]);
     expect(seriesTwo.mock.lastCall?.[0]?.value).toEqual([400, 2800]);
 
@@ -3220,8 +3185,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" stackId="test" fill="#ff7300" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-rectangle")).toHaveLength(4);
   });
 
@@ -3239,8 +3202,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="pv" stackId="test" fill="#387908" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     // Zero-height bars without custom shapes are filtered, but the Bar component itself renders.
     expect(container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-bar")).toHaveLength(2);
@@ -3262,8 +3223,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" stackId="test" shape={customShape} isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     expect(customShape).toHaveBeenCalled();
     expect(container.querySelectorAll('[data-testid="custom-shape"]')).toHaveLength(2);
   });
@@ -3282,8 +3241,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" stackId="test" shape={customShape} isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
-
     expect(customShape).toHaveBeenCalled();
     expect(container.querySelectorAll('[data-testid="custom-shape"]')).toHaveLength(2);
   });
@@ -3295,7 +3252,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
     expectBars(container, []);
   });
 
@@ -3306,7 +3262,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 14,5 h 72 v 10 h -72 Z", height: "10", radius: "0", width: "72", x: "14", y: "5" },
     ]);
@@ -3319,7 +3274,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 85,5 h 20 v 10 h -20 Z", height: "10", radius: "0", width: "20", x: "85", y: "5" },
     ]);
@@ -3332,7 +3286,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 32,5 h 36 v 10 h -36 Z", height: "10", radius: "0", width: "36", x: "32", y: "5" },
     ]);
@@ -3345,7 +3298,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} barSize={40} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 75,5 h 40 v 10 h -40 Z", height: "10", radius: "0", width: "40", x: "75", y: "5" },
     ]);
@@ -3359,18 +3311,18 @@ describe("rendering bar rectangles", () => {
       const sizeList = useAppSelector((state) => selectBarSizeList(state, "my-bar-id", false));
       const positions = useAppSelector((state) => selectAllBarPositions(state, "my-bar-id", false));
       const axisSize = useAppSelector((state) => selectBarCartesianAxisSize(state, "my-bar-id"));
-      createEffect(
-        () => sizeList(),
-        (v) => barSizeListSpy(v),
-      );
-      createEffect(
-        () => positions(),
-        (v) => barPositionsSpy(v),
-      );
-      createEffect(
-        () => axisSize(),
-        (v) => totalAxisSizeSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => sizeList())();
+        ((v) => barSizeListSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => positions())();
+        ((v) => barPositionsSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => axisSize())();
+        ((v) => totalAxisSizeSpy(v))(value);
+      });
       return null;
     };
 
@@ -3381,8 +3333,6 @@ describe("rendering bar rectangles", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
-
     expect(barSizeListSpy).toHaveBeenLastCalledWith([
       { barSize: undefined, dataKeys: ["uv"], stackId: undefined },
     ]);
@@ -3403,7 +3353,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} maxBarSize={40} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 30,5 h 40 v 10 h -40 Z", height: "10", radius: "0", width: "40", x: "30", y: "5" },
     ]);
@@ -3416,7 +3365,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} barSize={60} maxBarSize={40} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 20,5 h 60 v 10 h -60 Z", height: "10", radius: "0", width: "60", x: "20", y: "5" },
     ]);
@@ -3429,7 +3377,6 @@ describe("rendering bar rectangles", () => {
         <Bar dataKey="uv" name="uv" isAnimationActive={false} maxBarSize={40} />
       </BarChart>
     ));
-    flush();
     expectBars(container, [
       { d: "M 20,5 h 60 v 10 h -60 Z", height: "10", radius: "0", width: "60", x: "20", y: "5" },
     ]);
@@ -3452,14 +3399,14 @@ describe("rendering bar rectangles", () => {
       const rects = useAppSelector((state) =>
         selectBarRectangles(state, "my-bar-id", false, undefined),
       );
-      createEffect(
-        () => positions(),
-        (v) => barPositionsSpy(v),
-      );
-      createEffect(
-        () => rects(),
-        (v) => barRectanglesSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => positions())();
+        ((v) => barPositionsSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => rects())();
+        ((v) => barRectanglesSpy(v))(value);
+      });
       return null;
     };
 
@@ -3478,8 +3425,6 @@ describe("rendering bar rectangles", () => {
         <Comp />
       </ComposedChart>
     ));
-    flush();
-
     expect(barPositionsSpy).toHaveBeenLastCalledWith([
       {
         dataKeys: [

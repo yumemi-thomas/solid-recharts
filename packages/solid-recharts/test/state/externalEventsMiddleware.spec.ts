@@ -1,4 +1,3 @@
-import { flush } from "solid-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CategoricalChartFunc } from "../../src/chart/types";
 import { dispatchExternalEvent } from "../../src/state/externalEventsMiddleware";
@@ -30,8 +29,6 @@ describe("externalEventsMiddleware", () => {
       reactEvent: mockEvent,
       handler: undefined,
     });
-
-    flush();
     vi.runAllTimers();
 
     expect(mockHandler).not.toHaveBeenCalled();
@@ -45,8 +42,6 @@ describe("externalEventsMiddleware", () => {
 
     expect(mockHandler).toHaveBeenCalledTimes(0);
     expect(vi.getTimerCount()).toBeGreaterThan(0);
-
-    flush();
     vi.runAllTimers();
 
     expect(vi.getTimerCount()).toBe(0);
@@ -89,8 +84,6 @@ describe("externalEventsMiddleware", () => {
       reactEvent: secondEvent,
       handler: mockHandler,
     });
-
-    flush();
     vi.runAllTimers();
 
     expect(mockHandler).toHaveBeenCalledTimes(1);
@@ -111,8 +104,6 @@ describe("externalEventsMiddleware", () => {
       reactEvent: mouseMoveEvent,
       handler: handler2,
     });
-
-    flush();
     vi.runAllTimers();
 
     expect(handler1).toHaveBeenCalledTimes(1);
@@ -134,8 +125,6 @@ describe("externalEventsMiddleware", () => {
       reactEvent: event2,
       handler: handler2,
     });
-
-    flush();
     vi.runAllTimers();
 
     expect(handler1).toHaveBeenCalledTimes(1);
@@ -163,8 +152,6 @@ describe("externalEventsMiddleware", () => {
     });
 
     currentTarget = null;
-
-    flush();
     vi.runAllTimers();
 
     expect(mockHandler).toHaveBeenCalledTimes(1);

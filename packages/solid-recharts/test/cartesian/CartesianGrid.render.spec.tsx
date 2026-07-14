@@ -1,7 +1,7 @@
 // Spec for CartesianGrid: draws horizontal + vertical grid lines aligned to the
 // axis ticks across the plot area.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "../../src";
 import { PageData } from "../_data";
@@ -21,8 +21,6 @@ describe("<CartesianGrid />", () => {
         <Line dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelector(".recharts-cartesian-grid")).not.toBeNull();
 
     // One vertical line per X category (6).

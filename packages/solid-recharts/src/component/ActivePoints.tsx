@@ -3,7 +3,7 @@
 // JSX is built in the parent's JSX scope via `renderActivePointsLayerFromState`.
 // Mounting a child component that subscribes to tooltip selectors trips STRICT_READ.
 // ZIndexLayer deferred.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { isNullish } from "../util/DataUtils";
 import type { ActiveDotProps, ActiveDotType, DataKey } from "../util/types";
 import { svgPropertiesNoEventsFromUnknownKeepCase } from "../util/svgPropertiesNoEvents";
@@ -77,9 +77,6 @@ function renderActiveDot(activeDot: ActiveDotType, dotProps: ActiveDotProps): JS
   if (typeof activeDot === "function") {
     return activeDot(dotProps);
   }
-  if (typeof activeDot === "object" && activeDot != null && "type" in activeDot) {
-    return activeDot;
-  }
   // Default <Dot> uses <Show> internally, which trips STRICT_READ when this
   // layer mounts during tooltip effect-apply — render the circle directly instead.
   // An object-form activeDot's `class`/`className` is dropped by the svg-prop
@@ -90,7 +87,7 @@ function renderActiveDot(activeDot: ActiveDotType, dotProps: ActiveDotProps): JS
       : undefined;
   return (
     <circle
-      class={["recharts-dot", customClass]}
+      class={["recharts-dot", customClass].filter(Boolean).join(" ")}
       cx={dotProps.cx}
       cy={dotProps.cy}
       r={dotProps.r}
@@ -120,7 +117,10 @@ export function renderActivePointsLayerFromState(
     ...svgPropertiesNoEventsFromUnknownKeepCase(args.activeDot),
   };
   return (
-    <g class={["recharts-layer", "recharts-active-dot"]} clip-path={args.clipPath}>
+    <g
+      class={["recharts-layer", "recharts-active-dot"].filter(Boolean).join(" ")}
+      clip-path={args.clipPath}
+    >
       {renderActiveDot(args.activeDot, dotProps)}
     </g>
   );

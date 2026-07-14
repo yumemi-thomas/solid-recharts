@@ -4,7 +4,7 @@
 // Stores the ACTUALLY rendered ticks. The domain→ticks mapping lives in the
 // cartesianAxis selectors, but CartesianAxis uses DOM measurement to decide which
 // ticks to actually render; this slice stores those so a hook can return them.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { TickItem } from "../util/types";
 import { AxisId } from "./cartesianAxisSlice";
 
@@ -46,14 +46,18 @@ export function createRenderedTicksSlice(
 
   const actions: RenderedTicksActions = {
     setRenderedTicks({ axisType, axisId, ticks }) {
-      setState((s) => {
-        s[axisType][axisId] = ticks;
-      });
+      setState(
+        produce((s) => {
+          s[axisType][axisId] = ticks;
+        }),
+      );
     },
     removeRenderedTicks({ axisType, axisId }) {
-      setState((s) => {
-        delete s[axisType][axisId];
-      });
+      setState(
+        produce((s) => {
+          delete s[axisType][axisId];
+        }),
+      );
     },
   };
 

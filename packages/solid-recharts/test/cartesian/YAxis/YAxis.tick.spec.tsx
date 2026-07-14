@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { Bar, BarChart, ComposedChart, Line, LineChart, XAxis, YAxis } from "../../../src";
 import type { CartesianTickContentProps } from "../../../src";
 import { render, fireEvent } from "@solidjs/testing-library";

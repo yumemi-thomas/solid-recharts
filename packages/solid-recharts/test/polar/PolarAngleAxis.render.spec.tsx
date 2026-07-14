@@ -9,7 +9,7 @@
 // labels, axis line). Exact tick geometry + the numeric-axis/explicit-tick cases
 // come online with Radar (which provides the item domain).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RadarChart, PolarAngleAxis } from "../../src";
 
@@ -27,8 +27,6 @@ describe("<PolarAngleAxis /> in RadarChart", () => {
         <PolarAngleAxis dataKey="subject" />
       </RadarChart>
     ));
-    flush();
-
     const axis = container.querySelector(".recharts-polar-angle-axis.angleAxis");
     expect(axis).not.toBeNull();
 
@@ -72,8 +70,6 @@ describe("<PolarAngleAxis /> in RadarChart", () => {
         <PolarAngleAxis dataKey="subject" hide />
       </RadarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-polar-angle-axis-tick")).toHaveLength(0);
   });
 });

@@ -1,13 +1,13 @@
 /**
  * Solid-native port of the reference's immer-based `produceState` helper.
  *
- * The Solid rewrite has no immer dependency. Instead of `produce`, we snapshot a
+ * The Solid rewrite has no immer dependency. Instead of `produce`, we unwrap a
  * fresh store's state to a plain value, deep-clone it into a mutable object that
  * PRESERVES functions (the state holds function values such as
  * `options.tooltipPayloadSearcher`, which `structuredClone` would throw on), run
  * the recipe (which mutates the draft in place), and return the mutated draft.
  */
-import { snapshot } from "solid-js";
+import { unwrap } from "solid-js/store";
 import { createRechartsStore, type RechartsRootState } from "../../src/state/store";
 
 function deepMutableClone<T>(value: T): T {
@@ -26,7 +26,7 @@ function deepMutableClone<T>(value: T): T {
 }
 
 export function produceState(recipe: (draft: RechartsRootState) => void): RechartsRootState {
-  const base = deepMutableClone(snapshot(createRechartsStore().state));
+  const base = deepMutableClone(unwrap(createRechartsStore().state));
   recipe(base);
   return base;
 }

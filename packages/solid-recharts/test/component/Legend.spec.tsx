@@ -8,7 +8,7 @@
 // `render` + `flush`. Custom `content` as a React element, `aria-label` on the
 // Surface, and the `mockSequenceOfGetBoundingClientRect` regression test are not
 // supported by the port (see reclassifiedBlocked) and are omitted.
-import { createEffect, createSignal, flush, Show } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import {
@@ -361,8 +361,6 @@ describe("<Legend />", () => {
   describe("outside of chart context", () => {
     it("should ignore payload prop", () => {
       const { container } = render(() => <Legend width={500} height={30} />);
-      flush();
-
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(0);
       expect(
         container.querySelectorAll(".recharts-default-legend .recharts-legend-item"),
@@ -391,8 +389,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(1);
     });
   });
@@ -412,8 +408,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(0);
       expect(screen.getByText("custom return value")).toBeInTheDocument();
       expect(screen.getByText("custom return value")).toBeVisible();
@@ -438,8 +432,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(0);
       expect(screen.getByText("custom return value")).toBeInTheDocument();
       expect(screen.getByText("custom return value")).toBeVisible();
@@ -466,8 +458,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(1);
       expect(
         container.querySelectorAll(".recharts-default-legend .recharts-legend-item"),
@@ -488,8 +478,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expect(container.querySelectorAll(".recharts-default-legend")).toHaveLength(1);
       expect(
         container.querySelectorAll(".recharts-default-legend .recharts-legend-item"),
@@ -516,8 +504,6 @@ describe("<Legend />", () => {
           />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [
         { textContent: "My Line Data", fill: "none" },
         { textContent: "My Other Line Data", fill: "none" },
@@ -538,8 +524,6 @@ describe("<Legend />", () => {
           />
         </LineChart>
       ));
-      flush();
-
       const legendWrapper = container.getElementsByClassName("recharts-legend-wrapper")[0];
       assertNotNull(legendWrapper);
       expect(legendWrapper).not.toHaveStyle({ width: "auto" });
@@ -560,8 +544,6 @@ describe("<Legend />", () => {
           <Line dataKey="value" name="UV" />
         </LineChart>
       ));
-      flush();
-
       const legendItem = container.getElementsByClassName("legend-item-0")[0];
       assertNotNull(legendItem);
       const surface = legendItem.getElementsByClassName("recharts-surface")[0];
@@ -576,8 +558,6 @@ describe("<Legend />", () => {
           <Line dataKey={(row: { value: number }) => row.value} />
         </LineChart>
       ));
-      flush();
-
       const legendItem = container.getElementsByClassName("legend-item-0")[0];
       assertNotNull(legendItem);
       const surface = legendItem.getElementsByClassName("recharts-surface")[0];
@@ -610,7 +590,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           align: "center",
@@ -653,7 +632,6 @@ describe("<Legend />", () => {
           <Line dataKey="value" />
         </LineChart>
       ));
-      flush();
       expect(screen.getByText("value")).toBeInTheDocument();
       expect(screen.getByText("percent")).toBeInTheDocument();
 
@@ -687,7 +665,6 @@ describe("<Legend />", () => {
           <Line dataKey="unknown" />
         </LineChart>
       ));
-      flush();
       expect(screen.getByText("unknown")).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
       expect(legendItems).toHaveLength(1);
@@ -702,7 +679,6 @@ describe("<Legend />", () => {
           <Line dataKey="percent" stroke="red" hide />
         </LineChart>
       ));
-      flush();
       expect(screen.getByText("percent")).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
@@ -731,7 +707,6 @@ describe("<Legend />", () => {
           <Line dataKey="percent" stroke="red" hide />
         </LineChart>
       ));
-      flush();
       expect(screen.getByText("percent")).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
@@ -758,7 +733,6 @@ describe("<Legend />", () => {
           <Line />
         </LineChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "" }]);
     });
 
@@ -770,11 +744,9 @@ describe("<Legend />", () => {
           <Line dataKey="percent" name={name()} />
         </LineChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "%" }]);
 
       setName("Percent");
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "Percent" }]);
     });
 
@@ -785,8 +757,6 @@ describe("<Legend />", () => {
           <Line dataKey="value" />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [{ fill: "none", textContent: "value" }]);
     });
 
@@ -799,14 +769,12 @@ describe("<Legend />", () => {
           <Line dataKey="value" />
         </LineChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "none", textContent: "name" },
         { fill: "none", textContent: "value" },
       ]);
 
       setShowFirst(false);
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "value" }]);
     });
 
@@ -818,11 +786,9 @@ describe("<Legend />", () => {
           <Line dataKey={dataKey()} />
         </LineChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "value" }]);
 
       setDataKey("percent");
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "percent" }]);
     });
 
@@ -845,8 +811,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [
         { fill: "none", textContent: "pv", textColor: "rgb(136, 132, 216)" },
         { fill: "none", textContent: "uv", textColor: "rgb(130, 202, 157)" },
@@ -872,8 +836,6 @@ describe("<Legend />", () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [
         { fill: "none", textContent: "pv", textColor: "rgb(102, 102, 102)" },
         { fill: "none", textContent: "uv", textColor: "rgb(102, 102, 102)" },
@@ -887,7 +849,6 @@ describe("<Legend />", () => {
           <Line dataKey="percent" stroke="red" hide />
         </LineChart>
       ));
-      flush();
       const findResult = expectedLegendTypeSymbolsWithColor("yellow").find(
         (tc) => tc.legendType === "line",
       );
@@ -909,7 +870,6 @@ describe("<Legend />", () => {
               <Line dataKey="value" legendType={legendType} />
             </LineChart>
           ));
-          flush();
           assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
@@ -922,7 +882,6 @@ describe("<Legend />", () => {
           <Line dataKey="value" legendType="square" />
         </LineChart>
       ));
-      flush();
       const findResult = expectedLegendTypeSymbolsWithColor("#3182bd").find(
         (li) => li.legendType === "circle",
       );
@@ -948,8 +907,6 @@ describe("<Legend />", () => {
           <Line data={categoricalData} type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [
         { fill: "none", textContent: "pv" },
         { fill: "none", textContent: "uv" },
@@ -966,7 +923,6 @@ describe("<Legend />", () => {
           <Bar dataKey="value" />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: null, textContent: "percent" },
         { fill: null, textContent: "value" },
@@ -1002,8 +958,6 @@ describe("<Legend />", () => {
           <Bar dataKey="color" legendType="none" />
         </BarChart>
       ));
-      flush();
-
       expectLegendLabels(container, [{ fill: undefined, textContent: "value" }]);
     });
 
@@ -1014,7 +968,6 @@ describe("<Legend />", () => {
           <Bar dataKey="unknown" />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "unknown" }]);
     });
 
@@ -1026,7 +979,6 @@ describe("<Legend />", () => {
           <Bar dataKey="percent" stroke="red" hide />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: "yellow", textContent: "percent" }]);
       const legendItems = assertHasLegend(container);
 
@@ -1055,7 +1007,6 @@ describe("<Legend />", () => {
           <Bar dataKey="percent" stroke="red" hide />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: "#ccc", textContent: "percent" }]);
       const legendItems = assertHasLegend(container);
 
@@ -1083,7 +1034,6 @@ describe("<Legend />", () => {
           <Bar />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "" }]);
     });
 
@@ -1095,11 +1045,9 @@ describe("<Legend />", () => {
           <Bar dataKey="percent" name={name()} />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "%" }]);
 
       setName("Percent");
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "Percent" }]);
     });
 
@@ -1110,7 +1058,6 @@ describe("<Legend />", () => {
           <Bar dataKey="color" />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "color" }]);
       expect.soft(screen.queryByText("name1")).not.toBeInTheDocument();
       expect.soft(container.querySelector('[fill="fill1"]')).not.toBeInTheDocument();
@@ -1125,14 +1072,12 @@ describe("<Legend />", () => {
           <Bar dataKey="value" />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: null, textContent: "name" },
         { fill: null, textContent: "value" },
       ]);
 
       setShowFirst(false);
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "value" }]);
     });
 
@@ -1147,7 +1092,6 @@ describe("<Legend />", () => {
           <Bar dataKey="value" isAnimationActive={false} />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(first.container, [{ fill: null, textContent: "value" }]);
       first.unmount();
 
@@ -1157,7 +1101,6 @@ describe("<Legend />", () => {
           <Bar dataKey="percent" isAnimationActive={false} />
         </BarChart>
       ));
-      flush();
       expectLegendLabels(second.container, [{ fill: null, textContent: "percent" }]);
     });
 
@@ -1168,7 +1111,6 @@ describe("<Legend />", () => {
           <Bar dataKey="value" legendType="square" />
         </BarChart>
       ));
-      flush();
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(
         (li) => li.legendType === "circle",
       );
@@ -1185,7 +1127,6 @@ describe("<Legend />", () => {
             <Bar dataKey="value" />
           </BarChart>
         ));
-        flush();
         const wrapper = container.querySelector(".recharts-legend-wrapper");
         assertNotNull(wrapper);
         expect(wrapper).toBeInTheDocument();
@@ -1209,7 +1150,6 @@ describe("<Legend />", () => {
             <Bar dataKey="value" />
           </BarChart>
         ));
-        flush();
         const wrapper = container.querySelector(".recharts-legend-wrapper");
         assertNotNull(wrapper);
         expect(wrapper).toBeInTheDocument();
@@ -1227,7 +1167,6 @@ describe("<Legend />", () => {
             <Bar dataKey="value" />
           </BarChart>
         ));
-        flush();
         const wrapper = container.querySelector(".recharts-legend-wrapper");
         assertNotNull(wrapper);
         expect(wrapper).toBeInTheDocument();
@@ -1310,7 +1249,6 @@ describe("<Legend />", () => {
               <Bar dataKey="value" />
             </BarChart>
           ));
-          flush();
           const wrapper = container.querySelector(".recharts-legend-wrapper");
           assertNotNull(wrapper);
           expect(wrapper).toBeInTheDocument();
@@ -1330,7 +1268,6 @@ describe("<Legend />", () => {
             <Bar dataKey="value" />
           </BarChart>
         ));
-        flush();
         const wrapper = container.querySelector(".recharts-legend-wrapper");
         assertNotNull(wrapper);
         expect(wrapper).toBeInTheDocument();
@@ -1497,7 +1434,6 @@ describe("<Legend />", () => {
               <Bar dataKey="value" />
             </BarChart>
           ));
-          flush();
           const wrapper = container.querySelector(".recharts-legend-wrapper");
           assertNotNull(wrapper);
           expect(wrapper).toBeInTheDocument();
@@ -1576,11 +1512,9 @@ describe("<Legend />", () => {
             <Area dataKey="percent" name={name()} />
           </AreaChart>
         ));
-        flush();
         expectLegendLabels(container, [{ fill: "none", textContent: "%" }]);
 
         setName("Percent");
-        flush();
         expectLegendLabels(container, [{ fill: "none", textContent: "Percent" }]);
       });
 
@@ -1591,10 +1525,10 @@ describe("<Legend />", () => {
         const spy = vi.fn();
         const Comp = (): null => {
           const legend = useAppSelectorWithStableTest(selectLegendPayload);
-          createEffect(
-            () => legend(),
-            (value) => spy(value),
-          );
+          createEffect(() => {
+            const value = (() => legend())();
+            ((value) => spy(value))(value);
+          });
           return null;
         };
         render(() => (
@@ -1604,7 +1538,6 @@ describe("<Legend />", () => {
             <Comp />
           </AreaChart>
         ));
-        flush();
         expectLastCalledWith(spy, [
           {
             inactive: false,
@@ -1648,14 +1581,12 @@ describe("<Legend />", () => {
           <Area dataKey="value" />
         </AreaChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "none", textContent: "name" },
         { fill: "none", textContent: "value" },
       ]);
 
       setShowFirst(false);
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "value" }]);
     });
 
@@ -1667,11 +1598,9 @@ describe("<Legend />", () => {
           <Area dataKey={dataKey()} />
         </AreaChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "value" }]);
 
       setDataKey("percent");
-      flush();
       expectLegendLabels(container, [{ fill: "none", textContent: "percent" }]);
     });
   });
@@ -1684,7 +1613,6 @@ describe("<Legend />", () => {
           <Scatter dataKey="scatter datakey" />
         </ComposedChart>
       ));
-      flush();
       expectLegendLabels(container, [{ textContent: "scatter datakey", fill: undefined }]);
     });
   });
@@ -1698,7 +1626,6 @@ describe("<Legend />", () => {
           <Radar dataKey="value" />
         </RadarChart>
       ));
-      flush();
       expect(screen.getByText("value")).toBeInTheDocument();
       expect(screen.getByText("percent")).toBeInTheDocument();
 
@@ -1733,7 +1660,6 @@ describe("<Legend />", () => {
           <Radar dataKey="percent" stroke="red" hide />
         </RadarChart>
       ));
-      flush();
       expect(screen.getByText("percent")).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
@@ -1762,7 +1688,6 @@ describe("<Legend />", () => {
           <Radar dataKey="percent" stroke="red" hide />
         </RadarChart>
       ));
-      flush();
       expect(screen.getByText("percent")).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
@@ -1790,8 +1715,6 @@ describe("<Legend />", () => {
           <Radar />
         </RadarChart>
       ));
-      flush();
-
       expectLegendLabels(container, [{ fill: null, textContent: "" }]);
     });
 
@@ -1803,11 +1726,9 @@ describe("<Legend />", () => {
           <Radar dataKey="percent" name={name()} />
         </RadarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "%" }]);
 
       setName("Percent");
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "Percent" }]);
     });
 
@@ -1820,14 +1741,12 @@ describe("<Legend />", () => {
           <Radar dataKey="value" />
         </RadarChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: null, textContent: "name" },
         { fill: null, textContent: "value" },
       ]);
 
       setShowFirst(false);
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "value" }]);
     });
 
@@ -1839,11 +1758,9 @@ describe("<Legend />", () => {
           <Radar dataKey={dataKey()} />
         </RadarChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "value" }]);
 
       setDataKey("percent");
-      flush();
       expectLegendLabels(container, [{ fill: null, textContent: "percent" }]);
     });
 
@@ -1854,7 +1771,6 @@ describe("<Legend />", () => {
           <Radar dataKey="value" legendType="square" />
         </RadarChart>
       ));
-      flush();
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(
         (li) => li.legendType === "circle",
       );
@@ -1873,7 +1789,6 @@ describe("<Legend />", () => {
           <Scatter dataKey="value" />
         </ScatterChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: undefined, textContent: "percent" },
         { fill: undefined, textContent: "value" },
@@ -1887,7 +1802,6 @@ describe("<Legend />", () => {
           <Scatter dataKey="value" />
         </ScatterChart>
       ));
-      flush();
       expectLegendLabels(container, [{ fill: undefined, textContent: "value" }]);
     });
   });
@@ -1900,7 +1814,6 @@ describe("<Legend />", () => {
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
         </PieChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "Concentrated power of will" },
         { fill: "#808080", textContent: "Luck" },
@@ -1918,7 +1831,6 @@ describe("<Legend />", () => {
           <Pie data={numericalData} dataKey="unknown" />
         </PieChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "unknown" },
         { fill: "#808080", textContent: "unknown" },
@@ -1936,7 +1848,6 @@ describe("<Legend />", () => {
           <Pie data={dataWithSpecialNameAndFillProperties} dataKey="value" />
         </PieChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "fill1", textContent: "name1" },
         { fill: "fill2", textContent: "name2" },
@@ -1959,7 +1870,6 @@ describe("<Legend />", () => {
             <Pie data={dataInDifferentOrder} dataKey="value" />
           </PieChart>
         ));
-        flush();
         expectLegendLabels(container, [
           { fill: "fill1", textContent: "name1" },
           { fill: "fill2", textContent: "name2" },
@@ -1977,7 +1887,6 @@ describe("<Legend />", () => {
               <Pie data={numericalData} dataKey="percent" nameKey="value" />
             </PieChart>
           ));
-          flush();
           expectLegendLabels(container, [
             { fill: "#808080", textContent: "Luck" },
             { fill: "#808080", textContent: "Skill" },
@@ -1999,7 +1908,6 @@ describe("<Legend />", () => {
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
         </PieChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "Days a week" },
         { fill: "#808080", textContent: "Luftbaloons" },
@@ -2015,7 +1923,6 @@ describe("<Legend />", () => {
       ]);
 
       setData([]);
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "Days a week" },
         { fill: "#808080", textContent: "Luftbaloons" },
@@ -2038,7 +1945,6 @@ describe("<Legend />", () => {
           </Show>
         </PieChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "Concentrated power of will" },
         { fill: "#808080", textContent: "Luck" },
@@ -2049,7 +1955,6 @@ describe("<Legend />", () => {
       ]);
 
       setFirst(false);
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "Days a week" },
         { fill: "#808080", textContent: "Luftbaloons" },
@@ -2067,7 +1972,6 @@ describe("<Legend />", () => {
           <Pie data={numericalData} dataKey="percent" nameKey={nameKey()} />
         </PieChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "Concentrated power of will" },
         { fill: "#808080", textContent: "Luck" },
@@ -2078,7 +1982,6 @@ describe("<Legend />", () => {
       ]);
 
       setNameKey("percent");
-      flush();
       expectLegendLabels(container, [
         { fill: "#808080", textContent: "10" },
         { fill: "#808080", textContent: "100" },
@@ -2099,7 +2002,6 @@ describe("<Legend />", () => {
               <Pie data={numericalData} dataKey="percent" legendType={legendType} />
             </PieChart>
           ));
-          flush();
           assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
@@ -2111,7 +2013,6 @@ describe("<Legend />", () => {
             <Pie data={numericalData} dataKey="percent" legendType="square" />
           </PieChart>
         ));
-        flush();
         const findResult = expectedLegendTypeSymbolsWithColor("#808080").find(
           (li) => li.legendType === "circle",
         );
@@ -2129,7 +2030,6 @@ describe("<Legend />", () => {
           <RadialBar dataKey="percent" label />
         </RadialBarChart>
       ));
-      flush();
       const legendItems = assertHasLegend(container);
       expect(legendItems).toHaveLength(numericalData.length);
       legendItems.forEach((legendItem) => {
@@ -2149,7 +2049,6 @@ describe("<Legend />", () => {
           <RadialBar dataKey="unknown" />
         </RadialBarChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: null, textContent: "" },
         { fill: null, textContent: "" },
@@ -2167,7 +2066,6 @@ describe("<Legend />", () => {
           <RadialBar dataKey="percent" />
         </RadialBarChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "fill1", textContent: "name1" },
         { fill: "fill2", textContent: "name2" },
@@ -2183,7 +2081,6 @@ describe("<Legend />", () => {
           <RadialBar dataKey="unknown" />
         </RadialBarChart>
       ));
-      flush();
       expectLegendLabels(container, [
         { fill: "fill1", textContent: "name1" },
         { fill: "fill2", textContent: "name2" },
@@ -2202,7 +2099,6 @@ describe("<Legend />", () => {
           <Scatter dataKey="percent" />
         </ScatterChart>
       ));
-      flush();
       expect(onClick).toHaveBeenCalledTimes(0);
       const legend = container.querySelector(".recharts-legend-item");
       assertNotNull(legend);

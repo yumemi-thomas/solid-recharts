@@ -10,7 +10,7 @@
 // the caller passed — reference matching can't work. We match by the required
 // unique `id` instead, which is the items' real identity and gives identical
 // ordering/replacement semantics.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { createCollectionActions } from "./createCollectionActions";
 import { ChartData } from "./chartDataSlice";
 import { AxisId } from "./cartesianAxisSlice";
@@ -117,22 +117,26 @@ export function createGraphicalItemsSlice(
   // actions reassign the whole array rather than mutate in place (see ADR-0002).
   const cartesian = createCollectionActions<CartesianGraphicalItemSettings>(
     (updater) =>
-      setState((s) => {
-        const next = updater(s.cartesianItems);
-        if (next !== s.cartesianItems) {
-          s.cartesianItems = next;
-        }
-      }),
+      setState(
+        produce((s) => {
+          const next = updater(s.cartesianItems);
+          if (next !== s.cartesianItems) {
+            s.cartesianItems = next;
+          }
+        }),
+      ),
     (it) => it.id,
   );
   const polar = createCollectionActions<PolarGraphicalItemSettings>(
     (updater) =>
-      setState((s) => {
-        const next = updater(s.polarItems);
-        if (next !== s.polarItems) {
-          s.polarItems = next;
-        }
-      }),
+      setState(
+        produce((s) => {
+          const next = updater(s.polarItems);
+          if (next !== s.polarItems) {
+            s.polarItems = next;
+          }
+        }),
+      ),
     (it) => it.id,
   );
 

@@ -6,7 +6,7 @@
 // `DotProps` event-arg snapshot (port emits kebab SVG props on a non-bubbling Layer), and
 // the React-component `shape` prop-equality case.
 import { describe, expect, it, test, vi } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { fireEvent, render } from "@solidjs/testing-library";
 import { Bar, BarChart, LineChart, ReferenceDot, XAxis, YAxis } from "../../src";
 import { useAppSelector } from "../../src/state/hooks";
@@ -45,8 +45,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201106" y={3} stroke="#666" label="201106" />
       </BarChart>
     ));
-    flush();
-
     expect(
       container.querySelectorAll(".recharts-reference-dot .recharts-reference-dot-dot"),
     ).toHaveLength(1);
@@ -77,8 +75,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201106" y={20} stroke="#666" label="201106" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -99,8 +95,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot y={3} stroke="#666" label="201106" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -121,8 +115,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201104" stroke="#666" label="201106" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -142,8 +134,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201104" y={3} stroke="#666" label="201106" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
   });
@@ -164,8 +154,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201106" y={20} stroke="#666" label="201106" ifOverflow="hidden" />
       </BarChart>
     ));
-    flush();
-
     expect(
       container.querySelectorAll(".recharts-reference-dot-dot")[0]!.getAttribute("clip-path"),
     ).toMatch(/url\(#recharts(\d+)-clip\)/);
@@ -187,8 +175,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201106" y={20} stroke="#666" label="201106" ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
   });
@@ -217,8 +203,6 @@ describe("<ReferenceDot />", () => {
         />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelector(".customized-label")?.textContent).toEqual("Custom Text");
   });
 
@@ -238,8 +222,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot x="201106" y={20} stroke="#666" ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
 
@@ -260,8 +242,6 @@ describe("<ReferenceDot />", () => {
         <ReferenceDot y={20} stroke="#666" ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-reference-dot-dot")).toHaveLength(0);
   });
 
@@ -302,8 +282,6 @@ describe("<ReferenceDot />", () => {
           />
         </LineChart>
       ));
-      flush();
-
       const dot = container.querySelector(".recharts-reference-dot .recharts-dot");
       assertNotNull(dot);
 
@@ -393,8 +371,6 @@ describe("<ReferenceDot />", () => {
           <ReferenceDot x={1} y={1} r={3} onMouseDown={onMouseDown} onMouseUp={onMouseUp} />
         </LineChart>
       ));
-      flush();
-
       const dot = container.querySelector(".recharts-reference-dot .recharts-dot");
       assertNotNull(dot);
 
@@ -420,10 +396,10 @@ describe("<ReferenceDot />", () => {
       const [showDot, setShowDot] = createSignal(true);
       const Comp = (): null => {
         const dots = useAppSelector((state) => selectReferenceDotsByAxis(state, "yAxis", 0));
-        createEffect(
-          () => dots(),
-          (v) => dotSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => dots())();
+          ((v) => dotSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -436,8 +412,6 @@ describe("<ReferenceDot />", () => {
           <Comp />
         </LineChart>
       ));
-      flush();
-
       expect(dotSpy).toHaveBeenLastCalledWith([
         {
           // `id` is a documented Solid deviation: recharts matches reference
@@ -454,8 +428,6 @@ describe("<ReferenceDot />", () => {
       ]);
 
       setShowDot(false);
-      flush();
-
       expect(dotSpy).toHaveBeenLastCalledWith([]);
     });
   });

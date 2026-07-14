@@ -18,8 +18,8 @@
 // through getValueByDataKey in the payload searcher (reference parity).
 // NON-GAPS: the reference Sankey has NO animation and hardcodes responsive={false}
 // on its wrapper (ResponsiveContainer sizing flows via the wrapper context).
-import { createEffect, createMemo, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { children, createMemo, For, Show, mergeProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import { Surface } from "../container/Surface";
 import { Layer } from "../container/Layer";
 import { Rectangle } from "../shape/Rectangle";
@@ -767,7 +767,8 @@ const sankeyOptions: ChartOptions = {
 
 const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(sankeyDefaultProps, props);
+  const merged = mergeProps(sankeyDefaultProps, props);
+  const resolvedChildren = children(() => props.children);
   const width = useChartWidth();
   const height = useChartHeight();
 
@@ -808,8 +809,10 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
 
   // Publish the computed data so the tooltip searcher can resolve node-/link-N.
   createEffect(
-    () => ({ nodes: computed().nodes, links: computed().links }),
-    (cd) => store?.actions.chartData.setComputedData(cd),
+    on(
+      () => ({ nodes: computed().nodes, links: computed().links }),
+      (cd) => store?.actions.chartData.setComputedData(cd),
+    ),
   );
 
   const dispatchEnter = (index: TooltipIndex, coord: Coordinate): void => {
@@ -956,7 +959,7 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
             </Layer>
           </Layer>
           <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
-          {merged.children}
+          {resolvedChildren()}
         </Surface>
       )}
     </Show>

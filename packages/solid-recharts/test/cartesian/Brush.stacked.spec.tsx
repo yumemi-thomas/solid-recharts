@@ -16,7 +16,7 @@
 // createSelectorTestCase; `import React` dropped. expectBrush is inlined.
 // toBeRechartsStackedData is registered by the expectStackGroups side-effect import.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar, Brush } from "../../src";
@@ -118,19 +118,15 @@ describe("Brush in a stacked chart", () => {
       const traveller = container.querySelector(".recharts-brush-traveller");
       assertNotNull(traveller);
       fireEvent.mouseDown(traveller);
-      flush();
       fireEvent.mouseMove(traveller, { clientX: 100, clientY: 0 });
-      flush();
     }
 
     function primeToLastThree(container: Element): void {
       const traveller = container.querySelector(".recharts-brush-traveller");
       assertNotNull(traveller);
       fireEvent.mouseDown(traveller);
-      flush();
       // Move far to the right to show only the last 3 pages (D, E, F).
       fireEvent.mouseMove(traveller, { clientX: 300, clientY: 0 });
-      flush();
     }
 
     it("should display fewer bars after moving the brush traveller", () => {

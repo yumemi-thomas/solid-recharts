@@ -11,7 +11,7 @@
 // Per-trapezoid `name` attribute is deferred in the minimal port (see Funnel.tsx),
 // so that reference assertion is intentionally omitted.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { FunnelChart, Funnel, Tooltip, Cell } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
@@ -44,8 +44,6 @@ describe("<FunnelChart />", () => {
         <Funnel dataKey="value" data={data} isAnimationActive={false} />
       </FunnelChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-trapezoids")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-funnel-trapezoid")).toHaveLength(data.length);
     expect(container.querySelectorAll(".recharts-trapezoid")).toHaveLength(data.length);
@@ -57,8 +55,6 @@ describe("<FunnelChart />", () => {
         <Funnel dataKey="value" data={data} isAnimationActive={false} />
       </FunnelChart>
     ));
-    flush();
-
     const widths = upperWidths(container);
     expect(widths).toHaveLength(data.length);
     // Strictly decreasing: each row's value (100,80,50,40,26) is smaller than the last.
@@ -79,8 +75,6 @@ describe("<FunnelChart />", () => {
         <Funnel dataKey="value" data={data02} isAnimationActive={false} width="80%" />
       </FunnelChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-trapezoids")).toHaveLength(2);
     expect(container.querySelectorAll(".recharts-funnel-trapezoid")).toHaveLength(
       data.length + data02.length,
@@ -98,8 +92,6 @@ describe("<FunnelChart />", () => {
         </Funnel>
       </FunnelChart>
     ));
-    flush();
-
     const fills = [...container.querySelectorAll(".recharts-trapezoid")].map((p) =>
       p.getAttribute("fill"),
     );
@@ -113,12 +105,8 @@ describe("<FunnelChart />", () => {
         <Tooltip />
       </FunnelChart>
     ));
-    flush();
-
     const trapezoids = container.querySelectorAll(".recharts-funnel-trapezoid");
     fireEvent.mouseEnter(trapezoids[1]!);
-    flush();
-
     const values = [...container.querySelectorAll(".recharts-tooltip-item-value")].map(
       (n) => n.textContent,
     );
@@ -136,8 +124,6 @@ describe("<FunnelChart />", () => {
         />
       </FunnelChart>
     ));
-    flush();
-
     // No default trapezoids; one custom circle per row, still wrapped per trapezoid.
     expect(container.querySelectorAll(".recharts-trapezoid")).toHaveLength(0);
     expect(container.querySelectorAll("circle.custom-trap")).toHaveLength(data.length);
@@ -175,13 +161,9 @@ describe("<FunnelChart />", () => {
         <Funnel dataKey="value" data={data02} isAnimationActive={false} width="80%" />
       </FunnelChart>
     ));
-    flush();
-
     const trapezoid = container.querySelectorAll(".recharts-funnel-trapezoid")[2];
     expect(trapezoid).toBeDefined();
     fireEvent.click(trapezoid!);
-    flush();
-
     expect(onEventMock).toHaveBeenCalled();
   });
 

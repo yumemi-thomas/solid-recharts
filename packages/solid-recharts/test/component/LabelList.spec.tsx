@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/component/LabelList.spec.tsx (commit 7a23854).
-import { flush } from "solid-js";
+
 import { Bar, BarChart, LabelList, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "../../src";
 import { render } from "@solidjs/testing-library";
 import { expectLabels } from "../helper/expectLabel";
@@ -28,8 +28,6 @@ describe("<LabelList />", () => {
         </Scatter>
       </ScatterChart>
     ));
-    flush();
-
     expectScatterPoints(container, [
       {
         cx: "86.66666666666667",
@@ -152,8 +150,6 @@ describe("<LabelList />", () => {
         </Bar>
       </BarChart>
     ));
-    flush();
-
     const label = container.querySelectorAll(".recharts-label");
     expect(label?.length).toEqual(data.length);
 
@@ -178,8 +174,6 @@ describe("<LabelList />", () => {
         </Bar>
       </BarChart>
     ));
-    flush();
-
     const labels = container.querySelectorAll(".recharts-label");
     expect(labels.length).toEqual(data.length);
     expect(container.querySelector("[clockWise]")).toBeNull();

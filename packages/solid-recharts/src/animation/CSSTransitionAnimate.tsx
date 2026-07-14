@@ -6,14 +6,14 @@
 //   - `useState` → `createSignal`; the `initialized` `useRef` → a `createSignal`
 //     flipped in the start effect and read reactively in the render memo.
 //   - `usePrefersReducedMotion()` returns an Accessor → call it.
-//   - the `useEffect` → two-arg `createEffect(compute, apply)`; cleanup returned
+//   - the `useEffect` → two-arg `createEffect(on(compute, apply))`; cleanup returned
 //     from the apply phase.
 //   - `return children(style)` → a reactive `<>{props.children(styleObject())}</>`.
 //   - the children style is a `Record<string, string | undefined>`: the dynamic
 //     `[attributeName]` key can't be typed against Solid's stricter `JSX.CSSProperties`,
 //     so consumers read the known keys (e.g. `transform`/`transition`) into their style.
-import { createEffect, createMemo, createSignal, untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, createSignal, untrack, createEffect, on, onCleanup } from "solid-js";
+import type { JSX } from "solid-js";
 import { noop } from "../util/DataUtils";
 import { getTransitionVal } from "./util";
 import { Global } from "../util/Global";
@@ -81,42 +81,44 @@ export function CSSTransitionAnimate(props: CSSTransitionAnimateProps): JSX.Elem
   // the already-read `deps.from` (reading props.from when the controller invokes it
   // later would be an untracked read).
   createEffect(
-    () => ({
-      active: isActive(),
-      canBegin: canBegin(),
-      duration: duration(),
-      easing: easing(),
-      begin: begin(),
-      from: props.from,
-      to: props.to,
-      animationId: props.animationId,
-      attributeName: props.attributeName,
-      onStart: onAnimationStartProp(),
-      onEnd: onAnimationEnd(),
-      controller: animationController,
-    }),
-    (deps) => {
-      if (!deps.active || !deps.canBegin) {
-        return undefined;
-      }
-      setInitialized(true);
-      const onStart = (): void => {
-        setStyle(deps.from);
-        deps.onStart();
-      };
-      const timeoutController = new RequestAnimationFrameTimeoutController();
-      const animation = new CSSTransitionAnimation({
-        animationId: deps.animationId + deps.attributeName,
-        easing: deps.easing,
-        animationDuration: deps.duration,
-        animationBegin: deps.begin,
-        onAnimationStart: onStart,
-        onAnimationEnd: deps.onEnd,
-        from: deps.from,
-        to: deps.to,
-      });
-      return deps.controller(timeoutController, animation, (next) => setStyle(String(next)));
-    },
+    on(
+      () => ({
+        active: isActive(),
+        canBegin: canBegin(),
+        duration: duration(),
+        easing: easing(),
+        begin: begin(),
+        from: props.from,
+        to: props.to,
+        animationId: props.animationId,
+        attributeName: props.attributeName,
+        onStart: onAnimationStartProp(),
+        onEnd: onAnimationEnd(),
+        controller: animationController,
+      }),
+      (deps) => {
+        if (!deps.active || !deps.canBegin) {
+          return undefined;
+        }
+        setInitialized(true);
+        const onStart = (): void => {
+          setStyle(deps.from);
+          deps.onStart();
+        };
+        const timeoutController = new RequestAnimationFrameTimeoutController();
+        const animation = new CSSTransitionAnimation({
+          animationId: deps.animationId + deps.attributeName,
+          easing: deps.easing,
+          animationDuration: deps.duration,
+          animationBegin: deps.begin,
+          onAnimationStart: onStart,
+          onAnimationEnd: deps.onEnd,
+          from: deps.from,
+          to: deps.to,
+        });
+        onCleanup(deps.controller(timeoutController, animation, (next) => setStyle(String(next))));
+      },
+    ),
   );
 
   // All reactive reads live in this memo (a tracking scope); the JSX insert below

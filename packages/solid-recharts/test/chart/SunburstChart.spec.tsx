@@ -3,7 +3,7 @@
 // inheriting its parent's fill unless it sets its own. `flush()` because the chart
 // size is reported via an effect (ReportChartSize) before the arcs compute.
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { SunburstChart } from "../../src";
 import type { SunburstData } from "../../src";
@@ -28,8 +28,6 @@ const data: SunburstData = {
 describe("<SunburstChart />", () => {
   it("renders each sector depth-first, inheriting the parent fill", () => {
     const { container } = render(() => <SunburstChart width={500} height={500} data={data} />);
-    flush();
-
     const sectors = container.querySelectorAll(".recharts-sector");
     // Child1, its child (inherits), Child2, its child (inherits), Child3.
     expect(sectors).toHaveLength(5);
@@ -54,8 +52,6 @@ describe("<SunburstChart />", () => {
         onClick={onClick}
       />
     ));
-    flush();
-
     const first = container.querySelector(".recharts-sector")!;
     fireEvent.mouseEnter(first);
     expect(onMouseEnter).toHaveBeenCalledTimes(1);
@@ -85,8 +81,6 @@ describe("<SunburstChart />", () => {
         data={data}
       />
     ));
-    flush();
-
     const sector = container.querySelectorAll(".recharts-sector")[0]!;
     fireEvent.touchMove(sector, { touches: [{ clientX: 200, clientY: 200 }] });
     expect(onTouchMove).not.toHaveBeenCalled();
@@ -99,10 +93,10 @@ describe("<SunburstChart />", () => {
       const Comp = (): null => {
         clipPathSpy(useClipPathId());
         const viewBox = useViewBox();
-        createEffect(
-          () => viewBox(),
-          (v) => viewBoxSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => viewBox())();
+          ((v) => viewBoxSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -110,8 +104,6 @@ describe("<SunburstChart />", () => {
           <Comp />
         </SunburstChart>
       ));
-      flush();
-
       expect(clipPathSpy).toHaveBeenLastCalledWith(undefined);
       expect(viewBoxSpy).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 100, height: 50 });
     });
@@ -122,14 +114,14 @@ describe("<SunburstChart />", () => {
       const Comp = (): null => {
         const width = useChartWidth();
         const height = useChartHeight();
-        createEffect(
-          () => width(),
-          (v) => widthSpy(v),
-        );
-        createEffect(
-          () => height(),
-          (v) => heightSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => width())();
+          ((v) => widthSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = (() => height())();
+          ((v) => heightSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -137,8 +129,6 @@ describe("<SunburstChart />", () => {
           <Comp />
         </SunburstChart>
       ));
-      flush();
-
       expect(widthSpy).toHaveBeenLastCalledWith(100);
       expect(heightSpy).toHaveBeenLastCalledWith(50);
     });

@@ -1,7 +1,8 @@
+import { splitProps } from "solid-js";
 // Ported from recharts 3.8.1 src/util/RadialBarUtils.tsx (commit 7a23854).
 // Renders a RadialBar sector through the <Shape> abstraction (default = Sector).
-import { omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { RadialBarDataItem, RadialBarProps } from "../polar/RadialBar";
 import { Sector } from "../shape/Sector";
 import { Shape } from "./ActiveShapeUtils";
@@ -29,7 +30,7 @@ export function RadialBarSector(props: RadialBarSectorComponentProps): JSX.Eleme
     <Shape<RadialBarSectorProps, SVGPathElement>
       option={props.option}
       DefaultShape={defaultRadialBarShape}
-      shapeProps={omit(props, "option")}
+      shapeProps={splitProps(props, ["option"])[1]}
     />
   );
 }

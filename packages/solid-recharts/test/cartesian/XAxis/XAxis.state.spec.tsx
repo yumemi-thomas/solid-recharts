@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { BarChart, XAxis } from "../../../src";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
@@ -24,10 +24,10 @@ describe("state integration", () => {
       const settings = useAppSelector((state) =>
         selectRenderableAxisSettings(state, "xAxis", "foo"),
       );
-      createEffect(
-        () => settings(),
-        (v) => spy(v),
-      );
+      createEffect(() => {
+        const value = (() => settings())();
+        ((v) => spy(v))(value);
+      });
       return null;
     };
     const fakeTickFormatter = () => "";
@@ -159,10 +159,10 @@ describe("state integration", () => {
     const makeComp = (spy: Mock) => (): null => {
       const foo = useAppSelector((state) => selectRenderableAxisSettings(state, "xAxis", "foo"));
       const bar = useAppSelector((state) => selectRenderableAxisSettings(state, "xAxis", "bar"));
-      createEffect(
-        () => ({ foo: foo(), bar: bar() }),
-        (v) => spy(v),
-      );
+      createEffect(() => {
+        const value = (() => ({ foo: foo(), bar: bar() }))();
+        ((v) => spy(v))(value);
+      });
       return null;
     };
 
@@ -252,10 +252,6 @@ describe("state integration", () => {
     expect(Object.keys(lastCallArgs1)).toEqual(["1"]);
 
     fireEvent.click(container.getElementsByClassName("pushbutton")[0]!);
-    flush();
-    flush();
-    flush();
-
     // only id "2" exists
     const lastCallArgs2 = spy.mock.lastCall?.[0];
     assertNotNull(lastCallArgs2);

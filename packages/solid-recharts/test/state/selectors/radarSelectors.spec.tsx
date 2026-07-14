@@ -5,7 +5,7 @@
 // the axis object via objectContaining. The "should return new data after interaction"
 // case uses a Solid signal (in place of React useState) to flip the Radar dataKey and
 // asserts the selector VALUE before/after the click (render-count assertions dropped).
-import { createEffect, createSignal, flush } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@solidjs/testing-library";
 import { useAppSelectorWithStableTest } from "../../helper/selectorTestHelpers";
@@ -150,10 +150,10 @@ describe("selectRadarPoints", () => {
       const points = useAppSelectorWithStableTest((state) =>
         selectRadarPoints(state, 0, 0, false, "radar-value"),
       );
-      createEffect(
-        () => points(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => points())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     const TestCase = () => {
@@ -177,8 +177,6 @@ describe("selectRadarPoints", () => {
       );
     };
     const { container } = render(() => <TestCase />);
-    flush();
-
     const expectedResultBefore: ReturnType<typeof selectRadarPoints> = {
       baseLinePoints: [],
       isRange: false,
@@ -279,8 +277,6 @@ describe("selectRadarPoints", () => {
     const button = container.querySelector("button");
     expect(button).not.toBeNull();
     fireEvent.click(button!);
-    flush();
-
     const expectedResultAfter: ReturnType<typeof selectRadarPoints> = {
       baseLinePoints: [],
       isRange: false,

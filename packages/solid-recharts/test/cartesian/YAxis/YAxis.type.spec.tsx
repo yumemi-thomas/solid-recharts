@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/YAxis/YAxis.type.spec.tsx (commit 7a23854).
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { describe, expect, it } from "vitest";
 import { BarChart, YAxis } from "../../../src";
 import { selectYAxisSettings } from "../../../src/state/selectors/axisSelectors";

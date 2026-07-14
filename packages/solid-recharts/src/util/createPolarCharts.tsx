@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/util/createPolarCharts.tsx.
 // Solid-native: React.ComponentType → `(props) => JSX.Element`; layout binding
 // via `merge()`.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { RadialBarChart as OriginalRadialBarChart } from "../chart/RadialBarChart";
 import { RadarChart as OriginalRadarChart } from "../chart/RadarChart";
 import { PieChart as OriginalPieChart } from "../chart/PieChart";

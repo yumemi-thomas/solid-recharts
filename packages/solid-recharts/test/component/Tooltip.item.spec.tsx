@@ -4,7 +4,7 @@
 // setActiveMouseOverItemIndex) + combineTooltipPayloadConfigurations' item branch
 // (filter by graphicalItemId) + the index-based payload searcher.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar, Tooltip } from "../../src";
 import { PageData } from "../_data";
@@ -22,8 +22,6 @@ describe("<Tooltip /> item interaction", () => {
         <Tooltip shared={false} />
       </BarChart>
     ));
-    flush();
-
     const rects = container.querySelectorAll(".recharts-bar-rectangle");
     expect(rects.length).toBe(PageData.length);
     expect(container.querySelectorAll(".recharts-tooltip-item")).toHaveLength(0);
@@ -35,8 +33,6 @@ describe("<Tooltip /> item interaction", () => {
 
     // Hover the FIRST bar (index 0 → uv 400).
     fireEvent.mouseEnter(firstRect);
-    flush();
-
     const values = [...container.querySelectorAll(".recharts-tooltip-item-value")].map(
       (n) => n.textContent,
     );
@@ -48,7 +44,6 @@ describe("<Tooltip /> item interaction", () => {
 
     // Leaving the bar clears it.
     fireEvent.mouseLeave(firstRect);
-    flush();
     expect(container.querySelectorAll(".recharts-tooltip-item")).toHaveLength(0);
   });
 });

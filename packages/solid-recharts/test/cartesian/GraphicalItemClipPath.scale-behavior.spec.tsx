@@ -13,8 +13,8 @@
 // (recharts erases it via `any`), so a runtime guard reads `name`/`x` — no `as`.
 import { describe, it, expect, beforeEach } from "vitest";
 import { scaleLinear, scalePoint } from "d3-scale";
-import { createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { fireEvent } from "@solidjs/testing-library";
 import { Line, LineChart, XAxis, YAxis } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
@@ -305,8 +305,6 @@ describe("Scale behavior: categorical vs numerical point positions during data s
       // Slide the data
       const button = container.querySelector("button")!;
       fireEvent.click(button);
-      flush();
-
       const afterPoints: ReadonlyArray<LinePointItem> | undefined =
         spy.mock.calls[spy.mock.calls.length - 1]?.[0];
       assertNotNull(afterPoints);
@@ -393,8 +391,6 @@ describe("Scale behavior: categorical vs numerical point positions during data s
       // Slide the data
       const button = container.querySelector("button")!;
       fireEvent.click(button);
-      flush();
-
       const afterPoints: ReadonlyArray<LinePointItem> | undefined =
         spy.mock.calls[spy.mock.calls.length - 1]?.[0];
       assertNotNull(afterPoints);
@@ -459,8 +455,6 @@ describe("Scale behavior: categorical vs numerical point positions during data s
 
       const button = container.querySelector("button")!;
       fireEvent.click(button);
-      flush();
-
       const afterPoints: ReadonlyArray<LinePointItem> | undefined =
         spy.mock.calls[spy.mock.calls.length - 1]?.[0];
       assertNotNull(afterPoints);

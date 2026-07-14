@@ -2,7 +2,7 @@
 // Solid deviations: hooks return Accessors; `Customized` hook probes are replaced
 // by createSelectorTestCase; call-count assertions are relaxed where Solid's
 // registration effects settle differently from React renders.
-import { flush } from "solid-js";
+
 import { describe, expect, it, vi } from "vitest";
 import { Brush, ComposedChart, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "../../src";
 import { useActiveTooltipDataPoints, useOffset, usePlotArea } from "../../src/hooks";
@@ -236,13 +236,9 @@ describe("useOffset", () => {
         <Child />
       </LineChart>
     ));
-    flush();
-
     expect(spy).toHaveBeenCalled();
 
     showTooltip(container, lineChartMouseHoverTooltipSelector);
-    flush();
-
     expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -16,8 +16,8 @@
 //  - arbitrary SVG-prop passthrough to the whisker group (recharts `Props = SVGProps
 //    & ErrorBarProps`, e.g. a bare `begin` attribute) rides through
 //    svgPropertiesNoEvents, filtered by the canonical allowlist.
-import { type Accessor, createMemo, For, merge, omit, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { type Accessor, createMemo, For, Show, mergeProps, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Layer } from "../container/Layer";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { CSSTransitionAnimate } from "../animation/CSSTransitionAnimate";
@@ -219,7 +219,10 @@ function ErrorBarImpl(props: {
                 <Show when={group.lines.length > 0}>
                   {/* Raw <g> (mirrors Layer's `recharts-layer` class) so the Record
                     spread can carry the non-typed `offset` attribute. */}
-                  <g class={["recharts-layer", "recharts-errorBar"]} {...groupAttrs()}>
+                  <g
+                    class={["recharts-layer", "recharts-errorBar"].filter(Boolean).join(" ")}
+                    {...groupAttrs()}
+                  >
                     <For each={group.lines}>
                       {(c) => {
                         const lineStyle: JSX.CSSProperties | undefined = props.isAnimationActive
@@ -275,7 +278,7 @@ function ErrorBarImpl(props: {
  * @consumes ErrorBarContext
  */
 export function ErrorBar(props: ErrorBarProps): JSX.Element {
-  const merged = merge(errorBarDefaultProps, props);
+  const merged = mergeProps(errorBarDefaultProps, props);
   const direction = useErrorBarDirection(props.direction);
   // Everything that isn't ErrorBar config is an SVG presentation prop for the
   // whisker group (recharts: `const { direction, width, dataKey, ...others } =
@@ -283,8 +286,7 @@ export function ErrorBar(props: ErrorBarProps): JSX.Element {
   // remaining non-SVG keys (and the merge proxy's symbols).
   const groupSvgAttrs = createMemo<Record<string, unknown>>(() =>
     svgPropertiesNoEvents({
-      ...omit(
-        merged,
+      ...splitProps(merged, [
         "dataKey",
         "width",
         "direction",
@@ -294,7 +296,7 @@ export function ErrorBar(props: ErrorBarProps): JSX.Element {
         "animationEasing",
         "zIndex",
         "class",
-      ),
+      ])[1],
     }),
   );
   return (

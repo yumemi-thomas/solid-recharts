@@ -18,8 +18,8 @@
 //  - Element-form shape/label cases are NOT in this file (deferred: Solid
 //    elements aren't introspectable).
 import { describe, expect, it, test, vi } from "vitest";
-import { createEffect, createSignal, flush, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal, Show } from "solid-js";
+import type { JSX } from "solid-js";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { Bar, BarChart, IfOverflow, LineChart, ReferenceArea, XAxis, YAxis } from "../../src";
 import { useAppSelector } from "../../src/state/hooks";
@@ -58,7 +58,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea y1={0} y2={2} fill="#666" label="201106" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(2);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(2);
   });
@@ -78,7 +77,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea y1={0} y2={2} fill="#999" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(0);
   });
 
@@ -97,7 +95,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea y1={0} y2={2} fill="#999" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(0);
   });
 
@@ -116,7 +113,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea y1={0} y2={2} fill="#999" />
       </BarChart>
     ));
-    flush();
     const allAreas = container.querySelectorAll(".recharts-reference-area-rect");
     expect(allAreas).toHaveLength(1);
     const area = allAreas[0]!;
@@ -139,7 +135,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea stroke="#666" label="0" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -160,7 +155,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea x1="201106" stroke="#666" label="0" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
   });
@@ -182,7 +176,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea x1="20150201" x2="20150201" fill="#666" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(0);
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
   });
@@ -203,7 +196,6 @@ describe("<ReferenceArea />", () => {
         <ReferenceArea y1={200} y2={300} fill="#666" ifOverflow="extendDomain" />
       </BarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(1);
   });
 
@@ -224,7 +216,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea x1="201106" x2="201110" fill="#666" label="My label text" />
         </BarChart>
       ));
-      flush();
       expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
       expect(screen.getByText("My label text")).toBeVisible();
     });
@@ -245,7 +236,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea x1="201106" x2="201110" fill="#666" label={2024} />
         </BarChart>
       ));
-      flush();
       expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
       expect(screen.getByText("2024")).toBeVisible();
     });
@@ -271,7 +261,6 @@ describe("<ReferenceArea />", () => {
           />
         </BarChart>
       ));
-      flush();
       expect(container.querySelectorAll(".recharts-label")).toHaveLength(1);
       expect(screen.getByText("This is not documented by it works perfectly fine")).toBeVisible();
     });
@@ -298,7 +287,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea x1="201106" x2="201110" fill="#666" label={renderLabel} />
         </BarChart>
       ));
-      flush();
       expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(1);
       expect(container.querySelectorAll(".customized-reference-area-label")).toHaveLength(1);
       expect(screen.getByText("My custom label text")).toBeVisible();
@@ -320,7 +308,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea x1="201106" x2="201110" fill="#666" label={label} />
         </BarChart>
       ));
-      flush();
       expect(container.querySelectorAll(".recharts-label")).toHaveLength(0);
     });
   });
@@ -343,7 +330,6 @@ describe("<ReferenceArea />", () => {
           />
         </BarChart>
       ));
-      flush();
       const allAreas = container.querySelectorAll(".recharts-reference-area-rect");
       expect(allAreas).toHaveLength(1);
       const area = allAreas[0]!;
@@ -377,7 +363,6 @@ describe("<ReferenceArea />", () => {
           />
         </BarChart>
       ));
-      flush();
       const area = screen.getByTestId("my-custom-shape");
       expect(area).toBeVisible();
     });
@@ -399,7 +384,6 @@ describe("<ReferenceArea />", () => {
           />
         </BarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith({
         clipPath: undefined,
         fill: "#666",
@@ -425,7 +409,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea x1="201106" x2="201110" ifOverflow="hidden" />
         </BarChart>
       ));
-      flush();
       const allAreas = container.querySelectorAll(".recharts-reference-area-rect");
       expect(allAreas).toHaveLength(1);
       const area = allAreas[0]!;
@@ -444,7 +427,6 @@ describe("<ReferenceArea />", () => {
             <ReferenceArea x1="201106" x2="201110" ifOverflow={ifOverflow} />
           </BarChart>
         ));
-        flush();
         const allAreas = container.querySelectorAll(".recharts-reference-area-rect");
         expect(allAreas).toHaveLength(1);
         const area = allAreas[0]!;
@@ -461,7 +443,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea y1={100} y2={200} ifOverflow="discard" />
         </BarChart>
       ));
-      flush();
       const allAreas = container.querySelectorAll(".recharts-reference-area-rect");
       expect(allAreas).toHaveLength(0);
     });
@@ -477,7 +458,6 @@ describe("<ReferenceArea />", () => {
             <ReferenceArea y1={100} y2={200} ifOverflow={ifOverflow} />
           </BarChart>
         ));
-        flush();
         const allAreas = container.querySelectorAll(".recharts-reference-area-rect");
         expect(allAreas).toHaveLength(1);
       },
@@ -524,8 +504,6 @@ describe("<ReferenceArea />", () => {
           />
         </LineChart>
       ));
-      flush();
-
       const dot = container.querySelector(".recharts-reference-area-rect");
       assertNotNull(dot);
 
@@ -579,10 +557,10 @@ describe("<ReferenceArea />", () => {
       const [showArea, setShowArea] = createSignal(true);
       const Comp = (): null => {
         const areas = useAppSelector((state) => selectReferenceAreasByAxis(state, "yAxis", 0));
-        createEffect(
-          () => areas(),
-          (v) => areaSpy(v),
-        );
+        createEffect(() => {
+          const value = (() => areas())();
+          ((v) => areaSpy(v))(value);
+        });
         return null;
       };
       // The reference wraps this in a BarChart whose <Bar> only anchors the
@@ -607,8 +585,6 @@ describe("<ReferenceArea />", () => {
           <Comp />
         </LineChart>
       ));
-      flush();
-
       expect(areaSpy).toHaveBeenLastCalledWith([
         {
           // `id` is a documented Solid deviation: recharts matches reference
@@ -626,8 +602,6 @@ describe("<ReferenceArea />", () => {
       ]);
 
       setShowArea(false);
-      flush();
-
       expect(areaSpy).toHaveBeenLastCalledWith([]);
     });
   });
@@ -655,7 +629,6 @@ describe("<ReferenceArea />", () => {
           <ReferenceArea y1={120} y2={180} yAxisId="left" fill="#f00" />
         </BarChart>
       ));
-      flush();
       // Only the area targeting the "right" axis (domain 0..200) is in range.
       expect(container.querySelectorAll(".recharts-reference-area-rect")).toHaveLength(1);
     });

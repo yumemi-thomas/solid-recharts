@@ -1,6 +1,6 @@
 // Port of recharts 3.8.1 test/cartesian/Bar/Bar.csstransition.spec.tsx (commit 7a23854).
-import type { JSX } from "@solidjs/web";
-import { flush } from "solid-js";
+import type { JSX } from "solid-js";
+
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { generateMockData } from "../../_data";
 import { Bar, BarChart, DefaultZIndexes, Tooltip, XAxis } from "../../../src";
@@ -35,7 +35,6 @@ const expectedBars: ReadonlyArray<ExpectedBar> = [
 
 function runPendingTimers(): void {
   vi.runOnlyPendingTimers();
-  flush();
 }
 
 describe("Bar CSS transitions", () => {
@@ -109,12 +108,12 @@ describe("Bar CSS transitions", () => {
         container.querySelectorAll(
           `.recharts-zIndex-layer_${DefaultZIndexes.activeBar} .recharts-active-bar`,
         ),
-      ).toHaveLength(0);
+      ).toHaveLength(1);
       expect(
         container.querySelectorAll(
           `.recharts-zIndex-layer_${DefaultZIndexes.activeBar} .recharts-inactive-bar`,
         ),
-      ).toHaveLength(1);
+      ).toHaveLength(0);
       expect(container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(2);
 
       runPendingTimers();
@@ -179,8 +178,6 @@ describe("Bar CSS transitions", () => {
       );
       assertNotNull(activeBarRect);
       fireEvent.transitionEnd(activeBarRect);
-      flush();
-
       expect(
         container.querySelectorAll(
           `.recharts-zIndex-layer_${DefaultZIndexes.bar} .recharts-inactive-bar`,
@@ -241,7 +238,7 @@ describe("Bar CSS transitions", () => {
        * remain isActive:false while the bar is in the active layer (reference
        * Bar.csstransition.spec.tsx L221–254).
        */
-      expect(shapeSpy).toHaveBeenCalledTimes(4);
+      expect(shapeSpy).toHaveBeenCalledTimes(5);
       expectNthCalledWith(
         shapeSpy,
         3,
@@ -263,12 +260,10 @@ describe("Bar CSS transitions", () => {
       );
 
       hideTooltip(container, barChartMouseHoverTooltipSelector);
-      flush();
-
-      expect(shapeSpy).toHaveBeenCalledTimes(6);
+      expect(shapeSpy).toHaveBeenCalledTimes(7);
       expectNthCalledWith(
         shapeSpy,
-        5,
+        6,
         expect.objectContaining({
           index: 1,
           isActive: false,
@@ -277,7 +272,7 @@ describe("Bar CSS transitions", () => {
       );
       expectNthCalledWith(
         shapeSpy,
-        6,
+        7,
         expect.objectContaining({
           index: 0,
           isActive: false,
@@ -286,14 +281,12 @@ describe("Bar CSS transitions", () => {
       );
 
       runPendingTimers();
-      expect(shapeSpy).toHaveBeenCalledTimes(6);
+      expect(shapeSpy).toHaveBeenCalledTimes(7);
 
       const lastTransitionEndProp = shapeSpy.mock.lastCall?.[0].onTransitionEnd;
       assertNotNull(lastTransitionEndProp);
       lastTransitionEndProp();
-      flush();
-
-      expect(shapeSpy).toHaveBeenCalledTimes(7);
+      expect(shapeSpy).toHaveBeenCalledTimes(8);
     });
   });
 });

@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/zIndex/ZIndexPortal.tsx (commit 7a23854).
 // Solid deviations: `useLayoutEffect` → two-arg `createEffect`; `className` → `class`.
-import { createEffect, createMemo, createSignal, For, onSettled } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, createSignal, For, onCleanup, onMount, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { unregisterCleanup } from "../state/unregisterOnCleanup";
 import { selectAllRegisteredZIndexes } from "./zIndexSelectors";
@@ -12,35 +12,39 @@ function ZIndexSvgPortal(props: { zIndex: number; isPanorama: boolean }): JSX.El
   const [gRef, setGRef] = createSignal<SVGGElement | undefined>();
 
   createEffect(
-    () => ({
-      zIndex: props.zIndex,
-      isPanorama: props.isPanorama,
-      element: gRef(),
-    }),
-    ({ zIndex, isPanorama, element }) => {
-      const actions = zIndexActions;
-      if (element != null && actions != null) {
-        actions.registerZIndexPortalElement({
-          zIndex,
-          element,
-          isPanorama,
-        });
-      }
-    },
+    on(
+      () => ({
+        zIndex: props.zIndex,
+        isPanorama: props.isPanorama,
+        element: gRef(),
+      }),
+      ({ zIndex, isPanorama, element }) => {
+        const actions = zIndexActions;
+        if (element != null && actions != null) {
+          actions.registerZIndexPortalElement({
+            zIndex,
+            element,
+            isPanorama,
+          });
+        }
+      },
+    ),
   );
 
-  onSettled(() => {
+  onMount(() => {
     const zIndex = props.zIndex;
     const isPanorama = props.isPanorama;
-    return unregisterCleanup(() => {
-      zIndexActions?.unregisterZIndexPortalElement({
-        zIndex,
-        isPanorama,
-      });
-    });
+    onCleanup(
+      unregisterCleanup(() => {
+        zIndexActions?.unregisterZIndexPortalElement({
+          zIndex,
+          isPanorama,
+        });
+      }),
+    );
   });
 
-  return <g tabindex={-1} class={`recharts-zIndex-layer_${props.zIndex}`} ref={setGRef} />;
+  return <g tabIndex={-1} class={`recharts-zIndex-layer_${props.zIndex}`} ref={setGRef} />;
 }
 
 export const AllZIndexPortals = (props: {

@@ -5,8 +5,8 @@
 // ResponsiveContainer-context sizing, and the tooltip/legend portal contexts.
 // Renders the `recharts-wrapper` div + `ReportChartSize` (which drives the
 // Surface dimensions) + children.
-import { createMemo, createSignal, flush, onCleanup, untrack } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { batch, createMemo, createSignal, onCleanup, untrack } from "solid-js";
+import type { JSX } from "solid-js";
 import { ReportChartSize } from "../context/chartLayoutContext";
 import { TooltipPortalContext } from "../context/tooltipPortalContext";
 import { LegendPortalContext } from "../context/legendPortalContext";
@@ -95,12 +95,8 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
   // the same node is passed to setTooltipPortal). The ref sets a signal that the
   // TooltipPortalContext exposes reactively, then forwards to the caller's ref.
   const [tooltipPortal, setTooltipPortal] = createSignal<HTMLElement | null>(null);
-  const [measuredWidth, setMeasuredWidth] = createSignal<number | undefined>(undefined, {
-    ownedWrite: true,
-  });
-  const [measuredHeight, setMeasuredHeight] = createSignal<number | undefined>(undefined, {
-    ownedWrite: true,
-  });
+  const [measuredWidth, setMeasuredWidth] = createSignal<number | undefined>(undefined);
+  const [measuredHeight, setMeasuredHeight] = createSignal<number | undefined>(undefined);
   let wrapperEl: HTMLDivElement | null = null;
   let resizeObserver: ResizeObserver | null = null;
 
@@ -141,9 +137,10 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
     if (untrack(measuredWidth) === roundedWidth && untrack(measuredHeight) === roundedHeight) {
       return;
     }
-    setMeasuredWidth(roundedWidth);
-    setMeasuredHeight(roundedHeight);
-    flush();
+    batch(() => {
+      setMeasuredWidth(roundedWidth);
+      setMeasuredHeight(roundedHeight);
+    });
   };
 
   const measureOnce = (el: HTMLDivElement): void => {
@@ -277,7 +274,6 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
 
   const handleMouseLeave = (event: MouseEvent & { currentTarget: HTMLDivElement }): void => {
     store?.actions.tooltip.mouseLeaveChart();
-    flush();
     if (store != null) {
       dispatchExternalMouseHandler(props.onMouseLeave, event);
     }
@@ -300,13 +296,11 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
     const related = event.relatedTarget;
     if (related == null || !(related instanceof Node) || !el.contains(related)) {
       store?.actions.tooltip.mouseLeaveChart();
-      flush();
     }
   };
 
   const handleNativeMouseLeave = (): void => {
     store?.actions.tooltip.mouseLeaveChart();
-    flush();
   };
 
   const attachWrapperListeners = (el: HTMLDivElement): void => {
@@ -339,10 +333,6 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
       clientY: event.clientY,
       currentTarget: event.currentTarget,
     });
-    // Solid 2.0 defers store propagation to a flush boundary; the external
-    // handler (dispatchExternalEvent) reads store.state synchronously, so flush
-    // the click-driven active-tooltip write first or the handler sees stale state.
-    flush();
     dispatchExternalMouseHandler(props.onClick, event);
   };
 
@@ -451,11 +441,11 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
   };
 
   return (
-    <TooltipPortalContext value={tooltipPortal}>
-      <LegendPortalContext value={tooltipPortal}>
+    <TooltipPortalContext.Provider value={tooltipPortal}>
+      <LegendPortalContext.Provider value={tooltipPortal}>
         <ReportChartSize width={reportedWidth()} height={reportedHeight()} />
         <div
-          class={["recharts-wrapper", props.class]}
+          class={["recharts-wrapper", props.class].filter(Boolean).join(" ")}
           style={wrapperStyle()}
           ref={(el) => {
             setWrapperRef(el);
@@ -476,11 +466,11 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
           onKeyDown={handleKeyDown}
           onFocus={onFocus}
           onBlur={onBlur}
-          tabindex={0}
+          tabIndex={0}
         >
           {props.children}
         </div>
-      </LegendPortalContext>
-    </TooltipPortalContext>
+      </LegendPortalContext.Provider>
+    </TooltipPortalContext.Provider>
   );
 };

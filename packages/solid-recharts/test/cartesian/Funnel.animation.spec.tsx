@@ -20,7 +20,7 @@
 // memo → a NEW JavascriptAnimate subscribes a NEW manager via the context factory.
 // A manager registry (one per animationId) drives the most-recently-created one.
 import { describe, expect, it, vi } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
@@ -48,18 +48,15 @@ async function expectAnimatedFunnelPaths(
 ): Promise<ReadonlyArray<ReadonlyArray<string | null>>> {
   let progress = 0.1;
   await manager.setAnimationProgress(progress);
-  flush();
   const stepSize = (1 - progress) / steps;
 
   const pathsDuringAnimation: Array<ReadonlyArray<string | null>> = [];
   for (progress += stepSize; progress < 1; progress += stepSize) {
     await manager.setAnimationProgress(progress);
-    flush();
     pathsDuringAnimation.push(getFunnelPathStrings(container));
   }
 
   await manager.completeAnimation();
-  flush();
   pathsDuringAnimation.push(getFunnelPathStrings(container));
   expect(pathsDuringAnimation).toHaveLength(steps);
   return pathsDuringAnimation;
@@ -91,7 +88,7 @@ describe("Funnel animation", () => {
     it("should render paths with animation", async () => {
       const manager = new MockProgressAnimationManager("funnel-anim");
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <FunnelChart width={500} height={300}>
             <Funnel
               data={smallerData}
@@ -101,10 +98,8 @@ describe("Funnel animation", () => {
               onAnimationEnd={onAnimationEnd}
             />
           </FunnelChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
-
       // v3.9 engine: the JavascriptAnimation state machine calls onAnimationStart
       // synchronously in its constructor (on first render), not lazily when the first
       // frame ticks — matching recharts 3.9.
@@ -141,7 +136,7 @@ describe("Funnel animation", () => {
       const manager = new MockProgressAnimationManager("funnel-anim");
       const [data, setData] = createSignal<ReadonlyArray<(typeof PageData)[number]>>(smallerData);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button
             type="button"
             data-testid="swap"
@@ -150,11 +145,9 @@ describe("Funnel animation", () => {
           <FunnelChart width={500} height={300}>
             <Funnel data={data()} dataKey="uv" isAnimationActive />
           </FunnelChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await manager.completeAnimation();
-      flush();
       expect(getFunnelPaths(container)).toHaveLength(2);
 
       const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
@@ -162,8 +155,6 @@ describe("Funnel animation", () => {
         throw new Error("Missing swap button");
       }
       fireEvent.click(button);
-      flush();
-
       // Swapping the data reference yields a new animationId → the keyed Show remounts
       // the driver → the SAME manager's factory starts a fresh animation handle.
       const frames = await expectAnimatedFunnelPaths(container, manager);
@@ -180,22 +171,19 @@ describe("Funnel animation", () => {
       const manager = new MockProgressAnimationManager("funnel-anim-hide");
       const [visible, setVisible] = createSignal(true);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button type="button" data-testid="toggle" onClick={() => setVisible((p) => !p)} />
           <FunnelChart width={500} height={300}>
             <Funnel data={smallerData} dataKey="uv" isAnimationActive hide={!visible()} />
           </FunnelChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await manager.setAnimationProgress(0.3);
-      flush();
       const button = container.querySelector<HTMLButtonElement>('[data-testid="toggle"]');
       if (button == null) {
         throw new Error("Missing toggle button");
       }
       fireEvent.click(button);
-      flush();
       // Hidden mid-animation: no trapezoids render and no diagnostic fires.
       expect(getFunnelPaths(container)).toHaveLength(0);
     });
@@ -204,16 +192,14 @@ describe("Funnel animation", () => {
       const manager = new MockProgressAnimationManager("funnel-anim-hide");
       const [visible, setVisible] = createSignal(true);
       const { container } = render(() => (
-        <AnimationControllerProvider value={manager.factory}>
+        <AnimationControllerProvider.Provider value={manager.factory}>
           <button type="button" data-testid="toggle" onClick={() => setVisible((p) => !p)} />
           <FunnelChart width={500} height={300}>
             <Funnel data={smallerData} dataKey="uv" isAnimationActive hide={!visible()} />
           </FunnelChart>
-        </AnimationControllerProvider>
+        </AnimationControllerProvider.Provider>
       ));
-      flush();
       await manager.setAnimationProgress(0.3);
-      flush();
       const button = container.querySelector<HTMLButtonElement>('[data-testid="toggle"]');
       if (button == null) {
         throw new Error("Missing toggle button");
@@ -221,11 +207,8 @@ describe("Funnel animation", () => {
       // Hide mid-animation, then show again → a fresh trapezoids reference yields a
       // new animationId, so the SAME manager's factory re-subscribes and re-runs.
       fireEvent.click(button);
-      flush();
       expect(getFunnelPaths(container)).toHaveLength(0);
       fireEvent.click(button);
-      flush();
-
       // Tier-B (behaviour + byte-identical settled frame): the re-shown funnel
       // animates again from a collapsed state to its settled geometry.
       const frames = await expectAnimatedFunnelPaths(container, manager);

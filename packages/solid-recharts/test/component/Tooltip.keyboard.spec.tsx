@@ -4,7 +4,7 @@
 // setKeyboardInteraction → combineTooltipInteractionState picks up the keyboard
 // interaction → the same payload pipeline).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, Tooltip } from "../../src";
 import { PageData } from "../_data";
@@ -26,26 +26,20 @@ describe("<Tooltip /> keyboard navigation", () => {
         <Tooltip />
       </LineChart>
     ));
-    flush();
-
     const wrapper = container.querySelector(".recharts-wrapper") as Element;
 
     // Focus → keyboard interaction seeds index 0 ("Page A").
     fireEvent.focus(wrapper);
-    flush();
     expect(label(container)).toBe("Page A");
 
     // ArrowRight → index 1 ("Page B"); again → index 2 ("Page C").
     fireEvent.keyDown(wrapper, { key: "ArrowRight" });
-    flush();
     expect(label(container)).toBe("Page B");
     fireEvent.keyDown(wrapper, { key: "ArrowRight" });
-    flush();
     expect(label(container)).toBe("Page C");
 
     // ArrowLeft → back to index 1 ("Page B").
     fireEvent.keyDown(wrapper, { key: "ArrowLeft" });
-    flush();
     expect(label(container)).toBe("Page B");
   });
 });

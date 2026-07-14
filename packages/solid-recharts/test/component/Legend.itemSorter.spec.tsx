@@ -10,8 +10,8 @@
 // props object itself is byte-identical. `render(() => <…/>)` + `flush()` replace
 // React's synchronous render.
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
-import { createSignal, flush, For } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, For } from "solid-js";
+import type { JSX } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import {
   Area,
@@ -63,8 +63,6 @@ describe("Legend.itemSorter", () => {
           <Line dataKey="value" name="A" />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [
         { textContent: "A", stroke: "#3182bd", fill: "none" },
         { textContent: "B", stroke: "#3182bd", fill: "none" },
@@ -79,8 +77,6 @@ describe("Legend.itemSorter", () => {
           <Line dataKey="value" name="A" />
         </LineChart>
       ));
-      flush();
-
       expectLegendLabels(container, [
         { textContent: "B", stroke: "#3182bd", fill: "none" },
         { textContent: "A", stroke: "#3182bd", fill: "none" },
@@ -99,8 +95,6 @@ describe("Legend.itemSorter", () => {
           <Line dataKey="value" name="A" />
         </LineChart>
       ));
-      flush();
-
       expect(customContent).toHaveBeenLastCalledWith({
         align: "center",
         chartHeight: 500,
@@ -189,8 +183,6 @@ describe("Legend.itemSorter", () => {
           <Line dataKey="value" name="A" />
         </LineChart>
       ));
-      flush();
-
       expect(customContent).toHaveBeenLastCalledWith({
         align: "center",
         chartHeight: 500,
@@ -280,8 +272,6 @@ describe("Legend.itemSorter", () => {
     );
     assertNotNull(item);
     (item as HTMLElement).click();
-    flush();
-    flush();
   }
 
   describe("when Legend content hides and shows items on click", () => {
@@ -322,8 +312,6 @@ describe("Legend.itemSorter", () => {
     describe("on initial render", () => {
       it("should render all items sorted by dataKey", () => {
         const { container } = render(() => <MyLegendHidingComponent />);
-        flush();
-
         expectLegendLabels(container, [
           { textContent: "B", stroke: "red", fill: "none" },
           { textContent: "A", stroke: "blue", fill: "none" },
@@ -334,8 +322,6 @@ describe("Legend.itemSorter", () => {
     describe("after clicking on legend items", () => {
       it("should hide the clicked item and keep the order", () => {
         const { container } = render(() => <MyLegendHidingComponent />);
-        flush();
-
         clickLegendItemByText("A");
         expectLegendLabels(container, [
           { textContent: "B", stroke: "red", fill: "none" },
@@ -351,8 +337,6 @@ describe("Legend.itemSorter", () => {
 
       it("should show the clicked item again and keep the order", () => {
         const { container } = render(() => <MyLegendHidingComponent />);
-        flush();
-
         clickLegendItemByText("A");
         clickLegendItemByText("B");
         expectLegendLabels(container, [
@@ -411,8 +395,6 @@ describe("Legend.itemSorter", () => {
       const button = [...document.querySelectorAll("button")].find((n) => n.textContent === label);
       assertNotNull(button);
       button.click();
-      flush();
-      flush();
     }
 
     function useItemHiding(): {
@@ -457,8 +439,6 @@ describe("Legend.itemSorter", () => {
       describe("on initial render", () => {
         it("should render all items sorted by dataKey", () => {
           render(() => <MyLegendHidingLineChartTestCase />);
-          flush();
-
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -484,8 +464,6 @@ describe("Legend.itemSorter", () => {
       describe("after clicking on legend items", () => {
         it("should hide the clicked item and keep the order", () => {
           render(() => <MyLegendHidingLineChartTestCase />);
-          flush();
-
           clickButtonByText("A");
           expectLastCalledWith(
             spy,
@@ -558,8 +536,6 @@ describe("Legend.itemSorter", () => {
       describe("on initial render", () => {
         it("should render all items sorted by dataKey", () => {
           render(() => <MyLegendHidingAreaChartTestCase />);
-          flush();
-
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -585,8 +561,6 @@ describe("Legend.itemSorter", () => {
       describe("after clicking on legend items", () => {
         it("should hide the clicked item and keep the order", () => {
           render(() => <MyLegendHidingAreaChartTestCase />);
-          flush();
-
           clickButtonByText("A");
           expectLastCalledWith(
             spy,
@@ -632,8 +606,6 @@ describe("Legend.itemSorter", () => {
 
         it("should show the clicked item again and keep the order", () => {
           render(() => <MyLegendHidingAreaChartTestCase />);
-          flush();
-
           clickButtonByText("A");
           clickButtonByText("B");
           expectLastCalledWith(

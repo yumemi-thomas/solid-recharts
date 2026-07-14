@@ -8,7 +8,7 @@
 // element relying on isValidElement/cloneElement) — `CursorDefinition` in the
 // Solid port is `boolean | Record<string, unknown>`, with no element form.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import {
   Cursor,
@@ -176,8 +176,6 @@ describe("Cursor", () => {
           <Cursor {...defaultProps} coordinate={{ x: 100, y: 100 }} zIndex={1234} />
         </LineChart>
       ));
-      flush();
-
       const portal = container.querySelector(".recharts-zIndex-layer_1234");
       assertNotNull(portal);
       expect(portal.querySelector(".recharts-tooltip-cursor")).not.toBeNull();

@@ -17,8 +17,8 @@
 // Enter/Leave/onTouchStart/Move/End, props-first `(data, index, event)`) ARE wired.
 // No legend registration and no ZIndexLayer — matching recharts (upstream Funnel
 // registers no legend payload and renders inline without a zIndex portal).
-import { createMemo, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
 import {
@@ -346,7 +346,7 @@ export const funnelDefaultProps = {
 export function Funnel<DataPointType = Record<string, unknown>, DataValueType = unknown>(
   props: FunnelProps<DataPointType, DataValueType>,
 ): JSX.Element {
-  const merged = merge(funnelDefaultProps, props);
+  const merged = mergeProps(funnelDefaultProps, props);
   const id = useUniqueId("recharts-funnel", props.id);
 
   const cells = collectCells(() => props.children);

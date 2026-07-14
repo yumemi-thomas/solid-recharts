@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 src/state/eventSettingsSlice.ts (commit 7a23854).
 // Solid-native slice; immer's `castDraft` is unnecessary with a Solid store.
-import { createStore } from "solid-js";
+import { createStore, produce } from "solid-js/store";
 import { EventThrottlingProps } from "../util/types";
 
 export type EventSettingsState = Required<EventThrottlingProps>;
@@ -26,14 +26,16 @@ export function createEventSettingsSlice(
 
   const actions: EventSettingsActions = {
     setEventSettings(payload) {
-      setState((s) => {
-        if (payload.throttleDelay != null) {
-          s.throttleDelay = payload.throttleDelay;
-        }
-        if (payload.throttledEvents != null) {
-          s.throttledEvents = payload.throttledEvents;
-        }
-      });
+      setState(
+        produce((s) => {
+          if (payload.throttleDelay != null) {
+            s.throttleDelay = payload.throttleDelay;
+          }
+          if (payload.throttledEvents != null) {
+            s.throttledEvents = payload.throttledEvents;
+          }
+        }),
+      );
     },
   };
 

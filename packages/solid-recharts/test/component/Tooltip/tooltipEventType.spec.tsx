@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { fireEvent, render } from "@solidjs/testing-library";
 import { PageData } from "../../_data";
 import { getTooltip, hideTooltip, showTooltip } from "./tooltipTestHelpers";
@@ -191,8 +191,6 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-        flush();
-
         expect(tooltip).not.toBeVisible();
       });
     });
@@ -209,13 +207,9 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-        flush();
-
         expect(tooltip).toBeVisible();
 
         fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-        flush();
-
         expect(tooltip).toBeVisible();
       });
 
@@ -229,8 +223,6 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.mouseOver(trigger, { clientX: 200, clientY: 200 });
-        flush();
-
         expect(tooltip).not.toBeVisible();
       });
     });
@@ -257,11 +249,9 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-        flush();
         expect(tooltip).not.toBeVisible();
 
         fireEvent.mouseOver(trigger, { clientX: 200, clientY: 200 });
-        flush();
         expect(tooltip).not.toBeVisible();
       });
     });
@@ -281,7 +271,6 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger2);
         fireEvent.mouseOut(trigger2);
         fireEvent.mouseLeave(trigger2);
-        flush();
         expect(tooltip).not.toBeVisible();
       });
 
@@ -295,7 +284,6 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-        flush();
         expect(tooltip).not.toBeVisible();
       });
     });
@@ -311,19 +299,15 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.click(trigger, { clientX: 20, clientY: 20 });
-        flush();
         expect(tooltip).toBeVisible();
 
         fireEvent.click(trigger, { clientX: 20, clientY: 20 });
-        flush();
         expect(tooltip).toBeVisible();
 
         fireEvent.mouseLeave(trigger);
-        flush();
         expect(tooltip).toBeVisible();
 
         fireEvent.mouseLeave(container);
-        flush();
         expect(tooltip).toBeVisible();
       });
 
@@ -336,7 +320,6 @@ describe("tooltipEventType", () => {
         assertNotNull(trigger);
 
         fireEvent.mouseOver(trigger, { clientX: 20, clientY: 20 });
-        flush();
         expect(tooltip).not.toBeVisible();
       });
     });

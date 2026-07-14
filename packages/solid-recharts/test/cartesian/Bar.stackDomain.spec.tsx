@@ -2,7 +2,7 @@
 // (Y) axis domain extends to the STACK TOTAL, not just the per-series max — this
 // exercises the un-deferred selectDomainOfStackGroups → combineNumericalDomain path.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { BarChart, Bar, XAxis, YAxis } from "../../src";
 
@@ -34,8 +34,6 @@ describe("Bar stacking — axis domain", () => {
         <Bar dataKey="pv" stackId="a" />
       </BarChart>
     ));
-    flush();
-
     const ticks = yTickValues(container);
     expect(ticks.length).toBeGreaterThan(0);
     // Stacked totals are 130 and 110; the niced domain max must exceed the
@@ -57,8 +55,6 @@ describe("Bar stacking — axis domain", () => {
         <Bar dataKey="pv" />
       </BarChart>
     ));
-    flush();
-
     const ticks = yTickValues(container);
     // No stackId → domain spans only the data max (100), so the top tick is 100.
     expect(Math.max(...ticks)).toBe(100);

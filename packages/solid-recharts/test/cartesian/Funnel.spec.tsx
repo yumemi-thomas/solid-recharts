@@ -5,7 +5,7 @@
 // reacts to state changes, there is no rerender). The pure `computeFunnelTrapezoids`
 // case is unchanged.
 import { describe, expect, it } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal } from "solid-js";
 import { Cell, Funnel, FunnelChart, FunnelProps, FunnelTrapezoidItem, LabelList } from "../../src";
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { funnelChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
@@ -174,8 +174,6 @@ describe("<Funnel />", () => {
     // add the reversed prop (Solid reacts to the state change; flush the deferred
     // propagation so the recomputed trapezoids are committed to the DOM)
     setReversed(true);
-    flush();
-
     expect(container.getElementsByClassName("recharts-funnel-trapezoid")).toHaveLength(data.length);
     const firstTrapezoidReversed = container.getElementsByClassName("recharts-trapezoid")[0]!;
     expect(firstTrapezoidReversed.getAttribute("x")).toEqual("54");

@@ -98,6 +98,7 @@ exports[`<Rectangle /> > Shouldn't render any path when x, y, width or height is
   >
     <title />
     <desc />
+\x20\x20\x20\x20
   </svg>
 </div>
 `;
@@ -112,6 +113,7 @@ exports[`<Rectangle /> > Shouldn't render anything when height === 0 || width ==
   >
     <title />
     <desc />
+\x20\x20\x20\x20
   </svg>
 </div>
 `;

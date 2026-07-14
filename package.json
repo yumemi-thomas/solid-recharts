@@ -11,19 +11,19 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "vp lint --type-aware --tsconfig ./packages/solid-recharts/tsconfig.json packages/solid-recharts/src",
     "dev": "pnpm --filter @solid-recharts/dev dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "smoke:solid1": "node scripts/smoke-solid1.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
-    "@solidjs/web": "2.0.0-beta.17",
     "@testing-library/jest-dom": "^6.9.1",
     "@types/node": "^22.20.1",
     "jsdom": "^25.0.1",
-    "solid-js": "2.0.0-beta.17",
+    "solid-js": "1.9.14",
     "typescript": "^5.9.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.24",
-    "vite-plugin-solid": "3.0.0-next.5",
+    "vite-plugin-solid": "2.11.12",
     "vite-plus": "^0.1.24",
     "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.24"
   },

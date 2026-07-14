@@ -2,10 +2,9 @@ import { test, expect } from "@playwright/test";
 
 // Real-browser RENDERING gate. The jsdom suite drives animations through an
 // injected mock controller and never exercises the default RAF driver, the real
-// Portal implementation, or real flush scheduling — all of which have a history
+// Portal implementation, or real browser scheduling — all of which have a history
 // of browser-only failures in this port. This spec asserts every chart type
-// actually paints its graphical items in a real Chromium, and that no Solid
-// reactive-graph diagnostics or page errors fire while doing so.
+// actually paints its graphical items in a real Chromium without page or console errors.
 const CHART_CONTENT: Record<string, { selector: string; min: number }> = {
   bar: { selector: ".recharts-bar-rectangle path, .recharts-bar-rectangle rect", min: 5 },
   line: { selector: ".recharts-line path.recharts-curve", min: 1 },
@@ -23,15 +22,11 @@ const CHART_CONTENT: Record<string, { selector: string; min: number }> = {
 for (const [chart, { selector, min }] of Object.entries(CHART_CONTENT)) {
   test(`renders graphical content: ${chart}`, async ({ page }) => {
     const pageErrors: string[] = [];
-    const diagnostics: string[] = [];
+    const consoleErrors: string[] = [];
     page.on("pageerror", (err) => pageErrors.push(String(err)));
     page.on("console", (msg) => {
-      const text = msg.text();
-      if (
-        msg.type() === "error" ||
-        /NO_OWNER|STRICT_READ|OWNED_SCOPE|SIGNAL_WRITE|UNINITIALIZED/.test(text)
-      ) {
-        diagnostics.push(`[${msg.type()}] ${text}`);
+      if (msg.type() === "error") {
+        consoleErrors.push(`[${msg.type()}] ${msg.text()}`);
       }
     });
 
@@ -45,8 +40,8 @@ for (const [chart, { selector, min }] of Object.entries(CHART_CONTENT)) {
 
     expect(pageErrors, `page errors on ${chart}`).toEqual([]);
     expect(
-      diagnostics.filter((d) => !d.includes("favicon")),
-      `console errors / Solid diagnostics on ${chart}`,
+      consoleErrors.filter((error) => !error.includes("favicon")),
+      `console errors on ${chart}`,
     ).toEqual([]);
   });
 }

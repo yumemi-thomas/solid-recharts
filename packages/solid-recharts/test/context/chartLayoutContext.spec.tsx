@@ -11,7 +11,7 @@
 //   translate to Solid's effect-based spy; dropped (see useOffset.spec.tsx).
 // - layout hooks + useOffsetInternal are imported from the source path (not re-exported
 //   from index, same as the reference imports useOffsetInternal from the source).
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import {
   useCartesianChartLayout,
@@ -316,18 +316,18 @@ describe("layout hooks", () => {
       const chart = useChartLayout();
       const cartesian = useCartesianChartLayout();
       const polar = usePolarChartLayout();
-      createEffect(
-        () => chart(),
-        (v) => chartSpy(v),
-      );
-      createEffect(
-        () => cartesian(),
-        (v) => cartesianSpy(v),
-      );
-      createEffect(
-        () => polar(),
-        (v) => polarSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => chart())();
+        ((v) => chartSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => cartesian())();
+        ((v) => cartesianSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => polar())();
+        ((v) => polarSpy(v))(value);
+      });
       return null;
     };
     render(() => (
@@ -335,8 +335,6 @@ describe("layout hooks", () => {
         <Comp />
       </ComposedChart>
     ));
-    flush();
-
     expect(chartSpy).toHaveBeenLastCalledWith("horizontal");
     expect(cartesianSpy).toHaveBeenLastCalledWith("horizontal");
     expect(polarSpy).toHaveBeenLastCalledWith(undefined);
@@ -350,18 +348,18 @@ describe("layout hooks", () => {
       const chart = useChartLayout();
       const cartesian = useCartesianChartLayout();
       const polar = usePolarChartLayout();
-      createEffect(
-        () => chart(),
-        (v) => chartSpy(v),
-      );
-      createEffect(
-        () => cartesian(),
-        (v) => cartesianSpy(v),
-      );
-      createEffect(
-        () => polar(),
-        (v) => polarSpy(v),
-      );
+      createEffect(() => {
+        const value = (() => chart())();
+        ((v) => chartSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => cartesian())();
+        ((v) => cartesianSpy(v))(value);
+      });
+      createEffect(() => {
+        const value = (() => polar())();
+        ((v) => polarSpy(v))(value);
+      });
       return null;
     };
     render(() => (
@@ -369,8 +367,6 @@ describe("layout hooks", () => {
         <Comp />
       </PieChart>
     ));
-    flush();
-
     expect(chartSpy).toHaveBeenLastCalledWith("centric");
     expect(cartesianSpy).toHaveBeenLastCalledWith(undefined);
     expect(polarSpy).toHaveBeenLastCalledWith("centric");

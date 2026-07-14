@@ -4,7 +4,7 @@
 // so its graphical items draw into the brush's panorama surface using the outer
 // store's full data — no cloneElement.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { Brush, Line, LineChart } from "../../src";
 import { render } from "@solidjs/testing-library";
 
@@ -28,7 +28,6 @@ describe("nested-chart Brush panorama", () => {
         </Brush>
       </LineChart>
     ));
-    flush();
     // Main line + panorama line.
     expect(container.querySelectorAll(".recharts-line").length).toBe(2);
     // Two nested surfaces (main + panorama).

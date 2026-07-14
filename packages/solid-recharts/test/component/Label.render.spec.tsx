@@ -2,7 +2,7 @@
 // real <Text> labels for reference elements (via CartesianLabelFromLabelProp) and
 // per-data-point labels for graphical items (via LabelList + its context).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, ReferenceLine } from "../../src";
 
@@ -22,8 +22,6 @@ describe("Label / LabelList", () => {
         <ReferenceLine y={50} label="threshold" />
       </LineChart>
     ));
-    flush();
-
     const labels = container.querySelectorAll(".recharts-label");
     expect(labels).toHaveLength(1);
     expect(labels[0]?.textContent).toContain("threshold");
@@ -40,8 +38,6 @@ describe("Label / LabelList", () => {
         <Bar isAnimationActive={false} dataKey="uv" label />
       </BarChart>
     ));
-    flush();
-
     const list = container.querySelector(".recharts-bar .recharts-label-list");
     expect(list).not.toBeNull();
     const labels = container.querySelectorAll(".recharts-label-list .recharts-label");
@@ -56,8 +52,6 @@ describe("Label / LabelList", () => {
         <Bar dataKey="uv" label={false} />
       </BarChart>
     ));
-    flush();
-
     expect(container.querySelector(".recharts-label-list")).toBeNull();
   });
 });

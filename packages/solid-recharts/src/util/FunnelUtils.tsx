@@ -8,7 +8,7 @@
 // function + object + boolean forms are supported, matching ActiveShapeUtils). The
 // `option` is typed as the wider `ActiveShape` the `<Shape>` helper accepts (the
 // `<Funnel>` `shape`/`activeShape` function-form props are assignable to it).
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { Trapezoid } from "../shape/Trapezoid";
 import { Shape } from "./ActiveShapeUtils";
 import type { ActiveShape, ShapeAnimationProps } from "./types";

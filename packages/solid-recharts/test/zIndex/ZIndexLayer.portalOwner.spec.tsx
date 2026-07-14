@@ -1,14 +1,10 @@
-// Regression: <ZIndexLayer> renders its children through a <Portal> when zIndex≠0.
-// The portal target settles asynchronously, so the <Portal> is created during a
-// flush; Solid's runEffect runs an effect's APPLY phase without re-establishing the
-// effect as owner, so <Portal>'s apply-phase insert() would create child
-// render-effects with no owner (NO_OWNER_EFFECT — they never dispose). The fix
-// captures the component owner (getOwner) and re-establishes it around the Portal
-// (runWithOwner) + keys the target Show. These tests fail (NO_OWNER) without it; the
-// test/setup.ts global guard turns any NO_OWNER_EFFECT into a failure.
+// Regression coverage for z-index portal ownership and disposal. Solid 1 has no
+// structured owner diagnostics, so these tests assert observable DOM cleanup:
+// unmounting one chart must not affect another, and animated remounts must leave
+// exactly one final set of bar/background portal children.
 import { describe, expect, it } from "vitest";
-import { createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { BarChart, Bar } from "../../src";
 import type { AnimationController } from "../../src";
@@ -53,12 +49,13 @@ function createRegistry(): {
 function renderChart(background: boolean): {
   setData: (d: typeof small) => void;
   registry: ReturnType<typeof createRegistry>;
+  container: HTMLElement;
 } {
   const registry = createRegistry();
   const [data, setData] = createSignal<typeof small>(small);
   const [next, setNext] = createSignal<typeof small | null>(null);
   const { container } = render(() => (
-    <AnimationControllerProvider value={registry.controller}>
+    <AnimationControllerProvider.Provider value={registry.controller}>
       <button
         type="button"
         data-testid="swap"
@@ -76,50 +73,50 @@ function renderChart(background: boolean): {
           animationEasing="linear"
         />
       </BarChart>
-    </AnimationControllerProvider>
+    </AnimationControllerProvider.Provider>
   )) as { container: HTMLElement };
-  flush();
   const button = container.querySelector<HTMLButtonElement>('[data-testid="swap"]');
   if (button == null) throw new Error("no button");
   return {
     setData: (d) => {
       setNext(() => d);
-      flush();
       fireEvent.click(button);
-      flush();
     },
     registry,
+    container,
   };
 }
 
 describe("ZIndexLayer/Portal leak", () => {
-  it("two coexisting BarCharts must not leak NO_OWNER", () => {
+  it("unmounts one of two coexisting BarCharts without affecting the other", () => {
     const node = (): JSX.Element => (
       <BarChart width={200} height={200} data={small}>
         <Bar dataKey="uv" isAnimationActive={false} />
       </BarChart>
     );
-    render(node);
-    flush();
-    flush();
-    render(node);
-    flush();
-    flush();
-    expect(true).toBe(true);
+    const first = render(node);
+    const second = render(node);
+
+    expect(first.container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(small.length);
+    expect(second.container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(small.length);
+
+    first.unmount();
+    expect(first.container).toBeEmptyDOMElement();
+    expect(second.container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(small.length);
   });
 
   it("re-animation across grow + shrink (with background) must not leak", async () => {
     const r = renderChart(true);
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(large);
     await r.registry.current().setAnimationProgress(0.5);
-    flush();
     await r.registry.current().completeAnimation();
-    flush();
     r.setData(small);
     await r.registry.current().completeAnimation();
-    flush();
-    expect(true).toBe(true);
+
+    expect(r.container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(small.length);
+    expect(r.container.querySelectorAll(".recharts-bar-background-rectangle")).toHaveLength(
+      small.length,
+    );
   });
 });

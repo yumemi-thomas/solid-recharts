@@ -8,7 +8,7 @@
 // writing a signal inside an owned scope throws SIGNAL_WRITE_IN_OWNED_SCOPE.
 // Behavioral expectations are golden-anchored to recharts.
 import { describe, it, expect } from "vitest";
-import { createRoot, createSignal, flush } from "solid-js";
+import { createRoot, createSignal } from "solid-js";
 import { useAnimationId } from "../../src/util/useAnimationId";
 
 describe("useAnimationId", () => {
@@ -33,8 +33,6 @@ describe("useAnimationId", () => {
     const animationId1 = id();
 
     setInput(input2);
-    flush();
-
     const animationId2 = id();
     expect(animationId1).not.toEqual(animationId2);
     dispose();
@@ -50,8 +48,6 @@ describe("useAnimationId", () => {
     const animationId1 = id();
 
     setInput(input1);
-    flush();
-
     const animationId2 = id();
     expect(animationId1).toBe(animationId2);
     dispose();

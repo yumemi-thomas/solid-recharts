@@ -4,11 +4,11 @@
  * Ported from recharts 3.8.1 src/shape/Cross.tsx (commit 7a23854).
  * Solid deviations: `className` (recharts) → `class: string` (and Omit the wide
  * SVG `class` so the array form typechecks); destructuring defaults → `?? 0`
- * accessors; `clsx` → `class={[...]}`; `return null` → `<Show>`.
+ * accessors; `clsx` → `class={[...].filter(Boolean).join(" ")}`; `return null` → `<Show>`.
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { Show, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { isNumber } from "../util/DataUtils";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 
@@ -62,7 +62,7 @@ export const Cross = (props: CrossProps): JSX.Element => {
   // SVG-prop filter; only allowlisted keys (x, y, width, height, …) survive onto
   // the <path>. `top`/`left`/`class` are filtered/handled separately.
   const passthrough = (): Record<string, unknown> => ({
-    ...omit(props, "class"),
+    ...splitProps(props, ["class"])[1],
     x: x(),
     y: y(),
     top: top(),
@@ -75,7 +75,7 @@ export const Cross = (props: CrossProps): JSX.Element => {
     <Show when={valid()}>
       <path
         {...svgPropertiesAndEvents(passthrough())}
-        class={["recharts-cross", props.class]}
+        class={["recharts-cross", props.class].filter(Boolean).join(" ")}
         d={getPath(x(), y(), width(), height(), top(), left())}
       />
     </Show>

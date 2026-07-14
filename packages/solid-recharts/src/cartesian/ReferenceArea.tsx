@@ -16,8 +16,8 @@
 //  - PERMANENT-N/A (by design, NOT deferred): the custom-element `shape` branch
 //    (React.cloneElement — use the render-function form). <Label>
 //    CHILDREN are not rendered (the `label` prop is).
-import { createMemo, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Layer } from "../container/Layer";
 import {
   CartesianLabelContextProvider,
@@ -164,7 +164,7 @@ const referenceAreaDefaultProps = {
 } as const satisfies Partial<Props>;
 
 function ReferenceAreaImpl(props: Props): JSX.Element {
-  const merged = merge(referenceAreaDefaultProps, props);
+  const merged = mergeProps(referenceAreaDefaultProps, props);
   const clipPathId = useClipPathId();
   const isPanorama = useIsPanorama();
   const xAxisScale = useAppSelector((s) => selectAxisScale(s, "xAxis", merged.xAxisId, isPanorama));
@@ -243,7 +243,7 @@ export function ReferenceArea<
   XValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
   YValueType extends ReferenceCoordinateValue = ReferenceCoordinateValue,
 >(props: Props<XValueType, YValueType>): JSX.Element {
-  const merged = merge(referenceAreaDefaultProps, props);
+  const merged = mergeProps(referenceAreaDefaultProps, props);
   const id = useUniqueId("recharts-reference-area");
   return (
     <>

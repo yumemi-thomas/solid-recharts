@@ -8,7 +8,7 @@
 // + radius scale + polarToCartesian wiring). dots/activeDot/animation/label/shape/
 // tooltip/legend deferred.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { RadarChart, Radar, PolarAngleAxis } from "../../src";
 
@@ -33,8 +33,6 @@ describe("<Radar /> in RadarChart", () => {
         <Radar dataKey="value" isAnimationActive={false} />
       </RadarChart>
     ));
-    flush();
-
     const polygon = container.querySelector(".recharts-radar-polygon path");
     expect(polygon).not.toBeNull();
     expect(polygon?.getAttribute("d")).toBe(GOLDEN_RADAR_PATH);
@@ -50,8 +48,6 @@ describe("<Radar /> in RadarChart", () => {
         <PolarAngleAxis dataKey="value" />
       </RadarChart>
     ));
-    flush();
-
     // 8 data points → 8 angle-axis ticks (the Radar item supplies the domain).
     expect(container.querySelectorAll(".recharts-polar-angle-axis-tick")).toHaveLength(
       exampleRadarData.length,
@@ -64,8 +60,6 @@ describe("<Radar /> in RadarChart", () => {
         <Radar dataKey="value" hide />
       </RadarChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-radar-polygon")).toHaveLength(0);
   });
 });

@@ -5,11 +5,11 @@
 // (the per-entry `formatter` is populated from the graphical items' `formatter`
 // prop and wins over the prop-level one, per v3.9.1); `any` → `unknown`,
 // `ReactNode` → `Element`, `CSSProperties` → `JSX.CSSProperties`; `className` →
-// `class`, `clsx(...)` → `class={[...]}` array form (no clsx dep); `React.isValid-
+// `class`, `clsx(...)` → `class={[...].filter(Boolean).join(" ")}` array form (no clsx dep); `React.isValid-
 // Element` check dropped (Solid renders an Element or a string uniformly).
-import { For, Show, createMemo, merge } from "solid-js";
-import type { Element } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { For, Show, createMemo, mergeProps } from "solid-js";
+type Element = JSX.Element;
+import type { JSX } from "solid-js";
 import { isNullish, isNumOrStr } from "../util/DataUtils";
 import { DataKey, TooltipType } from "../util/types";
 import type { TooltipPayload, TooltipPayloadEntry } from "../state/tooltipSlice";
@@ -18,9 +18,10 @@ export type ValueType = number | string | ReadonlyArray<number | string>;
 export type NameType = number | string;
 
 function defaultFormatter(value: ValueType | undefined): Element {
-  return Array.isArray(value) && isNumOrStr(value[0]) && isNumOrStr(value[1])
-    ? value.join(" ~ ")
-    : value;
+  if (value !== undefined && typeof value !== "string" && typeof value !== "number") {
+    return isNumOrStr(value[0]) && isNumOrStr(value[1]) ? value.join(" ~ ") : [...value];
+  }
+  return value;
 }
 
 export type Formatter<TValue extends ValueType = ValueType, TName extends NameType = NameType> = (
@@ -151,7 +152,7 @@ function lodashLikeSortBy(
  * `content` prop to customize.
  */
 export const DefaultTooltipContent = (props: Props): JSX.Element => {
-  const merged = merge(defaultDefaultTooltipContentProps, props);
+  const merged = mergeProps(defaultDefaultTooltipContentProps, props);
 
   const sortedPayload = createMemo<TooltipPayload>(() => {
     const payload = props.payload;
@@ -227,12 +228,15 @@ export const DefaultTooltipContent = (props: Props): JSX.Element => {
 
   return (
     <div
-      class={["recharts-default-tooltip", props.wrapperClass]}
+      class={["recharts-default-tooltip", props.wrapperClass].filter(Boolean).join(" ")}
       style={finalStyle()}
       role={merged.accessibilityLayer ? "status" : undefined}
       aria-live={merged.accessibilityLayer ? "assertive" : undefined}
     >
-      <p class={["recharts-tooltip-label", props.labelClass]} style={finalLabelStyle()}>
+      <p
+        class={["recharts-tooltip-label", props.labelClass].filter(Boolean).join(" ")}
+        style={finalLabelStyle()}
+      >
         {finalLabel()}
       </p>
       <Show when={sortedPayload().length > 0}>

@@ -3,7 +3,7 @@
 // renders the right name/value through the full payload pipeline. `flush()` because
 // hover dispatches through the store before the tooltip portal updates.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render, fireEvent } from "@solidjs/testing-library";
 import { SunburstChart, Treemap, Sankey, Tooltip } from "../../src";
 
@@ -28,10 +28,7 @@ describe("niche chart tooltips", () => {
         <Tooltip />
       </SunburstChart>
     ));
-    flush();
-
     fireEvent.mouseEnter(container.querySelector(".recharts-sector")!);
-    flush();
     expect(container.querySelector(".recharts-default-tooltip")).not.toBeNull();
     expect(tipItems(container)).toEqual(["C1", "30"]);
   });
@@ -46,12 +43,9 @@ describe("niche chart tooltips", () => {
         <Tooltip />
       </Treemap>
     ));
-    flush();
-
     // Hover handlers live on the inner node Layer / its Rectangle (mouseenter doesn't
     // bubble; the outer depth-class Layer just groups).
     fireEvent.mouseEnter(container.querySelector(".recharts-treemap-depth-1 .recharts-rectangle")!);
-    flush();
     expect(tipItems(container)).toEqual(["A", "100"]);
   });
 
@@ -68,14 +62,10 @@ describe("niche chart tooltips", () => {
         <Tooltip />
       </Sankey>
     ));
-    flush();
-
     fireEvent.mouseEnter(container.querySelector(".recharts-sankey-link")!);
-    flush();
     expect(tipItems(container)).toEqual(["A - B", "10"]);
 
     fireEvent.mouseEnter(container.querySelector(".recharts-sankey-node")!);
-    flush();
     expect(tipItems(container)).toEqual(["A", "10"]);
   });
 });

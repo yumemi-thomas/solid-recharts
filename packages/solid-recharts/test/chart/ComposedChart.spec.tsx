@@ -1,5 +1,5 @@
 import { describe, it, test, expect, vi } from "vitest";
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { fireEvent, render } from "@solidjs/testing-library";
 import {
   Area,
@@ -76,7 +76,6 @@ describe("<ComposedChart />", () => {
     // The Solid port's JavascriptAnimate emits bar rectangles on the first
     // (faked) animation frame; advance it (chart props unchanged from recharts).
     vi.runAllTimers();
-    flush();
     expect(container.querySelectorAll(".recharts-line-dot")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-bar .recharts-bar-rectangle")).toHaveLength(1);
   });
@@ -112,10 +111,7 @@ describe("<ComposedChart />", () => {
     assertNotNull(chart);
     fireEvent.mouseMove(chart, { clientX: 200, clientY: 100 });
     fireEvent.mouseEnter(chart, { clientX: 200, clientY: 100 });
-    flush();
     vi.runAllTimers();
-    flush();
-
     expect(container.querySelectorAll(".recharts-tooltip-cursor")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-active-dot")).toHaveLength(2);
   });
@@ -125,10 +121,10 @@ describe("<ComposedChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const viewBox = useViewBox();
-        createEffect(
-          () => viewBox(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => viewBox())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -143,10 +139,10 @@ describe("<ComposedChart />", () => {
     it("should provide clipPathId", () => {
       const spy = vi.fn();
       const Comp = (): null => {
-        createEffect(
-          () => useClipPathId(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => useClipPathId())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -162,10 +158,10 @@ describe("<ComposedChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const width = useChartWidth();
-        createEffect(
-          () => width(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => width())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -181,10 +177,10 @@ describe("<ComposedChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const height = useChartHeight();
-        createEffect(
-          () => height(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => height())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (

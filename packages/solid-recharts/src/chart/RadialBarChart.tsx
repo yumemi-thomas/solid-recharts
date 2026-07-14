@@ -1,8 +1,9 @@
+import { mergeProps, splitProps } from "solid-js";
 // Ported from recharts 3.8.1 src/chart/RadialBarChart.tsx (commit 7a23854).
 // `forwardRef`→`ref` prop; `resolveDefaultProps`→`merge`. RadialBarChart defaults:
 // layout "radial", startAngle 0, endAngle 360 (PolarChart fills cx/cy/radii).
-import { merge, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { arrayTooltipSearcher } from "../state/optionsSlice";
 import { PolarChart } from "./PolarChart";
 import { PolarChartProps, TooltipEventType } from "../util/types";
@@ -24,7 +25,10 @@ export interface RadialBarChartProps<
 export function RadialBarChart<DataPointType = unknown>(
   props: RadialBarChartProps<DataPointType>,
 ): JSX.Element {
-  const categoricalChartProps = merge(defaultRadialBarChartProps, omit(props, "ref"));
+  const categoricalChartProps = mergeProps(
+    defaultRadialBarChartProps,
+    splitProps(props, ["ref"])[1],
+  );
 
   return (
     <PolarChart

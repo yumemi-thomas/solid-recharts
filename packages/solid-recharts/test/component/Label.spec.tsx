@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 test/component/Label.spec.tsx (commit 7a23854).
 // React-element/cloneElement cases are intentionally left to Label.render.spec.tsx
 // deferrals because Solid has no cloneElement equivalent.
-import { flush } from "solid-js";
+
 import { describe, expect, it, vi } from "vitest";
 import { Label, Line, LineChart, PieChart, ReferenceLine, Surface } from "../../src";
 import type { Props as LabelProps } from "../../src/component/Label";
@@ -44,8 +44,6 @@ describe("<Label />", () => {
         <Label viewBox={polarViewBox} value="text" position="center" />
       </Surface>
     ));
-    flush();
-
     const label = container.querySelectorAll(".recharts-label");
 
     expect(label.length).toEqual(1);
@@ -59,8 +57,6 @@ describe("<Label />", () => {
         <Label viewBox={polarViewBox} value="text" position="outside" />
       </Surface>
     ));
-    flush();
-
     const label = container.querySelectorAll(".recharts-label");
 
     expect(label.length).toEqual(1);
@@ -74,8 +70,6 @@ describe("<Label />", () => {
         <Label viewBox={polarViewBox} value="text" position="insideStart" />
       </Surface>
     ));
-    flush();
-
     const label = container.querySelectorAll(".recharts-radial-bar-label");
 
     expect(label.length).toEqual(1);
@@ -87,8 +81,6 @@ describe("<Label />", () => {
         <Label viewBox={polarViewBox} value="text" position="insideEnd" />
       </Surface>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-radial-bar-label").length).toEqual(1);
   });
 
@@ -98,8 +90,6 @@ describe("<Label />", () => {
         <Label viewBox={polarViewBox} value="text" position="end" />
       </Surface>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-radial-bar-label").length).toEqual(1);
   });
 
@@ -109,8 +99,6 @@ describe("<Label />", () => {
         <Label viewBox={cartesianViewBox} value="text" position="center" />
       </Surface>
     ));
-    flush();
-
     const label = container.querySelectorAll(".recharts-label");
 
     expect(label.length).toEqual(1);
@@ -149,16 +137,12 @@ describe("<Label />", () => {
       describe("string", () => {
         it("should render label when given children prop", () => {
           renderLabelWithChildren("label from children");
-          flush();
-
           const label = screen.getAllByText("label from children");
           expect(label.length).toEqual(1);
         });
 
         it("should render label when given value prop", () => {
           renderLabelWithValue("label from value");
-          flush();
-
           const label = screen.getAllByText("label from value");
           expect(label.length).toEqual(1);
         });
@@ -166,8 +150,6 @@ describe("<Label />", () => {
         it("should not render label at all when given content prop", () => {
           // @ts-expect-error Recharts verifies invalid content primitives render nothing.
           const { container } = renderLabelWithContent("label from content");
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
           expect(container.textContent).toBe("");
@@ -177,16 +159,12 @@ describe("<Label />", () => {
       describe("number", () => {
         it("should render label when given children prop", () => {
           renderLabelWithChildren(12345);
-          flush();
-
           const label = screen.getAllByText("12345");
           expect(label.length).toEqual(1);
         });
 
         it("should render label when given value prop", () => {
           renderLabelWithValue(67890);
-          flush();
-
           const label = screen.getAllByText("67890");
           expect(label.length).toEqual(1);
         });
@@ -194,8 +172,6 @@ describe("<Label />", () => {
         it("should not render label at all when given content prop", () => {
           // @ts-expect-error Recharts verifies invalid content primitives render nothing.
           const { container } = renderLabelWithContent(54321);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
           expect(container.textContent).toBe("");
@@ -205,16 +181,12 @@ describe("<Label />", () => {
       describe("boolean", () => {
         it("should render label when given children prop", () => {
           renderLabelWithChildren(true);
-          flush();
-
           const label = screen.getAllByText("true");
           expect(label.length).toEqual(1);
         });
 
         it("should render label when given value prop", () => {
           renderLabelWithValue(false);
-          flush();
-
           const label = screen.getAllByText("false");
           expect(label.length).toEqual(1);
         });
@@ -222,8 +194,6 @@ describe("<Label />", () => {
         it("should not render label at all when given content prop", () => {
           // @ts-expect-error Recharts verifies invalid content primitives render nothing.
           const { container } = renderLabelWithContent(true);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
           expect(container.textContent).toBe("");
@@ -233,24 +203,18 @@ describe("<Label />", () => {
       describe("null", () => {
         it("should not render label at all when given children prop", () => {
           const { container } = renderLabelWithChildren(null);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
         });
 
         it("should not render label at all when given value prop", () => {
           const { container } = renderLabelWithValue(null);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
         });
 
         it("should not render label at all when given content prop", () => {
           const { container } = renderLabelWithContent(undefined);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
           expect(container.textContent).toBe("");
@@ -260,24 +224,18 @@ describe("<Label />", () => {
       describe("undefined", () => {
         it("should not render label at all when given children prop", () => {
           const { container } = renderLabelWithChildren(undefined);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
         });
 
         it("should not render label at all when given value prop", () => {
           const { container } = renderLabelWithValue(undefined);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
         });
 
         it("should not render label at all when given content prop", () => {
           const { container } = renderLabelWithContent(undefined);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           expect(label).toBeNull();
           expect(container.textContent).toBe("");
@@ -290,8 +248,6 @@ describe("<Label />", () => {
         it("should render label when given children prop", () => {
           // @ts-expect-error typescript is correct here, Label does not allow function as children, and renders gibberish
           const { container } = renderLabelWithChildren(fn);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           assertNotNull(label);
           expect(label).toBeInTheDocument();
@@ -304,8 +260,6 @@ describe("<Label />", () => {
         it("should render label when given value prop", () => {
           // @ts-expect-error typescript is correct here, Label does not allow function as value, and renders gibberish
           const { container } = renderLabelWithValue(fn);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           assertNotNull(label);
           expect(label).toBeInTheDocument();
@@ -318,8 +272,6 @@ describe("<Label />", () => {
         it("should render label when given content prop", () => {
           const fn = vi.fn(() => "label from function");
           renderLabelWithContent(fn);
-          flush();
-
           const label = screen.getAllByText("label from function");
           expect(label.length).toEqual(1);
 
@@ -348,8 +300,6 @@ describe("<Label />", () => {
         it("should render label when given children prop", () => {
           // @ts-expect-error typescript is correct here, Label does not allow React element as value, and it renders gibberish
           const { container } = renderLabelWithChildren(array);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           assertNotNull(label);
           expect(label).toBeInTheDocument();
@@ -360,8 +310,6 @@ describe("<Label />", () => {
         it("should render label when given value prop", () => {
           // @ts-expect-error typescript says that array of strings is not allowed as value, and indeed it calls the standard .toString() on it and renders that
           const { container } = renderLabelWithValue(array);
-          flush();
-
           const label = container.querySelector(".recharts-label");
           assertNotNull(label);
           expect(label).toBeInTheDocument();
@@ -372,8 +320,6 @@ describe("<Label />", () => {
         it("should render label when given content prop", () => {
           // @ts-expect-error typescript says that array of strings is not allowed as content, and indeed it does not render anything
           const { container } = renderLabelWithContent(array);
-          flush();
-
           expect(container.textContent).toEqual("");
         });
       });
@@ -389,8 +335,6 @@ describe("<Label />", () => {
 
         it("should render label when given content prop", () => {
           const { container } = renderLabelWithContent(MyComp);
-          flush();
-
           expect(container.textContent).toEqual("label from component 1");
         });
       });
@@ -405,8 +349,6 @@ describe("<Label />", () => {
             </Label>
           </Surface>
         ));
-        flush();
-
         const label = container.querySelectorAll(".recharts-label");
 
         expect(label.length).toEqual(1);
@@ -426,8 +368,6 @@ describe("<Label />", () => {
             </Label>
           </Surface>
         ));
-        flush();
-
         expect(container.textContent).toEqual("label from content");
 
         expect(contentFn).toHaveBeenCalledTimes(1);
@@ -464,8 +404,6 @@ describe("<Label />", () => {
             />
           </Surface>
         ));
-        flush();
-
         expect(container.textContent).toEqual("label from content");
 
         expect(contentFn).toHaveBeenCalledTimes(1);
@@ -504,8 +442,6 @@ describe("<Label />", () => {
             </Label>
           </Surface>
         ));
-        flush();
-
         expect(container.textContent).toEqual("label from content");
 
         expect(contentFn).toHaveBeenCalledTimes(1);
@@ -543,8 +479,6 @@ describe("<Label />", () => {
         <ReferenceLine y={200} stroke="red" label={<Label value="Max PV PAGE" />} />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
   });
 
@@ -565,8 +499,6 @@ describe("<Label />", () => {
         />
       </LineChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
     expect(screen.getByText(/400/i)).toBeInTheDocument();
   });
@@ -574,7 +506,7 @@ describe("<Label />", () => {
   it("Renders label by label props with animation enabled", () => {
     const manager = new MockProgressAnimationManager("label-anim");
     const { container } = render(() => (
-      <AnimationControllerProvider value={manager.factory}>
+      <AnimationControllerProvider.Provider value={manager.factory}>
         <LineChart
           width={400}
           height={400}
@@ -583,12 +515,10 @@ describe("<Label />", () => {
         >
           <Line type="monotone" dataKey="uv" stroke="#ff7300" label={{ position: "center" }} />
         </LineChart>
-      </AnimationControllerProvider>
+      </AnimationControllerProvider.Provider>
     ));
-    flush();
     // Labels are hidden during the entrance animation; drive it to completion so they show.
     return manager.completeAnimation().then(() => {
-      flush();
       expect(container.querySelectorAll(".recharts-line .recharts-line-curve").length).toEqual(1);
       expect(screen.getByText(/400/i)).toBeInTheDocument();
     });
@@ -603,8 +533,6 @@ describe("<Label />", () => {
             <Label value="text" position="center" content={contentFn} />
           </PieChart>
         ));
-        flush();
-
         expect(contentFn).toHaveBeenLastCalledWith({
           viewBox: {
             height: 90,
@@ -630,8 +558,6 @@ describe("<Label />", () => {
             <Label value="text" position="insideEnd" content={contentFn} />
           </PieChart>
         ));
-        flush();
-
         expect(contentFn).toHaveBeenLastCalledWith({
           viewBox: {
             clockWise: false,
@@ -662,8 +588,6 @@ describe("<Label />", () => {
             <Label value="text" position="center" content={contentFn} />
           </LineChart>
         ));
-        flush();
-
         expect(contentFn).toHaveBeenLastCalledWith({
           viewBox: {
             height: 390,

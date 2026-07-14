@@ -11,7 +11,7 @@
 // PERMANENT-N/A: the `Customized`-component-based "Renders polygon with
 // implicit/default axes" cases (no Customized in the port) — the selector
 // assertions they make are already covered by the createSelectorTestCase cases here.
-import { createEffect, createSignal, flush } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { exampleRadarData } from "../_data";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "../../src";
@@ -147,7 +147,6 @@ describe("<RadarChart />", () => {
           <Radar dataKey="value" />
         </RadarChart>
       ));
-      flush();
       expectRadarPolygons(container, [
         {
           d: "M100,150L100,150L100,150L100,150L100,150L100,150L100,150L100,150L100,150Z",
@@ -172,11 +171,9 @@ describe("<RadarChart />", () => {
         <Radar dataKey="value" />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, expectedPolygons);
 
     setInnerRadius(20);
-    flush();
     expectRadarPolygons(container, expectedPolygons);
   });
 
@@ -194,11 +191,9 @@ describe("<RadarChart />", () => {
         <Radar dataKey="value" />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, expectedPolygons);
 
     setOuterRadius(20);
-    flush();
     expectRadarPolygons(container, expectedPolygons);
   });
 
@@ -215,7 +210,6 @@ describe("<RadarChart />", () => {
         <Radar dataKey="value" />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250Z",
@@ -225,7 +219,6 @@ describe("<RadarChart />", () => {
     ]);
 
     setAngles({ startAngle: 90, endAngle: 270 });
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250Z",
@@ -249,7 +242,6 @@ describe("<RadarChart />", () => {
         <Radar dataKey="half" fill="blue" fillOpacity={0.6} />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250Z",
@@ -278,7 +270,6 @@ describe("<RadarChart />", () => {
         <Radar dataKey="half" fill="blue" fillOpacity={0.6} />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M60,450L60,450L60,450L60,450L60,450L60,450L60,450L60,450L60,450Z",
@@ -300,7 +291,6 @@ describe("<RadarChart />", () => {
         <Radar dataKey="half" fill="blue" fillOpacity={0.6} />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250L300,250Z",
@@ -330,7 +320,6 @@ describe("<RadarChart />", () => {
         <Radar dataKey="half" fill="blue" fillOpacity={0.6} />
       </RadarChart>
     ));
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M100,120L100,120L100,120L100,120L100,120L100,120L100,120L100,120L100,120Z",
@@ -345,7 +334,6 @@ describe("<RadarChart />", () => {
     ]);
 
     setPos({ cx: 200, cy: 230, outerRadius: 100 });
-    flush();
     expectRadarPolygons(container, [
       {
         d: "M200,230L200,230L200,230L200,230L200,230L200,230L200,230L200,230L200,230Z",
@@ -373,7 +361,6 @@ describe("<RadarChart />", () => {
         <Radar isAnimationActive={false} dot dataKey="value" />
       </RadarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-radar-dot")).toHaveLength(8);
   });
 
@@ -390,7 +377,6 @@ describe("<RadarChart />", () => {
         <Radar isAnimationActive={false} label dataKey="value" />
       </RadarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-label")).toHaveLength(8);
   });
 
@@ -412,7 +398,6 @@ describe("<RadarChart />", () => {
         <PolarRadiusAxis orientation="middle" angle={67.5} />
       </RadarChart>
     ));
-    flush();
     expect(container.querySelectorAll(".recharts-polar-grid")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-polar-angle-axis")).toHaveLength(1);
     expect(container.querySelectorAll(".recharts-polar-radius-axis")).toHaveLength(1);
@@ -436,7 +421,6 @@ describe("<RadarChart />", () => {
         <PolarRadiusAxis orientation="middle" angle={67.5} />
       </RadarChart>
     ));
-    flush();
     expect(
       container.querySelectorAll(".recharts-polar-grid .recharts-polar-grid-angle line"),
     ).toHaveLength(8);
@@ -462,7 +446,6 @@ describe("<RadarChart />", () => {
         <Radar dataKey="value" onClick={onClick} />
       </RadarChart>
     ));
-    flush();
     const radar = container.querySelector(".recharts-polygon");
     expect(radar).not.toBeNull();
     fireEvent.click(radar!);
@@ -474,10 +457,10 @@ describe("<RadarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const viewBox = useViewBox();
-        createEffect(
-          () => viewBox(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => viewBox())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -485,7 +468,6 @@ describe("<RadarChart />", () => {
           <Comp />
         </RadarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith({ height: 40, width: 90, x: 5, y: 5 });
     });
 
@@ -493,10 +475,10 @@ describe("<RadarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const width = useChartWidth();
-        createEffect(
-          () => width(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => width())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -504,7 +486,6 @@ describe("<RadarChart />", () => {
           <Comp />
         </RadarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(100);
     });
 
@@ -512,10 +493,10 @@ describe("<RadarChart />", () => {
       const spy = vi.fn();
       const Comp = (): null => {
         const height = useChartHeight();
-        createEffect(
-          () => height(),
-          (v) => spy(v),
-        );
+        createEffect(() => {
+          const value = (() => height())();
+          ((v) => spy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -523,7 +504,6 @@ describe("<RadarChart />", () => {
           <Comp />
         </RadarChart>
       ));
-      flush();
       expect(spy).toHaveBeenLastCalledWith(50);
     });
   });

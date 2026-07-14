@@ -2,7 +2,7 @@
 // CartesianAxis (axis line + tick lines + tick labels) from the tick selectors,
 // not just register settings.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { LineChart, Line, XAxis, YAxis } from "../../src";
 import { PageData } from "../_data";
@@ -21,8 +21,6 @@ describe("<XAxis>/<YAxis> rendering", () => {
         <Line dataKey="uv" stroke="#ff7300" />
       </LineChart>
     ));
-    flush();
-
     // Axis layers exist.
     expect(container.querySelector(".recharts-xAxis")).not.toBeNull();
     expect(container.querySelector(".recharts-yAxis")).not.toBeNull();

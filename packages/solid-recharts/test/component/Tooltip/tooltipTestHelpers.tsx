@@ -1,5 +1,5 @@
 import { expect, vi } from "vitest";
-import { flush } from "solid-js";
+
 import { fireEvent } from "@solidjs/testing-library";
 import { assertNotNull } from "../../helper/assertNotNull";
 import type { Coordinate } from "../../../src/util/types";
@@ -71,10 +71,8 @@ function showTooltipWithEvent(
       throw new Error("Unexpected event type");
     }
   }
-  flush();
   if (advanceTimers) {
     vi.runAllTimers();
-    flush();
   }
   return tooltipTriggerElement;
 }
@@ -118,7 +116,6 @@ export function hideTooltip(container: Element, mouseHoverSelector: string): voi
   const element = container.querySelector(mouseHoverSelector);
   assertNotNull(element);
   fireEvent.mouseLeave(element);
-  flush();
 }
 
 export function showTooltipClick(

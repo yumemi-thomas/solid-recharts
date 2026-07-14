@@ -1,4 +1,4 @@
-import { createEffect, flush } from "solid-js";
+import { createEffect } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import { Area, BarChart, Brush, ComposedChart, Line, Scatter } from "../../../src";
 import { selectChartDataWithIndexes } from "../../../src/state/selectors/dataSelectors";
@@ -27,10 +27,10 @@ describe("selectChartDataWithIndexes", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipData = useAppSelectorWithStableTest(selectChartDataWithIndexes);
-      createEffect(
-        () => tooltipData(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => tooltipData())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -38,7 +38,6 @@ describe("selectChartDataWithIndexes", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     const expected: ChartDataState = {
       chartData: undefined,
       dataEndIndex: 0,
@@ -53,10 +52,10 @@ describe("selectChartDataWithIndexes", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipData = useAppSelectorWithStableTest(selectChartDataWithIndexes);
-      createEffect(
-        () => tooltipData(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => tooltipData())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     const data1 = [{ x: 1 }, { x: 2 }, { x: 3 }];
@@ -72,7 +71,6 @@ describe("selectChartDataWithIndexes", () => {
         <Comp />
       </ComposedChart>
     ));
-    flush();
     const expected: ChartDataState = {
       chartData: PageData,
       dataStartIndex: 0,
@@ -86,10 +84,10 @@ describe("selectChartDataWithIndexes", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipData = useAppSelectorWithStableTest(selectChartDataWithIndexes);
-      createEffect(
-        () => tooltipData(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => tooltipData())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -97,7 +95,6 @@ describe("selectChartDataWithIndexes", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     expect(pageData.length).toBeGreaterThan(1);
     const expected: ChartDataState = {
       chartData: PageData,
@@ -112,10 +109,10 @@ describe("selectChartDataWithIndexes", () => {
     const spy = vi.fn();
     const Comp = (): null => {
       const tooltipData = useAppSelectorWithStableTest(selectChartDataWithIndexes);
-      createEffect(
-        () => tooltipData(),
-        (value) => spy(value),
-      );
+      createEffect(() => {
+        const value = (() => tooltipData())();
+        ((value) => spy(value))(value);
+      });
       return null;
     };
     render(() => (
@@ -124,7 +121,6 @@ describe("selectChartDataWithIndexes", () => {
         <Comp />
       </BarChart>
     ));
-    flush();
     const expected: ChartDataState = {
       chartData: PageData,
       dataEndIndex: 4,

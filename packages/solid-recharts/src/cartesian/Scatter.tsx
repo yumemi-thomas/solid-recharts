@@ -10,8 +10,8 @@
 // joint/fitting line) are wired.) Solid deviations:
 // resolveDefaultProps→merge; effect-dispatch registration → createEffect/onCleanup;
 // the `@ts-expect-error`-laden value plumbing is replaced with typed coercion.
-import { createMemo, For, merge, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, For, Show, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useUniqueId } from "../util/useUniqueId";
@@ -383,7 +383,7 @@ const scatterErrorBarFormatter: ErrorBarDataPointFormatter = (
 
 export const Scatter = (props: ScatterProps): JSX.Element => {
   const store = useAppStore();
-  const merged = merge(scatterDefaultProps, props);
+  const merged = mergeProps(scatterDefaultProps, props);
   const isPanorama = useIsPanorama();
   const id = useUniqueId("recharts-scatter", props.id);
   // `shape` is either a built-in symbol type or a custom render fn; resolve once.

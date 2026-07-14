@@ -1,4 +1,4 @@
-import { Show, createSignal, flush } from "solid-js";
+import { Show, createSignal } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@solidjs/testing-library";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -35,14 +35,10 @@ describe("RechartsWrapper", () => {
     expect(onMouseLeaveSpy).not.toHaveBeenCalled();
 
     fireEvent.mouseEnter(wrapper);
-    flush();
-
     expect(onMouseEnterSpy).toHaveBeenCalledTimes(1);
     expect(onMouseLeaveSpy).not.toHaveBeenCalled();
 
     fireEvent.mouseLeave(wrapper);
-    flush();
-
     expect(onMouseEnterSpy).toHaveBeenCalledTimes(1);
     expect(onMouseLeaveSpy).toHaveBeenCalledTimes(1);
   });
@@ -74,8 +70,6 @@ describe("RechartsWrapper", () => {
     expect(disconnectSpy).not.toHaveBeenCalled();
 
     setVersion(1);
-    flush();
-
     expect(disconnectSpy).toHaveBeenCalledTimes(1);
     expect(ResizeObserverMock).toHaveBeenCalledTimes(2);
     expect(observeSpy).toHaveBeenCalledTimes(2);

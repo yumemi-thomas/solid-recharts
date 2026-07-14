@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createEffect, createSignal } from "solid-js";
+import type { JSX } from "solid-js";
 import { fireEvent, render } from "@solidjs/testing-library";
 import {
   BarChart,
@@ -98,10 +98,7 @@ describe("<ZAxis />", () => {
     expect(tooltip).not.toBeVisible();
 
     fireEvent.mouseEnter(g0, { clientX: 20, clientY: 20 });
-    flush();
     vi.runAllTimers();
-    flush();
-
     expectTooltipPayload(container, "", [
       `test name : ${row0.zAxis}km`,
       `xAxis : ${row0.xAxis}`,
@@ -109,15 +106,11 @@ describe("<ZAxis />", () => {
     ]);
 
     fireEvent.mouseLeave(g0);
-    flush();
     vi.runAllTimers();
-    flush();
     expect(tooltip).not.toBeVisible();
 
     fireEvent.mouseEnter(g1, { clientX: 20, clientY: 20 });
-    flush();
     vi.runAllTimers();
-    flush();
     expectTooltipPayload(container, "", [
       `test name : ${row1.zAxis}km`,
       `xAxis : ${row1.xAxis}`,
@@ -143,8 +136,6 @@ describe("<ZAxis />", () => {
 
     // Larger domain → same z value (100) is a smaller portion → smaller size.
     setDomain([0, 200]);
-    flush();
-
     const secondRenderSymbol = container.querySelector("path");
     assertNotNull(secondRenderSymbol);
     const secondWidth = Number(secondRenderSymbol.getAttribute("width"));
@@ -211,22 +202,22 @@ describe("<ZAxis />", () => {
         const realScaleType = useAppSelector((state) =>
           selectRealScaleType(state, "zAxis", "zaxis id"),
         );
-        createEffect(
-          () => settings(),
-          (v) => axisSettingsSpy(v),
-        );
-        createEffect(
-          () => domain(),
-          (v) => axisDomainSpy(v),
-        );
-        createEffect(
-          () => ({
+        createEffect(() => {
+          const value = (() => settings())();
+          ((v) => axisSettingsSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = (() => domain())();
+          ((v) => axisDomainSpy(v))(value);
+        });
+        createEffect(() => {
+          const value = (() => ({
             domain: axis()?.scale?.domain(),
             range: axis()?.scale?.range(),
             realScaleType: realScaleType(),
-          }),
-          (v) => axisScaleSpy(v),
-        );
+          }))();
+          ((v) => axisScaleSpy(v))(value);
+        });
         return null;
       };
       render(() => (
@@ -289,8 +280,6 @@ describe("<ZAxis />", () => {
       expect(Object.keys(lastCallArgs1)).toEqual(["1"]);
 
       fireEvent.click(container.getElementsByClassName("pushbutton")[0]!);
-      flush();
-
       // only id "2" exists
       const lastCallArgs2 = spy.mock.lastCall?.[0];
       assertNotNull(lastCallArgs2);

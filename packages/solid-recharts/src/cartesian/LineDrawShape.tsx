@@ -16,8 +16,8 @@
 //     forwards the element to the parent-supplied `forwardPathRef` so the parent
 //     (<Line>) can drive `shouldUpdatePreviousRef`/`getVisibleLength` off the same
 //     measured length.
-import { createEffect, createSignal, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, splitProps, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import { Curve, type CurveProps } from "../shape/Curve";
 import type { ShapeAnimationProps } from "../util/types";
 
@@ -145,14 +145,16 @@ export function LineDrawShape(props: LineDrawShapeProps): JSX.Element {
   // would force a synchronous SVG layout (reflow) each frame for a value nothing
   // reads. Guarding on visibleLength drops those per-frame reflows.
   createEffect(
-    () => ({ points: props.points, visibleLength: props.visibleLength }),
-    (deps) => {
-      if (deps.visibleLength == null || pathEl?.getTotalLength == null) {
-        return;
-      }
-      const length = getTotalLength(pathEl);
-      setTotalLength(length);
-    },
+    on(
+      () => ({ points: props.points, visibleLength: props.visibleLength }),
+      (deps) => {
+        if (deps.visibleLength == null || pathEl?.getTotalLength == null) {
+          return;
+        }
+        const length = getTotalLength(pathEl);
+        setTotalLength(length);
+      },
+    ),
   );
 
   const strokeDasharray = (): string | undefined => {
@@ -170,8 +172,7 @@ export function LineDrawShape(props: LineDrawShapeProps): JSX.Element {
   // Strip the animation-only props before forwarding to <Curve>; we set
   // connectNulls/strokeDasharray/pathRef explicitly below. `omit` keeps the
   // remaining props reactive (no destructuring of `props`).
-  const curveProps = omit(
-    props,
+  const curveProps = splitProps(props, [
     "animationElapsedTime",
     "isAnimating",
     "isEntrance",
@@ -179,7 +180,7 @@ export function LineDrawShape(props: LineDrawShapeProps): JSX.Element {
     "forwardPathRef",
     "strokeDasharray",
     "connectNulls",
-  );
+  ])[1];
 
   return (
     <Curve

@@ -13,7 +13,7 @@
 //   - A keyed `<Show when={animationId()}>` wraps the driver so a new animation
 //     cycle remounts it cleanly (same NO_OWNER-safe shape Bar already used).
 import { createMemo, createSignal, untrack, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import { useAnimationId } from "../util/useAnimationId";
 import { noop } from "../util/DataUtils";
 import { useAnimationStartSnapshot, type MutableRef } from "./useAnimationStartSnapshot";
@@ -38,9 +38,7 @@ export function useAnimationCallbacks(
   handleAnimationStart: () => void;
   handleAnimationEnd: () => void;
 } {
-  // ownedWrite: handleAnimationEnd can fire from the driver's effect-cleanup when
-  // a mid-animation chart is disposed (route/soft navigation) — a legal teardown.
-  const [isAnimating, setIsAnimating] = createSignal(false, { ownedWrite: true });
+  const [isAnimating, setIsAnimating] = createSignal(false);
 
   const handleAnimationStart = (): void => {
     onAnimationStart?.();

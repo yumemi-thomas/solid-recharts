@@ -8,7 +8,7 @@
 // element is a DOM node, not an introspectable `{ props }` structure, so that
 // branch lands with the Tier-2 element-or-props pattern (ActiveShapeUtils).
 import { describe, expect, it } from "vitest";
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import {
   svgPropertiesNoEvents,
   svgPropertiesNoEventsFromUnknown,

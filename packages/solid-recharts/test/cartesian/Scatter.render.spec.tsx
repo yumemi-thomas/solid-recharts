@@ -2,7 +2,7 @@
 // the (x, y) computed from the number axes. Reuses the cartesian scale spine via
 // selectScatterPoints.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { render } from "@solidjs/testing-library";
 import { ScatterChart, Scatter, XAxis, YAxis } from "../../src";
 
@@ -23,8 +23,6 @@ describe("<Scatter />", () => {
         <Scatter data={data} fill="#ff7300" />
       </ScatterChart>
     ));
-    flush();
-
     const layer = container.querySelector(".recharts-scatter");
     expect(layer).not.toBeNull();
 
@@ -49,8 +47,6 @@ describe("<Scatter />", () => {
         />
       </ScatterChart>
     ));
-    flush();
-
     // No default symbol <path>s; one custom rect per point, still inside the symbol layer.
     expect(container.querySelectorAll(".recharts-scatter-symbol path")).toHaveLength(0);
     const customs = container.querySelectorAll(".recharts-scatter-symbol rect.custom-point");

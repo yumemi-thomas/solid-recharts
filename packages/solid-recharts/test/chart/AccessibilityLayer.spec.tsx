@@ -2,7 +2,7 @@
 // 7a23854). Solid deviations: this first batch covers root SVG accessibility
 // attributes for AreaChart/PieChart/FunnelChart; keyboard navigation cases are
 // covered by dedicated local Tooltip keyboard specs and remain tracked here.
-import { flush } from "solid-js";
+
 import { describe, expect, test, vi } from "vitest";
 import {
   Area,
@@ -62,23 +62,19 @@ function getWrapper(container: HTMLElement): HTMLElement {
 function focusChart(container: HTMLElement): HTMLElement {
   const wrapper = getWrapper(container);
   fireEvent.focus(wrapper);
-  flush();
   return wrapper;
 }
 
 function blurChart(container: HTMLElement): void {
   fireEvent.blur(getWrapper(container));
-  flush();
 }
 
 function arrowRight(container: HTMLElement): void {
   fireEvent.keyDown(getWrapper(container), { key: "ArrowRight" });
-  flush();
 }
 
 function arrowLeft(container: HTMLElement): void {
   fireEvent.keyDown(getWrapper(container), { key: "ArrowLeft" });
-  flush();
 }
 
 function assertNoKeyboardInteractions(container: HTMLElement): void {
@@ -205,7 +201,6 @@ describe.each([true, undefined])(
         expect(tooltip).toHaveTextContent("Page E");
 
         fireEvent.keyDown(getWrapper(container), { key: "a" });
-        flush();
         expect(tooltip).toHaveTextContent("Page E");
         expect(mockMouseMovements).toHaveBeenCalledTimes(0);
       });
@@ -282,7 +277,6 @@ describe.each([true, undefined])(
         expect(tooltip).toHaveTextContent("Page E");
 
         fireEvent.keyDown(getWrapper(container), { key: "a" });
-        flush();
         expect(tooltip).toHaveTextContent("Page E");
         expect(mockMouseMovements).toHaveBeenCalledTimes(0);
       });
@@ -470,7 +464,6 @@ describe.each([true, undefined])(
         expect(mockMouseMovements.mock.instances).toHaveLength(0);
 
         fireEvent.keyDown(getWrapper(container), { key: "a" });
-        flush();
         expectTooltipPayload(container, "", ["Page E : 278"]);
         expect(mockMouseMovements.mock.instances).toHaveLength(0);
       });

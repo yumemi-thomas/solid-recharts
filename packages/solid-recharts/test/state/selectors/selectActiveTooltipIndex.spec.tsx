@@ -1,5 +1,5 @@
 import { beforeEach, describe, it } from "vitest";
-import { flush } from "solid-js";
+
 import { fireEvent } from "@solidjs/testing-library";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { RadialBar, RadialBarChart, Tooltip } from "../../../src";
@@ -38,7 +38,6 @@ describe("selectActiveTooltipIndex", () => {
         const wrapper = container.querySelector(".recharts-wrapper");
         assertNotNull(wrapper);
         fireEvent.mouseLeave(wrapper);
-        flush();
         expectLastCalledWith(spy, null);
       });
 
@@ -48,7 +47,6 @@ describe("selectActiveTooltipIndex", () => {
         assertNotNull(trigger);
         expectLastCalledWith(spy, null);
         fireEvent.click(trigger);
-        flush();
         expectLastCalledWith(spy, null);
       });
     });
@@ -72,7 +70,6 @@ describe("selectActiveTooltipIndex", () => {
         const trigger = showTooltip(container, radialBarChartMouseHoverTooltipSelector);
         expectLastCalledWith(spy, "3");
         fireEvent.mouseLeave(trigger);
-        flush();
         expectLastCalledWith(spy, null);
       });
 
@@ -82,7 +79,6 @@ describe("selectActiveTooltipIndex", () => {
         assertNotNull(trigger);
         expectLastCalledWith(spy, "0");
         fireEvent.click(trigger);
-        flush();
         expectLastCalledWith(spy, "0");
       });
     });
@@ -106,7 +102,6 @@ describe("selectActiveTooltipIndex", () => {
         const trigger = showTooltip(container, ".recharts-radial-bar-sector");
         expectLastCalledWith(spy, "0");
         fireEvent.mouseLeave(trigger);
-        flush();
         expectLastCalledWith(spy, null);
       });
 
@@ -116,7 +111,6 @@ describe("selectActiveTooltipIndex", () => {
         assertNotNull(trigger);
         expectLastCalledWith(spy, null);
         fireEvent.click(trigger);
-        flush();
         expectLastCalledWith(spy, null);
       });
     });
@@ -140,7 +134,6 @@ describe("selectActiveTooltipIndex", () => {
         const trigger = showTooltip(container, ".recharts-radial-bar-sector");
         expectLastCalledWith(spy, "0");
         fireEvent.mouseLeave(trigger);
-        flush();
         expectLastCalledWith(spy, null);
       });
 
@@ -150,7 +143,6 @@ describe("selectActiveTooltipIndex", () => {
         assertNotNull(trigger);
         expectLastCalledWith(spy, "3");
         fireEvent.click(trigger);
-        flush();
         expectLastCalledWith(spy, "3");
       });
     });
@@ -176,10 +168,8 @@ describe("selectActiveTooltipIndex", () => {
           assertNotNull(trigger);
           expectLastCalledWith(spy, null);
           fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-          flush();
           expectLastCalledWith(spy, "3");
           fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-          flush();
           expectLastCalledWith(spy, "3");
         });
 
@@ -188,7 +178,6 @@ describe("selectActiveTooltipIndex", () => {
           const trigger = showTooltip(container, ".recharts-radial-bar-sector");
           expectLastCalledWith(spy, null);
           fireEvent.mouseLeave(trigger);
-          flush();
           expectLastCalledWith(spy, null);
         });
       });
@@ -213,10 +202,8 @@ describe("selectActiveTooltipIndex", () => {
           assertNotNull(trigger);
           expectLastCalledWith(spy, "1");
           fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-          flush();
           expectLastCalledWith(spy, "3");
           fireEvent.click(trigger, { clientX: 200, clientY: 200 });
-          flush();
           expectLastCalledWith(spy, "3");
         });
 
@@ -225,7 +212,6 @@ describe("selectActiveTooltipIndex", () => {
           const trigger = showTooltip(container, radialBarChartMouseHoverTooltipSelector);
           expectLastCalledWith(spy, "1");
           fireEvent.mouseLeave(trigger);
-          flush();
           expectLastCalledWith(spy, "1");
         });
       });

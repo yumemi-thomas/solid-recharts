@@ -8,7 +8,7 @@
 // stored array) become structural (`toEqual`): a Solid store proxies nested
 // values, so the stored array is a reactive proxy, not the original reference.
 import { describe, it, expect } from "vitest";
-import { flush } from "solid-js";
+
 import { createChartDataSlice } from "../../src/state/chartDataSlice";
 
 describe("chartDataSlice", () => {
@@ -23,7 +23,6 @@ describe("chartDataSlice", () => {
     const chartData = [{ value: 1 }, { value: 2 }, { value: 3 }];
     const { state, actions } = createChartDataSlice();
     actions.setChartData(chartData);
-    flush();
     expect(state.chartData).toEqual(chartData);
     expect(state.dataStartIndex).toBe(0);
     expect(state.dataEndIndex).toBe(2);
@@ -33,7 +32,6 @@ describe("chartDataSlice", () => {
     const chartData: never[] = [];
     const { state, actions } = createChartDataSlice();
     actions.setChartData(chartData);
-    flush();
     expect(state.chartData).toEqual(chartData);
     expect(state.dataStartIndex).toBe(0);
     expect(state.dataEndIndex).toBe(0);
@@ -43,9 +41,7 @@ describe("chartDataSlice", () => {
     const chartData = [{ value: 1 }, { value: 2 }, { value: 3 }];
     const { state, actions } = createChartDataSlice();
     actions.setChartData(chartData);
-    flush();
     actions.setChartData(undefined);
-    flush();
     expect(state.chartData).toBeUndefined();
     expect(state.dataStartIndex).toBe(0);
     expect(state.dataEndIndex).toBe(0);

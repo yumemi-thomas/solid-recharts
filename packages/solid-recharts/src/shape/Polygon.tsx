@@ -4,12 +4,12 @@
  * Ported from recharts 3.8.1 src/shape/Polygon.tsx (commit 7a23854).
  * Pure path helpers are copied verbatim. Solid deviations: `className` → `class`
  * (Omit the wide SVG `class`); no destructuring (use `omit` + a keyed `<Show>`
- * to narrow `points` without a non-null `!`); `clsx` → `class={[...]}`;
+ * to narrow `points` without a non-null `!`); `clsx` → `class={[...].filter(Boolean).join(" ")}`;
  * `return null` → `<Show>`.
  */
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { Show, omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { Show, splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { Coordinate } from "../util/types";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 import { roundTemplateLiteral } from "../util/round";
@@ -103,9 +103,9 @@ export type PolygonProps = Omit<
 
 export const Polygon = (props: PolygonProps): JSX.Element => {
   const others = (): Record<string, unknown> => ({
-    ...omit(props, "class", "points", "baseLinePoints", "connectNulls"),
+    ...splitProps(props, ["class", "points", "baseLinePoints", "connectNulls"])[1],
   });
-  const layerClass = (): Array<string | undefined> => ["recharts-polygon", props.class];
+  const layerClass = (): string => ["recharts-polygon", props.class].filter(Boolean).join(" ");
 
   // Narrow `points` to a non-empty array via keyed Show (no non-null assertion).
   const validPoints = (): ReadonlyArray<Coordinate> | undefined =>

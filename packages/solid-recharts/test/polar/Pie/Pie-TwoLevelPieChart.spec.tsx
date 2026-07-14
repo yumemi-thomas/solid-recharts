@@ -5,7 +5,7 @@
 // is rendered at a time. Solid uses `fireEvent.mouseEnter` + `flush()` to drive
 // the item-hover state (recharts uses `fireEvent.mouseOver`).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+
 import { Pie, PieChart, Sector } from "../../../src";
 import type { PieSectorShapeProps } from "../../../src/polar/Pie";
 import { render, fireEvent } from "@solidjs/testing-library";
@@ -57,23 +57,18 @@ describe("TwoLevelPieChart with activeShape", () => {
         />
       </PieChart>
     ));
-    flush();
-
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(0);
     const allSectors = container.querySelectorAll(".recharts-pie-sector");
     expect(allSectors).toHaveLength(data1.length + data2.length);
 
     fireEvent.mouseEnter(allSectors[0]!);
-    flush();
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
 
     const innerPieSector = allSectors[data1.length]!; // first sector of the inner pie
     fireEvent.mouseEnter(innerPieSector);
-    flush();
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
 
     fireEvent.mouseLeave(innerPieSector);
-    flush();
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(0);
   });
 
@@ -116,20 +111,15 @@ describe("TwoLevelPieChart with activeShape", () => {
         />
       </PieChart>
     ));
-    flush();
-
     const allSectors = container.querySelectorAll(".recharts-pie-sector");
 
     fireEvent.mouseEnter(allSectors[0]!);
-    flush();
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
 
     fireEvent.mouseEnter(allSectors[2]!);
-    flush();
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(1);
 
     fireEvent.mouseLeave(allSectors[2]!);
-    flush();
     expect(container.querySelectorAll(".customized-active-shape")).toHaveLength(0);
   });
 });

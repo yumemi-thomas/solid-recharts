@@ -1,10 +1,11 @@
+import { splitProps } from "solid-js";
 // Ported from recharts 3.8.1 src/chart/CategoricalChart.tsx (commit 7a23854).
 //
 // Solid deviations: `forwardRef` → `ref` prop; no destructuring (omit + props);
 // `className` → `class`. The `compact` (Brush panorama) branch is deferred. Event
 // handlers are not forwarded yet (RechartsWrapper is render-only).
-import { omit } from "solid-js";
-import type { JSX } from "@solidjs/web";
+
+import type { JSX } from "solid-js";
 import { RootSurface } from "../container/RootSurface";
 import { RechartsWrapper } from "./RechartsWrapper";
 import { ClipPathProvider } from "../container/ClipPathProvider";
@@ -18,8 +19,7 @@ export interface CategoricalChartProps extends CartesianChartProps {
 export const CategoricalChart = (props: CategoricalChartProps): JSX.Element => {
   const attrs = (): Record<string, unknown> =>
     svgPropertiesNoEventsKeepCase({
-      ...omit(
-        props,
+      ...splitProps(props, [
         "width",
         "height",
         "responsive",
@@ -30,7 +30,7 @@ export const CategoricalChart = (props: CategoricalChartProps): JSX.Element => {
         "title",
         "desc",
         "ref",
-      ),
+      ])[1],
     });
 
   return (

@@ -1,4 +1,3 @@
-import { flush } from "solid-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HTMLMousePointer } from "../../src/util/types";
 import { createRechartsStore } from "../../src/state/store";
@@ -66,8 +65,6 @@ describe("mouseMoveMiddleware", () => {
 
     dispatchMouseMove(store, move3);
     expect(vi.getTimerCount()).toBe(1);
-
-    flush();
     vi.runOnlyPendingTimers();
 
     expect(vi.getTimerCount()).toBe(0);

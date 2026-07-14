@@ -3,8 +3,8 @@
  * Solid adaptations: render(() => …)/flush; Wrapper uses props.children; createSignal for portal;
  * flush() replaces act+fake timers; tooltipTestHelpers mouseMove path.
  */
-import { createSignal, flush, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createSignal, Show } from "solid-js";
+import type { JSX } from "solid-js";
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
 import { fireEvent, getByText, render } from "@solidjs/testing-library";
 import {
@@ -426,8 +426,6 @@ describe("Tooltip visibility", () => {
             <Tooltip />
           </Wrapper>
         ));
-        flush();
-
         const wrapper = getTooltip(container);
         expect(wrapper).toBeInTheDocument();
         expect(wrapper).not.toBeVisible();
@@ -439,8 +437,6 @@ describe("Tooltip visibility", () => {
             <Tooltip />
           </Wrapper>
         ));
-        flush();
-
         const tooltipContentName = container.querySelector(".recharts-tooltip-item-name");
         const tooltipContentValue = container.querySelector(".recharts-tooltip-item-value");
         expect(tooltipContentName).toBeNull();
@@ -453,8 +449,6 @@ describe("Tooltip visibility", () => {
             <Tooltip />
           </Wrapper>
         ));
-        flush();
-
         showTooltip(container, mouseHoverSelector, debug);
 
         const tooltip = getTooltip(container);
@@ -480,8 +474,6 @@ describe("Tooltip visibility", () => {
             <Tooltip />
           </Wrapper>
         ));
-        flush();
-
         const tooltipTriggerElement = showTooltip(container, mouseHoverSelector);
 
         const tooltip1 = getTooltip(container);
@@ -490,11 +482,7 @@ describe("Tooltip visibility", () => {
         expect(tooltip1.getAttribute("style")).toContain("left: 0px");
 
         fireEvent.mouseMove(tooltipTriggerElement, { clientX: 201, clientY: 201 });
-
-        flush();
         vi.runOnlyPendingTimers();
-        flush();
-
         const tooltip2 = getTooltip(container);
 
         expect(tooltip2.getAttribute("style")).toContain(expectedTransform);
@@ -523,8 +511,6 @@ describe("Tooltip visibility", () => {
             <Tooltip />
           </Wrapper>
         ));
-        flush();
-
         showTooltipOnCoordinateTouch(container, mouseHoverSelector, {
           clientX: 200,
           clientY: 200,
@@ -552,8 +538,6 @@ describe("Tooltip visibility", () => {
             <Tooltip content={<Customized />} />
           </Wrapper>
         ));
-        flush();
-
         showTooltip(container, mouseHoverSelector);
 
         const customizedContent = container.querySelector(".customized");
@@ -567,7 +551,6 @@ describe("Tooltip visibility", () => {
               <Tooltip />
             </Wrapper>
           ));
-          flush();
           showTooltip(container, mouseHoverSelector);
 
           expect(
@@ -601,7 +584,6 @@ describe("Tooltip visibility", () => {
             );
           }
           const { container } = render(() => <Example />);
-          flush();
           showTooltip(container, mouseHoverSelector);
 
           expect(
@@ -637,7 +619,6 @@ describe("Tooltip visibility", () => {
             );
           }
           const { container } = render(() => <Example />);
-          flush();
           showTooltip(container, mouseHoverSelector);
 
           const tooltipWrapper = container.querySelector(".recharts-tooltip-wrapper");
@@ -665,8 +646,6 @@ describe("Tooltip visibility", () => {
               <Tooltip active />
             </Wrapper>
           ));
-          flush();
-
           const tooltip = getTooltip(container);
           expect(tooltip).not.toBeVisible();
 
@@ -689,8 +668,6 @@ describe("Tooltip visibility", () => {
               <Tooltip active={false} />
             </Wrapper>
           ));
-          flush();
-
           const tooltip = getTooltip(container);
           expect(tooltip).not.toBeVisible();
 
@@ -712,8 +689,6 @@ describe("Tooltip visibility", () => {
               <Tooltip />
             </Wrapper>
           ));
-          flush();
-
           const tooltip = getTooltip(container);
           expect(tooltip).not.toBeVisible();
 
@@ -743,8 +718,6 @@ describe("Tooltip visibility", () => {
               <Tooltip defaultIndex={tooltipIndex} />
             </Wrapper>
           ));
-          flush();
-
           const tooltip = getTooltip(container);
           expect(tooltip).toBeInTheDocument();
 
@@ -776,8 +749,6 @@ describe("Tooltip visibility", () => {
               <Tooltip defaultIndex={NaN} />
             </Wrapper>
           ));
-          flush();
-
           const tooltip = getTooltip(container);
           expect(tooltip).toBeInTheDocument();
           expect(tooltip).not.toBeVisible();
@@ -805,8 +776,6 @@ describe("Tooltip visibility", () => {
               <Tooltip defaultIndex={commonChartProps.data.length} />
             </Wrapper>
           ));
-          flush();
-
           const tooltip = getTooltip(container);
           expect(tooltip).toBeInTheDocument();
           expect(tooltip).toBeVisible();
@@ -975,7 +944,7 @@ describe("Tooltip visibility", () => {
         x: 200,
         y: 216,
       });
-      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledTimes(3);
     });
 
     it("should select tooltip axis range", () => {
@@ -1059,7 +1028,7 @@ describe("Tooltip visibility", () => {
         activeIndex: "4",
         isActive: true,
       });
-      expect(spy).toHaveBeenCalledTimes(3);
+      expect(spy).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -1363,7 +1332,7 @@ describe("Tooltip visibility", () => {
         x: 177.5255128608411,
         y: 229.28932188134524,
       });
-      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -1651,7 +1620,7 @@ describe("Tooltip visibility", () => {
           activeIndex: null,
           isActive: false,
         });
-        expect(spy).toHaveBeenCalledTimes(2);
+        expect(spy).toHaveBeenCalledTimes(1);
 
         showTooltip(container, composedChartMouseHoverTooltipSelector);
 
@@ -1659,7 +1628,7 @@ describe("Tooltip visibility", () => {
           activeIndex: "0",
           isActive: true,
         });
-        expect(spy).toHaveBeenCalledTimes(3);
+        expect(spy).toHaveBeenCalledTimes(2);
       });
 
       it("should render tooltip payload for hidden items", () => {
@@ -1720,8 +1689,6 @@ describe("Tooltip visibility", () => {
         <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
       </LineChart>
     ));
-    flush();
-
     const line = container.querySelector(".recharts-cartesian-grid-horizontal line")!;
     showTooltipOnCoordinate(
       container,
@@ -1766,8 +1733,6 @@ describe("Tooltip visibility", () => {
       );
     };
     const { container } = render(() => <Example />);
-    flush();
-
     const tooltip = getTooltip(container);
     expect(tooltip).toBeInTheDocument();
 
@@ -1781,8 +1746,6 @@ describe("Tooltip visibility", () => {
     expect(tooltip.textContent).toBe("stature : 100cmweight : 200kg");
 
     fireEvent.click(container.querySelector("#goRight") as HTMLButtonElement);
-    flush();
-
     // Data should be displayed in the Tooltip payload
     expect(tooltip.textContent).toBe("stature : 120cmweight : 100kg");
   });
@@ -1807,7 +1770,6 @@ describe("Active element visibility", () => {
           <Tooltip />
         </Wrapper>
       ));
-      flush();
       expect(container.querySelector(".recharts-active-dot")).not.toBeInTheDocument();
 
       showTooltip(container, mouseHoverSelector, debug);
@@ -1832,7 +1794,6 @@ describe("Active element visibility", () => {
           <Tooltip />
         </Wrapper>
       ));
-      flush();
       expect(container.querySelector(".recharts-active-dot")).not.toBeInTheDocument();
 
       showTooltip(container, mouseHoverSelector, debug);
@@ -1862,7 +1823,6 @@ describe("Cursor visibility", () => {
           <Tooltip />
         </Wrapper>
       ));
-      flush();
       expect(container.querySelector(".recharts-tooltip-cursor")).not.toBeInTheDocument();
 
       showTooltip(container, mouseHoverSelector, debug);
@@ -1878,7 +1838,6 @@ describe("Cursor visibility", () => {
           <Tooltip cursor={false} />
         </Wrapper>
       ));
-      flush();
       expect(container.querySelector(".recharts-tooltip-cursor")).not.toBeInTheDocument();
 
       showTooltip(container, mouseHoverSelector, debug);

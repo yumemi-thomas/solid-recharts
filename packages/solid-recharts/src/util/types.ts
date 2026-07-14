@@ -1,5 +1,5 @@
-import type { JSX } from "@solidjs/web";
-import type { Element } from "solid-js";
+import type { JSX } from "solid-js";
+type Element = JSX.Element;
 import type * as d3Scales from "d3-scale";
 import type { DotProps } from "../shape/Dot";
 import type { ExternalMouseEvents } from "../chart/types";

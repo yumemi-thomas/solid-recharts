@@ -1,5 +1,5 @@
 // Ported from recharts 3.8.1 test/cartesian/YAxis/YAxis.7362.spec.tsx (commit 7a23854).
-import { flush } from "solid-js";
+
 import { describe, it } from "vitest";
 import { Line, LineChart, XAxis, YAxis } from "../../../src";
 import { selectAxisScale } from "../../../src/state/selectors/axisSelectors";
@@ -69,24 +69,18 @@ const expectedTicks = [
 describe("YAxis issue 7362 current behavior", () => {
   it("renders the explicit tick ladder for all-null series data when ticks are supplied", () => {
     const { container, spy } = renderIssue7362Chart({ data: allNullData, ticks: explicitTicks });
-    flush();
-
     expectLastCalledWith(spy, [0, 100]);
     expectYAxisTicks(container, expectedTicks);
   });
 
   it("renders the computed tick ladder for all-null series data when tickCount is supplied", () => {
     const { container, spy } = renderIssue7362Chart({ data: allNullData, tickCount: 5 });
-    flush();
-
     expectLastCalledWith(spy, [0, 100]);
     expectYAxisTicks(container, expectedTicks);
   });
 
   it("renders the explicit tick ladder for empty data when the Y axis is fully specified", () => {
     const { container, spy } = renderIssue7362Chart({ data: [], ticks: explicitTicks });
-    flush();
-
     expectLastCalledWith(spy, [0, 100]);
     expectYAxisTicks(container, expectedTicks);
   });
@@ -96,8 +90,6 @@ describe("YAxis issue 7362 current behavior", () => {
       data: partlyNumericData,
       ticks: explicitTicks,
     });
-    flush();
-
     expectLastCalledWith(spy, [0, 100]);
     expectYAxisTicks(container, expectedTicks);
   });

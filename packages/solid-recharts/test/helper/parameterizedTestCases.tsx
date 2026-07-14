@@ -1,6 +1,6 @@
 // Solid port of recharts 3.8.1 test/helper/parameterizedTestCases.tsx (commit 7a23854).
 // Minimal subset: BarChart + ComposedChart cases used by cartesian/Bar/Bar.spec.tsx.
-import type { JSX } from "@solidjs/web";
+import type { JSX } from "solid-js";
 import type { CartesianLayout, EventThrottlingProps } from "../../src/util/types";
 import { AreaChart, BarChart, ComposedChart, LineChart, Scatter, ScatterChart } from "../../src";
 import type { TooltipIndex } from "../../src/state/tooltipSlice";

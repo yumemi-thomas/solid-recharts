@@ -4,8 +4,8 @@
 // via createEffect + defaults resolved like recharts' resolveDefaultProps); the
 // visual `<CartesianAxis>` IS rendered at the bottom of this file.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createMemo, Show } from "solid-js";
-import type { JSX } from "@solidjs/web";
+import { createMemo, Show, createEffect, on } from "solid-js";
+import type { JSX } from "solid-js";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
   NiceTicksAlgorithm,
@@ -225,42 +225,44 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
   // Dynamic Y-axis width: when `width="auto"` (and the label is not a function/element),
   // recharts measures the rendered tick-value DOM via `getCalculatedYAxisWidth` and feeds
   // the result back into the store with `updateYAxisWidth`. Mirror that with the codebase's
-  // two-arg createEffect(compute, apply): the compute tracks the reactive inputs (ticks +
+  // two-arg createEffect(on(compute, apply)): the compute tracks the reactive inputs (ticks +
   // size), the apply does the DOM measurement and the store write (untracked — so it cannot
   // re-trigger itself; the slice's `updateYAxisWidth` + the Math.round equality also guard
   // oscillation).
   let layerEl: SVGGElement | null = null;
   createEffect(
-    () => ({
-      ticks: ticks(),
-      size: size(),
-      width: props.width,
-      label: props.label,
-      id: yAxisId(),
-    }),
-    (inputs) => {
-      if (inputs.width !== "auto" || isLabelContentAFunction(inputs.label)) {
-        return;
-      }
-      const el = layerEl;
-      if (el == null || inputs.ticks == null || inputs.size == null || store == null) {
-        return;
-      }
-      const tickNodes = el.getElementsByClassName("recharts-cartesian-axis-tick-value");
-      if (tickNodes.length === 0) {
-        return;
-      }
-      const updatedYAxisWidth = getCalculatedYAxisWidth({
-        ticks: tickNodes,
-        label: undefined,
-        labelGapWithTick: 5,
-        tickSize: 6,
-        tickMargin: 2,
-      });
-      if (Math.round(inputs.size.width) !== Math.round(updatedYAxisWidth)) {
-        store.actions.cartesianAxis.updateYAxisWidth({ id: inputs.id, width: updatedYAxisWidth });
-      }
-    },
+    on(
+      () => ({
+        ticks: ticks(),
+        size: size(),
+        width: props.width,
+        label: props.label,
+        id: yAxisId(),
+      }),
+      (inputs) => {
+        if (inputs.width !== "auto" || isLabelContentAFunction(inputs.label)) {
+          return;
+        }
+        const el = layerEl;
+        if (el == null || inputs.ticks == null || inputs.size == null || store == null) {
+          return;
+        }
+        const tickNodes = el.getElementsByClassName("recharts-cartesian-axis-tick-value");
+        if (tickNodes.length === 0) {
+          return;
+        }
+        const updatedYAxisWidth = getCalculatedYAxisWidth({
+          ticks: tickNodes,
+          label: undefined,
+          labelGapWithTick: 5,
+          tickSize: 6,
+          tickMargin: 2,
+        });
+        if (Math.round(inputs.size.width) !== Math.round(updatedYAxisWidth)) {
+          store.actions.cartesianAxis.updateYAxisWidth({ id: inputs.id, width: updatedYAxisWidth });
+        }
+      },
+    ),
   );
 
   return (

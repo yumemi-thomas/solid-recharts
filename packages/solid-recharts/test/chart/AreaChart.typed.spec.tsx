@@ -28,12 +28,12 @@ describe("AreaChart with strong typing", () => {
   });
 
   it("should show error when chart data shape does not match explicit generic type", () => {
-    const invalidChart = (
+    const InvalidChart = () => (
       // @ts-expect-error TypeScript is correct here - chart data does not match explicit generic type
       <AreaChart<ExampleDataPoint> data={{ wrong: 1 }} width={400} height={400}>
         <Area dataKey="value" isAnimationActive={false} />
       </AreaChart>
     );
-    expect(invalidChart).toBeDefined();
+    expect(InvalidChart).toBeDefined();
   });
 });
