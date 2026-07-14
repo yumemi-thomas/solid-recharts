@@ -1,6 +1,6 @@
 {
   "name": "solid-recharts",
-  "version": "0.2.1",
+  "version": "2.0.0-beta.1",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
