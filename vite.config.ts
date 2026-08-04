@@ -1,5 +1,6 @@
 import { defineConfig } from "vite-plus";
 import solid from "vite-plugin-solid";
+import compileSolid from "unplugin-solid/rolldown";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -8,6 +9,8 @@ import { dirname, resolve } from "node:path";
 // a cwd-relative `test.root` would double up (packages/solid-recharts/packages/…).
 const here = dirname(fileURLToPath(import.meta.url));
 const libRoot = resolve(here, "packages/solid-recharts");
+const packageBuildTarget = process.env.SOLID_RECHARTS_BUILD_TARGET;
+const isServerPackageBuild = packageBuildTarget === "server";
 
 // Single workspace-root config (per AGENTS.md). Vite+ (`vp`) reads this for the
 // whole monorepo: dev/test transform, the test runner, and Oxlint (`vp lint` /
@@ -16,6 +19,31 @@ const libRoot = resolve(here, "packages/solid-recharts");
 // the vendored recharts reference under vendor/.
 export default defineConfig({
   plugins: [solid()],
+  pack: {
+    cwd: libRoot,
+    entry: ["src/index.ts"],
+    root: "src",
+    outDir: isServerPackageBuild ? "dist/server" : "dist/browser",
+    clean: isServerPackageBuild ? false : ["dist"],
+    platform: "neutral",
+    format: ["esm"],
+    fixedExtension: false,
+    unbundle: true,
+    report: false,
+    dts: !isServerPackageBuild,
+    deps: {
+      neverBundle: [/^solid-js(?:\/|$)/, /^d3-(?:scale|shape)(?:\/|$)/],
+      onlyBundle: false,
+    },
+    plugins: [
+      compileSolid({
+        solid: {
+          generate: isServerPackageBuild ? "ssr" : "dom",
+          hydratable: true,
+        },
+      }),
+    ],
+  },
   test: {
     // Scope the test run to the library package: include/setup globs resolve under
     // this dir, so the vendored reference (vendor/recharts-reference/test) is never

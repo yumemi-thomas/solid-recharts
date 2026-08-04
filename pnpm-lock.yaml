@@ -33,6 +33,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      unplugin-solid:
+        specifier: 2.0.0
+        version: 2.0.0(@testing-library/jest-dom@6.9.1)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3))(solid-js@1.9.14)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@^0.1.24
         version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3)'
@@ -57,6 +60,12 @@ importers:
 
   packages/solid-recharts:
     dependencies:
+      '@types/d3-scale':
+        specifier: ^4.0.2
+        version: 4.0.9
+      '@types/d3-shape':
+        specifier: ^3.1.0
+        version: 3.1.8
       d3-scale:
         specifier: ^4.0.2
         version: 4.0.2
@@ -70,12 +79,6 @@ importers:
       '@solidjs/testing-library':
         specifier: ^0.8.10
         version: 0.8.10(solid-js@1.9.14)
-      '@types/d3-scale':
-        specifier: ^4.0.2
-        version: 4.0.9
-      '@types/d3-shape':
-        specifier: ^3.1.0
-        version: 3.1.8
       axe-core:
         specifier: ^4.12.0
         version: 4.12.0
@@ -999,6 +1002,10 @@ packages:
     resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
     engines: {node: '>=12.13'}
 
+  is-what@5.5.0:
+    resolution: {integrity: sha512-oG7cgbmg5kLYae2N5IVd3jm2s+vldjxJzK1pcu9LfpGuQ93MQSzo0okvRna+7y5ifrD+20FE8FvjusyGaz14fw==}
+    engines: {node: '>=18'}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -1115,6 +1122,10 @@ packages:
   merge-anything@5.1.7:
     resolution: {integrity: sha512-eRtbOb1N5iyH0tkQDAoQ4Ipsp/5qSR79Dzrz8hEPxRX10RWWR/iQXdoKmBSRCThY1Fh5EhISDtpSc93fpxUniQ==}
     engines: {node: '>=12.13'}
+
+  merge-anything@6.0.6:
+    resolution: {integrity: sha512-F3K1W45PvTjRZzbcYIhXntNr8cux00gUxR8IzNPPG+80gNlAHZGVBwFyN4x5yjw/7QkLPKDbRQBK4KrJKo69mw==}
+    engines: {node: '>=18'}
 
   mime-db@1.52.0:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
@@ -1267,6 +1278,11 @@ packages:
     peerDependencies:
       solid-js: ^1.3
 
+  solid-refresh@0.7.8:
+    resolution: {integrity: sha512-iG442T3HXJp5jEebCy8okETrWnmX7CnxNOKrJQVeufh6WXSn+xtLXaptUXXMHTWcRqTJOJwQ8UwzxrRtVFSIzA==}
+    peerDependencies:
+      solid-js: ^1.3
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -1323,6 +1339,52 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
+  unplugin-solid@2.0.0:
+    resolution: {integrity: sha512-JnP3mPSnWSSC61tbLGpVYXp0ooeTRzesvckF+SV3Ju9Q3G6DKMOykPyEADeENifpBC48yRXZmq67+RG0JQ1s9A==}
+    engines: {node: ^22.12.0 || ^24.0.0 || ^26.0.0}
+    peerDependencies:
+      '@testing-library/jest-dom': ^5.16.6 || ^5.17.0 || ^6.0.0
+      solid-js: ^1.9.9
+      vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      '@testing-library/jest-dom':
+        optional: true
+      vite:
+        optional: true
+
+  unplugin@3.3.0:
+    resolution: {integrity: sha512-qa66K+crbfyE6JK10GjvbJeRrOsuC/JpbnHctfyp/i4oBTxWOzJfRZyDiOk1PtErMFRu8JhsU/wPvOdBNWe5Rg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@farmfe/core': '*'
+      '@rspack/core': '*'
+      bun-types-no-globals: '*'
+      esbuild: '*'
+      rolldown: '*'
+      rollup: '*'
+      unloader: '*'
+      vite: '*'
+      webpack: '*'
+    peerDependenciesMeta:
+      '@farmfe/core':
+        optional: true
+      '@rspack/core':
+        optional: true
+      bun-types-no-globals:
+        optional: true
+      esbuild:
+        optional: true
+      rolldown:
+        optional: true
+      rollup:
+        optional: true
+      unloader:
+        optional: true
+      vite:
+        optional: true
+      webpack:
+        optional: true
+
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
     hasBin: true
@@ -1364,6 +1426,9 @@ packages:
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
     engines: {node: '>=12'}
+
+  webpack-virtual-modules@0.6.2:
+    resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
@@ -2100,6 +2165,8 @@ snapshots:
 
   is-what@4.1.16: {}
 
+  is-what@5.5.0: {}
+
   js-tokens@4.0.0: {}
 
   jsdom@25.0.1:
@@ -2198,6 +2265,10 @@ snapshots:
   merge-anything@5.1.7:
     dependencies:
       is-what: 4.1.16
+
+  merge-anything@6.0.6:
+    dependencies:
+      is-what: 5.5.0
 
   mime-db@1.52.0: {}
 
@@ -2359,6 +2430,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  solid-refresh@0.7.8(solid-js@1.9.14):
+    dependencies:
+      '@babel/generator': 7.29.7
+      '@babel/types': 7.29.7
+      solid-js: 1.9.14
+
   source-map-js@1.2.1: {}
 
   std-env@4.2.0: {}
@@ -2399,6 +2476,37 @@ snapshots:
   typescript@5.9.3: {}
 
   undici-types@6.21.0: {}
+
+  unplugin-solid@2.0.0(@testing-library/jest-dom@6.9.1)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3))(solid-js@1.9.14):
+    dependencies:
+      '@babel/core': 7.29.7
+      babel-preset-solid: 1.9.12(@babel/core@7.29.7)(solid-js@1.9.14)
+      merge-anything: 6.0.6
+      solid-js: 1.9.14
+      solid-refresh: 0.7.8(solid-js@1.9.14)
+      unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3))
+      vitefu: 1.1.3(@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3))
+    optionalDependencies:
+      '@testing-library/jest-dom': 6.9.1
+      vite: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3)'
+    transitivePeerDependencies:
+      - '@farmfe/core'
+      - '@rspack/core'
+      - bun-types-no-globals
+      - esbuild
+      - rolldown
+      - rollup
+      - supports-color
+      - unloader
+      - webpack
+
+  unplugin@3.3.0(@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3)):
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      picomatch: 4.0.5
+      webpack-virtual-modules: 0.6.2
+    optionalDependencies:
+      vite: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@22.20.1)(typescript@5.9.3)'
 
   update-browserslist-db@1.2.3(browserslist@4.28.5):
     dependencies:
@@ -2490,6 +2598,8 @@ snapshots:
       xml-name-validator: 5.0.0
 
   webidl-conversions@7.0.0: {}
+
+  webpack-virtual-modules@0.6.2: {}
 
   whatwg-encoding@3.1.1:
     dependencies:

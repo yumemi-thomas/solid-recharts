@@ -1,6 +1,7 @@
 node_modules
 vendor/
 app/dev/dist/
+packages/solid-recharts/dist/
 test-results/
 
 # docs app (TanStack Start) generated artifacts

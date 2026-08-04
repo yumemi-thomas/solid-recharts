@@ -22,6 +22,7 @@
     "jsdom": "^25.0.1",
     "solid-js": "1.9.14",
     "typescript": "^5.9.3",
+    "unplugin-solid": "2.0.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.24",
     "vite-plugin-solid": "2.11.12",
     "vite-plus": "^0.1.24",
