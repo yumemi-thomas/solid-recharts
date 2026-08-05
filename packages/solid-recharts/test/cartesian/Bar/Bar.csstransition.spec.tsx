@@ -7,7 +7,11 @@ import { Bar, BarChart, DefaultZIndexes, Tooltip, XAxis } from "../../../src";
 import type { BarShapeProps } from "../../../src/cartesian/Bar";
 import { createSelectorTestCase } from "../../helper/createSelectorTestCase";
 import { expectActiveBars, expectBars, type ExpectedBar } from "../../helper/expectBars";
-import { hideTooltip, showTooltip } from "../../component/Tooltip/tooltipTestHelpers";
+import {
+  hideTooltip,
+  showTooltip,
+  showTooltipOnCoordinate,
+} from "../../component/Tooltip/tooltipTestHelpers";
 import { barChartMouseHoverTooltipSelector } from "../../component/Tooltip/tooltipMouseHoverSelectors";
 import { mockGetBoundingClientRect } from "../../helper/mockGetBoundingClientRect";
 import { expectNthCalledWith } from "../../helper/expectLastCalledWith";
@@ -287,6 +291,47 @@ describe("Bar CSS transitions", () => {
       assertNotNull(lastTransitionEndProp);
       lastTransitionEndProp();
       expect(shapeSpy).toHaveBeenCalledTimes(8);
+    });
+
+    it("should remove the old active layer bar when another bar becomes active", () => {
+      const renderTestCase = createSelectorTestCase(({ children }) => (
+        <BarChart width={400} height={400} data={generateMockData(2, 10)}>
+          <Bar dataKey="y" isAnimationActive={false} activeBar />
+          <XAxis dataKey="x" />
+          {children}
+          <Tooltip />
+        </BarChart>
+      ));
+      const { container } = renderTestCase();
+
+      showTooltip(container, barChartMouseHoverTooltipSelector);
+      runPendingTimers();
+      expect(
+        container.querySelectorAll(
+          `.recharts-zIndex-layer_${DefaultZIndexes.activeBar} .recharts-active-bar`,
+        ),
+      ).toHaveLength(1);
+      expect(
+        container.querySelectorAll(
+          `.recharts-zIndex-layer_${DefaultZIndexes.activeBar} .recharts-inactive-bar`,
+        ),
+      ).toHaveLength(0);
+
+      showTooltipOnCoordinate(container, barChartMouseHoverTooltipSelector, {
+        clientX: 300,
+        clientY: 150,
+      });
+      runPendingTimers();
+      expect(
+        container.querySelectorAll(
+          `.recharts-zIndex-layer_${DefaultZIndexes.activeBar} .recharts-active-bar`,
+        ),
+      ).toHaveLength(1);
+      expect(
+        container.querySelectorAll(
+          `.recharts-zIndex-layer_${DefaultZIndexes.activeBar} .recharts-inactive-bar`,
+        ),
+      ).toHaveLength(0);
     });
   });
 });

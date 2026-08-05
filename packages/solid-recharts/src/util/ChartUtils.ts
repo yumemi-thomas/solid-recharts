@@ -19,6 +19,7 @@ import {
 import { isNan, isNotNil, isNullish, isNumber, isNumOrStr, mathSign } from "./DataUtils";
 import { getSliced } from "./getSliced";
 import { isWellBehavedNumber } from "./isWellBehavedNumber";
+import { isOutsidePosition } from "../cartesian/getCartesianPosition";
 import type {
   AxisTick,
   AxisDomainTypeInput,
@@ -429,13 +430,20 @@ export const getBandSizeOfAxis = (
 
   if (axis && ticks && ticks.length >= 2) {
     const orderedTicks: ReadonlyArray<TickItem> = sortBy(ticks, [(o: TickItem) => o.coordinate]);
-    let bandSize = Infinity;
-
+    const gaps: number[] = [];
+    let maxGap = 0;
     for (let i = 1, len = orderedTicks.length; i < len; i++) {
-      const cur = orderedTicks[i];
-      const prev = orderedTicks[i - 1];
+      const gap = (orderedTicks[i]?.coordinate || 0) - (orderedTicks[i - 1]?.coordinate || 0);
+      gaps.push(gap);
+      maxGap = Math.max(gap, maxGap);
+    }
 
-      bandSize = Math.min((cur?.coordinate || 0) - (prev?.coordinate || 0), bandSize);
+    const minMeaningfulGap = maxGap * 1e-4;
+    let bandSize = Infinity;
+    for (const gap of gaps) {
+      if (gap > minMeaningfulGap) {
+        bandSize = Math.min(gap, bandSize);
+      }
     }
 
     return bandSize === Infinity ? 0 : bandSize;
@@ -507,7 +515,25 @@ export const appendOffsetOfLegend = (
   legendSize: Size,
 ): OffsetSides => {
   const { width: boxWidth, height: boxHeight } = legendSize;
-  const { align, verticalAlign, layout } = legendSettings;
+  const { align, verticalAlign, layout, position, offset: legendOffset = 0 } = legendSettings;
+
+  if (position != null) {
+    if (isOutsidePosition(position)) {
+      if (position === "top" && isNumber(offset.top)) {
+        return { ...offset, top: offset.top + (boxHeight || 0) + legendOffset };
+      }
+      if (position === "bottom" && isNumber(offset.bottom)) {
+        return { ...offset, bottom: offset.bottom + (boxHeight || 0) + legendOffset };
+      }
+      if (position === "left" && isNumber(offset.left)) {
+        return { ...offset, left: offset.left + (boxWidth || 0) + legendOffset };
+      }
+      if (position === "right" && isNumber(offset.right)) {
+        return { ...offset, right: offset.right + (boxWidth || 0) + legendOffset };
+      }
+    }
+    return offset;
+  }
 
   if (
     (layout === "vertical" || (layout === "horizontal" && verticalAlign === "middle")) &&

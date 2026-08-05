@@ -36,4 +36,33 @@ describe("combineAllBarPositions", () => {
   it("returns undefined for an empty size list", () => {
     expect(combineAllBarPositions([], undefined, 0, 0, 100, 100, undefined)).toBeUndefined();
   });
+
+  it("keeps the requested barGap when maxBarSize clamps the bar width (issue #2774)", () => {
+    const sizeList: SizeList = [
+      { stackId: undefined, dataKeys: ["uv"], barSize: undefined },
+      { stackId: undefined, dataKeys: ["pv"], barSize: undefined },
+    ];
+    const positions = combineAllBarPositions(sizeList, 80, 1, "10%", 400, 400, undefined);
+    expect(positions).toBeDefined();
+    expect(positions?.map((position) => position.position)).toEqual([
+      { offset: 120, size: 80 },
+      { offset: 201, size: 80 },
+    ]);
+  });
+
+  it("leaves positions untouched when maxBarSize is larger than the computed size", () => {
+    const sizeList: SizeList = [
+      { stackId: undefined, dataKeys: ["uv"], barSize: undefined },
+      { stackId: undefined, dataKeys: ["pv"], barSize: undefined },
+    ];
+    const clamped = combineAllBarPositions(sizeList, 1000, 1, "10%", 400, 400, undefined);
+    const unclamped = combineAllBarPositions(sizeList, undefined, 1, "10%", 400, 400, undefined);
+    expect(clamped?.map((position) => position.position)).toEqual(
+      unclamped?.map((position) => position.position),
+    );
+    expect(clamped?.map((position) => position.position)).toEqual([
+      { offset: 40, size: 160 },
+      { offset: 201, size: 160 },
+    ]);
+  });
 });

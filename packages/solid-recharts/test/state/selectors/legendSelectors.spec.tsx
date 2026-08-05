@@ -25,6 +25,8 @@ describe("selectLegendSettings", () => {
     align: "center",
     verticalAlign: "bottom",
     itemSorter: "value",
+    position: undefined,
+    offset: 0,
   });
 
   it("should return Legend settings", () => {
@@ -49,6 +51,8 @@ describe("selectLegendSettings", () => {
       layout: "vertical",
       verticalAlign: "top",
       itemSorter: "value",
+      position: undefined,
+      offset: 0,
     };
     expect(legendSettingsSpy).toHaveBeenLastCalledWith(expected);
   });

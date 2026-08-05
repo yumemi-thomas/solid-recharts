@@ -122,6 +122,13 @@ export const calculateActiveTickIndex = (
     Math.abs(Math.abs(range[1] - range[0]) - 360) <= 1e-6
   ) {
     // ticks are distributed in a circle
+    const span = range[1] - range[0];
+    const isInside = (lowerLimit: number, upperLimit: number, inclusiveLower: boolean): boolean =>
+      [coordinate, coordinate + span, coordinate - span].some(
+        (candidate) =>
+          (inclusiveLower ? candidate >= lowerLimit : candidate > lowerLimit) &&
+          candidate <= upperLimit,
+      );
     for (let i = 0; i < len; i++) {
       const before = i > 0 ? unsortedTicks[i - 1]?.coordinate : unsortedTicks[len - 1]?.coordinate;
       const cur = unsortedTicks[i]?.coordinate;
@@ -153,11 +160,10 @@ export const calculateActiveTickIndex = (
         ];
 
         if (
-          (coordinate > sameInterval[0] && coordinate <= sameInterval[1]) ||
+          isInside(sameInterval[0], sameInterval[1], false) ||
           (diffInterval[0] != null &&
             diffInterval[1] != null &&
-            coordinate >= diffInterval[0] &&
-            coordinate <= diffInterval[1])
+            isInside(diffInterval[0], diffInterval[1], true))
         ) {
           return unsortedTicks[i]?.index;
         }
@@ -165,7 +171,7 @@ export const calculateActiveTickIndex = (
         const minValue = Math.min(before, after);
         const maxValue = Math.max(before, after);
 
-        if (coordinate > (minValue + cur) / 2 && coordinate <= (maxValue + cur) / 2) {
+        if (isInside((minValue + cur) / 2, (maxValue + cur) / 2, false)) {
           return unsortedTicks[i]?.index;
         }
       }

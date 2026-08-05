@@ -713,6 +713,7 @@ export const sankeyPayloadSearcher: TooltipPayloadSearcher = (
 
 export interface SankeyProps extends EventThrottlingProps {
   class?: string;
+  style?: JSX.CSSProperties;
   data: SankeyData;
   width?: number | Percent;
   height?: number | Percent;
@@ -727,6 +728,12 @@ export interface SankeyProps extends EventThrottlingProps {
   sort?: boolean;
   align?: SankeyHorizontalAlign;
   verticalAlign?: SankeyVerticalAlign;
+  /** Turn on accessibility support for keyboard-only and screen reader users. @defaultValue true */
+  accessibilityLayer?: boolean;
+  title?: string;
+  desc?: string;
+  role?: JSX.AriaAttributes["role"];
+  tabIndex?: number;
   /** Custom node renderer (function form). Receives the laid-out node props. */
   node?: SankeyNodeOptions;
   /** Custom link renderer (function form). Receives the laid-out link props. */
@@ -744,6 +751,7 @@ export interface SankeyProps extends EventThrottlingProps {
 }
 
 export const sankeyDefaultProps = {
+  accessibilityLayer: true,
   align: "justify",
   dataKey: "value",
   iterations: 32,
@@ -861,10 +869,23 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
   const layerClass = (): string =>
     ["recharts-sankey", merged.class].filter((c): c is string => Boolean(c)).join(" ");
 
+  const role = (): JSX.AriaAttributes["role"] =>
+    props.role ?? (merged.accessibilityLayer ? "application" : undefined);
+  const tabIndex = (): number | undefined =>
+    typeof props.tabIndex === "number" ? props.tabIndex : merged.accessibilityLayer ? 0 : undefined;
+
   return (
     <Show when={dims()}>
       {(d) => (
-        <Surface width={d().width} height={d().height}>
+        <Surface
+          width={d().width}
+          height={d().height}
+          style={props.style}
+          title={props.title}
+          desc={props.desc}
+          role={role()}
+          tabIndex={tabIndex()}
+        >
           <Layer class={layerClass()}>
             <Layer class="recharts-sankey-links">
               <For each={computed().links}>

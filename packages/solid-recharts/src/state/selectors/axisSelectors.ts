@@ -107,7 +107,7 @@ import { getNiceTickValues, getTickValuesFixedDomain } from "../../util/scale";
 import { selectChartOffsetInternal } from "./selectChartOffsetInternal";
 import { selectBrushDimensions } from "./brushSelectors";
 import { combineAxisRangeWithReverse } from "./combiners/combineAxisRangeWithReverse";
-import { DEFAULT_Y_AXIS_WIDTH } from "../../util/Constants";
+import { DEFAULT_X_AXIS_HEIGHT, DEFAULT_Y_AXIS_WIDTH } from "../../util/Constants";
 import { RechartsScale, rechartsScaleFactory } from "../../util/scale/RechartsScale";
 import { combineCheckedDomain } from "./combiners/combineCheckedDomain";
 import { CustomScaleDefinition } from "../../util/scale/CustomScaleDefinition";
@@ -1889,7 +1889,7 @@ function compareIds(a: CartesianAxisSettings, b: CartesianAxisSettings): number 
 
 const getXAxisSize = (offset: ChartOffsetInternal, axisSettings: XAxisSettings): Size => ({
   width: offset.width,
-  height: axisSettings.height,
+  height: typeof axisSettings.height === "number" ? axisSettings.height : DEFAULT_X_AXIS_HEIGHT,
 });
 
 const getYAxisSize = (offset: ChartOffsetInternal, axisSettings: YAxisSettings): Size => {

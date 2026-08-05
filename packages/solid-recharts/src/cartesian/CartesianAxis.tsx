@@ -275,7 +275,11 @@ const AxisLine = (props: {
       // attribute consumers read off the line element). An object-form `axisLine={{…}}`
       // adds its own SVG props on top — run through the renamer so recharts-style
       // camelCase (`strokeWidth`) becomes the kebab SVG attribute.
-      {...svgPropertiesNoEvents({ width: props.width, ...(props.extra ?? {}) })}
+      {...svgPropertiesNoEvents({
+        width: props.width,
+        height: props.height,
+        ...(props.extra ?? {}),
+      })}
     />
   );
 };

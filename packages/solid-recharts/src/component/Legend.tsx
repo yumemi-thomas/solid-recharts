@@ -18,13 +18,23 @@ import {
   Props as DefaultLegendContentProps,
   VerticalAlignmentType,
 } from "./DefaultLegendContent";
-import { LayoutType, Margin } from "../util/types";
+import { Margin } from "../util/types";
 import { getUniqPayload, UniqueOption } from "../util/payload/getUniqPayload";
 import { useLegendPayload } from "../context/legendPayloadContext";
 import { useLegendPortal } from "../context/legendPortalContext";
 import { ElementOffset, useElementOffset } from "../util/useElementOffset";
 import { useChartHeight, useChartWidth, useMargin } from "../context/chartLayoutContext";
-import { useAppStore } from "../state/hooks";
+import { useAppSelector, useAppStore } from "../state/hooks";
+import {
+  getCartesianPosition,
+  isOutsidePosition,
+  type CartesianPosition,
+} from "../cartesian/getCartesianPosition";
+import { cartesianPositionToCSSTranslate } from "../cartesian/cartesianPositionToCSSTranslate";
+import { selectLegendArea } from "../state/selectors/selectLegendArea";
+import { selectChartViewBox } from "../state/selectors/selectChartOffsetInternal";
+import type { RechartsRootState } from "../state/store";
+import type { CartesianLayout } from "../util/types";
 
 function defaultUniqBy(entry: LegendPayload): string | undefined {
   return entry.value;
@@ -38,7 +48,7 @@ function toCssLength(value: number | string | undefined): string {
   return typeof value === "number" ? `${value}px` : value;
 }
 
-export type LegendProps = Omit<DefaultLegendContentProps, "payload"> & {
+export type LegendProps = Omit<DefaultLegendContentProps, "payload" | "layout"> & {
   content?: ContentType;
   wrapperStyle?: JSX.CSSProperties;
   width?: number | string;
@@ -46,6 +56,9 @@ export type LegendProps = Omit<DefaultLegendContentProps, "payload"> & {
   payloadUniqBy?: UniqueOption<LegendPayload>;
   portal?: HTMLElement | null;
   itemSorter?: LegendItemSorter | null;
+  layout?: CartesianLayout | "auto";
+  position?: CartesianPosition;
+  offset?: number;
 };
 
 export const legendDefaultProps = {
@@ -54,13 +67,15 @@ export const legendDefaultProps = {
   inactiveColor: "#ccc",
   itemSorter: "value",
   labelStyle: {},
-  layout: "horizontal",
+  layout: "auto",
   verticalAlign: "bottom",
+  offset: 0,
 } as const satisfies Partial<LegendProps>;
 
 // Props passed to a function-form `content`. Mirrors recharts' ContentProps: the
 // legend props plus chart-derived margin/dimensions and the final (sorted) payload.
-type LegendContentProps = LegendProps & {
+type LegendContentProps = Omit<LegendProps, "layout"> & {
+  layout: CartesianLayout;
   margin?: Margin;
   chartWidth?: number;
   chartHeight?: number;
@@ -70,7 +85,7 @@ type LegendContentProps = LegendProps & {
 // Port of recharts' getWidthOrHeight: a horizontal legend takes an explicit width
 // or falls back to the available chart width; a vertical legend takes an explicit height.
 function getWidthOrHeight(
-  layout: LayoutType | undefined,
+  layout: CartesianLayout | undefined,
   height: number | string | undefined,
   width: number | string | undefined,
   maxWidth: number,
@@ -84,10 +99,38 @@ function getWidthOrHeight(
   return null;
 }
 
+function getLayoutForPosition(position: CartesianPosition | undefined): CartesianLayout {
+  return position === "left" ||
+    position === "right" ||
+    position === "insideLeft" ||
+    position === "insideRight"
+    ? "vertical"
+    : "horizontal";
+}
+
+function selectPositionViewBox(state: RechartsRootState, position: CartesianPosition | undefined) {
+  if (position == null) {
+    return null;
+  }
+  return isOutsidePosition(position) ? selectLegendArea(state) : selectChartViewBox(state);
+}
+
+function getOutsidePositionOffset(
+  position: CartesianPosition | undefined,
+  offset: number,
+  box: ElementOffset,
+): { top?: number; left?: number } {
+  if (position === "top") return { top: box.height + offset };
+  if (position === "bottom") return { top: -box.height - offset };
+  if (position === "left") return { left: box.width + offset };
+  if (position === "right") return { left: -box.width - offset };
+  return {};
+}
+
 function getDefaultPosition(
   style: JSX.CSSProperties | undefined,
   props: {
-    layout: LayoutType;
+    layout: CartesianLayout;
     align: HorizontalAlignmentType;
     verticalAlign: VerticalAlignmentType;
   },
@@ -129,12 +172,17 @@ function getDefaultPosition(
 
 export const Legend = (props: LegendProps): JSX.Element => {
   const merged = mergeProps(legendDefaultProps, props);
+  const layout = (): CartesianLayout =>
+    props.layout != null && props.layout !== "auto"
+      ? props.layout
+      : getLayoutForPosition(props.position);
   const store = useAppStore();
   const contextPayload = useLegendPayload();
   const legendPortalFromContext = useLegendPortal();
   const margin = useMargin();
   const chartWidth = useChartWidth();
   const chartHeight = useChartHeight();
+  const positionViewBox = useAppSelector((state) => selectPositionViewBox(state, props.position));
   const [lastBoundingBox, updateBoundingBox] = useElementOffset();
 
   // Push the legend settings into the store (drives the offset's legend space).
@@ -142,9 +190,11 @@ export const Legend = (props: LegendProps): JSX.Element => {
     on(
       () => ({
         align: merged.align,
-        layout: merged.layout,
+        layout: layout(),
         verticalAlign: merged.verticalAlign,
         itemSorter: merged.itemSorter,
+        position: props.position,
+        offset: merged.offset,
       }),
       (settings) => {
         store?.actions.legend.setLegendSettings(settings);
@@ -158,7 +208,7 @@ export const Legend = (props: LegendProps): JSX.Element => {
     on(
       () => ({ width: lastBoundingBox().width, height: lastBoundingBox().height }),
       (size) => {
-        if (props.portal == null) {
+        if (props.portal == null && (props.position == null || isOutsidePosition(props.position))) {
           store?.actions.legend.setLegendSize(size);
         }
       },
@@ -180,26 +230,26 @@ export const Legend = (props: LegendProps): JSX.Element => {
     const h = chartHeight() ?? 0;
     const m = margin();
     const maxWidth = w - (m?.left ?? 0) - (m?.right ?? 0);
-    const widthOrHeight = getWidthOrHeight(merged.layout, merged.height, merged.width, maxWidth);
+    const widthOrHeight = getWidthOrHeight(layout(), merged.height, merged.width, maxWidth);
     return {
       align: merged.align,
       iconSize: merged.iconSize,
-      iconType: merged.iconType,
       inactiveColor: merged.inactiveColor,
       itemSorter: merged.itemSorter,
       labelStyle: merged.labelStyle,
-      layout: merged.layout,
+      layout: layout(),
       verticalAlign: merged.verticalAlign,
-      formatter: merged.formatter,
       content: merged.content,
-      onClick: merged.onClick,
-      onMouseEnter: merged.onMouseEnter,
-      onMouseLeave: merged.onMouseLeave,
-      wrapperStyle: merged.wrapperStyle,
-      width: merged.width,
-      height: merged.height,
-      payloadUniqBy: merged.payloadUniqBy,
-      portal: merged.portal,
+      offset: merged.offset,
+      ...(merged.iconType == null ? {} : { iconType: merged.iconType }),
+      ...(merged.formatter == null ? {} : { formatter: merged.formatter }),
+      ...(merged.onClick == null ? {} : { onClick: merged.onClick }),
+      ...(merged.onMouseEnter == null ? {} : { onMouseEnter: merged.onMouseEnter }),
+      ...(merged.onMouseLeave == null ? {} : { onMouseLeave: merged.onMouseLeave }),
+      ...(merged.wrapperStyle == null ? {} : { wrapperStyle: merged.wrapperStyle }),
+      ...(merged.payloadUniqBy == null ? {} : { payloadUniqBy: merged.payloadUniqBy }),
+      ...(merged.portal == null ? {} : { portal: merged.portal }),
+      ...(props.position == null ? {} : { position: props.position }),
       ...widthOrHeight,
       margin: m,
       chartWidth: w,
@@ -216,21 +266,54 @@ export const Legend = (props: LegendProps): JSX.Element => {
     const h = chartHeight();
     const m = margin();
     const maxWidth = (w ?? 0) - (m?.left ?? 0) - (m?.right ?? 0);
-    const widthOrHeight = getWidthOrHeight(merged.layout, merged.height, merged.width, maxWidth);
+    const widthOrHeight = getWidthOrHeight(layout(), merged.height, merged.width, maxWidth);
+    const vb = positionViewBox();
+    const positionResult =
+      props.position == null || vb == null
+        ? null
+        : getCartesianPosition({
+            viewBox: vb,
+            position: props.position,
+            offset: merged.offset,
+          });
+    const outsideOffset = getOutsidePositionOffset(
+      props.position,
+      merged.offset,
+      lastBoundingBox(),
+    );
+    const positionStyle: JSX.CSSProperties = positionResult
+      ? {
+          width: "max-content",
+          height: "max-content",
+          "max-width": toCssLength(
+            layout() === "vertical" ? (vb?.width ?? 0) / 2 : (vb?.width ?? 0),
+          ),
+          "max-height": toCssLength(
+            layout() === "horizontal" ? (vb?.height ?? 0) / 2 : (vb?.height ?? 0),
+          ),
+          "overflow-y": "auto",
+          top: toCssLength(positionResult.y + (outsideOffset.top ?? 0)),
+          left: toCssLength(positionResult.x + (outsideOffset.left ?? 0)),
+          transform: cartesianPositionToCSSTranslate(
+            positionResult.horizontalAnchor,
+            positionResult.verticalAnchor,
+          ),
+        }
+      : getDefaultPosition(
+          merged.wrapperStyle,
+          { layout: layout(), align: merged.align, verticalAlign: merged.verticalAlign },
+          m,
+          w ?? 0,
+          h ?? 0,
+          lastBoundingBox(),
+        );
     return {
       position: "absolute",
       // Matches recharts: a horizontal legend without an explicit width fills the
       // available chart width (maxWidth) via getWidthOrHeight; otherwise "auto".
       width: toCssLength(widthOrHeight?.width ?? merged.width),
       height: toCssLength(widthOrHeight?.height ?? merged.height),
-      ...getDefaultPosition(
-        merged.wrapperStyle,
-        { layout: merged.layout, align: merged.align, verticalAlign: merged.verticalAlign },
-        m,
-        w ?? 0,
-        h ?? 0,
-        lastBoundingBox(),
-      ),
+      ...positionStyle,
       ...merged.wrapperStyle,
     };
   };
@@ -241,7 +324,8 @@ export const Legend = (props: LegendProps): JSX.Element => {
         portal() != null &&
         contextPayload() != null &&
         chartWidth() != null &&
-        chartHeight() != null
+        chartHeight() != null &&
+        (props.position == null || positionViewBox() != null)
           ? portal()
           : null
       }
@@ -256,7 +340,7 @@ export const Legend = (props: LegendProps): JSX.Element => {
                   payload={finalPayload()}
                   iconSize={merged.iconSize}
                   iconType={merged.iconType}
-                  layout={merged.layout}
+                  layout={layout()}
                   align={merged.align}
                   verticalAlign={merged.verticalAlign}
                   inactiveColor={merged.inactiveColor}

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const SHA = "b3451050c027a23957ffa50a2665c9119df21e47";
+const SHA = "ffb918798051ef040bb7f9922d3850c9c189f39f";
 const DIR = resolve(ROOT, "vendor/recharts-reference");
 
 if (!existsSync(`${DIR}/.git`)) {

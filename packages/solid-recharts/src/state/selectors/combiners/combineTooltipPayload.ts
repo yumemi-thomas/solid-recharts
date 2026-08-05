@@ -157,6 +157,9 @@ export const combineTooltipPayload = (
         tooltipEventType === "axis"
       ) {
         tooltipPayload = findEntryInArray(sliced, tooltipAxisDataKey, activeLabel);
+        if (tooltipPayload == null) {
+          tooltipPayload = tooltipPayloadSearcher(sliced, activeIndex, computedData, finalNameKey);
+        }
       } else {
         tooltipPayload = tooltipPayloadSearcher(sliced, activeIndex, computedData, finalNameKey);
       }

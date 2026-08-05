@@ -573,19 +573,21 @@ function BarRectangleWithActiveState(props: {
   isAnimating?: boolean;
   isEntrance?: boolean;
   isEntryActive: (entry: BarRectangleItem, dataKey: DataKey<unknown> | undefined) => boolean;
+  isAnotherBarActive: (entry: BarRectangleItem, dataKey: DataKey<unknown> | undefined) => boolean;
   onMouseMove?: (event: MouseEvent) => void;
   onMouseDown?: (event: MouseEvent) => void;
   onMouseUp?: (event: MouseEvent) => void;
 }): JSX.Element {
   const isActive = (): boolean => props.isEntryActive(props.entry, props.dataKey);
+  const isAnotherBarActive = (): boolean => props.isAnotherBarActive(props.entry, props.dataKey);
 
   const [stayInLayer, setStayInLayer] = createSignal(false);
   const [hasMountedActive, setHasMountedActive] = createSignal(false);
 
   createEffect(
     on(
-      () => isActive(),
-      (active) => {
+      () => ({ active: isActive(), anotherBarActive: isAnotherBarActive() }),
+      ({ active, anotherBarActive }) => {
         let rafId: number | undefined;
         if (active) {
           setStayInLayer(true);
@@ -594,6 +596,9 @@ function BarRectangleWithActiveState(props: {
           });
         } else {
           setHasMountedActive(false);
+          if (anotherBarActive) {
+            setStayInLayer(false);
+          }
         }
         onCleanup(() => {
           if (rafId != null) {
@@ -675,6 +680,7 @@ function BarRectangleLayer(props: {
   isAnimating?: boolean;
   isEntrance?: boolean;
   isEntryActive: (entry: BarRectangleItem, dataKey: DataKey<unknown> | undefined) => boolean;
+  isAnotherBarActive: (entry: BarRectangleItem, dataKey: DataKey<unknown> | undefined) => boolean;
   onMouseEnter: (event: MouseEvent) => void;
   onMouseLeave: (event: MouseEvent) => void;
   onClick: (event: MouseEvent) => void;
@@ -716,6 +722,7 @@ function BarRectangleLayer(props: {
           isAnimating={props.isAnimating}
           isEntrance={props.isEntrance}
           isEntryActive={props.isEntryActive}
+          isAnotherBarActive={props.isAnotherBarActive}
           onMouseMove={props.onMouseMove}
           onMouseDown={props.onMouseDown}
           onMouseUp={props.onMouseUp}
@@ -976,6 +983,17 @@ export const Bar = (props: BarProps): JSX.Element => {
     const dk = activeTooltipDataKey();
     return String(entry.originalDataIndex) === idx && (dk == null || dataKey === dk);
   };
+  const isAnotherBarActive = (
+    entry: BarRectangleItem,
+    dataKey: DataKey<unknown> | undefined,
+  ): boolean => {
+    const idx = activeTooltipIndex();
+    if (idx == null) {
+      return false;
+    }
+    const dk = activeTooltipDataKey();
+    return String(entry.originalDataIndex) !== idx || (dk != null && dataKey !== dk);
+  };
 
   // One LabelList entry per rectangle (its trapezoid viewBox + value/payload),
   // provided to LabelList via context.
@@ -1153,6 +1171,7 @@ export const Bar = (props: BarProps): JSX.Element => {
                               isAnimating={isAnimating() || animationElapsedTime < 1}
                               isEntrance={isEntrance}
                               isEntryActive={isEntryActive}
+                              isAnotherBarActive={isAnotherBarActive}
                               cellClass={typeof r().class === "string" ? r().class : undefined}
                               onMouseEnter={(event) =>
                                 onItemEnter(r(), r().originalDataIndex)(event)

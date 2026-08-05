@@ -29,6 +29,8 @@ import {
   RadialBarChart,
   Scatter,
   ScatterChart,
+  XAxis,
+  YAxis,
 } from "../../src";
 import type { LegendProps, LegendType } from "../../src";
 import { selectLegendPayload } from "../../src/state/selectors/legendSelectors";
@@ -624,6 +626,167 @@ describe("<Legend />", () => {
       );
     });
 
+    describe("position prop", () => {
+      it('should set absolute position based on position="top"', () => {
+        const { container } = render(() => (
+          <LineChart width={500} height={500} data={numericalData}>
+            <Legend position="top" />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          position: "absolute",
+          top: "5px",
+          left: "250px",
+          transform: "translate(-50%, -100%)",
+        });
+      });
+
+      it("should set absolute position offset by margin", () => {
+        const { container } = render(() => (
+          <LineChart
+            width={500}
+            height={500}
+            data={numericalData}
+            margin={{ top: 3, right: 0, bottom: 11, left: 30 }}
+          >
+            <Legend position="top" />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          position: "absolute",
+          top: "3px",
+          left: "265px",
+          transform: "translate(-50%, -100%)",
+        });
+      });
+
+      it('should set absolute position based on position="insideBottomRight"', () => {
+        const { container } = render(() => (
+          <LineChart width={500} height={500} data={numericalData}>
+            <Legend position="insideBottomRight" />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          position: "absolute",
+          top: "495px",
+          left: "495px",
+          transform: "translate(-100%, -100%)",
+        });
+      });
+
+      it("should keep insideBottomRight within the plot area after margins and axes", () => {
+        const { container } = render(() => (
+          <LineChart
+            width={500}
+            height={500}
+            data={numericalData}
+            margin={{ top: 3, right: 7, bottom: 11, left: 30 }}
+          >
+            <XAxis />
+            <YAxis />
+            <Legend position="insideBottomRight" />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          top: "459px",
+          left: "493px",
+          transform: "translate(-100%, -100%)",
+        });
+      });
+
+      it("should apply offset", () => {
+        const { container } = render(() => (
+          <LineChart width={500} height={500} data={numericalData}>
+            <Legend position="left" offset={10} />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          position: "absolute",
+          top: "250px",
+          left: "5px",
+          transform: "translate(-100%, -50%)",
+        });
+      });
+
+      it("should position outside legends beyond the axes", () => {
+        mockGetBoundingClientRect({ width: 100, height: 20 });
+        const { container } = render(() => (
+          <LineChart
+            width={500}
+            height={500}
+            data={numericalData}
+            margin={{ top: 3, right: 0, bottom: 11, left: 30 }}
+          >
+            <XAxis />
+            <YAxis />
+            <Legend position="bottom" />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          top: "469px",
+          left: "265px",
+          transform: "translate(-50%, 0)",
+        });
+      });
+
+      it("should default left and top positions to vertical and horizontal layouts", () => {
+        const { container } = render(() => (
+          <>
+            <LineChart width={500} height={500} data={numericalData}>
+              <Legend position="left" />
+              <Line dataKey="value" />
+              <Line dataKey="title" />
+            </LineChart>
+            <LineChart width={500} height={500} data={numericalData}>
+              <Legend position="insideTop" />
+              <Line dataKey="value" />
+              <Line dataKey="title" />
+            </LineChart>
+          </>
+        ));
+        const items = container.getElementsByClassName("recharts-legend-item");
+        expect(items[0]).toHaveStyle({ display: "block", whiteSpace: "nowrap" });
+        expect(items[2]).toHaveStyle({ display: "inline-block", whiteSpace: "nowrap" });
+        expect(items[0]?.querySelector(".recharts-legend-item-text")).toHaveStyle({
+          whiteSpace: "normal",
+          overflowWrap: "break-word",
+        });
+      });
+
+      it("should allow coordinate object position", () => {
+        const { container } = render(() => (
+          <LineChart width={500} height={500} data={numericalData}>
+            <Legend position={{ x: 100, y: 100 }} />
+            <Line dataKey="value" />
+          </LineChart>
+        ));
+        expect(container.querySelector(".recharts-legend-wrapper")).toHaveStyle({
+          position: "absolute",
+          top: "105px",
+          left: "105px",
+          transform: "translate(-100%, -100%)",
+        });
+      });
+    });
+
+    it("should not forward ID and class to the DOM", () => {
+      const { container } = render(() => (
+        <LineChart width={600} height={300} data={categoricalData}>
+          {/* @ts-expect-error These props intentionally do not belong to Legend. */}
+          <Legend id="foo" class="bar" />
+          <Line dataKey="uv" />
+        </LineChart>
+      ));
+      expect(container.querySelector("#foo")).toBeNull();
+      expect(container.querySelector(".bar")).toBeNull();
+    });
+
     it("should render one line legend item for each Line, with default class and style attributes", () => {
       const { container } = render(() => (
         <LineChart width={500} height={500} data={numericalData}>
@@ -642,12 +805,12 @@ describe("<Legend />", () => {
       expect.soft(legendItems[0]!.getAttribute("class")).toBe("recharts-legend-item legend-item-0");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
       expect.soft(legendItems[1]!.getAttributeNames()).toEqual(["class", "style"]);
       expect.soft(legendItems[1]!.getAttribute("class")).toBe("recharts-legend-item legend-item-1");
       expect
         .soft(legendItems[1]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Line should default to line
       const find = expectedLegendTypeSymbolsWithColor("#3182bd").find(
@@ -688,7 +851,7 @@ describe("<Legend />", () => {
         .toBe("recharts-legend-item legend-item-0 inactive");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Line should default to line
       const findResult = expectedLegendTypeSymbolsWithColor("yellow").find(
@@ -716,7 +879,7 @@ describe("<Legend />", () => {
         .toBe("recharts-legend-item legend-item-0 inactive");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       const findResult = expectedLegendTypeSymbolsWithColor("#ccc").find(
         (tc) => tc.legendType === "line",
@@ -934,12 +1097,12 @@ describe("<Legend />", () => {
       expect.soft(legendItems[0]!.getAttribute("class")).toBe("recharts-legend-item legend-item-0");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
       expect.soft(legendItems[1]!.getAttributeNames()).toEqual(["class", "style"]);
       expect.soft(legendItems[1]!.getAttribute("class")).toBe("recharts-legend-item legend-item-1");
       expect
         .soft(legendItems[1]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Bar should default to rect
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(
@@ -988,7 +1151,7 @@ describe("<Legend />", () => {
         .toBe("recharts-legend-item legend-item-0 inactive");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Bar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor("yellow").find(
@@ -1016,7 +1179,7 @@ describe("<Legend />", () => {
         .toBe("recharts-legend-item legend-item-0 inactive");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Bar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor("#ccc").find(
@@ -1482,14 +1645,14 @@ describe("<Legend />", () => {
           .toBe("recharts-legend-item legend-item-0");
         expect
           .soft(legendItems[0]!.getAttribute("style"))
-          .toBe("display: inline-block; margin-right: 10px;");
+          .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
         expect.soft(legendItems[1]!.getAttributeNames()).toEqual(["class", "style"]);
         expect
           .soft(legendItems[1]!.getAttribute("class"))
           .toBe("recharts-legend-item legend-item-1");
         expect
           .soft(legendItems[1]!.getAttribute("style"))
-          .toBe("display: inline-block; margin-right: 10px;");
+          .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
       });
 
       it("should render Line symbols and colors in absence of explicit legendType", () => {
@@ -1636,12 +1799,12 @@ describe("<Legend />", () => {
       expect.soft(legendItems[0]!.getAttribute("class")).toBe("recharts-legend-item legend-item-0");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
       expect.soft(legendItems[1]!.getAttributeNames()).toEqual(["class", "style"]);
       expect.soft(legendItems[1]!.getAttribute("class")).toBe("recharts-legend-item legend-item-1");
       expect
         .soft(legendItems[1]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Radar should default to rect
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(
@@ -1669,7 +1832,7 @@ describe("<Legend />", () => {
         .toBe("recharts-legend-item legend-item-0 inactive");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Radar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor("yellow").find(
@@ -1697,7 +1860,7 @@ describe("<Legend />", () => {
         .toBe("recharts-legend-item legend-item-0 inactive");
       expect
         .soft(legendItems[0]!.getAttribute("style"))
-        .toBe("display: inline-block; margin-right: 10px;");
+        .toBe("display: inline-block; margin-right: 10px; white-space: nowrap;");
 
       // in absence of explicit `legendType`, Radar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor("#ccc").find(

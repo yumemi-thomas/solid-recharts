@@ -1,6 +1,6 @@
 # AGENTS.md — solid-recharts
 
-A port of **recharts** (reference pinned at **v3.9.2**) to **SolidJS 1.x** with behavior parity
+A port of **recharts** (reference pinned at **v3.10.1**) to **SolidJS 1.x** with behavior parity
 and stronger types. The port is complete; work here is maintenance, upstream syncs, and features.
 **READ THIS BEFORE WRITING ANY CODE.**
 
@@ -8,7 +8,7 @@ and stronger types. The port is complete; work here is maintenance, upstream syn
 
 1. **Ensure the reference exists:** `pnpm run ref:verify`. If it fails, `pnpm run ref:setup`.
    Real recharts source lives at `vendor/recharts-reference/` (pinned commit
-   `b3451050c027a23957ffa50a2665c9119df21e47` = v3.9.2). `pnpm test` will refuse to run without it.
+   `ffb918798051ef040bb7f9922d3850c9c189f39f` = v3.10.1). `pnpm test` will refuse to run without it.
 2. **Read the REAL source** for the unit: `vendor/recharts-reference/src/<path>`.
 3. **Read the REAL spec:** `vendor/recharts-reference/test/<path>`.
 4. **Cite them in your message** (file path + line range). If you cannot cite the real

@@ -68,6 +68,33 @@ export const Cell = (props: CellProps): JSX.Element => {
 };
 
 /**
+ * Evaluates children with Cell registration active and returns the non-Cell
+ * output unchanged. This lets a graphical item establish contexts around its
+ * children before Solid evaluates them.
+ */
+export function CellReader(props: {
+  children: JSX.Element;
+  onCells: (cells: ReadonlyArray<CellProps>) => void;
+}): JSX.Element {
+  return (
+    <>
+      {(() => {
+        const collected: CellProps[] = [];
+        const prev = currentCellRegistrar;
+        currentCellRegistrar = (cell) => collected.push(cell);
+        try {
+          const result = props.children;
+          props.onCells(collected);
+          return result;
+        } finally {
+          currentCellRegistrar = prev;
+        }
+      })()}
+    </>
+  );
+}
+
+/**
  * Resolves `childrenAccessor` synchronously with the cell registrar active, so
  * every nested <Cell> reports its (reactive) props in document order. Returns the
  * collected cells as an accessor — recomputes if the children change, mirroring

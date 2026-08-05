@@ -106,6 +106,7 @@ describe("Legend.itemSorter", () => {
         labelStyle: {},
         layout: "horizontal",
         margin: { bottom: 5, left: 5, right: 5, top: 5 },
+        offset: 0,
         payload: [
           {
             color: "#3182bd",
@@ -194,6 +195,7 @@ describe("Legend.itemSorter", () => {
         labelStyle: {},
         layout: "horizontal",
         margin: { bottom: 5, left: 5, right: 5, top: 5 },
+        offset: 0,
         payload: [
           {
             color: "#3182bd",

@@ -3,7 +3,7 @@
 [Recharts](https://recharts.org) for [SolidJS 1.x](https://www.solidjs.com/) — the composable
 charting API you know, rebuilt on fine-grained reactivity.
 
-A behavior-parity port of recharts (reference pinned at **v3.9.2**): same components, same props,
+A behavior-parity port of recharts (reference pinned at **v3.10.1**): same components, same props,
 same rendered SVG — with recharts' internal Redux/reselect layer replaced by Solid-native stores
 and projections, and a stricter type surface (no `any`, no `as`).
 

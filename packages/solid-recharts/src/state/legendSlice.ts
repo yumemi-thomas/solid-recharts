@@ -17,12 +17,15 @@ import {
   LegendPayload,
   VerticalAlignmentType,
 } from "../component/DefaultLegendContent";
+import type { CartesianPosition } from "../cartesian/getCartesianPosition";
 
 export type LegendSettings = {
   layout: LayoutType;
   align: HorizontalAlignmentType;
   verticalAlign: VerticalAlignmentType;
   itemSorter: LegendItemSorter | null;
+  position?: CartesianPosition;
+  offset?: number;
 };
 
 /** One graphical item's registered legend entry, keyed by its id (Solid deviation). */
@@ -43,6 +46,8 @@ export const initialLegendState: LegendState = {
     align: "center",
     verticalAlign: "bottom",
     itemSorter: "value",
+    position: undefined,
+    offset: 0,
   },
   size: { width: 0, height: 0 },
   payload: [],
@@ -98,6 +103,8 @@ export function createLegendSlice(initialState: LegendState = initialLegendState
             layout: payload.layout,
             verticalAlign: payload.verticalAlign,
             itemSorter: payload.itemSorter,
+            position: payload.position,
+            offset: payload.offset,
           });
         }),
       );
