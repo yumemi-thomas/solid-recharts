@@ -243,9 +243,16 @@ export const Brush = (props: BrushProps): JSX.Element => {
   // Sync controlled start/end index props into the store (recharts BrushInternal
   // useEffect — always dispatch; the reducer ignores undefined fields).
   createEffect(
-    () => ({ startIndex: merged.startIndex, endIndex: merged.endIndex }),
+    () => ({
+      startIndex: merged.startIndex,
+      endIndex: merged.endIndex,
+      chartData: dataState()?.chartData,
+    }),
     (idx) => {
-      store?.actions.chartData.setDataStartEndIndexes(idx);
+      store?.actions.chartData.setDataStartEndIndexes({
+        startIndex: idx.startIndex,
+        endIndex: idx.endIndex,
+      });
     },
   );
 
@@ -282,6 +289,24 @@ export const Brush = (props: BrushProps): JSX.Element => {
   // is cleared on release so the handle snaps to the (now-updated) index position.
   const [overrideStartX, setOverrideStartX] = createSignal<number | null>(null);
   const [overrideEndX, setOverrideEndX] = createSignal<number | null>(null);
+
+  // Recharts keeps the exact pixel positions reached during a drag, even if the
+  // movement did not cross an index boundary. Re-sync them only when inputs that
+  // define the scale or controlled selection change.
+  createEffect(
+    () => ({
+      chartData: data(),
+      startIndex: merged.startIndex,
+      endIndex: merged.endIndex,
+      x: x(),
+      width: width(),
+      travellerWidth: merged.travellerWidth,
+    }),
+    () => {
+      setOverrideStartX(null);
+      setOverrideEndX(null);
+    },
+  );
   const startX = createMemo<number>(() => {
     const o = overrideStartX();
     if (o != null) {
@@ -409,9 +434,6 @@ export const Brush = (props: BrushProps): JSX.Element => {
     const wasDragging = isTravellerMoving() || isSlideMoving();
     setIsTravellerMoving(false);
     setIsSlideMoving(false);
-    // Drop the pixel overrides so the travellers snap to the final index positions.
-    setOverrideStartX(null);
-    setOverrideEndX(null);
     detachListeners();
     if (leaveTimer != null) {
       clearTimeout(leaveTimer);

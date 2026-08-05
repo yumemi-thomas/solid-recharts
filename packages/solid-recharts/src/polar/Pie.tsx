@@ -31,7 +31,7 @@
 // recharts (the empty/hidden root Layer stays inline, mounting no portal).
 // DEFERRED: `maxRadius`/`cornerRadius` rounding edge cases, float-precise per-frame
 // animation angle matrices.
-import { createEffect, createMemo, For, merge, Show, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, For, merge, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
@@ -50,7 +50,7 @@ import { Sector } from "../shape/Sector";
 import { Text } from "../component/Text";
 import { Shape } from "../util/ActiveShapeUtils";
 import type { ActiveShape, ShapeAnimationProps } from "../util/types";
-import { type CellProps, collectCells } from "../component/Cell";
+import { CellReader, type CellProps } from "../component/Cell";
 import { selectPieSectors, selectPieLegend } from "../state/selectors/pieSelectors";
 import {
   selectActiveTooltipIndex,
@@ -82,6 +82,8 @@ import { getMaxRadius, polarToCartesian } from "../util/PolarUtils";
 import { getPercentValue, interpolate, isNumber, isNumOrStr, mathSign } from "../util/DataUtils";
 import { getValueByDataKey } from "../util/ChartUtils";
 import { registerInStore } from "../state/registerInStore";
+import { PolarLabelContextProvider } from "../component/Label";
+import { selectChartOffsetInternal } from "../state/selectors/selectChartOffsetInternal";
 
 export type PieCoordinate = {
   cx: number;
@@ -167,7 +169,7 @@ const getOuterRadius = (
 };
 
 const parseCoordinateOfPie = (
-  pieSettings: PieSettings,
+  pieSettings: Pick<PieSettings, "cx" | "cy" | "innerRadius" | "outerRadius" | "maxRadius">,
   offset: ChartOffsetInternal,
   dataPoint: unknown,
 ): PieCoordinate => {
@@ -619,9 +621,77 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
     );
   }
 
-  // Per-slice <Cell> overrides (collected from children, in data order).
-  const cells = collectCells(() => props.children);
+  // Per-slice <Cell> overrides are registered while children render under the
+  // Pie's own polar label context. `ownedWrite` is narrowly scoped to this
+  // internal child-registration channel.
+  const chartOffset = useAppSelector(selectChartOffsetInternal);
+  const [cells, setCells] = createSignal<ReadonlyArray<CellProps>>([], { ownedWrite: true });
+  let lastCells: ReadonlyArray<CellProps> = [];
+  const cellPropsAreEqual = (left: CellProps, right: CellProps): boolean => {
+    const leftEntries = Object.entries(left);
+    const rightEntries = Object.entries(right);
+    return (
+      leftEntries.length === rightEntries.length &&
+      leftEntries.every(
+        ([key, value]) => Object.hasOwn(right, key) && Object.is(value, Reflect.get(right, key)),
+      )
+    );
+  };
+  const updateCells = (next: ReadonlyArray<CellProps>): void => {
+    if (
+      next.length === lastCells.length &&
+      next.every((cell, index) => {
+        const previous = lastCells[index];
+        return previous != null && cellPropsAreEqual(cell, previous);
+      })
+    ) {
+      return;
+    }
+    lastCells = next;
+    setCells(next);
+  };
   const sectors = useAppSelector((state) => selectPieSectors(state, id, cells()));
+
+  const renderPieChildren = (): JSX.Element => {
+    const pieData = merged.data;
+    if (pieData != null && pieData.length === 0) {
+      return null;
+    }
+    const coordinate =
+      sectors()?.[0] ??
+      parseCoordinateOfPie(
+        {
+          cx: merged.cx,
+          cy: merged.cy,
+          innerRadius: merged.innerRadius,
+          outerRadius: merged.outerRadius,
+          maxRadius: merged.maxRadius,
+        },
+        chartOffset() ?? {
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          width: 0,
+          height: 0,
+          brushBottom: 0,
+        },
+        pieData?.[0],
+      );
+    return (
+      <PolarLabelContextProvider
+        cx={coordinate.cx}
+        cy={coordinate.cy}
+        innerRadius={coordinate.innerRadius}
+        outerRadius={coordinate.outerRadius}
+        startAngle={merged.startAngle}
+        endAngle={merged.endAngle}
+        clockWise={false}
+      >
+        <CellReader onCells={updateCells}>{props.children}</CellReader>
+      </PolarLabelContextProvider>
+    );
+  };
 
   // Layer takes a single class string (user-class forwarding parity with clsx).
   const layerClass = (): string =>
@@ -793,7 +863,7 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
         when={!merged.hide && polarLayout() ? sectors() : undefined}
         fallback={
           <Layer tabIndex={rootTabIndex()} class={layerClass()}>
-            {props.children}
+            {renderPieChildren()}
           </Layer>
         }
       >
@@ -890,7 +960,7 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
                 )}
               </AnimatedItems>
               <Show when={showLabels()}>{renderLabels(untrack(secs))}</Show>
-              {props.children}
+              {renderPieChildren()}
             </Layer>
           </ZIndexLayer>
         )}

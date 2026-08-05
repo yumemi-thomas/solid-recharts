@@ -10,7 +10,7 @@
 // plus `onCleanup` for removal. Defaults are resolved field-by-field to match
 // recharts' `resolveDefaultProps`: explicit `undefined` falls back to defaults.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, Show } from "solid-js";
+import { createEffect, createMemo, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
@@ -26,7 +26,7 @@ import {
   selectXAxisSize,
 } from "../state/selectors/axisSelectors";
 import { CartesianAxis, type CartesianTickEventHandler } from "./CartesianAxis";
-import type { ImplicitLabelType } from "../component/Label";
+import { isLabelContentAFunction, type ImplicitLabelType } from "../component/Label";
 import { RenderedTicksReporter } from "./RenderedTicksReporter";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
@@ -44,6 +44,7 @@ import {
 } from "../util/types";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
 import { registerInStore } from "../state/registerInStore";
+import { getCalculatedXAxisHeight } from "../util/XAxisUtils";
 
 export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   xAxisId?: string | number;
@@ -61,7 +62,7 @@ export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   tickCount?: number;
   tickFormatter?: TickFormatter;
   padding?: XAxisPadding;
-  height?: number;
+  height?: number | "auto";
   orientation?: XAxisOrientation;
   mirror?: boolean;
   minTickGap?: number;
@@ -226,6 +227,39 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
     return { position: p, size: s, ticks: ticks() ?? [] };
   });
 
+  let layerEl: SVGGElement | null = null;
+  createEffect(
+    () => ({
+      ticks: ticks(),
+      size: size(),
+      height: props.height,
+      label: props.label,
+      id: xAxisId(),
+    }),
+    (inputs) => {
+      if (inputs.height !== "auto" || isLabelContentAFunction(inputs.label)) {
+        return;
+      }
+      if (layerEl == null || inputs.ticks == null || inputs.size == null || store == null) {
+        return;
+      }
+      const tickNodes = layerEl.getElementsByClassName("recharts-cartesian-axis-tick-value");
+      if (tickNodes.length === 0) {
+        return;
+      }
+      const updatedHeight = getCalculatedXAxisHeight({
+        ticks: tickNodes,
+        label: undefined,
+        labelGapWithTick: 5,
+        tickSize: props.tickSize ?? 6,
+        tickMargin: props.tickMargin ?? 2,
+      });
+      if (Math.round(inputs.size.height) !== Math.round(updatedHeight)) {
+        store.actions.cartesianAxis.updateXAxisHeight({ id: inputs.id, height: updatedHeight });
+      }
+    },
+  );
+
   return (
     <Show when={!isPanorama && !hide() && axisRender()}>
       {(ar) => (
@@ -233,6 +267,9 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
           <RenderedTicksReporter axisType="xAxis" axisId={xAxisId()} ticks={ar().ticks} />
           <CartesianAxis
             axisType="xAxis"
+            layerRef={(el) => {
+              layerEl = el;
+            }}
             x={ar().position.x}
             y={ar().position.y}
             width={ar().size.width}

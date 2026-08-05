@@ -124,10 +124,13 @@ export type CartesianAxisSettings = BaseCartesianAxis &
     tickFormatter: TickFormatter | undefined;
   };
 
+export type XAxisHeight = number | "auto";
+
 export type XAxisSettings = CartesianAxisSettings & {
   padding: XAxisPadding;
-  height: number;
+  height: XAxisHeight;
   orientation: XAxisOrientation;
+  heightHistory?: number[];
 };
 
 export type YAxisWidth = number | "auto";
@@ -175,6 +178,7 @@ export interface CartesianAxisActions {
   replaceZAxis(payload: ReplacePayload<ZAxisSettings>): void;
   removeZAxis(axis: ZAxisSettings): void;
   updateYAxisWidth(payload: { id: AxisId; width: number }): void;
+  updateXAxisHeight(payload: { id: AxisId; height: number }): void;
 }
 
 export interface CartesianAxisSlice {
@@ -258,6 +262,28 @@ export function createCartesianAxisSlice(
             ...axis,
             width,
             widthHistory: newHistory,
+          };
+        }
+      });
+    },
+    updateXAxisHeight({ id, height }) {
+      setState((s) => {
+        const axis = s.xAxis[id];
+        if (axis) {
+          const history = axis.heightHistory || [];
+          if (
+            history.length === 3 &&
+            history[0] === history[2] &&
+            height === history[1] &&
+            height !== axis.height &&
+            Math.abs(height - (history[0] ?? 0)) <= 1
+          ) {
+            return;
+          }
+          s.xAxis[id] = {
+            ...axis,
+            height,
+            heightHistory: [...history, height].slice(-3),
           };
         }
       });

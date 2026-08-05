@@ -389,7 +389,34 @@ export function Label(outerProps: Props): JSX.Element {
     if (vb == null || typeof content !== "function") {
       return undefined;
     }
-    return { content, args: omit({ ...props, viewBox: vb }, "content") };
+    let computedPosition: { x?: number; y?: number } = {};
+    if (isPolarViewBox(vb)) {
+      const isRadial =
+        props.position === "insideStart" ||
+        props.position === "insideEnd" ||
+        props.position === "end";
+      if (!isRadial) {
+        const attrs = getAttrsOfPolarLabel(vb, props.offset, props.position);
+        computedPosition = { x: attrs.x, y: attrs.y };
+      }
+    } else {
+      const parentViewBox =
+        props.parentViewBox != null && "cx" in props.parentViewBox
+          ? undefined
+          : props.parentViewBox;
+      const position = getCartesianPosition({
+        viewBox: vb,
+        position: props.position,
+        offset: props.offset,
+        parentViewBox,
+        clamp: true,
+      });
+      computedPosition = { x: position.x, y: position.y };
+    }
+    return {
+      content,
+      args: omit({ ...computedPosition, ...props, viewBox: vb }, "content"),
+    };
   });
 
   // Render the default/polar/radial text labels inline under <Show> (their render

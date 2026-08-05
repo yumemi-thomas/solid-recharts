@@ -11,6 +11,13 @@ import { useAppStore } from "../state/hooks";
 import type { AxisId } from "../state/cartesianAxisSlice";
 import type { CartesianTickItem, TickItem } from "../util/types";
 import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
+import { shallowEqual } from "../util/ShallowEqual";
+
+function ticksAreEqual(left: ReadonlyArray<TickItem>, right: ReadonlyArray<TickItem>): boolean {
+  return (
+    left.length === right.length && left.every((tick, index) => shallowEqual(tick, right[index]))
+  );
+}
 
 export function RenderedTicksReporter(props: {
   axisType: "xAxis" | "yAxis";
@@ -19,6 +26,9 @@ export function RenderedTicksReporter(props: {
 }): JSX.Element {
   const store = useAppStore();
   let prev: { axisType: "xAxis" | "yAxis"; axisId: AxisId } | null = null;
+  let lastDispatched:
+    | { axisType: "xAxis" | "yAxis"; axisId: AxisId; ticks: ReadonlyArray<TickItem> }
+    | undefined;
 
   createEffect(
     (): { axisType: "xAxis" | "yAxis"; axisId: AxisId; ticks: ReadonlyArray<TickItem> } => ({
@@ -33,7 +43,16 @@ export function RenderedTicksReporter(props: {
       })),
     }),
     (payload) => {
+      if (
+        lastDispatched != null &&
+        lastDispatched.axisId === payload.axisId &&
+        lastDispatched.axisType === payload.axisType &&
+        ticksAreEqual(lastDispatched.ticks, payload.ticks)
+      ) {
+        return;
+      }
       store?.actions.renderedTicks.setRenderedTicks(payload);
+      lastDispatched = payload;
       prev = { axisType: payload.axisType, axisId: payload.axisId };
     },
   );

@@ -410,7 +410,7 @@ export const Line = (props: LineProps): JSX.Element => {
         dot: merged.dot,
         fill: merged.fill,
         hide: merged.hide,
-        id: merged.id,
+        ...(merged.id == null ? {} : { id: merged.id }),
         isAnimationActive: merged.isAnimationActive,
         label: merged.label,
         legendType: merged.legendType,

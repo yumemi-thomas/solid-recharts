@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getCartesianPosition,
   GetCartesianPositionOptions,
-  CartesianPosition,
+  CalculatedCartesianPosition as CartesianPosition,
 } from "../../src/cartesian/getCartesianPosition";
 import { CartesianViewBoxRequired, TrapezoidViewBox } from "../../src/util/types";
 

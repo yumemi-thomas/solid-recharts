@@ -5,6 +5,8 @@
 import { RechartsRootState } from "../store";
 import { selectStackGroups, selectUnfilteredCartesianItems } from "./axisSelectors";
 import { getBandSizeOfAxis, isCategoricalAxis } from "../../util/ChartUtils";
+import type { DataKey } from "../../util/types";
+import { isNotNil } from "../../util/DataUtils";
 import { ChartData } from "../chartDataSlice";
 import { selectChartLayout } from "../../context/chartLayoutContext";
 import { selectChartDataWithIndexesIfNotInPanoramaPosition3 } from "./dataSelectors";
@@ -87,6 +89,21 @@ export const selectGraphicalItemStackedData = (
   return found.map((item): StackDataPoint => [item[0], item[1]]);
 };
 
+const selectStackDataKeys = (
+  state: RechartsRootState,
+  id: GraphicalItemId,
+  isPanorama: boolean,
+): ReadonlyArray<DataKey<unknown>> | undefined => {
+  const areaSettings = selectSynchronisedAreaSettings(state, id);
+  const stackGroups = selectAreaStackGroups(state, id, isPanorama);
+  if (areaSettings?.stackId == null || stackGroups == null) {
+    return undefined;
+  }
+  return stackGroups[areaSettings.stackId]?.graphicalItems
+    .map((item) => item.dataKey)
+    .filter(isNotNil);
+};
+
 export const selectArea = (
   state: RechartsRootState,
   id: GraphicalItemId,
@@ -103,6 +120,7 @@ export const selectArea = (
   const areaSettings = selectSynchronisedAreaSettings(state, id);
   const chartBaseValue = selectChartBaseValue(state);
   const stackedData = selectGraphicalItemStackedData(state, id, isPanorama);
+  const stackDataKeys = selectStackDataKeys(state, id, isPanorama);
 
   if (
     areaSettings == null ||
@@ -142,5 +160,6 @@ export const selectArea = (
     dataStartIndex,
     chartBaseValue,
     bandSize,
+    stackDataKeys,
   });
 };

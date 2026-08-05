@@ -1456,6 +1456,111 @@ describe("selectTooltipPayload", () => {
     };
     expect(actual).toEqual([expected]);
   });
+
+  it("should use label-based search when tooltipEventType is axis and tooltipAxisDataKey is provided", () => {
+    const chartDataState: ChartDataState = {
+      ...initialChartDataState,
+      chartData: [
+        { name: "Page A", pv: 100 },
+        { name: "Page B", pv: 200 },
+        { name: "Page A", pv: 300 },
+      ],
+      dataStartIndex: 0,
+      dataEndIndex: 2,
+    };
+    const tooltipPayloadConfiguration: TooltipPayloadConfiguration = {
+      settings: {
+        dataKey: "pv",
+        nameKey: "name",
+        graphicalItemId: "bar-1",
+        name: undefined,
+      },
+      dataDefinedOnItem: undefined,
+      getPosition: noop,
+    };
+    const actual = combineTooltipPayload(
+      [tooltipPayloadConfiguration],
+      "0",
+      chartDataState,
+      "name",
+      "Page A",
+      arrayTooltipSearcher,
+      "axis",
+    );
+    expect(actual).toHaveLength(1);
+    expect(actual?.[0]?.payload).toEqual({ name: "Page A", pv: 100 });
+    expect(actual?.[0]?.value).toBe(100);
+  });
+
+  it("should fall back to index-based search when label-based search returns undefined", () => {
+    const chartDataState: ChartDataState = {
+      ...initialChartDataState,
+      chartData: [
+        { name: "Page A", pv: 100 },
+        { name: "Page B", pv: 200 },
+        { name: "Page A", pv: 300 },
+      ],
+      dataStartIndex: 0,
+      dataEndIndex: 2,
+    };
+    const tooltipPayloadConfiguration: TooltipPayloadConfiguration = {
+      settings: {
+        dataKey: "pv",
+        nameKey: "name",
+        graphicalItemId: "bar-1",
+        name: undefined,
+      },
+      dataDefinedOnItem: undefined,
+      getPosition: noop,
+    };
+    const actual = combineTooltipPayload(
+      [tooltipPayloadConfiguration],
+      "1",
+      chartDataState,
+      "name",
+      "NonExistent",
+      arrayTooltipSearcher,
+      "axis",
+    );
+    expect(actual).toHaveLength(1);
+    expect(actual?.[0]?.payload).toEqual({ name: "Page B", pv: 200 });
+    expect(actual?.[0]?.value).toBe(200);
+  });
+
+  it("should fall back to index-based search for duplicate categories when label does not match any data entry", () => {
+    const chartDataState: ChartDataState = {
+      ...initialChartDataState,
+      chartData: [
+        { category: "A", value: 10 },
+        { category: "A", value: 20 },
+        { category: "B", value: 30 },
+      ],
+      dataStartIndex: 0,
+      dataEndIndex: 2,
+    };
+    const tooltipPayloadConfiguration: TooltipPayloadConfiguration = {
+      settings: {
+        dataKey: "value",
+        nameKey: "category",
+        graphicalItemId: "bar-1",
+        name: undefined,
+      },
+      dataDefinedOnItem: undefined,
+      getPosition: noop,
+    };
+    const actual = combineTooltipPayload(
+      [tooltipPayloadConfiguration],
+      "1",
+      chartDataState,
+      "category",
+      "NonExistent",
+      arrayTooltipSearcher,
+      "axis",
+    );
+    expect(actual).toHaveLength(1);
+    expect(actual?.[0]?.payload).toEqual({ category: "A", value: 20 });
+    expect(actual?.[0]?.value).toBe(20);
+  });
 });
 
 describe("selectTooltipPayloadConfigurations", () => {

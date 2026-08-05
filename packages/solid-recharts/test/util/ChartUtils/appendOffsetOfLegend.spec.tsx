@@ -130,4 +130,19 @@ describe("appendOffsetOfLegend", () => {
     const result = appendOffsetOfLegend(emptyOffset, settings, size);
     expect(result).toEqual({ ...emptyOffset, left: 105 });
   });
+
+  it("should reserve chart space for an outside position-based legend", () => {
+    const settings: LegendSettings = {
+      align: "center",
+      layout: "horizontal",
+      verticalAlign: "bottom",
+      itemSorter: "value",
+      position: "bottom",
+      offset: 30,
+    };
+    expect(appendOffsetOfLegend(emptyOffset, settings, { width: 100, height: 200 })).toEqual({
+      ...emptyOffset,
+      bottom: 239,
+    });
+  });
 });

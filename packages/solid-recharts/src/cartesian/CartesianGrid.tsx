@@ -32,6 +32,7 @@ import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import type { ChartOffsetInternal, TickItem } from "../util/types";
+import { useRechartsTheme } from "../theme/RechartsThemeContext";
 
 /**
  * The props passed to a custom horizontal/vertical render-prop function (and,
@@ -93,8 +94,9 @@ export interface CartesianGridProps {
   horizontal?: GridLineType;
   vertical?: GridLineType;
   stroke?: string;
+  strokeWidth?: number | string;
   strokeOpacity?: number | string;
-  strokeDasharray?: string | number;
+  strokeDasharray?: string | number | ReadonlyArray<number>;
   horizontalPoints?: ReadonlyArray<number>;
   verticalPoints?: ReadonlyArray<number>;
   horizontalCoordinatesGenerator?: HorizontalCoordinatesGenerator;
@@ -137,8 +139,6 @@ const cartesianGridDefaults = {
   vertical: true,
   horizontalPoints: EMPTY_POINTS,
   verticalPoints: EMPTY_POINTS,
-  stroke: "#ccc",
-  fill: "none",
   verticalFill: EMPTY_FILL,
   horizontalFill: EMPTY_FILL,
   syncWithTicks: false,
@@ -228,6 +228,7 @@ const defaultHorizontalCoordinatesGenerator: HorizontalCoordinatesGenerator = (
 
 export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
   const merged = merge(cartesianGridDefaults, props);
+  const theme = useRechartsTheme();
   const isPanorama = useIsPanorama();
   const offset = useOffsetInternal();
   const chartWidth = useChartWidth();
@@ -305,8 +306,21 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
   });
 
   // stroke-dasharray accepts only string in JSX; coerce the number form.
-  const dash = (): string | undefined =>
-    merged.strokeDasharray == null ? undefined : String(merged.strokeDasharray);
+  const dash = (): string | undefined => {
+    const value = props.strokeDasharray ?? theme.grid.strokeDasharray;
+    if (value == null) {
+      return undefined;
+    }
+    return Array.isArray(value) ? value.join(",") : String(value);
+  };
+  const stroke = (): string | undefined => props.stroke ?? theme.grid.stroke;
+  const strokeWidth = (): number | string | undefined =>
+    props.strokeWidth ?? theme.grid.strokeWidth;
+  const strokeOpacity = (): number | string | undefined =>
+    props.strokeOpacity ?? theme.grid.strokeOpacity;
+  const fill = (): string | undefined => props.fill ?? theme.grid.fill;
+  const fillOpacity = (): number | string | undefined =>
+    props.fillOpacity ?? theme.grid.fillOpacity;
 
   // Compute the rounded/sorted stripe bands for the horizontal direction.
   const horizontalStripes = createMemo(() => {
@@ -387,7 +401,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
   ): GridLineTypeFunctionProps => {
     const g = geom();
     return {
-      stroke: merged.stroke,
+      stroke: stroke() ?? "",
       fill: "none",
       syncWithTicks: merged.syncWithTicks,
       horizontal: merged.horizontal,
@@ -487,7 +501,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
           BELOW the graphical items, mirroring the reference's settled DOM. */}
       <ZIndexLayer zIndex={merged.zIndex}>
         <g class={["recharts-cartesian-grid", merged.class]}>
-          <Show when={merged.fill != null && merged.fill !== "none"}>
+          <Show when={fill() != null && fill() !== "none"}>
             <rect
               x={geom().x}
               y={geom().y}
@@ -495,8 +509,8 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
               width={geom().width}
               height={geom().height}
               stroke="none"
-              fill={merged.fill}
-              fill-opacity={merged.fillOpacity}
+              fill={fill()}
+              fill-opacity={fillOpacity()}
               class="recharts-cartesian-grid-bg"
             />
           </Show>
@@ -511,7 +525,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                     width={stripe.width}
                     stroke="none"
                     fill={stripe.fill}
-                    fill-opacity={merged.fillOpacity}
+                    fill-opacity={fillOpacity()}
                     class="recharts-cartesian-grid-bg"
                   />
                 )}
@@ -529,7 +543,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                     height={stripe.height}
                     stroke="none"
                     fill={stripe.fill}
-                    fill-opacity={merged.fillOpacity}
+                    fill-opacity={fillOpacity()}
                     class="recharts-cartesian-grid-bg"
                   />
                 )}
@@ -544,7 +558,9 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                     d.custom
                   ) : (
                     <line
-                      stroke={merged.stroke}
+                      stroke={stroke()}
+                      stroke-width={strokeWidth()}
+                      stroke-opacity={strokeOpacity()}
                       stroke-dasharray={dash()}
                       fill="none"
                       // recharts emits the grid box x/y/width/height on each line (non-line
@@ -576,7 +592,9 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                     d.custom
                   ) : (
                     <line
-                      stroke={merged.stroke}
+                      stroke={stroke()}
+                      stroke-width={strokeWidth()}
+                      stroke-opacity={strokeOpacity()}
                       stroke-dasharray={dash()}
                       fill="none"
                       {...svgPropertiesNoEvents({
