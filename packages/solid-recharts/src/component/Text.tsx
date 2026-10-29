@@ -4,13 +4,12 @@
 // Global) and ported verbatim. Solid deviations on the component: forwardRef →
 // (ref forwarding deferred — axis tick labels don't need it); useMemo →
 // createMemo; resolveDefaultProps → merge; `className`→`class`, clsx → array
-// `class`; React CSSProperties → csstype Properties (matches getStringSize); the
+// `class`; React CSSProperties → Solid's kebab-case JSX.CSSProperties; the
 // SVG passthrough props go through svgPropertiesAndEvents like the shape ports;
 // `React.ReactNode` children → `RenderableText`.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
 import { createMemo, For, merge, omit, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import type { Properties as CSSProperties } from "csstype";
 import { isNullish, isNumber, isNumOrStr } from "../util/DataUtils";
 import { Global } from "../util/Global";
 import { getStringSize } from "../util/DOMUtils";
@@ -91,7 +90,7 @@ interface TextProps {
   angle?: number;
   textAnchor?: TextAnchor;
   verticalAnchor?: TextVerticalAnchor;
-  style?: CSSProperties;
+  style?: JSX.CSSProperties;
   lineHeight?: number | string;
   capHeight?: number | string;
   breakAll?: boolean;
@@ -102,7 +101,8 @@ interface TextProps {
   offset?: number | string;
   // Narrowed from the broad JSX attribute types so the values flow cleanly into
   // the class array / `fill.includes` check.
-  class?: string;
+  /** A string, or Solid's structured class value (array / object). */
+  class?: JSX.ClassValue;
   fill?: string;
 }
 
@@ -334,7 +334,7 @@ export const Text = (props: Props): JSX.Element => {
     transform: string | undefined;
     textProps: Record<string, unknown>;
     fill: string;
-    class: string | undefined;
+    class: JSX.ClassValue;
     textAnchor: TextAnchor;
     lineHeight: number | string;
     breakAll: boolean;

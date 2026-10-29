@@ -1,19 +1,20 @@
-// oxlint-disable solid/no-innerhtml
 import { Link } from "@tanstack/solid-router";
 import { Dynamic } from "@solidjs/web";
 import { Show, createMemo, createSignal, onCleanup, onSettled } from "solid-js";
 import { registryBySlug } from "~/examples/registry";
+import type { HighlightedTree } from "~/docs/highlighter";
+import { HighlightedCode } from "./HighlightedCode";
 
 export function Example(props: { slug: string; showSource?: boolean }) {
   const entry = createMemo(() => registryBySlug.get(props.slug));
   const [source, setSource] = createSignal("");
-  const [sourceHtml, setSourceHtml] = createSignal("");
+  const [highlightedSource, setHighlightedSource] = createSignal<HighlightedTree | undefined>();
 
   onSettled(() => {
     const example = entry();
     if (example === undefined) return;
     void example.loadSource().then(setSource);
-    void example.loadSourceHtml().then(setSourceHtml);
+    void example.loadHighlightedSource().then(setHighlightedSource);
   });
 
   return (
@@ -58,13 +59,15 @@ export function Example(props: { slug: string; showSource?: boolean }) {
                 </Link>
               </div>
               <Show
-                when={sourceHtml()}
+                when={highlightedSource()}
                 fallback={
                   <div class="px-4 py-6 font-mono text-xs text-fg-dim">Loading source...</div>
                 }
               >
-                {(html) => (
-                  <div class="shiki-host scrollbar-thin max-h-[420px]" innerHTML={html()} />
+                {(tree) => (
+                  <div class="shiki-host scrollbar-thin max-h-[420px]">
+                    <HighlightedCode tree={tree()} />
+                  </div>
                 )}
               </Show>
             </section>

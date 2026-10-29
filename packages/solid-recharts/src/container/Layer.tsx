@@ -7,7 +7,8 @@ import type { JSX } from "@solidjs/web";
 import { svgPropertiesAndEvents } from "../util/svgPropertiesAndEvents";
 
 interface LayerOwnProps {
-  class?: string;
+  /** A string, or Solid's structured class value (array / object). */
+  class?: JSX.ClassValue;
   children?: JSX.Element;
   ref?: SVGGElement | ((el: SVGGElement) => void);
 }

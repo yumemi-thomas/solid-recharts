@@ -30,7 +30,7 @@ export default defineConfig({
       "solid-js/web": "@solidjs/web",
       "~/mdx-runtime/jsx-runtime": path.resolve(
         import.meta.dirname,
-        "src/mdx-runtime/jsx-runtime.ts",
+        "src/mdx-runtime/jsx-runtime.tsx",
       ),
       "~": path.resolve(import.meta.dirname, "src"),
     },

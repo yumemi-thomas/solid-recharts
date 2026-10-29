@@ -1,9 +1,9 @@
-// oxlint-disable solid/no-innerhtml
 import { Show, createMemo, createSignal, onCleanup } from "solid-js";
 import { highlight } from "../highlighter";
+import { HighlightedCode } from "./HighlightedCode";
 
 export function CodeBlock(props: { children: string; lang?: string; filename?: string }) {
-  const html = createMemo(() => highlight(props.children.trim(), props.lang ?? "tsx"));
+  const tree = createMemo(() => highlight(props.children.trim(), props.lang ?? "tsx"));
   return (
     <figure class="not-prose relative my-6 flex w-full flex-col overflow-hidden rounded-[18px] border border-border bg-card">
       <Show when={props.filename}>
@@ -13,7 +13,9 @@ export function CodeBlock(props: { children: string; lang?: string; filename?: s
           <CopyButton text={props.children.trim()} />
         </div>
       </Show>
-      <div class="shiki-host scrollbar-thin" innerHTML={html()} />
+      <div class="shiki-host scrollbar-thin">
+        <HighlightedCode tree={tree()} />
+      </div>
       <Show when={!props.filename}>
         <span class="absolute right-2.5 top-2.5">
           <CopyButton text={props.children.trim()} />

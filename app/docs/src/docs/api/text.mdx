@@ -34,10 +34,12 @@ import { Text } from "solid-recharts";
 | `lineHeight`      | `number \| string`                          | `"1em"`     | Line spacing                                         |
 | `capHeight`       | `number \| string`                          | `"0.71em"`  | Cap height for vertical centering                    |
 | `fill`            | `string`                                    | `"#808080"` | Text color                                           |
-| `class`           | `string`                                    | —           | CSS class (applied as `recharts-text`)               |
+| `class`           | `JSX.ClassValue`                            | —           | CSS class(es), added to `recharts-text`              |
 | `children`        | `string \| number`                          | —           | Text content                                         |
 
-All SVG text attributes (e.g. `dx`, `dy`, `fontFamily`, `fontSize`) are supported.
+All SVG text attributes (e.g. `dx`, `dy`, `fontFamily`, `fontSize`) are supported. `style` is Solid's
+`JSX.CSSProperties`: kebab-case keys with string values (`style={{ "font-size": "12px" }}`). The text is
+measured with the same style, so the wrapping matches what is drawn.
 
 ## Notes
 

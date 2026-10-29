@@ -98,8 +98,7 @@ export const BarStackClipLayer = (props: LayerProps & { index: number }): JSX.El
   const clipPathUrl = createMemo(() => useBarStackClipPathUrl(props.index));
   return (
     <Layer
-      // eslint-disable-next-line solid/prefer-structured-class -- <Layer>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
-      class={["recharts-bar-stack-layer", props.class].filter(Boolean).join(" ")}
+      class={["recharts-bar-stack-layer", props.class]}
       clipPath={clipPathUrl()}
       onMouseEnter={props.onMouseEnter}
       onMouseLeave={props.onMouseLeave}

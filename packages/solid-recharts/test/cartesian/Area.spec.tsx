@@ -88,9 +88,14 @@ describe.each(chartsThatSupportArea)("<Area /> as a child of $testName", ({ Char
   describe("dot", () => {
     test("Render customized dot when dot is set to be a function", () => {
       let areaDotProps: DotItemDotProps | undefined;
+      // Harness: the props object the chart hands to the custom dot is kept to assert on it
+      // afterwards. `solid/reactivity` reads a props parameter assigned to an outer variable as
+      // lost reactivity, so the keeping is done by a plain function that the render callback calls.
+      const keepDotProps = (value: DotItemDotProps): void => {
+        areaDotProps = value;
+      };
       const renderDot = (props: DotItemDotProps) => {
-        // eslint-disable-next-line solid/reactivity -- keeps the props object the chart hands to the custom dot, to assert on it afterwards
-        areaDotProps = props;
+        keepDotProps(props);
         return <circle role="cell" cx={props.cx} cy={props.cy} r={5} class="customized-dot" />;
       };
 

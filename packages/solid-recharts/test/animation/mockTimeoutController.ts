@@ -84,11 +84,16 @@ export class MockTimeoutController implements TimeoutController {
    * @returns A promise that resolves when all timeouts have been triggered.
    */
   async flushAllTimeouts(tickSize: number = 1000): Promise<void> {
-    let time = 0;
-    while (this.timeouts.length > 0) {
-      // eslint-disable-next-line no-await-in-loop
-      await this.triggerNextTimeout(tickSize * time++);
-    }
+    // A timeout can register further ones, so the number of steps is not known up
+    // front: each step decides whether there is another.
+    const flushFrom = async (time: number): Promise<void> => {
+      if (this.timeouts.length === 0) {
+        return;
+      }
+      await this.triggerNextTimeout(tickSize * time);
+      await flushFrom(time + 1);
+    };
+    await flushFrom(0);
   }
 
   clear() {

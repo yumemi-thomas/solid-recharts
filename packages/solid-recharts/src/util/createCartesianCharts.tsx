@@ -65,14 +65,9 @@ export function createHorizontalChart<TData, TCategorical = string, TNumerical =
   return function withComponents<TComponents extends Record<string, unknown>>(
     components: NoFunnel<TComponents>,
   ): TypedHorizontalChartContext<TData, TCategorical, TNumerical, TComponents> {
-    // The wrapper-chart map + the caller's components don't structurally match the
-    // mapped result type (component identity is preserved at runtime, remapped only
-    // at the type level), so the unsound cast is intentional — same as recharts.
-    return {
-      ...createCartesianCharts<TData>("horizontal"),
-      // eslint-disable-next-line typescript/consistent-type-assertions -- NoFunnel<T> narrows to T at runtime
-      ...(components as TComponents),
-    };
+    // `Object.assign` types the merge as an intersection, which `NoFunnel<T>` (T or
+    // never) keeps assignable to the declared result — no cast needed.
+    return Object.assign(createCartesianCharts<TData>("horizontal"), components);
   };
 }
 

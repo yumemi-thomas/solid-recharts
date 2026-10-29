@@ -141,16 +141,13 @@ function NavTab(props: { tab: TabDef; active: boolean }) {
         {/* `-z-10` keeps the underline behind the link text. */}
         <span class="absolute inset-x-3 -bottom-[18px] -z-10 h-[2px] bg-accent" />
       </Show>
-      {/* TanStack's `Link` joins its `class` inputs as strings, so the active
-          state must be folded into a single string (an object/array `class`
-          would stringify to "[object Object]"). */}
+      {/* TanStack's `Link` takes `class` as a string, so the active state is a
+          `data-active` attribute and the colours are variants in the static class. */}
       <Link
         to={props.tab.to}
         viewTransition={false}
-        // eslint-disable-next-line solid/prefer-structured-class -- TanStack's <Link> takes `class` as a string (see the note above)
-        class={`relative inline-flex items-center px-3 py-1.5 text-[0.875rem] font-medium transition-colors duration-150 ${
-          props.active ? "text-fg" : "text-fg-muted hover:text-fg"
-        }`}
+        data-active={props.active ? "" : undefined}
+        class="relative inline-flex items-center px-3 py-1.5 text-[0.875rem] font-medium text-fg-muted transition-colors duration-150 hover:text-fg data-active:text-fg"
       >
         {props.tab.label}
       </Link>

@@ -51,11 +51,11 @@ describe("DOMUtils", () => {
       height: 17,
     });
 
-    const result1 = getStringSize("test", { fontSize: "14px" });
+    const result1 = getStringSize("test", { "font-size": "14px" });
     expect(result1).toEqual({ width: 25, height: 17 });
     expect(getStringCacheStats().size).toBe(1);
 
-    const result2 = getStringSize("test", { fontSize: "14px" });
+    const result2 = getStringSize("test", { "font-size": "14px" });
     expect(result2).toEqual({ width: 25, height: 17 });
     expect(getStringCacheStats().size).toBe(1);
   });
@@ -81,8 +81,8 @@ describe("DOMUtils", () => {
       height: 17,
     });
 
-    getStringSize("test", { fontSize: "14px" });
-    getStringSize("test", { fontSize: "16px" });
+    getStringSize("test", { "font-size": "14px" });
+    getStringSize("test", { "font-size": "16px" });
 
     expect(getStringCacheStats().size).toBe(2);
   });

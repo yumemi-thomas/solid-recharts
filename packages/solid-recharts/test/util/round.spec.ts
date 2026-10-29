@@ -44,8 +44,7 @@ describe("round", () => {
   });
 
   it("should handle very large numbers", () => {
-    // eslint-disable-next-line no-loss-of-precision
-    expect(round(123456789.123456789, 2)).toBe(123456789.12);
+    expect(round(123456789.12345679, 2)).toBe(123456789.12);
     expect(round(999999.999999, 4)).toBe(1000000);
   });
 

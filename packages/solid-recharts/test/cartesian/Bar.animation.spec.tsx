@@ -36,6 +36,7 @@ import { AnimationControllerProvider } from "../../src/animation/useAnimationCon
 import { MockControllerAnimationManager as MockProgressAnimationManager } from "../animation/mockControllerAnimationManager";
 import type { MockAnimationManager } from "../animation/mockControllerAnimationManager";
 import { expectBars, getAllBarPaths } from "../helper/expectBars";
+import { inSequence, progressSteps } from "../helper/inSequence";
 import { mockSequenceOfGetBoundingClientRect } from "../helper/mockGetBoundingClientRect";
 import { PageData } from "../_data";
 
@@ -57,7 +58,7 @@ async function expectBarHeightAnimation(
   pathDs: ReadonlyArray<ReadonlyArray<string | null>>;
 }> {
   // Bars at 0% progress do not render at all, so start a little into the animation.
-  let animationProgress = 0.1;
+  const animationProgress = 0.1;
   await animationManager.setAnimationProgress(animationProgress);
   flush();
   const stepSize = (1 - animationProgress) / steps;
@@ -74,9 +75,8 @@ async function expectBarHeightAnimation(
   const heightsDuringAnimation: (string | null)[][] = [];
   const yCoordinatesDuringAnimation: (string | null)[][] = [];
   const pathDsDuringAnimation: (string | null)[][] = [];
-  for (animationProgress += stepSize; animationProgress < 1; animationProgress += stepSize) {
-    // eslint-disable-next-line no-await-in-loop
-    await animationManager.setAnimationProgress(animationProgress);
+  await inSequence(progressSteps(animationProgress + stepSize, stepSize, 1), async (progress) => {
+    await animationManager.setAnimationProgress(progress);
     flush();
     const currentBarPaths = getAllBarPaths(container);
     heightsDuringAnimation.push(
@@ -98,7 +98,7 @@ async function expectBarHeightAnimation(
       expect(currentBar.getAttribute("y")).not.toBe(initialYCoordinates[index]);
       expect(currentBar.getAttribute("d")).not.toBe(initialPathDs[index]);
     });
-  }
+  });
 
   await animationManager.completeAnimation();
   flush();

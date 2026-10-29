@@ -8,9 +8,13 @@ const highlighter = await createHighlighter({
 
 const supported = new Set(highlighter.getLoadedLanguages());
 
-export function highlight(source: string, lang = "tsx") {
+/** shiki's syntax tree: render it with `<HighlightedCode>`. */
+export type HighlightedTree = ReturnType<typeof highlighter.codeToHast>;
+export type HighlightedNode = HighlightedTree["children"][number];
+
+export function highlight(source: string, lang = "tsx"): HighlightedTree {
   const language = supported.has(lang) ? lang : "tsx";
-  return highlighter.codeToHtml(source, {
+  return highlighter.codeToHast(source, {
     lang: language,
     theme: "github-light",
   });

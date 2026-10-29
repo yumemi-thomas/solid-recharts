@@ -1,8 +1,9 @@
-// oxlint-disable solid/no-innerhtml
 import { Link, createFileRoute, notFound } from "@tanstack/solid-router";
 import { Dynamic } from "@solidjs/web";
 import { Show, createMemo, createSignal, onCleanup, onSettled } from "solid-js";
 import { categories, registry, registryBySlug } from "~/examples/registry";
+import type { HighlightedTree } from "~/docs/highlighter";
+import { HighlightedCode } from "~/docs/components/HighlightedCode";
 
 export const Route = createFileRoute("/examples/$slug")({
   component: ExamplePage,
@@ -29,12 +30,12 @@ function ExamplePage() {
     return index < registry.length - 1 ? registry[index + 1] : registry[0];
   });
   const [source, setSource] = createSignal("");
-  const [sourceHtml, setSourceHtml] = createSignal("");
+  const [highlightedSource, setHighlightedSource] = createSignal<HighlightedTree | undefined>();
 
   onSettled(() => {
     const example = entry();
     void example.loadSource().then(setSource);
-    void example.loadSourceHtml().then(setSourceHtml);
+    void example.loadHighlightedSource().then(setHighlightedSource);
   });
 
   return (
@@ -98,10 +99,14 @@ function ExamplePage() {
             <CopyButton text={source() ?? ""} disabled={!source()} />
           </div>
           <Show
-            when={sourceHtml()}
+            when={highlightedSource()}
             fallback={<div class="px-4 py-6 font-mono text-xs text-fg-dim">Loading source...</div>}
           >
-            {(html) => <div class="shiki-host scrollbar-thin" innerHTML={html()} />}
+            {(tree) => (
+              <div class="shiki-host scrollbar-thin">
+                <HighlightedCode tree={tree()} />
+              </div>
+            )}
           </Show>
         </section>
       </div>

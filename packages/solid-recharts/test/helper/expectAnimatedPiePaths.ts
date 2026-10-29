@@ -9,6 +9,7 @@ import { flush } from "solid-js";
 import type { MockAnimationManager } from "../animation/mockControllerAnimationManager";
 import { assertNotNull } from "./assertNotNull";
 import { selectPieSectors } from "./expectPieSectors";
+import { inSequence, progressSteps } from "./inSequence";
 import { trim } from "./trim";
 
 export async function expectAnimatedPiePaths(
@@ -21,7 +22,7 @@ export async function expectAnimatedPiePaths(
    * Pie sectors at 0% progress do not render at all, so we
    * start from 0.1 so that the sectors have rendered a little bit.
    */
-  let animationProgress = 0.1;
+  const animationProgress = 0.1;
   await animationManager.setAnimationProgress(animationProgress);
   flush();
   const stepSize = (1 - animationProgress) / steps;
@@ -39,9 +40,8 @@ export async function expectAnimatedPiePaths(
   }));
 
   const pathDsDuringAnimation: string[][] = [];
-  for (animationProgress += stepSize; animationProgress < 1; animationProgress += stepSize) {
-    // eslint-disable-next-line no-await-in-loop
-    await animationManager.setAnimationProgress(animationProgress);
+  await inSequence(progressSteps(animationProgress + stepSize, stepSize, 1), async (progress) => {
+    await animationManager.setAnimationProgress(progress);
     flush();
     const currentPieSectors = selectPieSectors(container);
     const currentPathDs = Array.from(currentPieSectors).map(getD);
@@ -54,7 +54,7 @@ export async function expectAnimatedPiePaths(
       expect(currentSector.getAttribute("fill")).toBe(initialAttributes[index]!.fill);
       expect(currentSector.getAttribute("stroke")).toBe(initialAttributes[index]!.stroke);
     });
-  }
+  });
 
   await animationManager.completeAnimation();
   flush();

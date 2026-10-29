@@ -41,16 +41,30 @@ export type BrushSyncListener = (
   emitter: symbol,
 ) => void;
 
-// Two separately-typed listener sets — one per event. The public methods below
-// are typed via overloads (faithful to recharts' eventCenter signature); their
-// shared implementation narrows on `eventName`, but TypeScript can't co-narrow
-// the listener/payload param from that runtime check, so each branch keeps one
-// localized assertion (the repo's convention for unavoidable narrowing).
+// Two separately-typed listener sets — one per event. The public methods below are
+// typed via overloads (faithful to recharts' eventCenter signature); their shared
+// implementation takes the argument list as a union of tuples discriminated by the
+// event name, so checking the name narrows the listener and the payload with it.
 const tooltipListeners = new Set<TooltipSyncListener>();
 const brushListeners = new Set<BrushSyncListener>();
 
-type AnyListener = TooltipSyncListener | BrushSyncListener;
-type AnyPayload = TooltipSyncState | BrushStartEndIndex;
+type ListenerArgs =
+  | [eventName: typeof TOOLTIP_SYNC_EVENT, listener: TooltipSyncListener]
+  | [eventName: typeof BRUSH_SYNC_EVENT, listener: BrushSyncListener];
+
+type EmitArgs =
+  | [
+      eventName: typeof TOOLTIP_SYNC_EVENT,
+      syncId: SyncId,
+      payload: TooltipSyncState,
+      emitter: symbol,
+    ]
+  | [
+      eventName: typeof BRUSH_SYNC_EVENT,
+      syncId: SyncId,
+      payload: BrushStartEndIndex,
+      emitter: symbol,
+    ];
 
 // Copy first so a listener that unsubscribes during dispatch doesn't mutate the
 // set we're iterating (matches mitt's array-snapshot semantics).
@@ -83,49 +97,38 @@ interface SyncEventCenter {
   ): void;
 }
 
-type SyncEventName = typeof TOOLTIP_SYNC_EVENT | typeof BRUSH_SYNC_EVENT;
-
 /**
  * The cross-chart synchronisation bus. Mirrors the `on`/`off`/`emit` surface of
  * recharts' mitt `eventCenter` so synchronisation logic and tests read 1:1, but
  * is a plain synchronous emitter with no reactive graph of its own.
  *
  * The event-name argument comes first (`on(TOOLTIP_SYNC_EVENT, …)`) for 1:1
- * parity with recharts' eventCenter call sites and the vendored specs. The
- * shared implementations narrow on `eventName`; TypeScript can't co-narrow the
- * listener/payload param from that runtime check, so each branch keeps one
- * localized assertion (the repo's convention for unavoidable narrowing).
+ * parity with recharts' eventCenter call sites and the vendored specs.
  */
 export const syncEventCenter: SyncEventCenter = {
-  on(eventName: SyncEventName, listener: AnyListener): void {
+  on(...[eventName, listener]: ListenerArgs): void {
     if (eventName === TOOLTIP_SYNC_EVENT) {
-      // eslint-disable-next-line typescript/consistent-type-assertions -- narrowed by eventName
-      tooltipListeners.add(listener as TooltipSyncListener);
+      tooltipListeners.add(listener);
     } else {
-      // eslint-disable-next-line typescript/consistent-type-assertions -- narrowed by eventName
-      brushListeners.add(listener as BrushSyncListener);
+      brushListeners.add(listener);
     }
   },
-  off(eventName: SyncEventName, listener: AnyListener): void {
+  off(...[eventName, listener]: ListenerArgs): void {
     if (eventName === TOOLTIP_SYNC_EVENT) {
-      // eslint-disable-next-line typescript/consistent-type-assertions -- narrowed by eventName
-      tooltipListeners.delete(listener as TooltipSyncListener);
+      tooltipListeners.delete(listener);
     } else {
-      // eslint-disable-next-line typescript/consistent-type-assertions -- narrowed by eventName
-      brushListeners.delete(listener as BrushSyncListener);
+      brushListeners.delete(listener);
     }
   },
-  emit(eventName: SyncEventName, syncId: SyncId, payload: AnyPayload, emitter: symbol): void {
+  emit(...[eventName, syncId, payload, emitter]: EmitArgs): void {
     if (eventName === TOOLTIP_SYNC_EVENT) {
       for (const listener of snapshot(tooltipListeners)) {
-        // eslint-disable-next-line typescript/consistent-type-assertions -- narrowed by eventName
-        listener(syncId, payload as TooltipSyncState, emitter);
+        listener(syncId, payload, emitter);
       }
       return;
     }
     for (const listener of snapshot(brushListeners)) {
-      // eslint-disable-next-line typescript/consistent-type-assertions -- narrowed by eventName
-      listener(syncId, payload as BrushStartEndIndex, emitter);
+      listener(syncId, payload, emitter);
     }
   },
 };

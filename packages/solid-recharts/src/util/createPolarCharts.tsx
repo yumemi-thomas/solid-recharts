@@ -49,11 +49,7 @@ export function createCentricChart<TData, TCategorical = string, TNumerical = nu
     const RadarChart: ChartComponent<TData> = (props) => (
       <OriginalRadarChart {...props} layout="centric" />
     );
-    return {
-      RadarChart,
-      // eslint-disable-next-line typescript/consistent-type-assertions -- NoRadial<T> narrows to T at runtime
-      ...(components as TComponents),
-    };
+    return Object.assign({ RadarChart }, components);
   };
 }
 
@@ -74,11 +70,6 @@ export function createRadialChart<TData, TCategorical = string, TNumerical = num
     const PieChart: ChartComponent<TData> = (props) => (
       <OriginalPieChart {...props} layout="radial" />
     );
-    return {
-      RadialBarChart,
-      PieChart,
-      // eslint-disable-next-line typescript/consistent-type-assertions -- NoCentric<T> narrows to T at runtime
-      ...(components as TComponents),
-    };
+    return Object.assign({ RadialBarChart, PieChart }, components);
   };
 }

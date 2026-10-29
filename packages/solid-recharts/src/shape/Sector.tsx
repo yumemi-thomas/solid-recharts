@@ -209,7 +209,8 @@ const getSectorWithCorner = ({
 };
 
 interface SectorOwnProps {
-  class?: string;
+  /** A string, or Solid's structured class value (array / object). */
+  class?: JSX.ClassValue;
   /** The x-coordinate of center. @default 0 */
   cx?: number;
   /** The y-coordinate of center. @default 0 */

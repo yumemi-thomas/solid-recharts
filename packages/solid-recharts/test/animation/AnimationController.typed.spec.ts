@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // Ported from recharts 3.9.0 test/animation/AnimationController.typed.spec.ts.
 //
 // A .typed spec: the POINT is TYPE checking under `tsc --noEmit` — the it() bodies
@@ -15,14 +14,14 @@ import type {
 } from "../../src";
 import { noop } from "../../src/util/DataUtils";
 
-function expectCorrectType(a: AnimationController) {}
+function expectCorrectType(_controller: AnimationController) {}
 
 describe("AnimationController types", () => {
   it("should compile when all types are defined explicitly", () => {
     const animationController: AnimationController = (
-      timeoutController: TimeoutController,
-      animationHandle: AnimationHandle,
-      listener: OnAnimationStateUpdate,
+      _timeoutController: TimeoutController,
+      _animationHandle: AnimationHandle,
+      _listener: OnAnimationStateUpdate,
     ): CancelableTimeout => {
       return noop;
     };
@@ -31,9 +30,9 @@ describe("AnimationController types", () => {
 
   it("should compile when parameters are implicit", () => {
     const animationController: AnimationController = (
-      timeoutController,
-      animationHandle,
-      listener,
+      _timeoutController,
+      _animationHandle,
+      _listener,
     ) => {
       return noop;
     };
@@ -42,9 +41,9 @@ describe("AnimationController types", () => {
 
   it("should infer", () => {
     const animationController = (
-      timeoutController: TimeoutController,
-      animationHandle: AnimationHandle,
-      listener: OnAnimationStateUpdate,
+      _timeoutController: TimeoutController,
+      _animationHandle: AnimationHandle,
+      _listener: OnAnimationStateUpdate,
     ): CancelableTimeout => {
       return noop;
     };

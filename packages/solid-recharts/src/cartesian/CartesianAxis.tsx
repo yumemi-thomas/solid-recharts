@@ -290,6 +290,15 @@ const AxisLine = (props: {
   );
 };
 
+type Stringifiable = { toString(): string };
+
+const isStringifiable = (value: unknown): value is Stringifiable =>
+  value != null && typeof value.toString === "function";
+
+// recharts prints a tick value as `String(value)`: whatever the value says about itself,
+// so a Date (or a moment object) shows its own `toString()`. A nullish value prints nothing.
+const tickValueToString = (value: unknown): string => (isStringifiable(value) ? String(value) : "");
+
 export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
   const merged = merge(cartesianAxisDefaults, props);
 
@@ -385,11 +394,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
     const formatted =
       typeof merged.tickFormatter === "function"
         ? merged.tickFormatter(entry.value, index)
-        : isNullish(entry.value)
-          ? ""
-          : // Recharts stringifies tick values directly, including Date objects.
-            // eslint-disable-next-line typescript/no-base-to-string
-            String(entry.value);
+        : tickValueToString(entry.value);
     return `${formatted}${merged.unit ?? ""}`;
   };
 
@@ -443,13 +448,10 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
           a user `class` (recharts: XAxis/YAxis className) is appended last. */}
         <Layer
           ref={(el) => props.layerRef?.(el)}
-          // eslint-disable-next-line solid/prefer-structured-class -- <Layer>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
           class={[
             `recharts-cartesian-axis recharts-${merged.axisType} ${merged.axisType}`,
             merged.class,
-          ]
-            .filter((c): c is string => Boolean(c))
-            .join(" ")}
+          ]}
         >
           <Show when={merged.axisLine}>
             <AxisLine
@@ -519,10 +521,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                           // (recharts spreads it last); the tick-value class stays
                           // fixed after it, matching recharts' explicit className.
                           {...(merged.tickTextProps ?? {})}
-                          // eslint-disable-next-line solid/prefer-structured-class -- <Text>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
-                          class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]
-                            .filter(Boolean)
-                            .join(" ")}
+                          class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]}
                         >
                           {labelOf(item.entry, item.index)}
                         </Text>
