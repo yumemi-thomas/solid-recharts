@@ -6,6 +6,10 @@
 // supported), onBBoxUpdate, React.memo. Solid deviations: createPortal →
 // `<Portal mount>`; useLayoutEffect dispatches → createEffect; hooks return
 // accessors; `className`→`class`, React CSSProperties → JSX.CSSProperties.
+//
+// The size dispatcher is mounted only while the legend reports its size (3.10.1
+// src/component/Legend.tsx:304-305, 376), so a reactive `position`/`portal` moves it
+// in and out and the size is reset to 0 whenever it unmounts (:251-255).
 import { createEffect, createMemo, merge, Show } from "solid-js";
 import { JSX, Portal } from "@solidjs/web";
 import {
@@ -32,8 +36,9 @@ import {
 import { cartesianPositionToCSSTranslate } from "../cartesian/cartesianPositionToCSSTranslate";
 import { selectLegendArea } from "../state/selectors/selectLegendArea";
 import { selectChartViewBox } from "../state/selectors/selectChartOffsetInternal";
+import { unregisterOnCleanup } from "../state/unregisterOnCleanup";
 import type { RechartsRootState } from "../state/store";
-import type { CartesianLayout } from "../util/types";
+import type { CartesianLayout, Size } from "../util/types";
 
 function defaultUniqBy(entry: LegendPayload): string | undefined {
   return entry.value;
@@ -95,6 +100,22 @@ function getWidthOrHeight(
   if (layout === "horizontal") {
     return { width: width || maxWidth };
   }
+  return null;
+}
+
+// Port of recharts' LegendSizeDispatcher (src/component/Legend.tsx:245-257). Mounted only
+// while the legend reports its size: it dispatches the measurement while mounted and
+// resets the size to 0 when it unmounts (the legend moved inside the plot area or into a
+// portal), so the plot area stops reserving room for it.
+function LegendSizeDispatcher(props: Size): JSX.Element {
+  const store = useAppStore();
+  createEffect(
+    () => ({ width: props.width, height: props.height }),
+    (size) => {
+      store?.actions.legend.setLegendSize(size);
+    },
+  );
+  unregisterOnCleanup(() => store?.actions.legend.setLegendSize({ width: 0, height: 0 }));
   return null;
 }
 
@@ -199,15 +220,10 @@ export const Legend = (props: LegendProps): JSX.Element => {
     },
   );
 
-  // Report the measured size; reset to 0 on cleanup. (When a portal is supplied
-  // from props, nothing needs the size, matching recharts.)
-  createEffect(
-    () => ({ width: lastBoundingBox().width, height: lastBoundingBox().height }),
-    (size) => {
-      if (props.portal == null && (props.position == null || isOutsidePosition(props.position))) {
-        store?.actions.legend.setLegendSize(size);
-      }
-    },
+  // The measured size is only reported for an outside position and when no portal is
+  // supplied from props (nothing needs it otherwise), matching recharts.
+  const shouldReportDimensions = createMemo(
+    () => props.portal == null && (props.position == null || isOutsidePosition(props.position)),
   );
 
   const portal = (): HTMLElement | null => props.portal ?? legendPortalFromContext();
@@ -328,6 +344,12 @@ export const Legend = (props: LegendProps): JSX.Element => {
       {(mount) => (
         <Portal mount={mount()}>
           <div class="recharts-legend-wrapper" style={outerStyle()} ref={updateBoundingBox}>
+            <Show when={shouldReportDimensions()}>
+              <LegendSizeDispatcher
+                width={lastBoundingBox().width}
+                height={lastBoundingBox().height}
+              />
+            </Show>
             <Show
               when={typeof merged.content === "function" ? merged.content : null}
               fallback={
