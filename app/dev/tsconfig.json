@@ -1,8 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
-  // "node" only: the vite alias points `solid-recharts` at the library SOURCE,
-  // which reads `process.env.NODE_ENV` (Vite define-replaces it) and so needs
-  // the same ambient types the library's own tsconfig declares. No test globals.
-  "compilerOptions": { "types": ["node"] },
+  // "node": the vite alias points `solid-recharts` at the library SOURCE, which reads
+  // `process.env.NODE_ENV` (Vite define-replaces it) and so needs the same ambient
+  // types the library's own tsconfig declares. "vite/client": `import.meta.env` for
+  // the dev-only diagnostics bridge in main.tsx. No test globals.
+  "compilerOptions": { "types": ["node", "vite/client"] },
   "include": ["src"]
 }

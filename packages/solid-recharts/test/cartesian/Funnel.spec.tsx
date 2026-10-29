@@ -5,7 +5,7 @@
 // reacts to state changes, there is no rerender). The pure `computeFunnelTrapezoids`
 // case is unchanged.
 import { describe, expect, it } from "vitest";
-import { createSignal, flush } from "solid-js";
+import { createSignal, flush, For } from "solid-js";
 import { Cell, Funnel, FunnelChart, FunnelProps, FunnelTrapezoidItem, LabelList } from "../../src";
 import { showTooltip } from "../component/Tooltip/tooltipTestHelpers";
 import { funnelChartMouseHoverTooltipSelector } from "../component/Tooltip/tooltipMouseHoverSelectors";
@@ -109,9 +109,7 @@ describe("<Funnel />", () => {
             />
           )}
         >
-          {data.map(() => (
-            <Cell />
-          ))}
+          <For each={data}>{() => <Cell />}</For>
         </Funnel>
       </FunnelChart>
     ));
@@ -129,9 +127,7 @@ describe("<Funnel />", () => {
     const { container } = render(() => (
       <FunnelChart width={500} height={300}>
         <Funnel dataKey="value" data={data} isAnimationActive={false}>
-          {data.map(() => (
-            <Cell class="custom-cell" />
-          ))}
+          <For each={data}>{() => <Cell class="custom-cell" />}</For>
         </Funnel>
       </FunnelChart>
     ));

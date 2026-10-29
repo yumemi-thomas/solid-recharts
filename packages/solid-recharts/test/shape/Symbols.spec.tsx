@@ -21,7 +21,7 @@ describe("<Symbols />", () => {
   test("Render 1 symbol when type is wrong", () => {
     const { container } = render(() => (
       <Surface width={400} height={400}>
-        <Symbols cx={100} cy={100} type={undefined as unknown as "circle"} />
+        <Symbols cx={100} cy={100} type={undefined} />
       </Surface>
     ));
 

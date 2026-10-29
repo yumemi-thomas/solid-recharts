@@ -401,7 +401,7 @@ describe("<Treemap /> mouse events", () => {
     expect(onMouseEnter.mock.calls[0]).toHaveLength(2);
     const arg1 = onMouseEnter.mock.calls[0]![0];
     const expectedTreemapNode: TreemapNode = {
-      id: expect.stringMatching(/^recharts-treemap-+/) as unknown as string,
+      id: expect.stringMatching(/^recharts-treemap-+/),
       width: 363,
       height: 250,
       name: "A",
@@ -497,7 +497,7 @@ describe("<Treemap /> mouse events", () => {
         index: 0,
         tooltipIndex: "",
       },
-    } as unknown as TreemapNode;
+    };
     expect(arg1).toEqual(expectedTreemapNode);
     const arg2 = onMouseEnter.mock.calls[0]![1];
     expect(arg2.type).toBe("mouseenter");

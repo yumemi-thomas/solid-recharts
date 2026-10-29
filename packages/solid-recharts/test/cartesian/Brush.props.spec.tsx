@@ -24,26 +24,22 @@ function brushRectY(container: Element): string | null {
 
 describe("Brush dy / onDragEnd", () => {
   it("adds `dy` to the brush y position", () => {
-    const { container } = render(
-      (): JSX.Element => (
-        <BarChart width={400} height={100} data={data}>
-          <Brush dataKey="value" x={100} y={50} dy={30} width={400} height={40} />
-        </BarChart>
-      ),
-    );
+    const { container } = render((): JSX.Element => (
+      <BarChart width={400} height={100} data={data}>
+        <Brush dataKey="value" x={100} y={50} dy={30} width={400} height={40} />
+      </BarChart>
+    ));
     flush();
     expect(brushRectY(container)).toBe("80");
   });
 
   it("fires onDragEnd once at the end of a slide drag", () => {
     const onDragEnd = vi.fn();
-    const { container } = render(
-      (): JSX.Element => (
-        <BarChart width={500} height={100} data={data} margin={{ right: 100, left: 100 }}>
-          <Brush dataKey="date" height={90} onDragEnd={onDragEnd} />
-        </BarChart>
-      ),
-    );
+    const { container } = render((): JSX.Element => (
+      <BarChart width={500} height={100} data={data} margin={{ right: 100, left: 100 }}>
+        <Brush dataKey="date" height={90} onDragEnd={onDragEnd} />
+      </BarChart>
+    ));
     flush();
 
     const brushSlide = container.querySelector(".recharts-brush-slide");

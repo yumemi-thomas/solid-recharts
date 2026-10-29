@@ -5,7 +5,7 @@
 // (collectCells). `isAnimationActive={false}` so shapes are at final geometry,
 // and `flush()` because the items register via effects and compute from the store.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+import { flush, For } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import {
   BarChart,
@@ -33,9 +33,7 @@ describe("<Cell /> presentation overrides", () => {
     const { container } = render(() => (
       <BarChart width={400} height={400} data={data}>
         <Bar dataKey="value" fill="#888888" isAnimationActive={false}>
-          {data.map((_entry, i) => (
-            <Cell fill={colors[i]} />
-          ))}
+          <For each={data}>{(_entry, i) => <Cell fill={colors[i()]} />}</For>
         </Bar>
       </BarChart>
     ));
@@ -56,9 +54,9 @@ describe("<Cell /> presentation overrides", () => {
     const { container } = render(() => (
       <BarChart width={400} height={400} data={data}>
         <Bar dataKey="value" fill="#888888" isAnimationActive={false}>
-          {data.map((_entry, i) => (
-            <Cell stroke={i === 0 ? "#ff0000" : undefined} />
-          ))}
+          <For each={data}>
+            {(_entry, i) => <Cell stroke={i() === 0 ? "#ff0000" : undefined} />}
+          </For>
         </Bar>
       </BarChart>
     ));
@@ -87,9 +85,7 @@ describe("<Cell /> presentation overrides", () => {
           outerRadius={80}
           isAnimationActive={false}
         >
-          {data.map((_entry, i) => (
-            <Cell fill={colors[i]} />
-          ))}
+          <For each={data}>{(_entry, i) => <Cell fill={colors[i()]} />}</For>
         </Pie>
       </PieChart>
     ));
@@ -115,9 +111,7 @@ describe("<Cell /> presentation overrides", () => {
         data={data}
       >
         <RadialBar dataKey="value" isAnimationActive={false}>
-          {data.map(() => (
-            <Cell class="unit-test-class" />
-          ))}
+          <For each={data}>{() => <Cell class="unit-test-class" />}</For>
         </RadialBar>
       </RadialBarChart>
     ));
@@ -138,9 +132,7 @@ describe("<Cell /> presentation overrides", () => {
         <XAxis type="number" dataKey="x" />
         <YAxis type="number" dataKey="y" />
         <Scatter data={scatterData} fill="#888888" isAnimationActive={false}>
-          {scatterData.map((_entry, i) => (
-            <Cell fill={colors[i]} />
-          ))}
+          <For each={scatterData}>{(_entry, i) => <Cell fill={colors[i()]} />}</For>
         </Scatter>
       </ScatterChart>
     ));

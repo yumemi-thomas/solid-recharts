@@ -443,7 +443,7 @@ describe("<ReferenceDot />", () => {
           // `id` is a documented Solid deviation: recharts matches reference
           // elements by object identity, but Solid store proxies break that, so
           // the port mints a stable id for proxy-safe removal.
-          id: expect.stringMatching(/^recharts-reference-dot-/) as unknown as string,
+          id: expect.stringMatching(/^recharts-reference-dot-/),
           x: 1,
           y: "categorical data item",
           r: 3,

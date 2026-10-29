@@ -76,18 +76,21 @@ describe("zIndexSelectors", () => {
       store.actions.zIndex.registerZIndexPortal({ zIndex: 2 });
       store.actions.zIndex.registerZIndexPortal({ zIndex: -3 });
       store.actions.zIndex.registerZIndexPortal({ zIndex: 1 });
+      flush();
 
       expect(selectAllRegisteredZIndexes(store.state)).toEqual([
         -100, -50, -3, 1, 2, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,
       ]);
 
       store.actions.zIndex.unregisterZIndexPortal({ zIndex: 1 });
+      flush();
       expect(selectAllRegisteredZIndexes(store.state)).toEqual([
         -100, -50, -3, 2, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,
       ]);
 
       store.actions.zIndex.unregisterZIndexPortal({ zIndex: -3 });
       store.actions.zIndex.unregisterZIndexPortal({ zIndex: 2 });
+      flush();
       expect(selectAllRegisteredZIndexes(store.state)).toEqual([
         -100, -50, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,
       ]);
@@ -98,6 +101,7 @@ describe("zIndexSelectors", () => {
 
       store.actions.zIndex.registerZIndexPortal({ zIndex: 5 });
       store.actions.zIndex.registerZIndexPortal({ zIndex: 10 });
+      flush();
 
       const firstSelection = selectAllRegisteredZIndexes(store.state);
       const secondSelection = selectAllRegisteredZIndexes(store.state);
@@ -105,6 +109,7 @@ describe("zIndexSelectors", () => {
       expect(firstSelection).toBe(secondSelection);
 
       store.actions.zIndex.registerZIndexPortal({ zIndex: 15 });
+      flush();
 
       const thirdSelection = selectAllRegisteredZIndexes(store.state);
       expect(thirdSelection).not.toBe(firstSelection);
@@ -124,6 +129,7 @@ describe("zIndexSelectors", () => {
         element: element2,
         isPanorama: true,
       });
+      flush();
       const fourthSelection = selectAllRegisteredZIndexes(store.state);
       expect(fourthSelection).toBe(thirdSelection);
     });
@@ -132,12 +138,14 @@ describe("zIndexSelectors", () => {
       const store = createRechartsStore();
 
       store.actions.zIndex.registerZIndexPortal({ zIndex: 50 });
+      flush();
       const firstSelection = selectAllRegisteredZIndexes(store.state);
       expect(firstSelection).toEqual([
         -100, -50, 50, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,
       ]);
 
       store.actions.zIndex.registerZIndexPortal({ zIndex: 50 });
+      flush();
       const secondSelection = selectAllRegisteredZIndexes(store.state);
       expect(secondSelection).toEqual([
         -100, -50, 50, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,
@@ -155,6 +163,7 @@ describe("zIndexSelectors", () => {
 
       const element = document.createElement("div");
       store.actions.zIndex.registerZIndexPortalElement({ zIndex: 100, element, isPanorama: false });
+      flush();
       const afterRegister = selectAllRegisteredZIndexes(store.state);
       expect(afterRegister).toEqual([
         -100, -50, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,
@@ -162,6 +171,7 @@ describe("zIndexSelectors", () => {
       expect(afterRegister).toBe(initialSelection);
 
       store.actions.zIndex.unregisterZIndexPortalElement({ zIndex: 100, isPanorama: false });
+      flush();
       const afterUnregister = selectAllRegisteredZIndexes(store.state);
       expect(afterUnregister).toEqual([
         -100, -50, 100, 200, 300, 400, 500, 600, 1000, 1100, 1200, 2000,

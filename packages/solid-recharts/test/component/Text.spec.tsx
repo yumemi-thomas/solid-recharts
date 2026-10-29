@@ -21,6 +21,7 @@ describe("<Text />", () => {
   test("Does not wrap long text if enough width", () => {
     render(() => (
       <Surface width={300} height={300}>
+        {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
         <Text role="img" width={300} style={{ fontFamily: "Courier" }}>
           This is really long text
         </Text>
@@ -36,6 +37,7 @@ describe("<Text />", () => {
   test("renders number children", () => {
     const { container } = render(() => (
       <Surface width={300} height={300}>
+        {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
         <Text width={300} style={{ fontFamily: "Courier" }}>
           {12345}
         </Text>
@@ -52,6 +54,7 @@ describe("<Text />", () => {
   test("renders boolean children", () => {
     const { container } = render(() => (
       <Surface width={300} height={300}>
+        {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
         <Text width={300} style={{ fontFamily: "Courier" }}>
           {true}
         </Text>
@@ -67,6 +70,7 @@ describe("<Text />", () => {
   test('renders the string "NaN" when children is NaN', () => {
     const { container } = render(() => (
       <Surface width={300} height={300}>
+        {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
         <Text width={300} style={{ fontFamily: "Courier" }}>
           {NaN}
         </Text>
@@ -84,6 +88,7 @@ describe("<Text />", () => {
     (children: null | undefined) => {
       const { container } = render(() => (
         <Surface width={300} height={300}>
+          {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
           <Text width={300} style={{ fontFamily: "Courier" }}>
             {children}
           </Text>
@@ -126,6 +131,7 @@ describe("<Text />", () => {
   test("Wraps long text if not enough width", () => {
     render(() => (
       <Surface width={200} height={200}>
+        {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
         <Text role="img" width={200} style={{ fontFamily: "Courier" }}>
           This is really long text for 200px
         </Text>
@@ -141,6 +147,7 @@ describe("<Text />", () => {
     mockGetBoundingClientRect({ ...mockRect, width: 40 });
     render(() => (
       <Surface width={300} height={200}>
+        {/* eslint-disable-next-line solid/style-prop -- Text measures with csstype's camelCase keys (recharts parity, see util/DOMUtils), not DOM style keys */}
         <Text role="img" width={300} style={{ fontSize: "2em", fontFamily: "Courier" }}>
           This is really long text
         </Text>

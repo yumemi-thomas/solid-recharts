@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEffect, createSignal, flush } from "solid-js";
-import { Show } from "@solidjs/web";
+import { createEffect, createSignal, flush, Show } from "solid-js";
 import {
   PolarAngleAxis,
   PolarRadiusAxis,

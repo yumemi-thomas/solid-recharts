@@ -1,5 +1,5 @@
 import { describe, expect, it, test, vi } from "vitest";
-import { flush } from "solid-js";
+import { flush, Show, untrack } from "solid-js";
 import { Pie, PieChart, Sector, Tooltip, Label, type PieProps } from "../../../src";
 import type {
   PieSectorDataItem,
@@ -332,16 +332,18 @@ describe("<Pie />", () => {
 
   describe("label", () => {
     test("Render customized label when label is a function", () => {
-      const renderLabel = (props: PieLabelRenderProps): string => {
-        const ir: number = props.innerRadius;
-        expect(ir).toBe(0);
-        const or: number = props.outerRadius;
-        expect(or).toBe(200);
-        const p = props.percent;
-        expect(p).toBeGreaterThanOrEqual(0);
-        expect(p).toBeLessThanOrEqual(1);
-        return `${props.name}: ${props.value}`;
-      };
+      // The assertions inspect the values the chart hands to the label renderer.
+      const renderLabel = (props: PieLabelRenderProps): string =>
+        untrack(() => {
+          const ir: number = props.innerRadius;
+          expect(ir).toBe(0);
+          const or: number = props.outerRadius;
+          expect(or).toBe(200);
+          const p = props.percent;
+          expect(p).toBeGreaterThanOrEqual(0);
+          expect(p).toBeLessThanOrEqual(1);
+          return `${props.name}: ${props.value}`;
+        });
       const { container } = render(() => (
         <PieChart width={500} height={500}>
           <Pie
@@ -391,18 +393,16 @@ describe("<Pie />", () => {
     test("Render customized label line when labelLine is a function", () => {
       const renderLabelLine = (props: {
         points?: ReadonlyArray<{ x: number; y: number }>;
-      }): ReturnType<typeof Sector> => {
-        const { points } = props;
-        if (!points) {
-          return null;
-        }
-        return (
-          <path
-            d={`M${points[0]!.x},${points[0]!.y}L${points[1]!.x},${points[1]!.y}`}
-            class="customized-label-line"
-          />
-        );
-      };
+      }): ReturnType<typeof Sector> => (
+        <Show when={props.points}>
+          {(points) => (
+            <path
+              d={`M${points()[0]!.x},${points()[0]!.y}L${points()[1]!.x},${points()[1]!.y}`}
+              class="customized-label-line"
+            />
+          )}
+        </Show>
+      );
       const { container } = render(() => (
         <PieChart width={500} height={500}>
           <Pie

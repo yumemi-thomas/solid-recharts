@@ -89,6 +89,7 @@ describe.each(chartsThatSupportArea)("<Area /> as a child of $testName", ({ Char
     test("Render customized dot when dot is set to be a function", () => {
       let areaDotProps: DotItemDotProps | undefined;
       const renderDot = (props: DotItemDotProps) => {
+        // eslint-disable-next-line solid/reactivity -- keeps the props object the chart hands to the custom dot, to assert on it afterwards
         areaDotProps = props;
         return <circle role="cell" cx={props.cx} cy={props.cy} r={5} class="customized-dot" />;
       };

@@ -4,8 +4,7 @@
 // geometry tests inline the golden `d` (recharts' `expectRadarPolygons` value)
 // because the port has no `expectRadarPolygons` helper. `flush()` because Radar
 // registers via an effect and points compute from the store.
-import { createEffect, createSignal, flush } from "solid-js";
-import { Show } from "@solidjs/web";
+import { createEffect, createSignal, flush, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { describe, expect, it, vi } from "vitest";
 import { Radar, RadarChart } from "../../src";
@@ -74,12 +73,13 @@ describe("<Radar />", () => {
   // PERMANENT-N/A; the FUNCTION form is portable and ported below.
   it("Render customized shape when shape is set to be a function", () => {
     const CustomizedShape = (props: RadarShapeProps): JSX.Element => {
-      const d = props.points.reduce(
-        (result, entry, index) =>
-          result + (index ? `L${entry.x},${entry.y}` : `M${entry.x},${entry.y}`),
-        "",
-      );
-      return <path d={d} data-testid="customized-shape" />;
+      const d = (): string =>
+        props.points.reduce(
+          (result, entry, index) =>
+            result + (index ? `L${entry.x},${entry.y}` : `M${entry.x},${entry.y}`),
+          "",
+        );
+      return <path d={d()} data-testid="customized-shape" />;
     };
 
     render(() => (
@@ -246,7 +246,7 @@ describe("<Radar />", () => {
         // `id` is a documented Solid deviation: recharts matches reference
         // elements by object identity, but the port mints a stable id for
         // proxy-safe removal. recharts' expected `radar-` substring still matches.
-        id: expect.stringMatching("radar-") as unknown as string,
+        id: expect.stringMatching("radar-"),
         type: "radar",
         angleAxisId: 0,
         data: undefined,

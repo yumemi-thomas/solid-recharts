@@ -1,6 +1,6 @@
 // Ported from recharts 3.8.1 test/cartesian/Bar.zeroDimensionFiltering.spec.tsx (commit 7a23854).
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+import { flush, Show } from "solid-js";
 import { Bar, BarChart, BarStack, XAxis, YAxis } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
 import { render } from "@solidjs/testing-library";
@@ -291,13 +291,18 @@ describe("Bar zero-dimension filtering", () => {
   });
 
   it("should not filter out zero-height bars that have a custom shape (BoxPlot use case)", () => {
-    const HorizonBar = (barProps: { x?: number; y?: number; width?: number; height?: number }) => {
-      const { x, y, width } = barProps;
-      if (x == null || y == null || width == null) {
-        return null;
-      }
-      return <line x1={x} y1={y} x2={x + width} y2={y} stroke="#000" stroke-width={3} />;
-    };
+    const HorizonBar = (barProps: { x?: number; y?: number; width?: number; height?: number }) => (
+      <Show when={barProps.x != null && barProps.y != null && barProps.width != null}>
+        <line
+          x1={barProps.x}
+          y1={barProps.y}
+          x2={(barProps.x ?? 0) + (barProps.width ?? 0)}
+          y2={barProps.y}
+          stroke="#000"
+          stroke-width={3}
+        />
+      </Show>
+    );
 
     const data = [
       { min: 100, bottomWhisker: 100, bottomBox: 50, topBox: 200, topWhisker: 200, marker: 0 },

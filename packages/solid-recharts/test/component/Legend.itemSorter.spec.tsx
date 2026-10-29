@@ -10,7 +10,7 @@
 // props object itself is byte-identical. `render(() => <…/>)` + `flush()` replace
 // React's synchronous render.
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
-import { createSignal, flush, For } from "solid-js";
+import { createSignal, flush, For, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { render } from "@solidjs/testing-library";
 import {
@@ -390,10 +390,10 @@ describe("Legend.itemSorter", () => {
     function makeCustomContent(handleClick: (entry: LegendPayload) => void) {
       return (props: DefaultLegendContentProps): JSX.Element => {
         spy(props);
-        assertNotNull(props.payload);
+        untrack(() => assertNotNull(props.payload));
         return (
           <ul>
-            <For each={props.payload}>
+            <For each={props.payload ?? []}>
               {(entry) => (
                 <li style={{ color: entry.color }}>
                   <button type="button" onClick={() => handleClick(entry)}>

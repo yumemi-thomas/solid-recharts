@@ -1,0 +1,105 @@
+{
+  "formatVersion": 1,
+  "scenarios": {
+    "line-chart/mount": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 110,
+      "maxWastedRuns": 15
+    },
+    "line-chart/mouse-enter": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 20,
+      "maxWastedRuns": 1,
+      "scopes": {
+        "tooltipActive": 1,
+        "finalPayload": 1
+      }
+    },
+    "line-chart/mouse-move-same-point": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 31,
+      "maxWastedRuns": 12,
+      "scopes": {
+        "tooltipActive": 1,
+        "finalPayload": 1
+      }
+    },
+    "line-chart/mouse-move-between-points": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 31,
+      "maxWastedRuns": 10,
+      "scopes": {
+        "tooltipActive": 1,
+        "finalPayload": 1
+      }
+    },
+    "line-chart/mouse-leave": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 18,
+      "maxWastedRuns": 2,
+      "scopes": {
+        "tooltipActive": 1,
+        "finalPayload": 1
+      }
+    },
+    "line-chart/data-update": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 55,
+      "maxWastedRuns": 13,
+      "scopes": {
+        "axisRender": 2,
+        "visibleTicks": 2,
+        "tickCoords": 2,
+        "finalPayload": 1
+      }
+    },
+    "bar-chart/mount": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 109,
+      "maxWastedRuns": 14
+    },
+    "bar-chart/mouse-enter": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 19,
+      "maxWastedRuns": 1,
+      "scopes": {
+        "finalPayload": 1
+      }
+    },
+    "bar-chart/mouse-move-same-point": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 30,
+      "maxWastedRuns": 13,
+      "scopes": {
+        "finalPayload": 1
+      }
+    },
+    "bar-chart/mouse-move-between-points": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 30,
+      "maxWastedRuns": 10,
+      "scopes": {
+        "finalPayload": 1
+      }
+    },
+    "bar-chart/mouse-leave": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 17,
+      "maxWastedRuns": 2,
+      "scopes": {
+        "finalPayload": 1
+      }
+    },
+    "bar-chart/data-update": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "maxReruns": 56,
+      "maxWastedRuns": 12,
+      "scopes": {
+        "axisRender": 2,
+        "visibleTicks": 2,
+        "tickCoords": 2,
+        "finalPayload": 1
+      }
+    }
+  }
+}

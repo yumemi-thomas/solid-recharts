@@ -614,7 +614,7 @@ describe("<ReferenceArea />", () => {
           // `id` is a documented Solid deviation: recharts matches reference
           // elements by object identity; Solid store proxies break that, so the
           // port mints a stable id for proxy-safe removal.
-          id: expect.stringMatching(/^recharts-reference-area-/) as unknown as string,
+          id: expect.stringMatching(/^recharts-reference-area-/),
           ifOverflow: "extendDomain",
           x1: "category 3",
           x2: "category 4",
