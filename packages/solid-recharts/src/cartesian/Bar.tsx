@@ -92,7 +92,7 @@ import {
 } from "../state/selectors/tooltipSelectors";
 import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
-import { BarStackClipLayer, useStackId } from "./BarStack";
+import { BarStackClipLayer, useStackIdAccessor } from "./BarStack";
 import { registerInStore } from "../state/registerInStore";
 
 const defaultMinPointSize = 0;
@@ -859,7 +859,7 @@ export const Bar = (props: BarProps): JSX.Element => {
   const merged = merge(barDefaultProps, props);
   const isPanorama = useIsPanorama();
   const id = useUniqueId("recharts-bar", () => props.id);
-  const stackId = useStackId(() => props.stackId);
+  const stackId = useStackIdAccessor(() => props.stackId);
   // Custom shape render prop (function form).
   const shape = (): ActiveShape<BarShapeProps, SVGPathElement> => merged.shape ?? defaultBarShape;
 
@@ -875,7 +875,7 @@ export const Bar = (props: BarProps): JSX.Element => {
         yAxisId: merged.yAxisId,
         zAxisId: 0,
         hide: merged.hide,
-        stackId,
+        stackId: stackId(),
         barSize: merged.barSize,
         maxBarSize: merged.maxBarSize,
         minPointSize: merged.minPointSize,
