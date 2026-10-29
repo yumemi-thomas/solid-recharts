@@ -1,6 +1,6 @@
-// oxlint-disable solid/no-innerhtml
 import { For, Show, createMemo, createSignal, onCleanup, onSettled } from "solid-js";
 import { highlight } from "../highlighter";
+import { HighlightedCode } from "./HighlightedCode";
 
 type Manager = "pnpm" | "npm" | "yarn" | "bun";
 
@@ -102,7 +102,9 @@ export function InstallCommand(props: { pkg: string; dev?: boolean; default?: Ma
           </Show>
         </button>
       </header>
-      <div class="install-command-host shiki-host" innerHTML={highlighted()} />
+      <div class="install-command-host shiki-host">
+        <HighlightedCode tree={highlighted()} />
+      </div>
     </figure>
   );
 }

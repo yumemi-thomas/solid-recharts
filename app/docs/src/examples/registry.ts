@@ -1,4 +1,5 @@
 import { type Component } from "solid-js";
+import type { HighlightedTree } from "~/docs/highlighter";
 
 export type Category =
   | "line"
@@ -68,7 +69,7 @@ const sources = import.meta.glob<string>("./*.tsx", {
 export interface RegistryEntry extends ExampleMeta {
   Component: Component;
   loadSource: () => Promise<string>;
-  loadSourceHtml: () => Promise<string>;
+  loadHighlightedSource: () => Promise<HighlightedTree>;
 }
 
 function cached<T>(loader: () => Promise<T>) {
@@ -86,7 +87,7 @@ export const registry: RegistryEntry[] = Object.entries(metadata)
     if (!meta || !loadModule || !loadSource) return null;
 
     const source = cached(loadSource);
-    const sourceHtml = cached(async () => {
+    const highlightedSource = cached(async () => {
       const { highlight } = await import("~/docs/highlighter");
       return highlight(await source(), "tsx");
     });
@@ -95,7 +96,7 @@ export const registry: RegistryEntry[] = Object.entries(metadata)
       ...meta,
       Component: loadModule.default,
       loadSource: source,
-      loadSourceHtml: sourceHtml,
+      loadHighlightedSource: highlightedSource,
     };
     return entry;
   })
