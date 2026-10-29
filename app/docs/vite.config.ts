@@ -5,13 +5,13 @@ import path from "node:path";
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { nitro } from "nitro/vite";
-import viteSolid from "vite-plugin-solid";
+import viteSolid from "@solidjs/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import mdx from "@mdx-js/rollup";
 import rehypeShiki from "@shikijs/rehype";
 import remarkGfm from "remark-gfm";
 
-// Alias `solid-recharts` to the local package source so vite-plugin-solid
+// Alias `solid-recharts` to the local package source so @solidjs/vite-plugin
 // transforms the source-shipped JSX and the docs app stays in lockstep.
 const libSrc = path.resolve(import.meta.dirname, "../../packages/solid-recharts/src");
 
@@ -63,6 +63,6 @@ export default defineConfig({
     },
     tanstackStart(),
     nitro(),
-    viteSolid({ ssr: true, hot: false }),
+    viteSolid({ ssr: true, refresh: false }),
   ],
 });

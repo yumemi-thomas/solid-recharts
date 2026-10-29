@@ -1,13 +1,54 @@
 import { defineConfig } from "vite-plus";
-import solid from "vite-plugin-solid";
+import type { DummyRuleMap } from "vite-plus/lint";
+import solid from "@solidjs/vite-plugin";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
-// Resolve paths against THIS file's location, not the cwd: `vp` walks up to find
-// this root config whether invoked from the repo root or from the package dir, so
-// a cwd-relative `test.root` would double up (packages/solid-recharts/packages/…).
+// Resolve paths against THIS file's location, not the cwd: the config is loaded from the
+// repo root, or from the package dir via `--config ../../vite.config.ts` (vite-plus 1.x
+// resolves its config from the working directory), so a cwd-relative `test.root` would
+// double up (packages/solid-recharts/packages/…).
 const here = dirname(fileURLToPath(import.meta.url));
 const libRoot = resolve(here, "packages/solid-recharts");
+
+// Solid 2.0 lint rules: eslint-plugin-solid@0.18 `configs["v2-strict"]`, written out
+// so the rule set is static (importing the plugin here would load it on every `vp`
+// command, test runs included) and with every `warn` promoted to `error` — the
+// project policy is zero findings. Re-sync with the plugin's config when upgrading.
+const solidRules: DummyRuleMap = {
+  "solid/jsx-no-duplicate-props": "error",
+  "solid/jsx-no-undef": "error",
+  "solid/jsx-uses-vars": "error",
+  "solid/no-unknown-namespaces": "error",
+  "solid/no-innerhtml": "error",
+  "solid/jsx-no-script-url": "error",
+  "solid/components-return-once": "error",
+  "solid/no-destructure": "error",
+  "solid/prefer-for": "error",
+  // `registerInStore` / `collectCells` take reactive thunks (their compute runs in a
+  // tracking scope), so signals and props may be read inside the function they receive.
+  "solid/reactivity": ["error", { customReactiveFunctions: ["registerInStore", "collectCells"] }],
+  "solid/event-handlers": "error",
+  "solid/imports": "error",
+  "solid/style-prop": "error",
+  "solid/no-react-specific-props": "error",
+  "solid/self-closing-comp": "error",
+  "solid/removed-api": "error",
+  "solid/no-single-arg-create-effect": "error",
+  "solid/no-store-mutation-outside-setter": "error",
+  "solid/no-write-in-pure-computation": "error",
+  "solid/no-unused-signal": "error",
+  "solid/no-accessor-as-prop": "error",
+  "solid/no-boolean-enumerated-attribute": "error",
+  "solid/prefer-structured-class": "error",
+  "solid/valid-use-server": "error",
+  "solid/require-async-server-function": "error",
+  "solid/no-invalid-server-capture": "error",
+  "solid/no-browser-globals-in-server-function": "error",
+  "solid/no-module-scope-reactive-primitive": "error",
+  "solid/prefer-onSettled-for-side-effects": "error",
+  "solid/no-restated-default-options": "error",
+};
 
 // Single workspace-root config (per AGENTS.md). Vite+ (`vp`) reads this for the
 // whole monorepo: dev/test transform, the test runner, and Oxlint (`vp lint` /
@@ -16,17 +57,11 @@ const libRoot = resolve(here, "packages/solid-recharts");
 // the vendored recharts reference under vendor/.
 export default defineConfig({
   plugins: [solid()],
-  // Solid 2.0's `development` export condition selects `dist/dev.js`, the build
-  // that emits structured diagnostics (the `node` default selects the SSR build,
-  // where reactivity — and diagnostics — are stripped). Forcing it on means our
-  // test discipline (`expectClean`/`expectOnly`) has events to assert against.
-  resolve: { conditions: ["development", "browser"] },
-  // Belt-and-suspenders: force Solid's dev guards on so vite-plugin-solid compiles
-  // in dev-only registration (owner names, graph hooks) for richer diagnostics.
-  define: {
-    _SOLID_DEV_: "true",
-    __DEV__: "true",
-  },
+  // Solid 2.0's dev runtime (the `development` export condition, which carries
+  // the diagnostics channel `@solidjs/diagnostics` captures) is selected by
+  // @solidjs/vite-plugin itself under vitest — no manual `resolve.conditions`
+  // or `define` flags are needed (the old `_SOLID_DEV_`/`__DEV__` globals no
+  // longer exist in the runtime).
   test: {
     // Scope the test run to the library package: include/setup globs resolve under
     // this dir, so the vendored reference (vendor/recharts-reference/test) is never
@@ -45,6 +80,18 @@ export default defineConfig({
     unstubGlobals: true,
     setupFiles: ["test/setup.ts"],
     include: ["test/**/*.spec.ts?(x)", "test/**/*.test.ts?(x)"],
+    server: {
+      deps: {
+        // @solidjs/testing-library and @solidjs/diagnostics import the Solid runtime
+        // themselves. @solidjs/vite-plugin only inlines the runtime consumers it finds
+        // in the Vite root's package.json, and ours are declared in the library
+        // package (the root here is the workspace). Left external, Node would load
+        // them with its own conditions: the SSR build of @solidjs/web ("Client-only
+        // API called on the server side") and a second @solidjs/signals instance the
+        // diagnostics channel never hears from.
+        inline: [/@solidjs[\\/]testing-library/, /@solidjs[\\/]diagnostics/],
+      },
+    },
   },
 
   // Oxfmt (`vp fmt` / `vp check`): keep the formatter out of the vendored recharts
@@ -70,6 +117,11 @@ export default defineConfig({
   // `vp check`) so they engage. `as const` is a const assertion and stays allowed.
   lint: {
     plugins: ["typescript"],
+    // eslint-plugin-solid runs as an Oxlint JS plugin (its rules are registered
+    // under the `solid/` prefix). `settings.solid.version` switches it to the
+    // Solid 2.0 rule semantics.
+    jsPlugins: ["eslint-plugin-solid"],
+    settings: { solid: { version: 2 } },
     // bench/ is a standalone npm project (react entries have no @types/react —
     // the type-aware rules would flood it with false unsafe-* errors).
     // *.gen.ts files are tool-generated (see the fmt ignore above).
@@ -86,6 +138,7 @@ export default defineConfig({
       typeCheck: true,
     },
     rules: {
+      ...solidRules,
       // No `any`.
       "typescript/no-explicit-any": "error",
       // No `as` type assertions (const assertions like `as const` are exempt).

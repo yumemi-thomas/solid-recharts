@@ -8,5 +8,5 @@
 allowBuilds:
   esbuild: true
 
-# Portal patch removed on the beta.15 bump — beta.15 fixes the upstream Portal
-# bug (createElementProxy -> native `contains` throw) natively. No patch needed.
+minimumReleaseAgeExclude:
+  - "@solidjs/vite-plugin@3.0.0-next.52"
