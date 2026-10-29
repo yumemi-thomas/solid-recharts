@@ -14,7 +14,7 @@
 //  - element `content` (React.cloneElement) DROPPED; function `content` kept.
 //  - ZIndexLayer / `fill`-passthrough deferred (Label forwards no per-label fill).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createContext, createMemo, For, omit, Show, useContext } from "solid-js";
+import { createContext, createMemo, For, omit, Show, untrack, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
@@ -134,8 +134,11 @@ export function CartesianLabelListContextProvider(props: {
   value: Accessor<ReadonlyArray<CartesianLabelListEntry> | undefined>;
   children: JSX.Element;
 }): JSX.Element {
+  // The accessor itself is stable for the provider's lifetime (it is the reactive part).
   return (
-    <CartesianLabelListContext value={props.value}>{props.children}</CartesianLabelListContext>
+    <CartesianLabelListContext value={untrack(() => props.value)}>
+      {props.children}
+    </CartesianLabelListContext>
   );
 }
 
@@ -147,7 +150,12 @@ export function PolarLabelListContextProvider(props: {
   value: Accessor<ReadonlyArray<PolarLabelListEntry> | undefined>;
   children: JSX.Element;
 }): JSX.Element {
-  return <PolarLabelListContext value={props.value}>{props.children}</PolarLabelListContext>;
+  // The accessor itself is stable for the provider's lifetime (it is the reactive part).
+  return (
+    <PolarLabelListContext value={untrack(() => props.value)}>
+      {props.children}
+    </PolarLabelListContext>
+  );
 }
 
 /**

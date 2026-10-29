@@ -107,18 +107,21 @@ const BrushPanoramaSurface = (props: { children: JSX.Element }): JSX.Element => 
 };
 
 export const RootSurface = (props: RootSurfaceProps): JSX.Element => {
+  // A surface never moves in or out of a panorama, so this is a setup-time read.
   const isPanorama = useIsPanorama();
 
-  if (isPanorama) {
-    return (
+  return (
+    <Show
+      when={isPanorama}
+      fallback={
+        <MainChartSurface {...props}>
+          <AllZIndexPortals isPanorama={false}>{props.children}</AllZIndexPortals>
+        </MainChartSurface>
+      }
+    >
       <BrushPanoramaSurface>
         <AllZIndexPortals isPanorama>{props.children}</AllZIndexPortals>
       </BrushPanoramaSurface>
-    );
-  }
-  return (
-    <MainChartSurface {...props}>
-      <AllZIndexPortals isPanorama={false}>{props.children}</AllZIndexPortals>
-    </MainChartSurface>
+    </Show>
   );
 };

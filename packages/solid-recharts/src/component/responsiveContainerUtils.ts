@@ -83,11 +83,11 @@ const noStyle: ResponsiveInnerDivStyle = {};
  * react-virtualized-auto-sizer.) Not needed when a dimension is a fixed number or
  * undefined (the chart can't shrink in that dimension anyway).
  */
-export const getInnerDivStyle = (props: {
+export const getInnerDivStyle = (size: {
   width?: Percent | number;
   height?: Percent | number;
 }): ResponsiveInnerDivStyle => {
-  const { width, height } = props;
+  const { width, height } = size;
   const isWidthPercent = isPercent(width);
   const isHeightPercent = isPercent(height);
 

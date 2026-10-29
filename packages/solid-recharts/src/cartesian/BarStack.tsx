@@ -1,7 +1,7 @@
 // Ported from recharts 3.8.1 src/cartesian/BarStack.tsx (commit 7a23854).
 // Solid deviations: `resolveDefaultProps`→`merge`; React context → Solid `createContext`;
 // `useMemo`→plain object; `React.memo`/`propsAreEqual` omitted (Solid comp granularity).
-import { createContext, createMemo, For, merge, Show, useContext } from "solid-js";
+import { createContext, createMemo, For, merge, Show, untrack, useContext } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { getNormalizedStackId, type NormalizedStackId, type StackId } from "../util/ChartUtils";
 import { useUniqueId } from "../util/useUniqueId";
@@ -44,15 +44,20 @@ const BarStackContext = createContext<BarStackSettings | null>(null);
  * Otherwise, this will read stack ID from BarStack context if available.
  * If both are undefined, it returns undefined.
  */
-export const useStackId = (childStackId: StackId | undefined): NormalizedStackId | undefined => {
+export const useStackId = (
+  childStackId: StackId | undefined | (() => StackId | undefined),
+): NormalizedStackId | undefined => {
   const stackSettings = useContext(BarStackContext);
   if (stackSettings != null) {
     return stackSettings.stackId;
   }
-  if (childStackId == null) {
+  // Solid components run once, so the stack ID is resolved at creation; a getter is
+  // read without tracking.
+  const resolved = typeof childStackId === "function" ? untrack(childStackId) : childStackId;
+  if (resolved == null) {
     return undefined;
   }
-  return getNormalizedStackId(childStackId);
+  return getNormalizedStackId(resolved);
 };
 
 export const defaultBarStackProps = {
@@ -79,6 +84,7 @@ export const BarStackClipLayer = (props: LayerProps & { index: number }): JSX.El
   const clipPathUrl = createMemo(() => useBarStackClipPathUrl(props.index));
   return (
     <Layer
+      // eslint-disable-next-line solid/prefer-structured-class -- <Layer>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
       class={["recharts-bar-stack-layer", props.class].filter(Boolean).join(" ")}
       clipPath={clipPathUrl()}
       onMouseEnter={props.onMouseEnter}
@@ -137,10 +143,13 @@ const BarStackClipPath = (props: {
 
 export const BarStack = (props: BarStackProps): JSX.Element => {
   const merged = merge(defaultBarStackProps, props);
-  const resolvedStackId = useUniqueId("recharts-bar-stack", getNormalizedStackId(merged.stackId));
+  const resolvedStackId = useUniqueId("recharts-bar-stack", () =>
+    getNormalizedStackId(merged.stackId),
+  );
+  // The stack's radius is provided to its bars once, as upstream's context value.
   const context: BarStackSettings = {
     stackId: resolvedStackId,
-    radius: merged.radius,
+    radius: untrack(() => merged.radius),
   };
   return (
     <BarStackContext value={context}>

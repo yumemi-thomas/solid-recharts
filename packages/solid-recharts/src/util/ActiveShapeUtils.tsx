@@ -28,16 +28,16 @@ function mergeShapeProps<PropsType extends object>(
   return { ...props, ...option };
 }
 
-function getShapeIndex(shapeProps: object): string | number | undefined {
-  if (!("index" in shapeProps)) {
+function getShapeIndex(shape: object): string | number | undefined {
+  if (!("index" in shape)) {
     return undefined;
   }
-  const { index } = shapeProps;
+  const { index } = shape;
   return typeof index === "number" || typeof index === "string" ? index : undefined;
 }
 
-function isActiveShape(shapeProps: object): boolean {
-  return "isActive" in shapeProps && shapeProps.isActive === true;
+function isActiveShape(shape: object): boolean {
+  return "isActive" in shape && shape.isActive === true;
 }
 
 export function Shape<PropsType extends object, ElementType extends SVGElement = SVGElement>(

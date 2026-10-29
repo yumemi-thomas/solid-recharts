@@ -4,7 +4,7 @@
 // `?? default` accessors (see the defaults-use-solid-merge memory — using
 // explicit nullish-coalescing avoids `merge`'s undefined-override gotcha AND the
 // required-ness typing gap). Provider + Report components mirror recharts.
-import { omit } from "solid-js";
+import { createMemo, omit, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { ChartOptions } from "../state/optionsSlice";
 import { RechartsStoreProvider } from "../state/RechartsStoreProvider";
@@ -42,9 +42,12 @@ export const CartesianChart = (props: CartesianChartOptions): JSX.Element => {
   // panorama context — they register into the outer store and draw into the brush's
   // panorama surface (isPanorama=true → full data range + brush viewBox). No new
   // store/wrapper/surface; the chart-level props (width/height/data) are the outer's.
-  if (useIsPanorama()) {
-    return <>{cp().children}</>;
-  }
+  // (A chart never moves in or out of a panorama, so this is a setup-time read.)
+  const isPanorama = useIsPanorama();
+
+  // Spread WITHOUT children (see the note at the JSX below): `omit` keeps the
+  // children getter lazy.
+  const chartProps = createMemo(() => omit(cp(), "children"));
 
   const options = (): ChartOptions => ({
     chartName: props.chartName,
@@ -72,20 +75,22 @@ export const CartesianChart = (props: CartesianChartOptions): JSX.Element => {
   });
 
   return (
-    <RechartsStoreProvider preloadedState={{ options: options() }}>
-      <ChartDataContextProvider chartData={cp().data} />
-      <ReportMainChartProps layout={layout()} margin={margin()} />
-      <ReportEventSettings
-        throttleDelay={cp().throttleDelay}
-        throttledEvents={cp().throttledEvents}
-      />
-      <ReportChartProps {...updatable()} />
-      {/* Spread WITHOUT children (a `{...cp()}` spread eagerly evaluates the
-          children getter here, before the provider sets context — running them
-          outside the store); pass children as a lazy JSX child instead. */}
-      <CategoricalChart {...omit(cp(), "children")} ref={props.ref}>
-        {cp().children}
-      </CategoricalChart>
-    </RechartsStoreProvider>
+    <Show when={!isPanorama} fallback={<>{cp().children}</>}>
+      <RechartsStoreProvider preloadedState={{ options: options() }}>
+        <ChartDataContextProvider chartData={cp().data} />
+        <ReportMainChartProps layout={layout()} margin={margin()} />
+        <ReportEventSettings
+          throttleDelay={cp().throttleDelay}
+          throttledEvents={cp().throttledEvents}
+        />
+        <ReportChartProps {...updatable()} />
+        {/* Spread WITHOUT children (a `{...cp()}` spread eagerly evaluates the
+            children getter here, before the provider sets context — running them
+            outside the store); pass children as a lazy JSX child instead. */}
+        <CategoricalChart {...chartProps()} ref={props.ref}>
+          {cp().children}
+        </CategoricalChart>
+      </RechartsStoreProvider>
+    </Show>
   );
 };

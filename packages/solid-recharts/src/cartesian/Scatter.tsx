@@ -385,11 +385,14 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
   const store = useAppStore();
   const merged = merge(scatterDefaultProps, props);
   const isPanorama = useIsPanorama();
-  const id = useUniqueId("recharts-scatter", props.id);
-  // `shape` is either a built-in symbol type or a custom render fn; resolve once.
-  const customShape = typeof merged.shape === "function" ? merged.shape : undefined;
-  const symbolType = typeof merged.shape === "function" ? "circle" : merged.shape;
-  const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
+  const id = useUniqueId("recharts-scatter", () => props.id);
+  // `shape` is either a built-in symbol type or a custom render fn.
+  const customShape = () => (typeof merged.shape === "function" ? merged.shape : undefined);
+  const symbolType = () => (typeof merged.shape === "function" ? "circle" : merged.shape);
+  const { needClip } = useNeedsClip(
+    () => merged.xAxisId,
+    () => merged.yAxisId,
+  );
 
   // Active-shape highlight on the hovered point (recharts ScatterSymbols): the
   // active point swaps its shape for `activeShape` and renders in a
@@ -576,6 +579,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
       <For each={frame}>
         {(entry, i) => (
           <Layer
+            // eslint-disable-next-line solid/prefer-structured-class -- <Layer>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
             class={["recharts-scatter-symbol", entry.cell?.class]
               .filter((c): c is string => Boolean(c))
               .join(" ")}
@@ -590,18 +594,18 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
                   DefaultShape={defaultSymbolShape}
                   shapeProps={{
                     ...entry,
-                    type: symbolType,
+                    type: symbolType(),
                     sizeType: "area",
                     fill: entry.cell?.fill ?? entry.fill ?? merged.fill,
                     isActive: true,
                     index: i(),
                   }}
                 />
-              ) : customShape ? (
+              ) : customShape() ? (
                 // v3.9: forward the animation state into the custom shape so it
                 // can react to it (mirrors recharts ScatterSymbols). isAnimating
                 // combines the live callback flag with an in-flight progress check.
-                customShape({
+                customShape()?.({
                   ...entry,
                   animationElapsedTime,
                   isAnimating: isAnimating() || animationElapsedTime < 1,
@@ -615,7 +619,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
                   height={entry.height}
                   size={entry.size}
                   sizeType="area"
-                  type={symbolType}
+                  type={symbolType()}
                   name={entry.name}
                   fill={entry.cell?.fill ?? entry.fill ?? merged.fill}
                   fillOpacity={merged.fillOpacity}

@@ -424,11 +424,23 @@ export type SvgKebabRenameTarget = (typeof SVG_ATTRIBUTE_RENAMES)[SvgCamelRename
  * components own `class`); `CamelSvgProps<Base>` grafts it onto a Solid
  * `JSX.*SVGAttributes` base while stripping the kebab duplicates (keeping
  * Solid-native `class`, which the rename map targets but components re-own).
+ *
+ * Solid 2.0 RCs also type `data-*` attributes on every `JSX.*Attributes` base
+ * as a `data-${string}` index signature. Component props here are closed
+ * vocabularies (JSX never type-checks hyphenated names against them), and
+ * keeping the index signature would make every shape-prop record that lacks it
+ * (`BarShapeProps`, `PieSectorShapeProps`, …) unassignable to the default
+ * shape components, so it is stripped along with the kebab duplicates.
  */
 export type CamelSvgAttributes = {
   [K in Exclude<SvgCamelRenameKey, "className">]?: string | number;
 };
-export type CamelSvgProps<Base> = Omit<Base, Exclude<SvgKebabRenameTarget, "class">> &
+type WithoutDataAttributeIndex<T> = {
+  [K in keyof T as K extends `data-${string}` ? never : K]: T[K];
+};
+export type CamelSvgProps<Base> = WithoutDataAttributeIndex<
+  Omit<Base, Exclude<SvgKebabRenameTarget, "class">>
+> &
   CamelSvgAttributes;
 
 /** The DOM attribute name for a (possibly camelCase) SVG prop key. */

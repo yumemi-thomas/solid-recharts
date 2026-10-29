@@ -27,10 +27,16 @@ export type TooltipTriggerInfo = {
 
 export type MouseEnterLeaveEvent<T> = (data: T, index: number, event: MouseEvent) => void;
 
+/** A graphical item id, or a getter for one (read at event time, so it is never stale). */
+type GraphicalItemIdSource = string | (() => string);
+
+const resolveGraphicalItemId = (id: GraphicalItemIdSource): string =>
+  typeof id === "function" ? id() : id;
+
 export const useMouseEnterItemDispatch = <T extends TooltipTriggerInfo>(
   onMouseEnterFromProps: () => MouseEnterLeaveEvent<T> | undefined,
   dataKey: () => DataKey<unknown> | undefined,
-  graphicalItemId: string,
+  graphicalItemId: GraphicalItemIdSource,
 ) => {
   const store = useAppStore();
   return (data: T, index: number) => (event: MouseEvent) => {
@@ -39,7 +45,7 @@ export const useMouseEnterItemDispatch = <T extends TooltipTriggerInfo>(
       activeIndex: String(index),
       activeDataKey: dataKey(),
       activeCoordinate: data.tooltipPosition,
-      activeGraphicalItemId: graphicalItemId,
+      activeGraphicalItemId: resolveGraphicalItemId(graphicalItemId),
     });
   };
 };
@@ -57,7 +63,7 @@ export const useMouseLeaveItemDispatch = <T extends TooltipTriggerInfo>(
 export const useMouseClickItemDispatch = <T extends TooltipTriggerInfo>(
   onMouseClickFromProps: () => MouseEnterLeaveEvent<T> | undefined,
   dataKey: () => DataKey<unknown> | undefined,
-  graphicalItemId: string,
+  graphicalItemId: GraphicalItemIdSource,
 ) => {
   const store = useAppStore();
   return (data: T, index: number) => (event: MouseEvent) => {
@@ -66,7 +72,7 @@ export const useMouseClickItemDispatch = <T extends TooltipTriggerInfo>(
       activeIndex: String(index),
       activeDataKey: dataKey(),
       activeCoordinate: data.tooltipPosition,
-      activeGraphicalItemId: graphicalItemId,
+      activeGraphicalItemId: resolveGraphicalItemId(graphicalItemId),
     });
   };
 };

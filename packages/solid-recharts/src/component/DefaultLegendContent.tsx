@@ -6,10 +6,10 @@
 // `JSX.CSSProperties`, `className`→`class`, clsx→`class={[...]}`; `LegendItemSorter`
 // is co-located here (reference keeps it in Legend.tsx) so the slice can import it
 // without depending on the Legend component. `adaptEventsOfChild` events deferred.
-import { For, Show, merge } from "solid-js";
+import { For, Match, Show, Switch, merge } from "solid-js";
 import type { Element } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { DataKey, LegendType, MousePointer } from "../util/types";
+import { DataKey, LegendType, MousePointer, SymbolType } from "../util/types";
 import { Surface } from "../container/Surface";
 import { Symbols } from "../shape/Symbols";
 
@@ -71,60 +71,65 @@ const LegendIcon = (props: {
   const color = (): string | undefined =>
     props.data.inactive ? props.inactiveColor : props.data.color;
   const preferredIcon = (): LegendType | undefined => props.iconType ?? props.data.type;
+  // The shape-based icons ("circle", "star", …) are rendered through <Symbols>.
+  const symbolType = (): SymbolType => {
+    const icon = preferredIcon();
+    return icon == null ||
+      icon === "none" ||
+      icon === "plainline" ||
+      icon === "line" ||
+      icon === "rect"
+      ? "square"
+      : icon;
+  };
   const halfSize = SIZE / 2;
   const thirdSize = SIZE / 3;
   const sixthSize = SIZE / 6;
 
   return (
     <Show when={preferredIcon() !== "none"}>
-      {(() => {
-        const icon = preferredIcon();
-        if (icon === "plainline") {
-          return (
-            <line
-              stroke-width={4}
-              fill="none"
-              stroke={color()}
-              x1={0}
-              y1={halfSize}
-              x2={SIZE}
-              y2={halfSize}
-              class="recharts-legend-icon"
-            />
-          );
-        }
-        if (icon === "line") {
-          return (
-            <path
-              stroke-width={4}
-              fill="none"
-              stroke={color()}
-              d={`M0,${halfSize}h${thirdSize}A${sixthSize},${sixthSize},0,1,1,${2 * thirdSize},${halfSize}H${SIZE}M${2 * thirdSize},${halfSize}A${sixthSize},${sixthSize},0,1,1,${thirdSize},${halfSize}`}
-              class="recharts-legend-icon"
-            />
-          );
-        }
-        if (icon === "rect") {
-          return (
-            <path
-              stroke="none"
-              fill={color()}
-              d={`M0,${SIZE / 8}h${SIZE}v${(SIZE * 3) / 4}h${-SIZE}z`}
-              class="recharts-legend-icon"
-            />
-          );
-        }
-        return (
+      <Switch
+        fallback={
           <Symbols
             fill={color()}
             cx={halfSize}
             cy={halfSize}
             size={SIZE}
             sizeType="diameter"
-            type={icon == null || icon === "none" ? "square" : icon}
+            type={symbolType()}
           />
-        );
-      })()}
+        }
+      >
+        <Match when={preferredIcon() === "plainline"}>
+          <line
+            stroke-width={4}
+            fill="none"
+            stroke={color()}
+            x1={0}
+            y1={halfSize}
+            x2={SIZE}
+            y2={halfSize}
+            class="recharts-legend-icon"
+          />
+        </Match>
+        <Match when={preferredIcon() === "line"}>
+          <path
+            stroke-width={4}
+            fill="none"
+            stroke={color()}
+            d={`M0,${halfSize}h${thirdSize}A${sixthSize},${sixthSize},0,1,1,${2 * thirdSize},${halfSize}H${SIZE}M${2 * thirdSize},${halfSize}A${sixthSize},${sixthSize},0,1,1,${thirdSize},${halfSize}`}
+            class="recharts-legend-icon"
+          />
+        </Match>
+        <Match when={preferredIcon() === "rect"}>
+          <path
+            stroke="none"
+            fill={color()}
+            d={`M0,${SIZE / 8}h${SIZE}v${(SIZE * 3) / 4}h${-SIZE}z`}
+            class="recharts-legend-icon"
+          />
+        </Match>
+      </Switch>
     </Show>
   );
 };

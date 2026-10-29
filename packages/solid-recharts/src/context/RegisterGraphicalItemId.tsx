@@ -30,7 +30,10 @@ export interface IdSetter {
 const GraphicalItemIdContext = createContext<GraphicalItemId | null>(null);
 
 export const RegisterGraphicalItemId = (props: IdSetter): JSX.Element => {
-  const resolvedId = useUniqueId(`recharts-${props.type}`, props.id);
+  const resolvedId = useUniqueId(
+    () => `recharts-${props.type}`,
+    () => props.id,
+  );
   return (
     <GraphicalItemIdContext value={resolvedId}>{props.children(resolvedId)}</GraphicalItemIdContext>
   );

@@ -122,8 +122,9 @@ const SymbolsComponent = (props: SymbolsProps): JSX.Element => {
     return s;
   };
 
+  const rest = omit(props, "class", "type", "size", "sizeType");
   const passthrough = (): Record<string, unknown> => ({
-    ...omit(props, "class", "type", "size", "sizeType"),
+    ...rest,
     type: type(),
     size: size(),
     sizeType: sizeType(),

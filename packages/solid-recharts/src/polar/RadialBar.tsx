@@ -482,7 +482,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
 ): JSX.Element {
   const store = useAppStore();
   const merged = merge(radialBarDefaultProps, props);
-  const id = useUniqueId("recharts-radial-bar", props.id);
+  const id = useUniqueId("recharts-radial-bar", () => props.id);
 
   const settings = (): RadialBarSettings => ({
     id,
@@ -587,17 +587,18 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
 
   // Plain props-first pointer/touch callbacks (no tooltip dispatch — only
   // enter/leave/click drive the active tooltip). Each binds (entry, index).
-  const onItemMouse =
-    (handler: ((d: RadialBarDataItem, i: number, e: MouseEvent) => void) | undefined) =>
+  // The handler is read at event time (fresh, never stale), like the touch handlers below.
+  const createItemMouse =
+    (getHandler: () => ((d: RadialBarDataItem, i: number, e: MouseEvent) => void) | undefined) =>
     (entry: RadialBarDataItem, index: number) =>
     (event: MouseEvent): void => {
-      handler?.(entry, index, event);
+      getHandler()?.(entry, index, event);
     };
-  const onItemMouseDown = onItemMouse(props.onMouseDown);
-  const onItemMouseUp = onItemMouse(props.onMouseUp);
-  const onItemMouseMove = onItemMouse(props.onMouseMove);
-  const onItemMouseOver = onItemMouse(props.onMouseOver);
-  const onItemMouseOut = onItemMouse(props.onMouseOut);
+  const onItemMouseDown = createItemMouse(() => props.onMouseDown);
+  const onItemMouseUp = createItemMouse(() => props.onMouseUp);
+  const onItemMouseMove = createItemMouse(() => props.onMouseMove);
+  const onItemMouseOver = createItemMouse(() => props.onMouseOver);
+  const onItemMouseOut = createItemMouse(() => props.onMouseOut);
 
   const onItemTouchStart =
     (entry: RadialBarDataItem, index: number) =>
@@ -652,23 +653,21 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
               <PolarLabelListContextProvider
                 value={() =>
                   !isAnimating()
-                    ? secs().map(
-                        (sector): PolarLabelListEntry => ({
-                          value: sector.value,
-                          payload: sector.payload,
-                          parentViewBox: undefined,
-                          fill: typeof sector.fill === "string" ? sector.fill : undefined,
-                          viewBox: {
-                            cx: sector.cx,
-                            cy: sector.cy,
-                            innerRadius: sector.innerRadius,
-                            outerRadius: sector.outerRadius,
-                            startAngle: sector.startAngle,
-                            endAngle: sector.endAngle,
-                            clockWise: false,
-                          },
-                        }),
-                      )
+                    ? secs().map((sector): PolarLabelListEntry => ({
+                        value: sector.value,
+                        payload: sector.payload,
+                        parentViewBox: undefined,
+                        fill: typeof sector.fill === "string" ? sector.fill : undefined,
+                        viewBox: {
+                          cx: sector.cx,
+                          cy: sector.cy,
+                          innerRadius: sector.innerRadius,
+                          outerRadius: sector.outerRadius,
+                          startAngle: sector.startAngle,
+                          endAngle: sector.endAngle,
+                          clockWise: false,
+                        },
+                      }))
                     : undefined
                 }
               >
@@ -714,6 +713,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
                             animationElapsedTime={animationElapsedTime}
                             isAnimating={isAnimating() || animationElapsedTime < 1}
                             isEntrance={isEntrance}
+                            // eslint-disable-next-line solid/prefer-structured-class -- RadialBarSector's public `class` prop is a plain string (recharts `className`), so the template string is intended
                             class={`recharts-radial-bar-sector ${entry.class ?? ""}`}
                             fill={entry.fill ?? merged.fill}
                             stroke={entry.stroke ?? merged.stroke}

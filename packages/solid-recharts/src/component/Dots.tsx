@@ -85,18 +85,12 @@ function DotRenderer(props: DotRendererProps): JSX.Element {
   // default <Dot>. A plain ternary (not <Show when={fn}>) keeps the read tracked
   // without tripping STRICT_READ on the function-valued condition.
   const renderFn = createMemo(() => (typeof props.dot === "function" ? props.dot : undefined));
+  const dotAttrs = createMemo(() =>
+    omit(dotProps(), "index", "dataKey", "value", "payload", "points"),
+  );
 
   return (
-    <>
-      {renderFn() ? (
-        renderFn()?.(dotProps())
-      ) : (
-        <Dot
-          {...omit(dotProps(), "index", "dataKey", "value", "payload", "points")}
-          class={props.dotClass}
-        />
-      )}
-    </>
+    <>{renderFn() ? renderFn()?.(dotProps()) : <Dot {...dotAttrs()} class={props.dotClass} />}</>
   );
 }
 

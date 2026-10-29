@@ -96,12 +96,13 @@ const errorBarDefaultProps = {
 } as const satisfies Partial<ErrorBarProps>;
 
 function useErrorBarDirection(
-  directionFromProps: ErrorBarDirection | undefined,
+  directionFromProps: Accessor<ErrorBarDirection | undefined>,
 ): Accessor<ErrorBarDirection> {
   const layout = useChartLayout();
   return (): ErrorBarDirection => {
-    if (directionFromProps != null) {
-      return directionFromProps;
+    const fromProps = directionFromProps();
+    if (fromProps != null) {
+      return fromProps;
     }
     const l = layout();
     if (l != null) {
@@ -276,26 +277,25 @@ function ErrorBarImpl(props: {
  */
 export function ErrorBar(props: ErrorBarProps): JSX.Element {
   const merged = merge(errorBarDefaultProps, props);
-  const direction = useErrorBarDirection(props.direction);
+  const direction = useErrorBarDirection(() => props.direction);
   // Everything that isn't ErrorBar config is an SVG presentation prop for the
   // whisker group (recharts: `const { direction, width, dataKey, ...others } =
   // props; svgPropertiesNoEvents(others)`). The allowlist filter drops any
   // remaining non-SVG keys (and the merge proxy's symbols).
+  const svgRest = omit(
+    merged,
+    "dataKey",
+    "width",
+    "direction",
+    "isAnimationActive",
+    "animationBegin",
+    "animationDuration",
+    "animationEasing",
+    "zIndex",
+    "class",
+  );
   const groupSvgAttrs = createMemo<Record<string, unknown>>(() =>
-    svgPropertiesNoEvents({
-      ...omit(
-        merged,
-        "dataKey",
-        "width",
-        "direction",
-        "isAnimationActive",
-        "animationBegin",
-        "animationDuration",
-        "animationEasing",
-        "zIndex",
-        "class",
-      ),
-    }),
+    svgPropertiesNoEvents({ ...svgRest }),
   );
   return (
     <>

@@ -7,7 +7,7 @@
 // The polar geometry props (cx/cy/innerRadius/outerRadius/startAngle/endAngle)
 // pass through to CategoricalChart exactly as in the reference — svgPropertiesNoEvents
 // forwards cx/cy onto the root <svg> (faithful) and drops the rest.
-import { omit } from "solid-js";
+import { createMemo, omit } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { ChartOptions } from "../state/optionsSlice";
 import { RechartsStoreProvider } from "../state/RechartsStoreProvider";
@@ -67,6 +67,10 @@ export const PolarChart = (props: PolarChartOptions): JSX.Element => {
     reverseStackOrder: cp().reverseStackOrder ?? false,
   });
 
+  // Spread WITHOUT children (see the note at the JSX below): `omit` keeps the
+  // children getter lazy.
+  const chartProps = createMemo(() => omit(cp(), "children"));
+
   const polar = (): PolarOptionsPayload => ({
     cx: cp().cx ?? "50%",
     cy: cp().cy ?? "50%",
@@ -89,7 +93,7 @@ export const PolarChart = (props: PolarChartOptions): JSX.Element => {
       {/* Spread WITHOUT children (a `{...cp()}` spread eagerly evaluates the
           children getter here, before the provider sets context — running them
           outside the store); pass children as a lazy JSX child instead. */}
-      <CategoricalChart {...omit(cp(), "children")} ref={props.ref}>
+      <CategoricalChart {...chartProps()} ref={props.ref}>
         {cp().children}
       </CategoricalChart>
     </RechartsStoreProvider>

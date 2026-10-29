@@ -347,7 +347,7 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
   props: FunnelProps<DataPointType, DataValueType>,
 ): JSX.Element {
   const merged = merge(funnelDefaultProps, props);
-  const id = useUniqueId("recharts-funnel", props.id);
+  const id = useUniqueId("recharts-funnel", () => props.id);
 
   const cells = collectCells(() => props.children);
 
@@ -407,17 +407,6 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
     id,
   );
 
-  // Remaining per-trapezoid pointer handlers (no tooltip dispatch); captured once
-  // (reading them in the <For> callback would be an untracked prop read).
-  const onMouseDownHandler = props.onMouseDown;
-  const onMouseUpHandler = props.onMouseUp;
-  const onMouseMoveHandler = props.onMouseMove;
-  const onMouseOverHandler = props.onMouseOver;
-  const onMouseOutHandler = props.onMouseOut;
-  const onTouchStartHandler = props.onTouchStart;
-  const onTouchMoveHandler = props.onTouchMove;
-  const onTouchEndHandler = props.onTouchEnd;
-
   // Active (hovered) trapezoid index for `activeShape` (item-type tooltip).
   const activeItemIndex = useAppSelector((state) =>
     selectActiveIndex(state, "item", state.tooltip.settings.trigger, undefined),
@@ -438,11 +427,6 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
       };
     }),
   );
-
-  // Captured once (a render prop rarely changes); reading it in the <For> callback
-  // would be an untracked prop read.
-  const shape = merged.shape;
-  const activeShape = merged.activeShape;
 
   // FunnelChart runs in a "horizontal" cartesian layout; the interpolation fn
   // ignores the layout value but AnimatedItems requires one (and a defined layout
@@ -509,7 +493,7 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
                         // Layer and the default <Trapezoid> when the option is a
                         // boolean/undefined.
                         const isActive = (): boolean =>
-                          Boolean(activeShape) && activeItemIndex() === String(i());
+                          Boolean(merged.activeShape) && activeItemIndex() === String(i());
                         // v3.9 ShapeAnimationProps forwarded into the custom-shape
                         // invocation, mirroring upstream FunnelTrapezoids. Combine
                         // `< 1` like upstream so the shape sees `isAnimating` through
@@ -526,43 +510,43 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
                             onMouseLeave={onItemLeave(entry, i())}
                             onClick={onItemClick(entry, i())}
                             onMouseDown={
-                              onMouseDownHandler != null
-                                ? (event) => onMouseDownHandler(entry, i(), event)
+                              props.onMouseDown != null
+                                ? (event) => props.onMouseDown?.(entry, i(), event)
                                 : undefined
                             }
                             onMouseUp={
-                              onMouseUpHandler != null
-                                ? (event) => onMouseUpHandler(entry, i(), event)
+                              props.onMouseUp != null
+                                ? (event) => props.onMouseUp?.(entry, i(), event)
                                 : undefined
                             }
                             onMouseMove={
-                              onMouseMoveHandler != null
-                                ? (event) => onMouseMoveHandler(entry, i(), event)
+                              props.onMouseMove != null
+                                ? (event) => props.onMouseMove?.(entry, i(), event)
                                 : undefined
                             }
                             onMouseOver={
-                              onMouseOverHandler != null
-                                ? (event) => onMouseOverHandler(entry, i(), event)
+                              props.onMouseOver != null
+                                ? (event) => props.onMouseOver?.(entry, i(), event)
                                 : undefined
                             }
                             onMouseOut={
-                              onMouseOutHandler != null
-                                ? (event) => onMouseOutHandler(entry, i(), event)
+                              props.onMouseOut != null
+                                ? (event) => props.onMouseOut?.(entry, i(), event)
                                 : undefined
                             }
                             onTouchStart={
-                              onTouchStartHandler != null
-                                ? (event) => onTouchStartHandler(entry, i(), event)
+                              props.onTouchStart != null
+                                ? (event) => props.onTouchStart?.(entry, i(), event)
                                 : undefined
                             }
                             onTouchMove={
-                              onTouchMoveHandler != null
-                                ? (event) => onTouchMoveHandler(entry, i(), event)
+                              props.onTouchMove != null
+                                ? (event) => props.onTouchMove?.(entry, i(), event)
                                 : undefined
                             }
                             onTouchEnd={
-                              onTouchEndHandler != null
-                                ? (event) => onTouchEndHandler(entry, i(), event)
+                              props.onTouchEnd != null
+                                ? (event) => props.onTouchEnd?.(entry, i(), event)
                                 : undefined
                             }
                           >
@@ -570,7 +554,7 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
                               {...entry}
                               {...shapeAnimationProps()}
                               isActive={isActive()}
-                              option={isActive() ? activeShape : shape}
+                              option={isActive() ? merged.activeShape : merged.shape}
                             />
                           </Layer>
                         );

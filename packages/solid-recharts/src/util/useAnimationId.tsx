@@ -16,16 +16,17 @@ import { uniqueId } from "./DataUtils";
  * and stays the same while `input` is unchanged.
  *
  * @param input Accessor for the object to watch (reference equality, `===`).
- * @param prefix Optional prefix for the animation id.
+ * @param prefix Optional prefix for the animation id (or a getter for it).
  * @returns An accessor for the current animation id.
  */
 export function useAnimationId(
   input: Accessor<unknown>,
-  prefix: string = "animation-",
+  prefix: string | Accessor<string | undefined> = "animation-",
 ): Accessor<string> {
   return createMemo(() => {
     // Track `input`; a new reference re-runs this compute → fresh id.
     input();
-    return uniqueId(prefix);
+    const resolved = typeof prefix === "function" ? prefix() : prefix;
+    return uniqueId(resolved ?? "animation-");
   });
 }

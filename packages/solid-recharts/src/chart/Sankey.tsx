@@ -968,7 +968,7 @@ const SankeyImpl = (props: SankeyProps & { id: string }): JSX.Element => {
  * relaxation, conveying how quantities split and merge across stages.
  */
 export const Sankey = (props: SankeyProps): JSX.Element => {
-  const id = useUniqueId("recharts-sankey", props.id);
+  const id = useUniqueId("recharts-sankey", () => props.id);
   const margin = (): Partial<Margin> => props.margin ?? sankeyDefaultProps.margin;
   return (
     <RechartsStoreProvider

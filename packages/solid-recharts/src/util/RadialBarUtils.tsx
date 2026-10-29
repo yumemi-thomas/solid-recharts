@@ -25,11 +25,12 @@ type RadialBarSectorComponentProps = RadialBarSectorProps & {
 };
 
 export function RadialBarSector(props: RadialBarSectorComponentProps): JSX.Element {
+  const shapeProps = omit(props, "option");
   return (
     <Shape<RadialBarSectorProps, SVGPathElement>
       option={props.option}
       DefaultShape={defaultRadialBarShape}
-      shapeProps={omit(props, "option")}
+      shapeProps={shapeProps}
     />
   );
 }

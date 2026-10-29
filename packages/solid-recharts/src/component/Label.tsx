@@ -190,10 +190,10 @@ const getAttrsOfPolarLabel = (
 
 // ---- helpers ----------------------------------------------------------------
 
-const getLabel = (props: Props): RenderableText => {
-  const label: RenderableText = isNullish(props.children) ? props.value : props.children;
-  if (typeof props.formatter === "function") {
-    return props.formatter(label);
+const getLabel = (source: Props): RenderableText => {
+  const label: RenderableText = isNullish(source.children) ? source.value : source.children;
+  if (typeof source.formatter === "function") {
+    return source.formatter(label);
   }
   return label;
 };
@@ -389,7 +389,8 @@ export function Label(outerProps: Props): JSX.Element {
     if (vb == null || typeof content !== "function") {
       return undefined;
     }
-    return { content, args: omit({ ...props, viewBox: vb }, "content") };
+    const args = omit({ ...props, viewBox: vb }, "content");
+    return { content, args };
   });
 
   // Render the default/polar/radial text labels inline under <Show> (their render

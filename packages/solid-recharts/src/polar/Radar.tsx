@@ -293,7 +293,7 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
   const store = useAppStore();
   const merged = merge(radarDefaultProps, props);
   const isPanorama = useIsPanorama();
-  const id = useUniqueId("recharts-radar", props.id);
+  const id = useUniqueId("recharts-radar", () => props.id);
 
   if (store != null) {
     registerInStore<RadarSettings>(
@@ -360,7 +360,7 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
     return r?.isRange ? r.baseLinePoints : undefined;
   };
 
-  const mainColor = getLegendItemColor(merged.stroke, merged.fill);
+  const mainColor = (): string | undefined => getLegendItemColor(merged.stroke, merged.fill);
   const activeRadarPoints = createMemo((): ReadonlyArray<RadarPoint> | undefined =>
     merged.hide ? undefined : radar()?.points,
   );
@@ -435,7 +435,7 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
             activeTooltipIndex: t.index,
             activeDataPoints: t.dataPoints,
             activeDot: merged.activeDot,
-            mainColor,
+            mainColor: mainColor(),
             itemDataKey: merged.dataKey,
           });
           if (state == null) {
@@ -444,7 +444,7 @@ export function Radar<DataPointType = Record<string, unknown>, DataValueType = u
           return renderActivePointsLayerFromState(state, {
             points: pts,
             activeDot: merged.activeDot,
-            mainColor,
+            mainColor: mainColor(),
             itemDataKey: merged.dataKey,
           });
         })()}
@@ -540,8 +540,8 @@ function RadarAnimatedContent(props: {
 
   // Gate the label list while animating, mirroring recharts (showLabels = !isAnimating).
   const { isAnimating, handleAnimationStart, handleAnimationEnd } = useAnimationCallbacks(
-    props.onAnimationStart,
-    props.onAnimationEnd,
+    () => props.onAnimationStart?.(),
+    () => props.onAnimationEnd?.(),
   );
   const labelContextEntries = createMemo(() => (isAnimating() ? undefined : labelListEntries()));
 

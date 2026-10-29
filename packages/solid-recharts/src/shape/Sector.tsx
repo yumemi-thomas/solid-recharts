@@ -279,8 +279,9 @@ export const Sector = (props: SectorProps): JSX.Element => {
     });
   };
 
+  const rest = omit(props, "class");
   const passthrough = (): Record<string, unknown> => ({
-    ...omit(props, "class"),
+    ...rest,
     cx: cx(),
     cy: cy(),
     innerRadius: innerRadius(),
