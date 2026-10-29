@@ -32,7 +32,7 @@ import { dispatchExternalEvent } from "../state/externalEventsMiddleware";
 import { dispatchMouseClick, dispatchMouseMove } from "../state/mouseEventsMiddleware";
 import { isWellBehavedNumber } from "../util/isWellBehavedNumber";
 import type { ExternalMouseEvents } from "./types";
-import type { ChartStyle, Percent } from "../util/types";
+import type { Percent } from "../util/types";
 import type { ExternalEventActionPayload } from "../state/externalEventsMiddleware";
 import {
   useBrushChartSynchronisation,
@@ -45,20 +45,13 @@ export interface RechartsWrapperProps extends ExternalMouseEvents {
   height: number | Percent | undefined;
   responsive: boolean;
   class?: string;
-  style?: ChartStyle;
+  style?: JSX.CSSProperties;
   ref?: HTMLDivElement | ((el: HTMLDivElement) => void);
   dispatchTouchEvents?: boolean;
 }
 
-function styleDimension(value: ChartStyle[keyof ChartStyle]): number | string | undefined {
-  return typeof value === "number" || typeof value === "string" ? value : undefined;
-}
-
-function kebabCaseStyleName(name: string): string {
-  return name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-}
-
-function cssValue(value: string | number | undefined): string | undefined {
+/** A width/height as a CSS length: Solid's `style` takes strings with units, so a number is px. */
+function cssLength(value: number | Percent | undefined): string | undefined {
   if (value == null) {
     return undefined;
   }
@@ -68,26 +61,9 @@ function cssValue(value: string | number | undefined): string | undefined {
   return typeof value === "number" ? `${value}px` : value;
 }
 
-function styleObjectToString(style: ChartStyle | undefined): string {
-  if (style == null) {
-    return "";
-  }
-  return Object.entries(style)
-    .filter(
-      (entry): entry is [string, string | number] =>
-        typeof entry[1] === "string" || typeof entry[1] === "number",
-    )
-    .map(([key, value]) => `${kebabCaseStyleName(key)}: ${cssValue(value)}`)
-    .join("; ");
-}
-
-function styleEntry(key: string, value: string | number | undefined): string | undefined {
-  const formatted = cssValue(value);
-  return formatted == null ? undefined : `${key}: ${formatted}`;
-}
-
-function joinStyle(parts: ReadonlyArray<string | undefined>): string {
-  return parts.filter((part): part is string => part != null && part.length > 0).join("; ");
+/** A `style` width/height that is not a number of px needs the DOM to be measured. */
+function styleDimension(value: JSX.CSSProperties["width"]): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
@@ -122,14 +98,13 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
       ? responsiveContainerCalculations.height
       : props.height;
 
-  const wrapperStyle = (): string =>
-    joinStyle([
-      "position: relative",
-      "cursor: default",
-      styleObjectToString(props.style),
-      styleEntry("width", width()),
-      styleEntry("height", height()),
-    ]);
+  const wrapperStyle = (): JSX.CSSProperties => ({
+    position: "relative",
+    cursor: "default",
+    ...props.style,
+    width: cssLength(width()) ?? props.style?.width,
+    height: cssLength(height()) ?? props.style?.height,
+  });
 
   const divWidth = (): number | string | undefined => width() ?? styleDimension(props.style?.width);
   const divHeight = (): number | string | undefined =>

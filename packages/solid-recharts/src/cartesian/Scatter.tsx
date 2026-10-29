@@ -608,10 +608,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
       <For each={frame}>
         {(entry, i) => (
           <Layer
-            // eslint-disable-next-line solid/prefer-structured-class -- <Layer>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
-            class={["recharts-scatter-symbol", entry.cell?.class]
-              .filter((c): c is string => Boolean(c))
-              .join(" ")}
+            class={["recharts-scatter-symbol", entry.cell?.class]}
             onMouseEnter={onItemEnter(entry, i())}
             onMouseLeave={onItemLeave(entry, i())}
             onClick={onItemClick(entry, i())}

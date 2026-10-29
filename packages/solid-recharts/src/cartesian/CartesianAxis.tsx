@@ -443,13 +443,10 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
           a user `class` (recharts: XAxis/YAxis className) is appended last. */}
         <Layer
           ref={(el) => props.layerRef?.(el)}
-          // eslint-disable-next-line solid/prefer-structured-class -- <Layer>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
           class={[
             `recharts-cartesian-axis recharts-${merged.axisType} ${merged.axisType}`,
             merged.class,
-          ]
-            .filter((c): c is string => Boolean(c))
-            .join(" ")}
+          ]}
         >
           <Show when={merged.axisLine}>
             <AxisLine
@@ -519,10 +516,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
                           // (recharts spreads it last); the tick-value class stays
                           // fixed after it, matching recharts' explicit className.
                           {...(merged.tickTextProps ?? {})}
-                          // eslint-disable-next-line solid/prefer-structured-class -- <Text>'s public `class` prop is a plain string (recharts `className`), so the joined string is intended
-                          class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]
-                            .filter(Boolean)
-                            .join(" ")}
+                          class={["recharts-cartesian-axis-tick-value", tickSettings()?.class]}
                         >
                           {labelOf(item.entry, item.index)}
                         </Text>

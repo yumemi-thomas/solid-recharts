@@ -10,6 +10,10 @@ import { ComposedChart, Line, ResponsiveContainer, useChartHeight, useChartWidth
 /*
  * Ported from recharts 3.8.1 test/chart/responsive.spec.tsx.
  * Solid adaptations: JSX render factory, hook accessors, and flush instead of act.
+ * `style` is Solid's kebab-case JSX.CSSProperties with string lengths: the cases that
+ * pass `style={{ width: 600 }}` (a React number = px) pass `"600px"` here, and since a
+ * string length is measured from the DOM rather than read off the prop, those cases
+ * mock the size the DOM reports.
  */
 
 describe("responsive prop", () => {
@@ -158,10 +162,16 @@ describe("responsive prop", () => {
       });
     });
 
-    describe("when width and height are passed in style prop as numbers", () => {
+    describe("when width and height are passed in style prop as lengths", () => {
+      beforeEach(() => {
+        mockGetBoundingClientRect({ width: 600, height: 200 });
+      });
       const renderTestCase = createSelectorTestCase((props) => (
-        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
-        <ComposedChart style={{ width: 600, height: 200 }} responsive={responsive} data={PageData}>
+        <ComposedChart
+          style={{ width: "600px", height: "200px" }}
+          responsive={responsive}
+          data={PageData}
+        >
           <Line dataKey="uv" />
           {props.children}
         </ComposedChart>
@@ -250,9 +260,16 @@ describe("responsive prop", () => {
     });
 
     describe("when width is a prop and height is from style", () => {
+      beforeEach(() => {
+        mockGetBoundingClientRect({ width: 600, height: 200 });
+      });
       const renderTestCase = createSelectorTestCase((props) => (
-        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
-        <ComposedChart width={600} style={{ height: 200 }} responsive={responsive} data={PageData}>
+        <ComposedChart
+          width={600}
+          style={{ height: "200px" }}
+          responsive={responsive}
+          data={PageData}
+        >
           <Line dataKey="uv" />
           {props.children}
         </ComposedChart>
@@ -430,13 +447,12 @@ describe("responsive prop", () => {
       expect(result.getByTestId("chart-size").textContent).toBe("300x200");
     });
 
-    describe("when width and height are passed in style prop as numbers", () => {
+    describe("when width and height are passed in style prop as lengths", () => {
       beforeEach(() => {
         mockGetBoundingClientRect({ width: 700, height: 100 });
       });
       const renderTestCase = createSelectorTestCase((props) => (
-        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
-        <ComposedChart style={{ width: 700, height: 100 }} responsive data={PageData}>
+        <ComposedChart style={{ width: "700px", height: "100px" }} responsive data={PageData}>
           <Line dataKey="uv" />
           {props.children}
         </ComposedChart>
@@ -552,8 +568,7 @@ describe("responsive prop", () => {
         mockGetBoundingClientRect({ width: 600, height: 200 });
       });
       const renderTestCase = createSelectorTestCase((props) => (
-        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
-        <ComposedChart width={600} style={{ height: 200 }} responsive data={PageData}>
+        <ComposedChart width={600} style={{ height: "200px" }} responsive data={PageData}>
           <Line dataKey="uv" />
           {props.children}
         </ComposedChart>

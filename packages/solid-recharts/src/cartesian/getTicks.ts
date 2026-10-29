@@ -178,7 +178,7 @@ export function getTicks(
   const sizeKey = orientation === "top" || orientation === "bottom" ? "width" : "height";
   const unitSize: Size =
     unit && sizeKey === "width"
-      ? getStringSize(unit, { fontSize, letterSpacing })
+      ? getStringSize(unit, { "font-size": fontSize, "letter-spacing": letterSpacing })
       : { width: 0, height: 0 };
 
   const getTickSize = (content: CartesianTickItem, index: number): number => {
@@ -186,9 +186,10 @@ export function getTicks(
       typeof tickFormatter === "function" ? tickFormatter(content.value, index) : content.value;
     const value: string | number = isNumOrStr(raw) ? raw : String(raw);
     // Recharts only supports angles when sizeKey === 'width'.
+    const tickStyle = { "font-size": fontSize, "letter-spacing": letterSpacing };
     return sizeKey === "width"
-      ? getAngledTickWidth(getStringSize(value, { fontSize, letterSpacing }), unitSize, angle)
-      : getStringSize(value, { fontSize, letterSpacing })[sizeKey];
+      ? getAngledTickWidth(getStringSize(value, tickStyle), unitSize, angle)
+      : getStringSize(value, tickStyle)[sizeKey];
   };
 
   const tick0 = ticks[0];

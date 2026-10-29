@@ -137,11 +137,6 @@ export type TooltipEventType = "axis" | "item";
 
 export type TooltipType = "none";
 
-export type ChartStyle = Omit<JSX.CSSProperties, "height" | "width"> & {
-  width?: number | string;
-  height?: number | string;
-};
-
 export type LegendType =
   | "circle"
   | "cross"
@@ -171,7 +166,7 @@ export interface CartesianChartProps<DataPointType = unknown> extends ExternalMo
   title?: string;
   desc?: string;
   class?: string;
-  style?: ChartStyle;
+  style?: JSX.CSSProperties;
   cursor?: string;
   id?: string;
   /** ARIA role applied to the chart `<svg>` (overrides the accessibilityLayer default). */
@@ -215,7 +210,7 @@ export interface PolarChartProps<DataPointType = unknown> extends ExternalMouseE
   title?: string;
   desc?: string;
   class?: string;
-  style?: ChartStyle;
+  style?: JSX.CSSProperties;
   cursor?: string;
   id?: string;
   /** ARIA role applied to the chart `<svg>` (overrides the accessibilityLayer default). */

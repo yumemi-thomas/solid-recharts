@@ -1,12 +1,12 @@
 // Ported from recharts 3.8.1 src/util/DOMUtils.ts (commit 7a23854).
 //
-// Deviation: React's `CSSProperties` (camelCase, e.g. `fontSize`) → csstype's
-// `Properties` (the same camelCase type React's CSSProperties is built on).
-// We deliberately do NOT use Solid's `JSX.CSSProperties`, which is kebab-case
-// (`csstype.PropertiesHyphen`); the measurement API and its callers use
-// camelCase keys, matching recharts. Everything else (DOM measurement span,
-// LRUCache, Global SSR guard) is framework-agnostic.
-import type { Properties as CSSProperties } from "csstype";
+// Deviation: React's `CSSProperties` (camelCase, e.g. `fontSize`) → Solid's
+// `JSX.CSSProperties` (kebab-case, e.g. `"font-size"`, values as strings with units),
+// the same convention as every `style` prop in Solid. The style is applied to the
+// measurement span with `setProperty`, which takes the kebab-case names directly.
+// Everything else (DOM measurement span, LRUCache, Global SSR guard) is
+// framework-agnostic.
+import type { JSX } from "@solidjs/web";
 import { Global } from "./Global";
 import { Size } from "./types";
 import { LRUCache } from "./LRUCache";
@@ -26,27 +26,37 @@ const defaultConfig: TextMeasurementConfig = {
 let currentConfig = { ...defaultConfig };
 
 let stringCache = new LRUCache<string, Size>(currentConfig.cacheSize);
-const SPAN_STYLE = {
+type CSSProperties = JSX.CSSProperties;
+
+const SPAN_STYLE: CSSProperties = {
   position: "absolute",
   top: "-20000px",
-  left: 0,
-  padding: 0,
-  margin: 0,
+  left: "0",
+  padding: "0",
+  margin: "0",
   border: "none",
-  whiteSpace: "pre",
+  "white-space": "pre",
 };
 const MEASUREMENT_SPAN_ID = "recharts_measurement_span";
 
 function createCacheKey(text: string | number, style: CSSProperties): string {
   // Simple string concatenation for better performance than JSON.stringify
-  const fontSize = style.fontSize || "";
-  const fontFamily = style.fontFamily || "";
-  const fontWeight = style.fontWeight || "";
-  const fontStyle = style.fontStyle || "";
-  const letterSpacing = style.letterSpacing || "";
-  const textTransform = style.textTransform || "";
+  const fontSize = style["font-size"] || "";
+  const fontFamily = style["font-family"] || "";
+  const fontWeight = style["font-weight"] || "";
+  const fontStyle = style["font-style"] || "";
+  const letterSpacing = style["letter-spacing"] || "";
+  const textTransform = style["text-transform"] || "";
 
   return `${text}|${fontSize}|${fontFamily}|${fontWeight}|${fontStyle}|${letterSpacing}|${textTransform}`;
+}
+
+function applyStyle(target: CSSStyleDeclaration, style: CSSProperties): void {
+  for (const [property, value] of Object.entries(style)) {
+    if (typeof value === "string" || typeof value === "number") {
+      target.setProperty(property, String(value));
+    }
+  }
 }
 
 /**
@@ -65,8 +75,10 @@ const measureTextWithDOM = (text: string | number, style: CSSProperties): Size =
       document.body.appendChild(measurementSpan);
     }
 
-    // Apply styles directly without unnecessary object creation
-    Object.assign(measurementSpan.style, SPAN_STYLE, style);
+    // The span is reused, so a property that an earlier call set and this one omits stays
+    // (as in recharts, whose `Object.assign` behaves the same).
+    applyStyle(measurementSpan.style, SPAN_STYLE);
+    applyStyle(measurementSpan.style, style);
     measurementSpan.textContent = `${text}`;
 
     const rect = measurementSpan.getBoundingClientRect();

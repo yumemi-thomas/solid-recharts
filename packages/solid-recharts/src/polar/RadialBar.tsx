@@ -713,8 +713,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
                             animationElapsedTime={animationElapsedTime}
                             isAnimating={isAnimating() || animationElapsedTime < 1}
                             isEntrance={isEntrance}
-                            // eslint-disable-next-line solid/prefer-structured-class -- RadialBarSector's public `class` prop is a plain string (recharts `className`), so the template string is intended
-                            class={`recharts-radial-bar-sector ${entry.class ?? ""}`}
+                            class={["recharts-radial-bar-sector", entry.class]}
                             fill={entry.fill ?? merged.fill}
                             stroke={entry.stroke ?? merged.stroke}
                             strokeWidth={entry.strokeWidth ?? merged.strokeWidth}
