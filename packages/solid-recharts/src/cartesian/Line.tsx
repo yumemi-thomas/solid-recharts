@@ -85,6 +85,7 @@ import { GraphicalItemClipPath, useNeedsClip } from "./GraphicalItemClipPath";
 import { DefaultZIndexes } from "../zIndex/DefaultZIndexes";
 import { ZIndexLayer } from "../zIndex/ZIndexLayer";
 import { registerInStore } from "../state/registerInStore";
+import { trackData } from "../state/opaque";
 
 export interface LinePointItem {
   readonly value: unknown;
@@ -352,7 +353,7 @@ export const Line = (props: LineProps): JSX.Element => {
         id,
         type: "line",
         isPanorama,
-        data: merged.data,
+        data: trackData(merged.data),
         dataKey: merged.dataKey,
         xAxisId: merged.xAxisId,
         yAxisId: merged.yAxisId,
@@ -373,7 +374,7 @@ export const Line = (props: LineProps): JSX.Element => {
   );
 
   const tooltipConfig = createMemo<TooltipPayloadConfiguration>(() => ({
-    dataDefinedOnItem: merged.data,
+    dataDefinedOnItem: trackData(merged.data),
     getPosition: noop,
     settings: {
       stroke: merged.stroke,

@@ -83,6 +83,7 @@ import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
 import { StackDataPoint } from "../util/stacks/stackTypes";
 import { registerInStore } from "../state/registerInStore";
+import { trackData } from "../state/opaque";
 import { AreaRevealShape, type AreaRevealShapeProps } from "./AreaRevealShape";
 
 function getLegendItemColor(
@@ -436,7 +437,7 @@ export const Area = (props: AreaProps): JSX.Element => {
         id,
         type: "area",
         isPanorama,
-        data: merged.data,
+        data: trackData(merged.data),
         dataKey: merged.dataKey ?? "",
         xAxisId: merged.xAxisId,
         yAxisId: merged.yAxisId,
@@ -463,7 +464,7 @@ export const Area = (props: AreaProps): JSX.Element => {
   // Registers this area's tooltip payload entry (an explicit `name` prop wins,
   // else it falls back to a string dataKey).
   const tooltipConfig = createMemo<TooltipPayloadConfiguration>(() => ({
-    dataDefinedOnItem: merged.data,
+    dataDefinedOnItem: trackData(merged.data),
     getPosition: noop,
     settings: {
       stroke: merged.stroke,

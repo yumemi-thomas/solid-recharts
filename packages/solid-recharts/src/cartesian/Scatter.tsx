@@ -80,6 +80,7 @@ import { getLinearRegression, interpolate, isNullish, isNumOrStr } from "../util
 import { BaseAxisWithScale, implicitZAxis, ZAxisWithScale } from "../state/selectors/axisSelectors";
 import type { Formatter, ValueType } from "../component/DefaultTooltipContent";
 import { registerInStore } from "../state/registerInStore";
+import { trackData } from "../state/opaque";
 
 export interface ScatterPointNode {
   x?: number | string;
@@ -411,7 +412,7 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
         id,
         type: "scatter",
         isPanorama,
-        data: merged.data,
+        data: trackData(merged.data),
         dataKey: merged.dataKey,
         xAxisId: merged.xAxisId,
         yAxisId: merged.yAxisId,

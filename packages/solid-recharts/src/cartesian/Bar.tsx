@@ -94,6 +94,7 @@ import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
 import { BarStackClipLayer, useStackIdAccessor } from "./BarStack";
 import { registerInStore } from "../state/registerInStore";
+import { trackData } from "../state/opaque";
 
 const defaultMinPointSize = 0;
 
@@ -869,7 +870,7 @@ export const Bar = (props: BarProps): JSX.Element => {
         id,
         type: "bar",
         isPanorama,
-        data: merged.data,
+        data: trackData(merged.data),
         dataKey: merged.dataKey,
         xAxisId: merged.xAxisId,
         yAxisId: merged.yAxisId,
@@ -897,7 +898,7 @@ export const Bar = (props: BarProps): JSX.Element => {
   // Registers this bar's tooltip payload entry (an explicit `name` prop wins,
   // else it falls back to a string dataKey).
   const tooltipConfig = createMemo<TooltipPayloadConfiguration>(() => ({
-    dataDefinedOnItem: merged.data,
+    dataDefinedOnItem: trackData(merged.data),
     getPosition: noop,
     settings: {
       stroke: merged.stroke,

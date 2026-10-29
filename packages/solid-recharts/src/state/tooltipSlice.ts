@@ -8,6 +8,7 @@
 // graphical item registers exactly one entry, so the id is unique).
 import { createStore } from "solid-js";
 import { createCollectionActions } from "./createCollectionActions";
+import { toOpaqueArray } from "./opaque";
 import { patched } from "./patched";
 import { TooltipTrigger } from "../chart/types";
 import type { NameType, Payload, ValueType } from "../component/DefaultTooltipContent";
@@ -165,6 +166,8 @@ export interface TooltipSlice {
   readonly actions: TooltipActions;
 }
 
+const isReadonlyArray = (value: unknown): value is ReadonlyArray<unknown> => Array.isArray(value);
+
 export function createTooltipSlice(initialState: TooltipState = initialTooltipState): TooltipSlice {
   const [state, setState] = createStore<TooltipState>({
     itemInteraction: {
@@ -197,9 +200,20 @@ export function createTooltipSlice(initialState: TooltipState = initialTooltipSt
     (p) => p.settings.graphicalItemId,
   );
 
+  // An entry's `dataDefinedOnItem` (the item's own data, or its per-point payloads) is
+  // replaced wholesale with the entry, so it is stored opaque like the graphical item's
+  // `data` (see opaque.ts) — and both slices must hand out the same raw rows: the
+  // active-point lookup matches a point's `payload` against the tooltip payload by
+  // identity.
+  const withOpaqueData = (entry: TooltipPayloadConfiguration): TooltipPayloadConfiguration =>
+    isReadonlyArray(entry.dataDefinedOnItem) && !Object.isFrozen(entry.dataDefinedOnItem)
+      ? { ...entry, dataDefinedOnItem: toOpaqueArray(entry.dataDefinedOnItem) }
+      : entry;
+
   const actions: TooltipActions = {
-    addTooltipEntrySettings: entries.add,
-    replaceTooltipEntrySettings: entries.replace,
+    addTooltipEntrySettings: (entry) => entries.add(withOpaqueData(entry)),
+    replaceTooltipEntrySettings: ({ prev, next }) =>
+      entries.replace({ prev, next: withOpaqueData(next) }),
     removeTooltipEntrySettings: entries.remove,
     setTooltipSettingsState(payload) {
       setState((s) => {

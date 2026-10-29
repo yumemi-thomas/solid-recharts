@@ -12,6 +12,7 @@
 // ordering/replacement semantics.
 import { createStore } from "solid-js";
 import { createCollectionActions } from "./createCollectionActions";
+import { toOpaqueArray } from "./opaque";
 import { ChartData } from "./chartDataSlice";
 import { AxisId } from "./cartesianAxisSlice";
 import { DataKey } from "../util/types";
@@ -136,12 +137,22 @@ export function createGraphicalItemsSlice(
     (it) => it.id,
   );
 
+  // An item's own `data` array is replaced wholesale with the item, never edited in
+  // place, so it is stored opaque (see opaque.ts): the many scopes that read the
+  // series' rows subscribe to the array, not to each row and field.
+  const withOpaqueData = <T extends GraphicalItemSettings>(item: T): T =>
+    item.data == null || Object.isFrozen(item.data)
+      ? item
+      : { ...item, data: toOpaqueArray(item.data) };
+
   const actions: GraphicalItemsActions = {
-    addCartesianGraphicalItem: cartesian.add,
-    replaceCartesianGraphicalItem: cartesian.replace,
+    addCartesianGraphicalItem: (item) => cartesian.add(withOpaqueData(item)),
+    replaceCartesianGraphicalItem: ({ prev, next }) =>
+      cartesian.replace({ prev, next: withOpaqueData(next) }),
     removeCartesianGraphicalItem: cartesian.remove,
-    addPolarGraphicalItem: polar.add,
-    replacePolarGraphicalItem: polar.replace,
+    addPolarGraphicalItem: (item) => polar.add(withOpaqueData(item)),
+    replacePolarGraphicalItem: ({ prev, next }) =>
+      polar.replace({ prev, next: withOpaqueData(next) }),
     removePolarGraphicalItem: polar.remove,
   };
 
