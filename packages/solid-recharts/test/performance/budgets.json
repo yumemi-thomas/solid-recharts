@@ -2,12 +2,12 @@
   "formatVersion": 1,
   "scenarios": {
     "line-chart/mount": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
-      "maxReruns": 110,
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 109,
       "maxWastedRuns": 15
     },
     "line-chart/mouse-enter": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
       "maxReruns": 20,
       "maxWastedRuns": 1,
       "scopes": {
@@ -16,16 +16,12 @@
       }
     },
     "line-chart/mouse-move-same-point": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
-      "maxReruns": 31,
-      "maxWastedRuns": 12,
-      "scopes": {
-        "tooltipActive": 1,
-        "finalPayload": 1
-      }
+      "allow": [],
+      "maxReruns": 0,
+      "maxWastedRuns": 0
     },
     "line-chart/mouse-move-between-points": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
       "maxReruns": 31,
       "maxWastedRuns": 10,
       "scopes": {
@@ -34,7 +30,7 @@
       }
     },
     "line-chart/mouse-leave": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
       "maxReruns": 18,
       "maxWastedRuns": 2,
       "scopes": {
@@ -43,8 +39,8 @@
       }
     },
     "line-chart/data-update": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
-      "maxReruns": 55,
+      "allow": [],
+      "maxReruns": 54,
       "maxWastedRuns": 13,
       "scopes": {
         "axisRender": 2,
@@ -54,12 +50,12 @@
       }
     },
     "bar-chart/mount": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
-      "maxReruns": 109,
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 108,
       "maxWastedRuns": 14
     },
     "bar-chart/mouse-enter": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
       "maxReruns": 19,
       "maxWastedRuns": 1,
       "scopes": {
@@ -67,15 +63,12 @@
       }
     },
     "bar-chart/mouse-move-same-point": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
-      "maxReruns": 30,
-      "maxWastedRuns": 13,
-      "scopes": {
-        "finalPayload": 1
-      }
+      "allow": [],
+      "maxReruns": 0,
+      "maxWastedRuns": 0
     },
     "bar-chart/mouse-move-between-points": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
       "maxReruns": 30,
       "maxWastedRuns": 10,
       "scopes": {
@@ -83,7 +76,7 @@
       }
     },
     "bar-chart/mouse-leave": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
       "maxReruns": 17,
       "maxWastedRuns": 2,
       "scopes": {
@@ -91,8 +84,8 @@
       }
     },
     "bar-chart/data-update": {
-      "allow": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
-      "maxReruns": 56,
+      "allow": ["WIDE_SCOPE_DEPS"],
+      "maxReruns": 55,
       "maxWastedRuns": 12,
       "scopes": {
         "axisRender": 2,
@@ -100,6 +93,46 @@
         "tickCoords": 2,
         "finalPayload": 1
       }
+    },
+    "scatter-chart/mount": {
+      "allow": ["EFFECT_RELAY_TEAR", "IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 109,
+      "maxWastedRuns": 14
+    },
+    "pie-chart/mount": {
+      "allow": ["EFFECT_RELAY_TEAR", "IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 63,
+      "maxWastedRuns": 4
+    },
+    "sankey/mount": {
+      "allow": ["EFFECT_RELAY_TEAR", "IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 24,
+      "maxWastedRuns": 3
+    },
+    "line-chart/mount-large": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 109,
+      "maxWastedRuns": 15
+    },
+    "area-chart/mount-large": {
+      "allow": ["IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 108,
+      "maxWastedRuns": 14
+    },
+    "bar-chart/mount-large": {
+      "allow": ["HUGE_FAN_IN", "IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 108,
+      "maxWastedRuns": 14
+    },
+    "scatter-chart/mount-large": {
+      "allow": ["EFFECT_RELAY_TEAR", "IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 109,
+      "maxWastedRuns": 14
+    },
+    "pie-chart/mount-large": {
+      "allow": ["EFFECT_RELAY_TEAR", "IMMUTABLE_UPDATE_IN_STORE"],
+      "maxReruns": 63,
+      "maxWastedRuns": 4
     }
   }
 }

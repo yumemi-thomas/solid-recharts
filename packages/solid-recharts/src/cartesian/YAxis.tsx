@@ -4,10 +4,11 @@
 // via createEffect + defaults resolved like recharts' resolveDefaultProps); the
 // visual `<CartesianAxis>` IS rendered at the bottom of this file.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createMemo, Show } from "solid-js";
+import { createEffect, createMemo, Show, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
+  type AxisId,
   NiceTicksAlgorithm,
   YAxisOrientation,
   YAxisPadding,
@@ -22,6 +23,7 @@ import {
 } from "../state/selectors/axisSelectors";
 import { CartesianAxis, type CartesianTickEventHandler } from "./CartesianAxis";
 import { getCalculatedYAxisWidth } from "../util/YAxisUtils";
+import { createAxisLabelRef, mountedLabel } from "./axisLabelRef";
 import { isLabelContentAFunction } from "../component/Label";
 import type { ImplicitLabelType } from "../component/Label";
 import { RenderedTicksReporter } from "./RenderedTicksReporter";
@@ -36,6 +38,8 @@ import {
   DataKey,
   ScaleType,
   type CartesianTickContentProps,
+  type CartesianTickItem,
+  type Size,
   TickFormatter,
   TickProp,
 } from "../util/types";
@@ -137,6 +141,62 @@ function withDefault<T>(value: T | undefined, defaultValue: T): T {
   return value === undefined ? defaultValue : value;
 }
 
+/**
+ * Feeds the measured width of a `width="auto"` axis back into the store (recharts: the
+ * `useLayoutEffect` in `YAxisImpl`, which early-returns for every other width).
+ * Mirrors the two-arg `createEffect(compute, apply)` shape: the compute tracks the
+ * reactive inputs (ticks, size, label), the apply measures the DOM and writes the store
+ * (untracked, so it cannot re-trigger itself; the slice's `updateYAxisWidth` and the
+ * `Math.round` equality also guard oscillation). A component of its own, mounted only
+ * for `width="auto"`, so the common fixed-width axis carries no extra reactive node.
+ * The tick labels, the tick size and margin and the axis `label` element all contribute.
+ */
+function YAxisAutoWidth(props: {
+  axisId: AxisId;
+  ticks: ReadonlyArray<CartesianTickItem>;
+  size: Size;
+  layer: () => SVGGElement | null;
+  tickSize: number;
+  tickMargin: number;
+  label: ImplicitLabelType | undefined;
+  labelElement: Accessor<SVGTextElement | undefined>;
+}): JSX.Element {
+  const store = useAppStore();
+  createEffect(
+    () => ({
+      ticks: props.ticks,
+      size: props.size,
+      id: props.axisId,
+      tickSize: props.tickSize,
+      tickMargin: props.tickMargin,
+      // Re-measure when the label is added, replaced or removed.
+      label: props.label,
+      labelElement: props.labelElement(),
+    }),
+    (inputs) => {
+      const layer = props.layer();
+      if (layer == null || store == null) {
+        return;
+      }
+      const tickNodes = layer.getElementsByClassName("recharts-cartesian-axis-tick-value");
+      if (tickNodes.length === 0) {
+        return;
+      }
+      const updatedYAxisWidth = getCalculatedYAxisWidth({
+        ticks: tickNodes,
+        label: inputs.label ? mountedLabel(inputs.labelElement) : undefined,
+        labelGapWithTick: 5,
+        tickSize: inputs.tickSize,
+        tickMargin: inputs.tickMargin,
+      });
+      if (Math.round(inputs.size.width) !== Math.round(updatedYAxisWidth)) {
+        store.actions.cartesianAxis.updateYAxisWidth({ id: inputs.id, width: updatedYAxisWidth });
+      }
+    },
+  );
+  return null;
+}
+
 export function YAxis<DataPointType = unknown, DataValueType = unknown>(
   props: YAxisProps<DataPointType, DataValueType>,
 ): JSX.Element {
@@ -222,46 +282,8 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
     return { position: p, size: s, ticks: ticks() ?? [] };
   });
 
-  // Dynamic Y-axis width: when `width="auto"` (and the label is not a function/element),
-  // recharts measures the rendered tick-value DOM via `getCalculatedYAxisWidth` and feeds
-  // the result back into the store with `updateYAxisWidth`. Mirror that with the codebase's
-  // two-arg createEffect(compute, apply): the compute tracks the reactive inputs (ticks +
-  // size), the apply does the DOM measurement and the store write (untracked — so it cannot
-  // re-trigger itself; the slice's `updateYAxisWidth` + the Math.round equality also guard
-  // oscillation).
   let layerEl: SVGGElement | null = null;
-  createEffect(
-    () => ({
-      ticks: ticks(),
-      size: size(),
-      width: props.width,
-      label: props.label,
-      id: yAxisId(),
-    }),
-    (inputs) => {
-      if (inputs.width !== "auto" || isLabelContentAFunction(inputs.label)) {
-        return;
-      }
-      const el = layerEl;
-      if (el == null || inputs.ticks == null || inputs.size == null || store == null) {
-        return;
-      }
-      const tickNodes = el.getElementsByClassName("recharts-cartesian-axis-tick-value");
-      if (tickNodes.length === 0) {
-        return;
-      }
-      const updatedYAxisWidth = getCalculatedYAxisWidth({
-        ticks: tickNodes,
-        label: undefined,
-        labelGapWithTick: 5,
-        tickSize: 6,
-        tickMargin: 2,
-      });
-      if (Math.round(inputs.size.width) !== Math.round(updatedYAxisWidth)) {
-        store.actions.cartesianAxis.updateYAxisWidth({ id: inputs.id, width: updatedYAxisWidth });
-      }
-    },
-  );
+  const axisLabel = createAxisLabelRef();
 
   return (
     <Show when={!isPanorama && !hide() && axisRender()}>
@@ -273,6 +295,7 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
             layerRef={(el) => {
               layerEl = el;
             }}
+            labelRef={axisLabel.ref}
             x={ar().position.x}
             y={ar().position.y}
             width={ar().size.width}
@@ -313,6 +336,18 @@ export function YAxis<DataPointType = unknown, DataValueType = unknown>(
           >
             {props.children}
           </CartesianAxis>
+          <Show when={props.width === "auto" && !isLabelContentAFunction(props.label)}>
+            <YAxisAutoWidth
+              axisId={yAxisId()}
+              ticks={ar().ticks}
+              size={ar().size}
+              layer={() => layerEl}
+              tickSize={props.tickSize ?? 6}
+              tickMargin={props.tickMargin ?? 2}
+              label={props.label}
+              labelElement={axisLabel.element}
+            />
+          </Show>
         </>
       )}
     </Show>

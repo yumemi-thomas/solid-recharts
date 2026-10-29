@@ -82,6 +82,7 @@ import { getMaxRadius, polarToCartesian } from "../util/PolarUtils";
 import { getPercentValue, interpolate, isNumber, isNumOrStr, mathSign } from "../util/DataUtils";
 import { getValueByDataKey } from "../util/ChartUtils";
 import { registerInStore } from "../state/registerInStore";
+import { trackData } from "../state/opaque";
 import { PolarLabelContextProvider } from "../component/Label";
 
 export type PieCoordinate = {
@@ -619,7 +620,7 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
       () => ({
         id,
         type: "pie",
-        data: merged.data,
+        data: trackData(merged.data),
         dataKey: merged.dataKey,
         hide: merged.hide,
         angleAxisId: merged.angleAxisId ?? 0,

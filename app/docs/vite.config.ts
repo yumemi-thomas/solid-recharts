@@ -20,10 +20,11 @@ export default defineConfig({
     port: 3000,
   },
   resolve: {
-    // victory-vendor + tiny-invariant: the solid-recharts alias points at raw
-    // library SOURCE outside this workspace, so its bare imports must resolve
-    // from the docs root (isolated CI installs have no monorepo node_modules).
-    dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals", "victory-vendor", "tiny-invariant"],
+    // d3-scale + d3-shape: the solid-recharts alias points at raw library SOURCE
+    // outside this workspace, so its bare imports must resolve from the docs root
+    // (isolated CI installs — Vercel — have no monorepo node_modules). They are the
+    // library's own dependencies: add any new one of them to this package.json too.
+    dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals", "d3-scale", "d3-shape"],
     alias: {
       "solid-recharts": path.join(libSrc, "index.ts"),
       "solid-js/web": "@solidjs/web",

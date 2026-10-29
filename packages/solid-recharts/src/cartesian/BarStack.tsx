@@ -2,6 +2,7 @@
 // Solid deviations: `resolveDefaultProps`→`merge`; React context → Solid `createContext`;
 // `useMemo`→plain object; `React.memo`/`propsAreEqual` omitted (Solid comp granularity).
 import { createContext, createMemo, For, merge, Show, untrack, useContext } from "solid-js";
+import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { getNormalizedStackId, type NormalizedStackId, type StackId } from "../util/ChartUtils";
 import { useUniqueId } from "../util/useUniqueId";
@@ -47,17 +48,30 @@ const BarStackContext = createContext<BarStackSettings | null>(null);
 export const useStackId = (
   childStackId: StackId | undefined | (() => StackId | undefined),
 ): NormalizedStackId | undefined => {
+  const stackId = useStackIdAccessor(
+    typeof childStackId === "function" ? childStackId : () => childStackId,
+  );
+  // The value hook resolves once, at creation; `useStackIdAccessor` follows the prop.
+  return untrack(stackId);
+};
+
+/**
+ * Reactive form of {@link useStackId} for components that read the stack ID in a
+ * tracking scope: recharts re-renders its <Bar> and re-reads `stackId` each time, so
+ * toggling the prop re-stacks the bars; here the accessor follows the prop instead.
+ * A surrounding <BarStack> always wins, as in `useStackId`.
+ */
+export const useStackIdAccessor = (
+  childStackId: () => StackId | undefined,
+): Accessor<NormalizedStackId | undefined> => {
   const stackSettings = useContext(BarStackContext);
-  if (stackSettings != null) {
-    return stackSettings.stackId;
-  }
-  // Solid components run once, so the stack ID is resolved at creation; a getter is
-  // read without tracking.
-  const resolved = typeof childStackId === "function" ? untrack(childStackId) : childStackId;
-  if (resolved == null) {
-    return undefined;
-  }
-  return getNormalizedStackId(resolved);
+  return () => {
+    if (stackSettings != null) {
+      return stackSettings.stackId;
+    }
+    const resolved = childStackId();
+    return resolved == null ? undefined : getNormalizedStackId(resolved);
+  };
 };
 
 export const defaultBarStackProps = {

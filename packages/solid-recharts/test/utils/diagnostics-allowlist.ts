@@ -17,27 +17,29 @@ export const GLOBALLY_ACCEPTED_DIAGNOSTICS: DiagnosticCode[] = [];
 
 // Spec file (path relative to the library package) -> extra accepted codes.
 const SPEC_ACCEPTED_DIAGNOSTICS: Record<string, DiagnosticCode[]> = {
-  // HUGE_FAN_IN is the runtime's always-on backstop for a computation that
-  // tracks >= 2000 sources in one pass. The axis/tick computations read every
-  // datum's category through the chart-data store proxy (two tracked sources per
-  // datum: array slot + field), so a chart of ~1000 categories crosses it. This
-  // stress spec renders 1000-category and extreme-sparsity charts on purpose
-  // (it ports recharts' "reduce component tree size proportionally to sparsity"
-  // cases verbatim); every other spec stays under the threshold and stays
-  // guarded. Narrowing the per-datum reads is a library follow-up, not a reason
-  // to shrink the ported scenario.
-  "test/cartesian/Bar.zeroDimensionFiltering.spec.tsx": ["HUGE_FAN_IN"],
-
   // The budget spec captures with the attribution engine on, which adds the
   // engine-only cost findings to the channel the global guard also listens to.
-  // Two of them are known properties of this port's design and are pinned
-  // per scenario in test/performance/budgets.json (anything else still fails):
+  // The two that remain are properties of this port's design, recorded in ADR-0002
+  // ("Diagnostics") and pinned per scenario in test/performance/budgets.json, which
+  // lists the exact codes each scenario may emit (anything else still fails):
   //  - IMMUTABLE_UPDATE_IN_STORE: slices replace the object along a written path
-  //    (CONTEXT.md "Slice immutability contract"), which the engine reads as a
-  //    spread-copy update of `store.settings` / `store.axisInteraction`.
-  //  - WIDE_SCOPE_DEPS: a computation that evaluates a memoized selector chain
-  //    tracks every slice property read along it (> 200 sources).
-  "test/performance/chartBudgets.spec.tsx": ["IMMUTABLE_UPDATE_IN_STORE", "WIDE_SCOPE_DEPS"],
+  //    (the slice immutability contract), which the engine reads as a spread-copy
+  //    update of `store.settings` (the Tooltip registering) / `store.axisInteraction`
+  //    (a hover that moved). No-op writes no longer count: they keep their reference.
+  //  - WIDE_SCOPE_DEPS: the tooltip payload chain reads ~230 slice leaves (axes,
+  //    items, layout, interaction), independent of the number of data points.
+  //  - EFFECT_RELAY_TEAR (Scatter, Pie, Sankey mount): their tooltip entry /
+  //    computed data is derived from the registered item and reaches the store from
+  //    an effect one flush later (ADR-0002, "Diagnostics").
+  //  - HUGE_FAN_IN (1000-bar chart only): a `<Show>` per conditionally rendered row
+  //    costs 2-4 tracked sources in the layer's insertion; 500+ rows cross the
+  //    runtime's 2000-source backstop.
+  "test/performance/chartBudgets.spec.tsx": [
+    "IMMUTABLE_UPDATE_IN_STORE",
+    "WIDE_SCOPE_DEPS",
+    "EFFECT_RELAY_TEAR",
+    "HUGE_FAN_IN",
+  ],
 };
 
 export function acceptedDiagnosticsFor(specFile: string): DiagnosticCode[] {

@@ -18,6 +18,10 @@ _Avoid_: reducer
 The write discipline every slice follows: a write replaces the object(s) along the written path rather than mutating them in place, so a changed value always has a new reference.
 _Avoid_: immer semantics, path-copy (as a term)
 
+**Opaque data**:
+A data array a slice stores frozen (`toOpaqueArray`), so the store returns it unwrapped and reading its rows is untracked: readers subscribe to the array's reference, not to every row and field. Used for the chart `data` and each graphical item's own `data`; a reactive input is read once at the boundary with `trackData` (`deep()`).
+_Avoid_: raw data, frozen data
+
 **Selector**:
 A plain function from root state (plus primitive args) to a derived value. Always callable outside a reactive scope.
 

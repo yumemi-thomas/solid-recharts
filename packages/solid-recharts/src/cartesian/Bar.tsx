@@ -92,8 +92,9 @@ import {
 } from "../state/selectors/tooltipSelectors";
 import { BaseAxisWithScale } from "../state/selectors/axisSelectors";
 import { StackId } from "../util/ChartUtils";
-import { BarStackClipLayer, useStackId } from "./BarStack";
+import { BarStackClipLayer, useStackIdAccessor } from "./BarStack";
 import { registerInStore } from "../state/registerInStore";
+import { trackData } from "../state/opaque";
 
 const defaultMinPointSize = 0;
 
@@ -859,7 +860,7 @@ export const Bar = (props: BarProps): JSX.Element => {
   const merged = merge(barDefaultProps, props);
   const isPanorama = useIsPanorama();
   const id = useUniqueId("recharts-bar", () => props.id);
-  const stackId = useStackId(() => props.stackId);
+  const stackId = useStackIdAccessor(() => props.stackId);
   // Custom shape render prop (function form).
   const shape = (): ActiveShape<BarShapeProps, SVGPathElement> => merged.shape ?? defaultBarShape;
 
@@ -869,13 +870,13 @@ export const Bar = (props: BarProps): JSX.Element => {
         id,
         type: "bar",
         isPanorama,
-        data: merged.data,
+        data: trackData(merged.data),
         dataKey: merged.dataKey,
         xAxisId: merged.xAxisId,
         yAxisId: merged.yAxisId,
         zAxisId: 0,
         hide: merged.hide,
-        stackId,
+        stackId: stackId(),
         barSize: merged.barSize,
         maxBarSize: merged.maxBarSize,
         minPointSize: merged.minPointSize,
@@ -897,7 +898,7 @@ export const Bar = (props: BarProps): JSX.Element => {
   // Registers this bar's tooltip payload entry (an explicit `name` prop wins,
   // else it falls back to a string dataKey).
   const tooltipConfig = createMemo<TooltipPayloadConfiguration>(() => ({
-    dataDefinedOnItem: merged.data,
+    dataDefinedOnItem: trackData(merged.data),
     getPosition: noop,
     settings: {
       stroke: merged.stroke,

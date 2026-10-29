@@ -9,6 +9,7 @@
 // `castDraft`/immer are unnecessary — Solid's store setter takes a mutable draft.
 import { createStore } from "solid-js";
 import { BrushStartEndIndex } from "../context/brushUpdateContext";
+import { toOpaqueArray } from "./opaque";
 
 /**
  * This is the data that's coming through main chart `data` prop
@@ -83,7 +84,8 @@ export function createChartDataSlice(
   const actions: ChartDataActions = {
     setChartData(chartData) {
       setState((s) => {
-        s.chartData = chartData;
+        // Stored opaque (frozen copy): readers track the array reference, not each row.
+        s.chartData = chartData == null ? chartData : toOpaqueArray(chartData);
         if (chartData == null) {
           s.dataStartIndex = 0;
           s.dataEndIndex = 0;

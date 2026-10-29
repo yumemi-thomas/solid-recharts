@@ -8,6 +8,7 @@
 import { createEffect, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { ChartData } from "../state/chartDataSlice";
+import { trackData } from "../state/opaque";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { unregisterCleanup } from "../state/unregisterOnCleanup";
 import { RechartsRootState } from "../state/store";
@@ -25,9 +26,9 @@ export const ChartDataContextProvider = (props: {
   const isPanorama = useIsPanorama();
 
   createEffect(
-    () => props.chartData,
+    // Panorama mode reuses the main chart's data, so it neither tracks nor writes it.
+    () => (isPanorama ? undefined : trackData(props.chartData)),
     (chartData) => {
-      // Panorama mode reuses the main chart's data — don't overwrite it.
       if (isPanorama) {
         return undefined;
       }

@@ -9,14 +9,14 @@
 //  - resolveDefaultProps → `merge`; `clsx` → `class` array.
 //  - element `content` (React.cloneElement) DROPPED — Solid has no cloneElement;
 //    the function-`content` render form and the value/children text form are kept.
-//  - ZIndexLayer wrapper and `labelRef` are deferred (render <Text> directly).
+//  - `labelRef` is a callback ref (recharts: a RefObject) receiving the rendered <text>.
 //  - per-label SVG styling passthrough (fill/style/font-*) is deferred — Solid's
 //    wide attribute value type (RemoveAttribute) doesn't narrow cleanly into
 //    Text's string props; Label forwards position + anchors + angle + class only.
 //  - context value carries an `Accessor<TrapezoidViewBox>` (Solid context is fixed
 //    at provide-time; the accessor keeps the box reactive).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createContext, createMemo, merge, omit, Show, useContext } from "solid-js";
+import { createContext, createMemo, merge, omit, Show, untrack, useContext } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { type RenderableText, Text } from "./Text";
@@ -78,6 +78,11 @@ interface LabelProps {
   id?: string;
   /** @defaultValue 0 — LabelList passes 0 so labels stay in the bar layer. */
   zIndex?: number;
+  /**
+   * Receives the rendered `<text>` element (the default text label only). Axes use it to
+   * measure the label when they size themselves with `width="auto"` / `height="auto"`.
+   */
+  labelRef?: (element: SVGTextElement) => void;
 }
 
 export type Props = Omit<
@@ -267,6 +272,7 @@ export function Label(outerProps: Props): JSX.Element {
         "index",
         "id",
         "class",
+        "labelRef",
       ),
     ),
   );
@@ -430,6 +436,7 @@ export function Label(outerProps: Props): JSX.Element {
           <ZIndexLayer zIndex={props.zIndex}>
             <Text
               {...d().svgProps}
+              ref={untrack(() => props.labelRef)}
               class={d().class}
               x={d().pos.x}
               y={d().pos.y}
@@ -489,21 +496,22 @@ Label.displayName = "Label";
 function parseLabel(
   label: ImplicitLabelType | undefined,
   viewBox: TrapezoidViewBox | PolarViewBoxRequired | undefined,
+  labelRef?: (element: SVGTextElement) => void,
 ): JSX.Element {
   if (!label) {
     return null;
   }
   if (label === true) {
-    return <Label viewBox={viewBox} />;
+    return <Label viewBox={viewBox} labelRef={labelRef} />;
   }
   if (isNumOrStr(label)) {
-    return <Label value={label} viewBox={viewBox} />;
+    return <Label value={label} viewBox={viewBox} labelRef={labelRef} />;
   }
   if (isLabelContentAFunction(label)) {
-    return <Label content={label} viewBox={viewBox} />;
+    return <Label content={label} viewBox={viewBox} labelRef={labelRef} />;
   }
   if (typeof label === "object") {
-    return <Label {...label} viewBox={viewBox} />;
+    return <Label {...label} viewBox={viewBox} labelRef={labelRef} />;
   }
   return null;
 }
@@ -514,9 +522,10 @@ function parseLabel(
  */
 export function CartesianLabelFromLabelProp(props: {
   label: ImplicitLabelType | undefined;
+  labelRef?: (element: SVGTextElement) => void;
 }): JSX.Element {
   const viewBox = useCartesianLabelContext();
-  const label = createMemo(() => parseLabel(props.label, viewBox()));
+  const label = createMemo(() => parseLabel(props.label, viewBox(), props.labelRef));
   return <>{label()}</>;
 }
 

@@ -33,6 +33,7 @@ import type { EasingInput } from "../animation/easing";
 import { Layer } from "../container/Layer";
 import { FunnelTrapezoid } from "../util/FunnelUtils";
 import { collectCells } from "../component/Cell";
+import { trackData } from "../state/opaque";
 import {
   CartesianLabelListContextProvider,
   LabelListFromLabelProp,
@@ -376,7 +377,7 @@ export function Funnel<DataPointType = Record<string, unknown>, DataValueType = 
   // Item-type tooltip: the trapezoids carry their own payload; hovering one
   // activates the tooltip for that row.
   const tooltipConfig = createMemo<TooltipPayloadConfiguration>(() => ({
-    dataDefinedOnItem: merged.data,
+    dataDefinedOnItem: trackData(merged.data),
     getPosition: (index) => trapezoids()?.[Number(index)]?.tooltipPosition,
     settings: {
       stroke: merged.stroke,

@@ -34,9 +34,16 @@ nodeLinker: hoisted
 # `vite` is aliased to @voidzero-dev/vite-plus-core (see `overrides` below), whose own
 # version (1.x) can never satisfy the `^8` ranges that plugins declare — allow it
 # explicitly instead of carrying an unmet-peer warning on every install.
+#
+# `eslint-plugin-solid` pulls @typescript-eslint 8.72, whose `typescript` peer range
+# tops out at 6.0 while this repo is on TypeScript 7 (the native compiler). Under
+# Oxlint the plugin runs on Oxlint's parser and only uses those packages' type
+# definitions and utilities, never the TypeScript compiler API, so accept TS 7 for
+# them. Revisit when typescript-eslint declares TS 7 support.
 peerDependencyRules:
   allowedVersions:
     vite: "*"
+    typescript: "7"
 
 # Remap `vite` to the Vite+ engine (@voidzero-dev/vite-plus-core) for every specifier,
 # including plugin peer ranges, and pin `vitest` to the stock release vite-plus bundles

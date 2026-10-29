@@ -67,7 +67,10 @@ engine, so `vitest` is plain Vitest). Config lives in the single root
 `@solidjs/vite-plugin` (renamed from `vite-plugin-solid`). Treat toolchain breakage as a bug to report,
 not a reason to weaken tests. Exception: `app/docs` is deliberately **outside** the workspace on real
 `vite@8` (TanStack Start SSR breaks on the vite-plus engine); it has its own lockfile — plain
-`pnpm install` inside `app/docs`.
+`pnpm install` inside `app/docs`. The docs app imports the library's raw **source** through an alias, so
+every package the library imports (`d3-scale`, `d3-shape`, …) must also be a dependency of
+`app/docs/package.json` (and its lockfile): Vercel installs the docs workspace alone, and a build inside the
+repo cannot notice a missing one because those imports resolve from the repo root's `node_modules`.
 
 ## Types
 
@@ -83,4 +86,6 @@ No `any`. No `as` assertions. `unknown` only behind guards. Sole sanctioned loos
 - `npx playwright test` — real-browser rendering gate (`e2e/`); jsdom green ≠ browser green,
   especially for Portal/zIndex work. It also asserts no Solid diagnostics via the
   `@solidjs/diagnostics` browser bridge.
-- `pnpm install && pnpm build` inside `app/docs` — the docs app builds on its own lockfile.
+- `pnpm run docs:isolated` — builds the docs app in a copy that has none of the monorepo's
+  `node_modules` (frozen lockfile, like Vercel). A plain `pnpm install && pnpm build` inside `app/docs`
+  also has to pass, but it cannot see a missing docs dependency.

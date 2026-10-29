@@ -10,7 +10,7 @@
 // plus `onCleanup` for removal. Defaults are resolved field-by-field to match
 // recharts' `resolveDefaultProps`: explicit `undefined` falls back to defaults.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createEffect, createMemo, Show } from "solid-js";
+import { createEffect, createMemo, Show, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
@@ -48,6 +48,7 @@ import {
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
 import { registerInStore } from "../state/registerInStore";
 import { getCalculatedXAxisHeight } from "../util/XAxisUtils";
+import { createAxisLabelRef, mountedLabel } from "./axisLabelRef";
 
 export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   xAxisId?: string | number;
@@ -148,11 +149,8 @@ function withDefault<T>(value: T | undefined, defaultValue: T): T {
  * Feeds the measured height of a `height="auto"` axis back into the store
  * (recharts: the `useLayoutEffect` in `XAxisImpl`, which early-returns for every other
  * height). It is a component of its own, mounted only for `height="auto"`, so the
- * common fixed-height axis carries no extra reactive node.
- *
- * Deviation (shared with `YAxis` `width="auto"`): the axis `label` is not measured,
- * because `Label`'s `labelRef` is not ported — only the tick labels, tick size and
- * tick margin contribute to the height.
+ * common fixed-height axis carries no extra reactive node. The tick labels, the tick
+ * size and margin and the axis `label` element all contribute to the height.
  */
 function XAxisAutoHeight(props: {
   axisId: AxisId;
@@ -161,6 +159,8 @@ function XAxisAutoHeight(props: {
   layer: () => SVGGElement | null;
   tickSize: number;
   tickMargin: number;
+  label: ImplicitLabelType | undefined;
+  labelElement: Accessor<SVGTextElement | undefined>;
 }): JSX.Element {
   const store = useAppStore();
   createEffect(
@@ -170,6 +170,9 @@ function XAxisAutoHeight(props: {
       id: props.axisId,
       tickSize: props.tickSize,
       tickMargin: props.tickMargin,
+      // Re-measure when the label is added, replaced or removed.
+      label: props.label,
+      labelElement: props.labelElement(),
     }),
     (inputs) => {
       const layer = props.layer();
@@ -182,7 +185,7 @@ function XAxisAutoHeight(props: {
       }
       const updatedHeight = getCalculatedXAxisHeight({
         ticks: tickNodes,
-        label: undefined,
+        label: inputs.label ? mountedLabel(inputs.labelElement) : undefined,
         labelGapWithTick: 5,
         tickSize: inputs.tickSize,
         tickMargin: inputs.tickMargin,
@@ -282,6 +285,7 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
   });
 
   let layerEl: SVGGElement | null = null;
+  const axisLabel = createAxisLabelRef();
 
   return (
     <Show when={!isPanorama && !hide() && axisRender()}>
@@ -293,6 +297,7 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
             layerRef={(el) => {
               layerEl = el;
             }}
+            labelRef={axisLabel.ref}
             x={ar().position.x}
             y={ar().position.y}
             width={ar().size.width}
@@ -341,6 +346,8 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
               layer={() => layerEl}
               tickSize={props.tickSize ?? 6}
               tickMargin={props.tickMargin ?? 2}
+              label={props.label}
+              labelElement={axisLabel.element}
             />
           </Show>
         </>
