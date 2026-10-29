@@ -31,6 +31,27 @@ Most chart JSX can be pasted from a React app and adjusted mechanically.
 
 There is no `key` prop — Solid's `<For>` handles identity.
 
+## Sizing a chart
+
+`style` is Solid's `JSX.CSSProperties`: kebab-case keys and **string** values with units, so
+`style={{ width: 600, height: 200 }}` is not valid here. Give a chart a fixed size in pixels with
+the `width` / `height` props:
+
+```tsx
+<LineChart width={600} height={200} data={data}>
+  …
+</LineChart>
+```
+
+A string length — `style={{ width: "600px" }}`, `style={{ width: "50%" }}`, or a percentage
+`width` / `height` prop — is **measured from the DOM** when the chart mounts. Until the browser has
+laid the wrapper out, and when the chart is rendered on the server, it has no size and draws no SVG
+(recharts reads a numeric `style` dimension directly). Use numeric `width` / `height` where a
+server-rendered or first-paint chart matters, or `ResponsiveContainer` to follow the parent.
+
+Where a dimension is set both ways, `style.width` / `style.height` win in the wrapper's CSS, as in
+recharts, and the chart is drawn at the size of the `width` / `height` props.
+
 ## Custom content components
 
 recharts render-prop APIs (`shape`, `content`, `label`, `tick`, `dot`, `activeDot`) accept

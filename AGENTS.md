@@ -43,6 +43,18 @@ props become Solid delegated handlers; `forwardRef` → `ref` prop; `children` t
 **No other prop renames or restructuring.** Where recharts' React convention and Solid's differ, Solid's wins
 (and the spec's input is adapted, not the lint rule silenced).
 
+Two consequences of those conventions to keep true (the second is a known deviation, documented in
+README.md and the migration guide):
+
+- Props that reach user code stay plain. A `class` in a `shape`/`activeShape`/`dot`/`tick`/`content`
+  payload, or in the data an item event handler receives, is a **string** as in recharts, whatever
+  structured value the library renders internally; `test/userFacingClass.spec.tsx` enforces it.
+- A chart's `style.width` / `style.height` are string lengths (numbers go through the `width` / `height`
+  props), and a string length — like a percentage prop — is measured from the DOM, so before layout and
+  on the server the chart has no size and draws no SVG; recharts reads a numeric `style` dimension
+  directly. Where both are set, `style` wins in the wrapper's CSS, as in recharts
+  (`RechartsWrapper.tsx:399-405`), and the chart is drawn at the size of the props.
+
 ## SolidJS 2.0
 
 This is a **Solid 2.0 (release candidate, verified at `2.0.0-rc.19`)** codebase. **Before writing ANY Solid

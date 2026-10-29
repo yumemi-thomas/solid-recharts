@@ -98,12 +98,15 @@ export const RechartsWrapper = (props: RechartsWrapperProps): JSX.Element => {
       ? responsiveContainerCalculations.height
       : props.height;
 
+  // `style` is spread last, as in recharts (src/chart/RechartsWrapper.tsx:399-405): a
+  // `style.width` / `style.height` overrides the `width` / `height` props in the CSS, while the
+  // chart is still laid out from the props first (`divWidth` / `divHeight` below).
   const wrapperStyle = (): JSX.CSSProperties => ({
     position: "relative",
     cursor: "default",
+    width: cssLength(width()),
+    height: cssLength(height()),
     ...props.style,
-    width: cssLength(width()) ?? props.style?.width,
-    height: cssLength(height()) ?? props.style?.height,
   });
 
   const divWidth = (): number | string | undefined => width() ?? styleDimension(props.style?.width);

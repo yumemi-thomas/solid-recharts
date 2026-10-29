@@ -41,6 +41,15 @@ Props match recharts exactly, except a closed list of framework-idiomatic rename
 Everything else — data shape, `dataKey`, layout, domain/ticks, stacking, animation props — is
 unchanged, so recharts documentation and examples translate 1:1.
 
+One consequence of the `style` rename is a known deviation. `style` is Solid's `JSX.CSSProperties`
+(kebab-case keys, string values with units), so a chart's `style.width` / `style.height` are string
+lengths, never numbers: give a fixed size in pixels with the `width` / `height` props. A string
+length (`"600px"`, `"50%"`), like a percentage `width` / `height` prop, is **measured from the DOM**
+when the chart mounts, so until the wrapper has been laid out — and when rendering on the server —
+the chart has no size and draws no SVG (recharts reads a numeric `style` dimension directly). Where
+a dimension is set in both places, `style.width` / `style.height` win in the wrapper's CSS, as in
+recharts, and the chart is drawn at the size of the props.
+
 ## Requirements
 
 - `solid-js` and `@solidjs/web` **2.0** (currently `2.0.0-rc.x`, tested against `2.0.0-rc.19`) as peer
