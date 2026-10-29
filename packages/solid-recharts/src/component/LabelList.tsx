@@ -116,13 +116,13 @@ export type ImplicitLabelListType = boolean | LabelContentType | Props;
  */
 export type LabelListPropsWithPosition = Props & { position: Props["position"] };
 
+// `Array.isArray` widens `unknown` to `any[]`; this guard keeps the elements `unknown`.
+const isUnknownArray = (value: unknown): value is ReadonlyArray<unknown> => Array.isArray(value);
+
 const defaultAccessor = (entry: LabelListEntry): RenderableText => {
   const raw = entry.value;
-  // Range values arrive as arrays; the label shows the last element. Array.isArray
-  // widens `unknown` to `any[]`, so the indexed read is `any` — narrowed straight
-  // back by isRenderableText below.
-  // eslint-disable-next-line typescript/no-unsafe-assignment
-  const val: unknown = Array.isArray(raw) ? raw[raw.length - 1] : raw;
+  // Range values arrive as arrays; the label shows the last element.
+  const val = isUnknownArray(raw) ? raw[raw.length - 1] : raw;
   return isRenderableText(val) ? val : undefined;
 };
 

@@ -149,11 +149,11 @@ const PARENTHESES_REGEX = /\(([^()]*)\)/;
 
 function calculateParentheses(expr: string): string {
   let newExpr = expr;
-  let match: ReturnType<typeof RegExp.prototype.exec> | null;
-  // eslint-disable-next-line no-cond-assign
-  while ((match = PARENTHESES_REGEX.exec(newExpr)) != null) {
+  let match = PARENTHESES_REGEX.exec(newExpr);
+  while (match != null) {
     const [, parentheticalExpression] = match;
     newExpr = newExpr.replace(PARENTHESES_REGEX, calculateArithmetic(parentheticalExpression));
+    match = PARENTHESES_REGEX.exec(newExpr);
   }
 
   return newExpr;

@@ -290,6 +290,15 @@ const AxisLine = (props: {
   );
 };
 
+type Stringifiable = { toString(): string };
+
+const isStringifiable = (value: unknown): value is Stringifiable =>
+  value != null && typeof value.toString === "function";
+
+// recharts prints a tick value as `String(value)`: whatever the value says about itself,
+// so a Date (or a moment object) shows its own `toString()`. A nullish value prints nothing.
+const tickValueToString = (value: unknown): string => (isStringifiable(value) ? String(value) : "");
+
 export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
   const merged = merge(cartesianAxisDefaults, props);
 
@@ -385,11 +394,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
     const formatted =
       typeof merged.tickFormatter === "function"
         ? merged.tickFormatter(entry.value, index)
-        : isNullish(entry.value)
-          ? ""
-          : // Recharts stringifies tick values directly, including Date objects.
-            // eslint-disable-next-line typescript/no-base-to-string
-            String(entry.value);
+        : tickValueToString(entry.value);
     return `${formatted}${merged.unit ?? ""}`;
   };
 
