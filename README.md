@@ -43,8 +43,9 @@ unchanged, so recharts documentation and examples translate 1:1.
 
 ## Requirements
 
-- `solid-js` and `@solidjs/web` **2.0** (currently `2.0.0-beta.x`) as peer dependencies.
-- Solid 2.0 is in beta; this library tracks it closely and pins the tested beta in CI.
+- `solid-js` and `@solidjs/web` **2.0** (currently `2.0.0-rc.x`, tested against `2.0.0-rc.19`) as peer
+  dependencies. Compile your app with `@solidjs/vite-plugin` (the renamed `vite-plugin-solid`).
+- Solid 2.0 is a release candidate; this library tracks it closely and pins the tested version in CI.
 
 ## Repository layout
 
@@ -62,9 +63,9 @@ unchanged, so recharts documentation and examples translate 1:1.
 ```sh
 pnpm install
 pnpm run ref:setup   # clone the pinned recharts reference (required by the test gate)
-pnpm test            # ~5400 ported recharts specs under jsdom
-npx playwright test  # real-browser rendering + a11y e2e
-vp check --fix       # format + type-aware lint
+pnpm test            # ~5400 ported recharts specs under jsdom (+ re-run budgets)
+npx playwright test  # real-browser rendering + a11y e2e (also asserts no Solid diagnostics)
+vp check --fix       # format + type-aware lint, incl. the Solid 2 rule set
 pnpm -r typecheck
 ```
 

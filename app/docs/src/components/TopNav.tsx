@@ -147,6 +147,7 @@ function NavTab(props: { tab: TabDef; active: boolean }) {
       <Link
         to={props.tab.to}
         viewTransition={false}
+        // eslint-disable-next-line solid/prefer-structured-class -- TanStack's <Link> takes `class` as a string (see the note above)
         class={`relative inline-flex items-center px-3 py-1.5 text-[0.875rem] font-medium transition-colors duration-150 ${
           props.active ? "text-fg" : "text-fg-muted hover:text-fg"
         }`}

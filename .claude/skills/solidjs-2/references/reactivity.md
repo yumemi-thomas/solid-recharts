@@ -1,6 +1,6 @@
 # RFC: Reactivity, batching, and effects
 
-**Start here:** If you’re migrating an app, read the beta tester guide first: [MIGRATION.md](migration.md)
+**Start here:** If you’re migrating an app, read the migration guide first: [MIGRATION.md](migration.md)
 
 ## Summary
 
@@ -17,7 +17,7 @@ Solid 2.0 tightens the reactivity model: no writes under owned scope (with narro
 
 ### No writes under owned scope
 
-Writing to a signal inside a reactive scope (effect, memo, component body) **throws** in dev. Writes belong in event handlers, `onSettled`, or untracked blocks. When a signal must be written from within scope (e.g. internal state), opt in with `ownedWrite: true`:
+Writing to a signal inside a reactive scope (effect, memo, component body) **throws** in dev. Writes belong in event handlers or `onSettled`. Wrapping the write in `untrack` does not help: the check is on the owning scope, and `untrack` only stops dependency tracking — `untrack(() => setCount(1))` inside an effect or component body still throws `REACTIVE_WRITE_IN_OWNED_SCOPE`. When a signal must be written from within scope (e.g. internal state), opt in with `ownedWrite: true`:
 
 ```js
 // Default: throws if set in effect/component
@@ -105,6 +105,36 @@ flush(() => {
 
 Use `flush(fn)` at imperative boundaries where the writes themselves should run in a synchronous flush scope. Writes inside the callback do not schedule the normal microtask flush; they are drained before `flush(fn)` returns, so you can update state and immediately read reactive values or DOM without leaving a queued flush behind. The callback's return value is preserved, and nested `flush(fn)` calls drain at each level.
 
+### Keeping a write out of another update's hold: `onFlush`
+
+Writes made in the same synchronous frame are applied together. When one of them starts async work (a route change, a refetch), the others are held with it until it resolves. Usually that is what you want. It is not when a component writes its own state and then calls code it doesn't control:
+
+```tsx
+function Menu(props) {
+  const select = (id: string) => {
+    setOpen(false); // held if onSelect starts async work: the menu stays open
+    props.onSelect?.(id);
+  };
+  // ...
+}
+```
+
+`onFlush(fn)` runs `fn` once, right after the pending flush and before the browser paints, so its writes are their own update:
+
+```tsx
+const select = (id: string) => {
+  onFlush(() => setOpen(false)); // closes now, whatever onSelect does
+  props.onSelect?.(id);
+};
+```
+
+The write follows the normal rules from there: it commits on its own unless something it changes also derives from the held work (a memo or `createEffect` reading both), in which case it joins that hold like any later write. A render effect reading both shows the new value beside the committed one, as usual.
+
+- Call it from event handlers and effect callbacks. In a component body or computation it warns in dev (`ON_FLUSH_IN_OWNED_SCOPE`); use `onSettled` there.
+- Its write lands after any write made inline in the same frame. Don't write the same signal both inside and outside it.
+- `queueMicrotask` is not a substitute: called before the frame's first write it runs before that flush, so its write joins it. `flush()` applies the write now, but also runs every pending effect early, which can make them run twice.
+- Unlike `onSettled`, it never waits on async work.
+
 ### Split tracking from effect
 
 Effects have two phases: **compute** (reactive reads only; dependencies recorded) and **effect** (side effects; runs after all compute phases in the batch). This gives a clear dependency picture before any side effects run and is required for async and boundaries.
@@ -118,6 +148,21 @@ createEffect(
     return () => {
       /* cleanup */
     };
+  },
+);
+```
+
+Effects never compare values. Whenever the compute half re-runs, the effect half runs too (after the previous cleanup), even when compute returned a value equal to the last one. With `() => status() === "active"`, every change to `status` re-runs the effect and its cleanup, including changes that leave the result `true`, so a timer or subscription started in the effect is torn down and restarted. To skip work when the value is unchanged, put a `createMemo` in front and read it in the compute. The memo compares with `equals` (`===` by default, or your own function), and when it reports equal the effect is not re-run at all:
+
+```js
+const active = createMemo(() => status() === "active");
+
+createEffect(
+  () => active(), // re-runs only when `active` actually changes
+  (isActive) => {
+    if (!isActive) return;
+    const id = setInterval(poll, 1000);
+    return () => clearInterval(id);
   },
 );
 ```
@@ -148,7 +193,7 @@ expensive(); // now it runs
 
 Lazy memos still track dependencies normally once evaluated. They're particularly useful in components that conditionally render — a lazy memo inside a branch that never renders never pays the computation cost.
 
-`lazy` also opts a memo into **autodisposal**: once the memo loses its last subscriber it is torn down and recomputed from scratch on the next read. This makes lazy memos true compute-on-demand values that don't retain state across idle periods. By contrast, the default (non-lazy) owned memo lives for its owner's lifetime and keeps its cached value even when momentarily unsubscribed (e.g. across a transition swap, or when only read through `untrack` from a suspending consumer). Unowned memos also autodispose, so a memo created outside any reactive scope doesn't leak when it's left without subscribers.
+`lazy` also opts a memo into **autodisposal**: once the memo loses its last subscriber it is torn down and recomputed from scratch on the next read. This makes lazy memos true compute-on-demand values that don't retain state across idle periods. By contrast, the default (non-lazy) owned memo lives for its owner's lifetime and keeps its cached value even when momentarily unsubscribed (e.g. across a transition swap, or when only read through `untrack` from a not-ready consumer). Unowned memos also autodispose, so a memo created outside any reactive scope doesn't leak when it's left without subscribers.
 
 ### `unobserved` callback
 
@@ -271,7 +316,7 @@ Unlike other tracked scopes these primitives cannot create nested primitives whi
 
 - **`batch`:** Remove; use `flush()` when you need synchronous application of updates (e.g. before reading DOM).
 - **`onMount`:** Replace with `onSettled`.
-- **Writes under scope:** Move setter calls to event handlers, `onSettled`, or untracked blocks; or create the signal with `{ ownedWrite: true }` for the rare valid case (e.g. internal or intentionally in-scope writes).
+- **Writes under scope:** Move setter calls to event handlers or `onSettled` (`untrack` does not exempt a write — it stops tracking, not ownership); or create the signal with `{ ownedWrite: true }` for the rare valid case (e.g. internal or intentionally in-scope writes).
 
 ## Removals
 

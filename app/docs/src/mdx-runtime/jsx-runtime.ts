@@ -5,6 +5,7 @@ import { Dynamic } from "@solidjs/web";
 type MdxComponent = Component<Record<string, JSX.Element>>;
 
 export function Fragment(props: { children?: JSX.Element }): JSX.Element {
+  // eslint-disable-next-line solid/reactivity -- a fragment is a pure passthrough: the parent inserts whatever the component returns
   return props.children;
 }
 

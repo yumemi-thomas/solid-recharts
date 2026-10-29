@@ -1,6 +1,6 @@
 # RFC: TypeScript and JSX ownership
 
-**Start here:** If you're migrating an app, read the beta tester guide first: [MIGRATION.md](migration.md)
+**Start here:** If you're migrating an app, read the migration guide first: [MIGRATION.md](migration.md)
 
 ## Summary
 
@@ -75,13 +75,13 @@ Projects using the automatic JSX transform with hyperscript should point `jsxImp
 
 ### Custom renderers provide their own JSX runtime types
 
-Custom renderer packages should expose `./jsx-runtime` and `./jsx-dev-runtime` type entries and define their own `JSX` namespace. See [`@solidjs/universal`](../../packages/solid-universal/README.md#typescript-jsx) for a minimal template.
+Custom renderer packages should expose `./jsx-runtime` and `./jsx-dev-runtime` type entries and define their own `JSX` namespace. See [`@solidjs/universal`](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/README.md#typescript-jsx) for a minimal template.
 
-Renderer packages that vendor `dom-expressions` JSX declarations can specialize `JSX.Element` at build time with `dom-expressions-jsx-types`.
+Renderer packages that ship JSX declarations can specialize `JSX.Element` at build time with the JSX customize generator in `@solidjs/web`.
 
 ## Migration / replacement
 
-| 1.x / old 2.0 beta                         | Replacement                                     |
+| 1.x / earlier 2.0 betas                    | Replacement                                     |
 | ------------------------------------------ | ----------------------------------------------- |
 | `"jsxImportSource": "solid-js"`            | `"jsxImportSource": "@solidjs/web"` for web JSX |
 | `solid-js/jsx-runtime`                     | `@solidjs/web/jsx-runtime`                      |

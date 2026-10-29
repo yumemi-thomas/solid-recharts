@@ -1,15 +1,15 @@
 ---
 name: solidjs-2
-description: Use this skill whenever the user is working with SolidJS 2.0 (the "next" branch, `@solidjs/*` packages, beta docs) — writing, migrating, reviewing, or debugging Solid code. Also trigger when the user mentions migrating from Solid 1.x, or uses 1.x API names (`createResource`, `Suspense`, `SuspenseList`, `Index`, `batch`, `createComputed`, `classList`, `use:` directives, `mergeProps`, `splitProps`, `unwrap`, `ErrorBoundary`, `Context.Provider`, `onMount`, `produce`, `createMutable`, `startTransition`, `createDynamic`, `createSelector`) — every one has been renamed, split, or removed in 2.0. Also trigger on 2.0 API names (`Loading`, `Errored`, `Reveal`, `Repeat`, `keyed={false}`, `createProjection`, `createOptimistic`, `action`, `isPending`, `refresh`, `snapshot`, `flush`, `onSettled`, `ownedWrite`, `dynamic`, `@solidjs/web`, `jsxImportSource`, `merge`, `omit`, `deep`, `reconcile`). Consult this skill before answering Solid questions so you give current API advice instead of stale 1.x patterns from training.
+description: Use this skill whenever the user is working with SolidJS 2.0 (the `next` dist-tag / release-candidate line, `@solidjs/*` packages) — writing, migrating, reviewing, or debugging Solid code. Also trigger when the user mentions migrating from Solid 1.x, or uses 1.x API names (`createResource`, `Suspense`, `SuspenseList`, `Index`, `batch`, `createComputed`, `classList`, `use:` directives, `mergeProps`, `splitProps`, `unwrap`, `ErrorBoundary`, `Context.Provider`, `onMount`, `produce`, `createMutable`, `startTransition`, `createDynamic`, `createSelector`) — every one has been renamed, split, or removed in 2.0. Also trigger on 2.0 API names (`Loading`, `Errored`, `Reveal`, `Repeat`, `keyed={false}`, `createProjection`, `createOptimistic`, `action`, `isPending`, `refresh`, `snapshot`, `flush`, `onSettled`, `ownedWrite`, `dynamic`, `@solidjs/web`, `jsxImportSource`, `merge`, `omit`, `deep`, `reconcile`). Consult this skill before answering Solid questions so you give current API advice instead of stale 1.x patterns from training.
 ---
 
 # SolidJS 2.0
 
-Solid 2.0 is currently **beta** (the `next` branch of `solidjs/solid`). It is a **significant breaking change** from 1.x, not an incremental update — most common APIs have been renamed, split, or removed. If you have Solid knowledge from training, assume it's 1.x and verify against this skill before answering.
+Solid 2.0 is currently a **release candidate** (the `next` dist-tag; this skill is verified against **`2.0.0-rc.19`**). It is a **significant breaking change** from 1.x, not an incremental update — most common APIs have been renamed, split, or removed. If you have Solid knowledge from training, assume it's 1.x and verify against this skill before answering.
 
 > **Two priors are dominant bug sources here:** React and Solid 1.x. Distrust pattern-matching from either. When in doubt, derive from the rules in "Mental model" below; the right answer in 2.0 is rarely a one-liner translation of either prior.
 
-The source-of-truth docs are 9 RFCs plus a one-page `CHEATSHEET.md` that ships inside the `solid-js` npm package (users will sometimes find it as `node_modules/solid-js/CHEATSHEET.md` in their project). The full contents are mirrored in `references/` — read them whenever you need detail beyond what's in this file.
+The source-of-truth docs are the 2.0 RFCs plus a one-page `CHEATSHEET.md` that ships inside the `solid-js` npm package (`node_modules/solid-js/CHEATSHEET.md`). They are mirrored in `references/` (refreshed from rc.19) — read them whenever you need detail beyond what's in this file. `solid-js` also ships its own agent skills under `node_modules/solid-js/skills/` (notably `reactivity-diagnostics`, the code → repair map), and `@solidjs/diagnostics` ships `skills/agent-loops`; read them when a diagnostic code fires.
 
 ## When to read what
 
@@ -17,16 +17,16 @@ Don't dump references into context preemptively. Pull the one that matches the q
 
 - **Any Solid 2.0 question** — this file first. The "Import map", "Mental model", and "Common pitfalls" sections below cover ~80% of what comes up.
 - **One-page authoritative API summary, with the canonical "AI footgun list"** — `references/cheatsheet.md`. If the question is "what's the right shape for X in 2.0", this is usually faster than reading the RFC.
-- **Side-by-side 1.x → 2.0 migration** — `references/migration.md` (canonical beta tester guide; the most useful single doc when porting an app).
+- **Side-by-side 1.x → 2.0 migration** — `references/migration.md` (the most useful single doc when porting an app).
 - **Effects, batching, `flush`, `onSettled`, `lazy` memos, `unobserved`, `createRenderEffect`, `EffectBundle` error handling, stores in the compute phase, strict-read/owned-write rules** — `references/reactivity.md`.
 - **Ownership, `createRoot` parent-disposal, `runWithOwner(null)`, context-as-provider, `ContextNotFoundError`, function-form `createSignal` / `createStore`** — `references/signals-context.md`.
 - **`For`, `Repeat`, `Show`, `Switch`, `Loading`, `Errored`, `Reveal` (full `order` / nesting matrix and SSR caveats), `dynamic` factory** — `references/control-flow.md`.
-- **Stores, draft setters, `createProjection`, `reconcile` (draft-first usage), `snapshot` vs `deep`, `merge` / `omit`, `storePath`** — `references/stores.md`.
-- **Async data, `isPending`, `latest`, `refresh`, `isRefreshing`, `resolve`, replacing `createResource`, `Loading on={}` prop** — `references/async.md`.
+- **Stores, draft setters, `createProjection`, `reconcile` (draft-first usage), `snapshot` vs `deep`, `merge` / `omit`** — `references/stores.md`.
+- **Async data, `isPending`, `latest`, `refresh`, `affects`, `createDeferred`, `from`, `resolve`, replacing `createResource`, `Loading on` dependency list** — `references/async.md`.
 - **Mutations: `action` (generator), `createOptimistic`, `createOptimisticStore`** — `references/actions.md`.
 - **DOM attributes, `class` (object/array), boolean handling, root-owned event delegation, `ref` directive factories** — `references/dom.md`.
 - **TypeScript/JSX configuration: `jsxImportSource: "@solidjs/web"`, `Element` from `solid-js`, where `JSX` is imported from** — `references/typescript-jsx.md`.
-- **Dev warnings/errors and their diagnostic codes (severity matters — some warn, some throw)** — `references/diagnostics.md`.
+- **Dev warnings/errors and their diagnostic codes (severity matters — some warn, some throw), and the `OBSERVE` programmatic channel** — `references/diagnostics.md` (a code catalog generated from the package; the full repair guide is the `reactivity-diagnostics` skill shipped in `solid-js`).
 
 ## Import map (memorize this)
 
@@ -42,7 +42,7 @@ import { createRenderer } from "solid-js/universal"; // "@solidjs/universal"
 import type { JSX } from "solid-js";         //  "@solidjs/web"        ← JSX namespace moved to renderer
 ```
 
-`createStore`, `createProjection`, `reconcile`, `snapshot`, `storePath`, `merge`, `omit`, `deep`, etc. are all exported from `solid-js` directly. Do not import from `solid-js/store` — that subpath is gone.
+`createStore`, `createProjection`, `reconcile`, `snapshot`, `merge`, `omit`, `deep`, etc. are all exported from `solid-js` directly. Do not import from `solid-js/store` — that subpath is gone.
 
 `tsconfig.json` for web projects must set `"jsxImportSource": "@solidjs/web"` (not `"solid-js"`). `solid-js/jsx-runtime` and `solid-js/jsx-dev-runtime` no longer exist. See `references/typescript-jsx.md`.
 
@@ -89,6 +89,7 @@ Things to know:
 - Compute receives `prev` (undefined on first run). For an initial value, use a default parameter: `(prev = 0) => ...`. The 1.x `initialValue` second argument is **gone**.
 - `createMemo`'s second argument is now `options`, not an initial value.
 - The `on()` helper is gone — the compute phase **is** the explicit dependency list. `{ defer: true }` is an option on `createEffect` itself.
+- **Effects never compare.** The apply phase (and the previous cleanup) runs every time compute re-runs, even if it returned an equal value. To skip unchanged values, read a memo in compute — its `equals` (default `===`) stops the re-run.
 - For error handling, pass `{ effect, error }` as the second argument instead of a bare apply function. The error handler receives `(err, cleanup)`. See `references/reactivity.md`.
 - The apply phase runs untracked. **Reading store properties in the apply phase warns** (`STRICT_READ_UNTRACKED`); extract the data in the compute phase or use `deep(store)`.
 
@@ -181,7 +182,8 @@ const user = createMemo(() => fetchUser(id()));
 Key behaviors:
 
 - **`Loading` covers branch readiness.** Once content has rendered, revalidation keeps it visible (no flash back to spinner). For "refreshing…" indicators, use `isPending(() => expr)`. The expression you pass to `isPending` is **read**, so put it under the same boundary as the data it tracks.
-- **`<Loading on={key}>`** — re-shows fallback when `key` changes and async is pending. Useful for route/key transitions where you do want a spinner across the swap.
+- **`<Loading on={id()}>`** is a _dependency list_, not a key: its value is never compared; a change to anything it reads makes the boundary stop waiting on its current content and show the fallback if something under it is pending (nothing otherwise). `on={[a(), b()]}` for several. If the same data is also read outside the boundary the frame waits on it and the fallback can never be seen (`LOADING_ON_OUTSIDE_HOLD`) — move the read under the boundary.
+- **`isPending` ≠ 1.x `.loading`** — it fires while a value _change_ is in flight (an input changed, or `affects()` declared one), not for every fetch. A bare `refresh()` / poll re-asks the same question and is silent. For a reload that should read as pending: `affects(x); refresh(x)`. For "saving…": a co-written `createOptimistic(false)` flag. `createDeferred(() => fetchRows(period()))` keeps the last answer on screen while a refetch is pending; `from(...)` turns a subscribe function / Observable / AsyncIterable into a memo source.
 - **Reading async outside a Loading boundary warns** (`ASYNC_OUTSIDE_LOADING_BOUNDARY`) but is **non-halting** — the runtime defers the root mount until pending async settles, then attaches atomically. Add `<Loading>` only when you want a visible fallback.
 - **Async errors flow to `<Errored>`** (or `createEffect`'s `error` option). There is no `resource.error` inline branch in 2.0; that 1.x split bypassed `ErrorBoundary` and SSR couldn't see it.
 
@@ -207,7 +209,7 @@ setStore((s) => {
 
 `produce` is the default — drop the import. `createMutable` / `modifyMutable` are removed; use `createStore` with draft setters (the difference: writes go through `setState`, so they participate in batching, transitions, and optimistic rollback).
 
-For 1.x-style path setters as a compat helper: `setStore(storePath("user", "address", "city", "Paris"))`. Draft-first is the canonical form; `storePath` exists for migration ergonomics.
+1.x-style path setters (`setStore("user", "address", "city", "Paris")`) become draft writes (`setStore(s => { s.user.address.city = "Paris"; })`); the `storePath` compat helper from the betas is gone.
 
 Function-form `createStore(fn, seed)` creates a **writable derived store** (mirroring `createSignal(fn)` for "writable memo"). `createProjection(fn, seed)` is the **readonly** derived store — returning a value from its derive function reconciles by `options.key` (default `"id"`).
 
@@ -264,7 +266,7 @@ const [todos, { addTodo }] = useContext(TodosContext);
 
 Use the **default form** `createContext<T>(defaultValue)` only for primitive fallbacks (theme, locale, frozen config). Anything carrying reactive state should be default-less so a missing Provider becomes a hard error at the boundary.
 
-**For truly app-wide state, don't use Context** — a module-scope signal or store _is_ a global. Context is for scoping state to a subtree, which is why a Provider is mandatory in the default-less form.
+**App-wide state in an app that renders on the server belongs in a Provider too**: module scope is shared by every request in the same process, so reserve it for constants (and the `createContext` call itself). A client-only app can use a module-scope signal or store as a global, but it becomes shared server state the day SSR is turned on. `undefined` means "not provided": `createContext<T | undefined>(undefined)` is still default-less and `<Ctx value={undefined}>` throws `ContextNotFoundError` — use `null` for an optional context.
 
 ### 9. Control flow: one `For`, plus `Repeat`
 
@@ -395,7 +397,7 @@ The factory's `source` may return a Promise, so async dynamic components compose
 
 `order="natural"` is new in 2.0 and primarily useful for nested groups: the nested `Reveal` participates in its parent's ordering as one composite slot, and once the parent releases that slot each inner child reveals independently on its own data — when an inner group shouldn't coordinate internally but should still be one unit to the outer order.
 
-The full nesting matrix (every combination of outer × inner `order`) and SSR caveats (`order="together"` and `collapsed` need streaming SSR — `renderToStream` or `renderToStringAsync`) are in `references/control-flow.md`.
+The full nesting matrix (every combination of outer × inner `order`) and SSR caveats (`order="together"` and `collapsed` need streaming SSR — `renderToStream`; awaiting it yields the fully settled HTML string, `renderToStringAsync` is gone) are in `references/control-flow.md`.
 
 ## Common pitfalls (the high-frequency ones)
 
@@ -408,7 +410,7 @@ The full nesting matrix (every combination of outer × inner `order`) and SSR ca
 7. **Expecting reads to reflect writes immediately** — they don't until flush. In tests or imperative DOM code, call `flush()`.
 8. **Using `initialValue` second argument** on `createEffect` / `createMemo` — gone. Use a default parameter on `prev`: `(prev = 0) => ...`. On `createMemo`, the second arg is `options`.
 9. **Rendering async values without a `<Loading>` boundary** — no longer an error. Non-halting `ASYNC_OUTSIDE_LOADING_BOUNDARY` warning in dev; the runtime defers the root mount until pending async settles. Add `<Loading>` only when you want a visible fallback.
-10. **Using `resource.loading` for "refreshing" UI** — there's no `resource` to ask. `isPending(() => expr)` is the 2.0 equivalent; `<Loading>` is for initial readiness, `<Loading on={key}>` for key-driven re-show.
+10. **Using `resource.loading` for "refreshing" UI** — there's no `resource` to ask. `isPending(() => expr)` is the 2.0 equivalent for an in-flight _change_; `<Loading>` is for initial readiness, `<Loading on={dep()}>` re-arms the fallback when a dependency changes. A bare `refresh()` is quiet — pair it with `affects()` if it should read as pending.
 11. **Keeping `<Context.Provider>`** — gone. The context itself is the provider: `<Theme value="dark">`.
 12. **Writing `useTodos`-style throwing wrappers** — the default-less context throws on its own and is typed `T`. Delete the wrapper.
 13. **Using `batch()`** — everything is already batched. Remove it. Use `flush()` only when you need synchronous application.
@@ -418,7 +420,13 @@ The full nesting matrix (every combination of outer × inner `order`) and SSR ca
 17. **Setting `"jsxImportSource": "solid-js"`** — won't resolve in 2.0; the JSX namespace moved. Use `"@solidjs/web"` for web, `"@solidjs/h"` for hyperscript.
 18. **Manually building class strings with template literals or `.join(" ")`** — the React/`classnames` reflex. Use `class={["card", { active: isActive() }]}`.
 19. **`<Show>` / `<Match>` accessor confusion** — non-keyed function children receive an accessor (call it); keyed children receive the raw value. They look almost identical at the call site, so check `keyed` before assuming.
-20. **`Reveal together` prop** — gone in current beta. It's `order="together"` now. Earlier 2.0 beta material around the web still references the old shape.
+20. **`Reveal together` prop** — gone. It's `order="together"` now. Older 2.0 beta material around the web still references the old shape.
+21. **Calling `flush()` inside an effect callback** — a no-op that warns `FLUSH_IN_EFFECT_CALLBACK`: the flush that runs effects is already in progress, and writes made there are processed in its continuation. Drop the `flush()` (or defer with `queueMicrotask`).
+22. **Reading a store/signal right after writing it, outside a reactive scope** — setters (store drafts included) are batched: the read returns the committed value until `flush()`. Tests that write then assert synchronously need `flush()`.
+23. **Reading an item/index accessor at the top of a `<For>` / `<Show>` / `<Match>` callback** — the callback body is an owner, not a tracking scope (`STRICT_READ_UNTRACKED`). Read it in JSX, a memo or an effect.
+24. **Assuming `<For>` creates its rows eagerly** — it returns an accessor and builds the rows when that accessor is first called. Code that evaluates `children` and expects the rows' side effects to have run (registrars, collectors) must resolve them (`children()`), as `collectCells` does here.
+25. **Using `untrack` to silence a write-in-owned-scope error** — the guard is owner-based; `untrack` only stops tracking. Move the write to a handler / `onSettled`, or opt in with `{ ownedWrite: true }`.
+26. **`<Ctx value={undefined}>`** counts as "no Provider" (`ContextNotFoundError`); use `null` for an optional context.
 
 ## When you aren't sure
 
@@ -430,4 +438,4 @@ If the user is migrating an existing app, `references/migration.md` is the most 
 
 ## Writing new projects
 
-For now (2.0 is beta), the public `npm create solid` and `docs.solidjs.com/quick-start` flows still scaffold 1.x projects. 2.0 starter templates are tracked at [`solidjs/templates`](https://github.com/solidjs/templates) — the existing templates there target 1.x. If the user wants to build with 2.0 specifically, they'll be installing pre-release versions of `solid-js` and `@solidjs/web` from the `next` dist-tag, and they'll be operating without most community libraries being ported yet. Flag this tradeoff when relevant — for production work that doesn't specifically need 2.0, **1.x is still the stable choice**.
+While 2.0 is a release candidate, the public `npm create solid` and `docs.solidjs.com/quick-start` flows may still scaffold 1.x projects. 2.0 starters live in [`solidjs/templates`](https://github.com/solidjs/templates) under `solid-v2/`. A 2.0 project installs `solid-js` and `@solidjs/web` from the `next` dist-tag, compiles with `@solidjs/vite-plugin` (the renamed `vite-plugin-solid`), and will find most community libraries not yet ported. Flag this tradeoff when relevant — for production work that doesn't specifically need 2.0, **1.x is still the stable choice**.

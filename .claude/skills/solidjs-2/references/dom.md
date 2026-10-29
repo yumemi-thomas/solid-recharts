@@ -1,6 +1,6 @@
 # RFC: DOM — attributes, class, and standards
 
-**Start here:** If you’re migrating an app, read the beta tester guide first: [MIGRATION.md](migration.md)
+**Start here:** If you’re migrating an app, read the migration guide first: [MIGRATION.md](migration.md)
 
 ## Summary
 
@@ -18,9 +18,9 @@ DOM behavior in Solid 2.0 follows HTML standards by default: attributes over pro
 
 - **Attributes over properties:** Prefer setting attributes rather than properties in almost all cases. Aligns with web components and SSR.
 - **Lowercasing:** Use HTML lowercase for built-in attribute names (no camelCase for attributes). Exceptions:
-  - **Event handlers** remain camelCase (e.g. `onClick`) to keep the `on` modifier clear.
+  - **Event handlers** remain camelCase (e.g. `onClick`) to keep the `on` modifier clear. Only `on` followed by an uppercase letter is an event handler. Lowercase `on*` names (`onclick`, `onmouseover`) are plain attributes like any other — `onclick="track()"` is the HTML inline-handler attribute, and `onclick={expr}` sets that attribute (reactively when `expr` is dynamic) instead of binding an event. The JSX types do not declare lowercase `on*` names, and in development passing a function to one warns (`LOWERCASE_EVENT_ATTRIBUTE`). The same rule applies to `spread`, `@solidjs/html` and `@solidjs/h` elements, and SSR, which renders lowercase `on*` attributes.
   - **Default to attributes** But attributes such as `input.value`, `input.defaultValue`, `input.checked`, `input.defaultChecked`, `select.value`, `option.value`, `option.selected`, `option.defaultSelected`, `textarea.value`, `textarea.defaultValue`, `video.muted`, `video.defaultMuted`, `audio.muted`, `audio.defaultMuted` continue to be handled as props where that avoids confusion. Unfortunately, this leads to all form fields be special cased. For example: `<input value={dynamicCurrentValue()} defaultValue={dynamicDefaultValue()}/>` either can be dynamic or static, and in the absense of `defaultValue`, then, `value` is SSRed.
-- **Namespaces:** `attr:`, `bool:`, and `on:` namespaces are removed; the single standard behavior makes the model consistent. The compiler also no longer gives special handling to previously tolerated `class:` / `style:` namespace syntax. Use `class` object/array values for class toggles, `style` object values for style properties, and standard attributes/properties for everything else.
+- **Namespaces:** `attr:`, `bool:`, and `on:` namespaces are removed; the single standard behavior makes the model consistent. The compiler also no longer gives special handling to previously tolerated `class:` / `style:` namespace syntax. Use `class` object/array values for class toggles, `style` object values for style properties, and standard attributes/properties for everything else. On native elements the compiler rejects `on:`, `oncapture:`, `attr:`, `bool:`, `use:` and `classList` with an error that names the replacement. `prop:` and the XML namespaces (`xlink:`, `xml:`, `xmlns:`) are unaffected.
 - **XML Namespaces:** `svg` and `math` work as expected, however when using XML partials, an `xmlns` attribute is required for the browser to create the elements with the correct namespace. Solid adds these automatically to the tags that can recognize as SVG/MathML. For example an `a` tag returned from a partial to be used in XML need `xmlns` added by the user.
 
 ### Enhanced class prop
@@ -85,6 +85,16 @@ Multiple refs (or directives) can be applied by passing an array:
 <button ref={[autofocus, tooltip({ content: "Save" })]} />
 ```
 
+Arrays compose **callbacks**: at runtime each entry is flattened and called with the element. The bare-variable form (`let el; <div ref={el} />`, where the compiler assigns the element to `el`) is a compile-time rewrite of the single `ref` value only — it does not reach inside arrays, which are ordinary values and need not be inlined. A variable placed in an array is never assigned; use a callback instead:
+
+```jsx
+let el;
+<div ref={[el]} />; // el stays undefined
+<div ref={[(node) => (el = node), autofocus]} />; // assigned
+```
+
+A ref runs before the element is inserted into the page, so `el.isConnected` is `false`. Its document depends on the rest of the template: an element cloned from a template with no custom element still belongs to that template's inert document, so `el.ownerDocument.defaultView` is `null`, while a template containing a custom element is imported into the live document as a whole. Don't reach the window or document through the element inside a ref: use the global `window`/`document`, or do work that needs the attached element (measuring, reading computed styles) in `onSettled`.
+
 #### Two-phase directive factories (owned setup, unowned application)
 
 The recommended directive pattern is **two-phase**, similar in spirit to “split effects” (compute phase vs apply phase):
@@ -126,6 +136,84 @@ const on = (type, handler, options) => el => el.addEventListener(type, handler, 
 <button ref={on("click", handleClick, { capture: true })} />
 <button ref={[on("click", logCapture, { capture: true }), on("click", logBubble)]} />
 ```
+
+### Form inputs
+
+`value` and `checked` (and the other stateful properties listed above) are written as DOM properties. A binding such as `value={draft()}` writes `el.value` each time its expression re-runs, without comparing against what the DOM currently holds. Two consequences follow:
+
+- **Solid inputs are not strictly controlled.** Typing changes the DOM directly. The binding only puts its value back when the signal it reads changes. Setting a signal to the value it already has does not notify anything, so the DOM is not re-asserted ([#4185](https://github.com/solidjs/solid/issues/4185)).
+- **Any re-run of the binding overwrites what the user typed.** If the bound value is not the text in the box, a refresh of that value, or of a spread that carries it, replaces the uncommitted text. So does a change to **any other dynamic attribute in the same template**: stateful properties share the template's grouped effect (one effect per template keeps rows cheap), so when `class={cls()}` on the same element — or on any element in that template — changes, the effect re-runs and writes `value` again with the bound value. In development, a write that puts an unchanged value back over text the user typed but never committed warns with [`UNCOMMITTED_INPUT_OVERWRITTEN`](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/08-dev-diagnostics.md#uncommitted_input_overwritten).
+
+The patterns below hold regardless of how the compiler groups the writes.
+
+#### Draft signal for editable fields
+
+Keep the in-progress text in a signal set from `onInput`, and commit it to the owner (a store, a parent, a server action) on `onChange` or submit. The binding then always reflects what is in the box, so re-running it is harmless.
+
+```jsx
+function NameField(props) {
+  const [draft, setDraft] = createSignal(props.name);
+  return (
+    <input
+      value={draft()}
+      onInput={(e) => setDraft(e.currentTarget.value)}
+      onChange={() => props.onCommit(draft())}
+    />
+  );
+}
+```
+
+Avoid binding `value` to the committed value while the uncommitted text lives only in the DOM (`value={props.name} onChange={...}` with no draft): a parent refresh, a re-run spread, or any other reason the binding re-evaluates will replace what the user typed.
+
+#### Rejecting or transforming input
+
+When the handler filters, truncates or masks the input, the result can equal the current value (a rejected keystroke). The signal does not change, the binding does not re-run, and the rejected character stays in the box. Write the result back to the element yourself:
+
+```jsx
+const [digits, setDigits] = createSignal("");
+
+<input
+  inputmode="numeric"
+  value={digits()}
+  onInput={(e) => {
+    const next = e.currentTarget.value.replace(/\D/g, "");
+    e.currentTarget.value = next; // revert rejected characters
+    setDigits(next);
+  }}
+/>;
+```
+
+Write the element yourself rather than giving the signal `equals: false` so it re-asserts the equal value: the re-run would rewrite the box, but a binding writing an unchanged value over typed text is exactly what [`UNCOMMITTED_INPUT_OVERWRITTEN`](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/08-dev-diagnostics.md#uncommitted_input_overwritten) reports in development, because it cannot be told apart from a binding erasing uncommitted input.
+
+The same applies to `checked`: if a handler refuses a toggle without changing the signal, set `e.currentTarget.checked` back in the handler.
+
+#### Uncontrolled inputs
+
+If the value does not need to be reactive, don't bind `value` to a signal. Give the initial state with `defaultValue` / `defaultChecked` (or a static `value="..."`) and read the element on submit:
+
+```jsx
+<form
+  onSubmit={(e) => {
+    e.preventDefault();
+    save(new FormData(e.currentTarget).get("title"));
+  }}
+>
+  <input name="title" defaultValue={initialTitle} />
+</form>
+```
+
+To reset an uncontrolled form, call `form.reset()`, or remount it by keying it on a value that changes:
+
+```jsx
+// formKey: a counter starting at 1; increment it to reset the form
+<Show when={formKey()} keyed>
+  {(key) => <EditForm initial={initial()} />}
+</Show>
+```
+
+#### Spreads
+
+A `value` (or `checked`) passed through a spread is written whenever the spread re-evaluates, which includes changes to any other prop in the spread object. Forward a draft value through spreads, or keep `value` out of the spread and bind it directly.
 
 ## Migration / replacement
 
