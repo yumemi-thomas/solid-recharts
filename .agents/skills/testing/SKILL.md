@@ -229,10 +229,13 @@ only for genuinely async behavior — transitions, `<Loading>`, router navigatio
   (state-internal): equivalent tests, expectations golden-anchored to recharts.
 - Spec files are `test/**/*.spec.ts?(x)`. `vitest` globals are on (`describe/it/expect` need no
   import, but importing them is fine and clearer).
-- Specs are linted with the Solid 2 rule set too (`vp check`): array `.map()` children are
-  `solid/prefer-for` findings — use `<For>` (the library resolves `<For>`-rendered `<Cell>`s); a
-  per-line `eslint-disable-next-line <rule> -- <reason>` is fine where the ported test deliberately
-  exercises the non-idiomatic form.
+- Specs are linted with the Solid 2 rule set too (`vp check`), and **no lint suppression comment is
+  allowed** (`test/noLintSuppressions.spec.ts` fails on one): array `.map()` children are
+  `solid/prefer-for` findings — use `<For>` (the library resolves `<For>`-rendered `<Cell>`s), or build the
+  array in a function when the plain-array form itself is what is tested; a ported input that is a React
+  convention (a `style={{ fontSize: 12 }}` object, a unit-less number) is adapted to Solid's
+  (`style={{ "font-size": "12px" }}`); sequential async steps use `test/helper/inSequence` instead of an
+  `await` in a loop.
 
 ## Commands
 

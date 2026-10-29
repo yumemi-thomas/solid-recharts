@@ -36,9 +36,12 @@ stores/projections mirroring the same selector graph). That mismatch is the #1 c
 ## Props
 
 Match recharts props **exactly**, except this **closed** list of framework-idiomatic deviations:
-`className` → `class`; React `style` object → Solid `JSX.CSSProperties`; event props become Solid
-delegated handlers; `forwardRef` → `ref` prop; `children` typed as `JSX.Element`. **No other prop
-renames or restructuring.**
+`className` → `class` (typed `JSX.ClassValue` where a component forwards it to Solid's own `class`
+attribute: a string, array or object); React `style` object → Solid `JSX.CSSProperties`
+(**kebab-case keys, string values with units**: `{ "font-size": "12px" }`, never `fontSize: 12`); event
+props become Solid delegated handlers; `forwardRef` → `ref` prop; `children` typed as `JSX.Element`.
+**No other prop renames or restructuring.** Where recharts' React convention and Solid's differ, Solid's wins
+(and the spec's input is adapted, not the lint rule silenced).
 
 ## SolidJS 2.0
 
@@ -51,9 +54,12 @@ JSX/`render` from `@solidjs/web`; `tsconfig` `jsxImportSource: "@solidjs/web"`. 
 inside an effect callback (it is a no-op that trips `FLUSH_IN_EFFECT_CALLBACK`).
 
 The Solid 2 lint rules (`eslint-plugin-solid` `v2-strict`, run by Oxlint as a JS plugin) are part of
-`vp check` with **zero findings**. A per-line `eslint-disable-next-line <rule> -- <reason>` needs a
-reason; no file- or rule-wide disables. One-time reads of props are written `untrack(() => props.x)`
-(or a getter argument to a `use*` hook), so the intent is visible.
+`vp check` with **zero findings**. **No `eslint-disable-*` / `oxlint-disable` comments, anywhere**: a
+finding is fixed in the code or the type (a Solid-idiomatic `style` / `class` value, a type guard instead
+of an `as`, a helper instead of an `await` in a loop, …). `test/noLintSuppressions.spec.ts` fails the suite
+on one; a tool-generated `*.gen.ts` file (lint-ignored by config) is the only exception. Rule-level policy
+belongs in `vite.config.ts`, not in a comment. One-time reads of props are written
+`untrack(() => props.x)` (or a getter argument to a `use*` hook), so the intent is visible.
 
 ## Toolchain — Vite+
 
