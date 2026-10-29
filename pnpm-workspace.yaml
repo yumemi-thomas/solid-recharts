@@ -38,9 +38,11 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
 
-# Remap vite/vitest to the Vite+ engines for every specifier, including plugin
-# peer ranges (see node_modules/vite-plus/README.md). Keep both in lockstep with
-# the installed `vite-plus` version / `vp toolchain vitest`.
+# Remap `vite` to the Vite+ engine (@voidzero-dev/vite-plus-core) for every specifier,
+# including plugin peer ranges, and pin `vitest` to the stock release vite-plus bundles
+# (vite-plus 1.x ships no separate test engine) so the project and `vp test` share one
+# Vitest copy (see node_modules/vite-plus/README.md). Keep both in lockstep with the
+# installed `vite-plus` version / `vp toolchain vitest`.
 overrides:
   vite@*: "npm:@voidzero-dev/vite-plus-core@1.4.0"
   vitest@*: "5.0.5"
