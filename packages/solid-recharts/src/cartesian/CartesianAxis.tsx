@@ -200,6 +200,12 @@ export interface CartesianAxisProps {
    * threads this through a `CartesianAxisRef.getCalculatedWidth`).
    */
   layerRef?: (el: SVGGElement) => void;
+  /**
+   * Callback receiving the rendered axis label `<text>` (when `label` is a string, number,
+   * object or `true`). XAxis/YAxis measure it for `height="auto"` / `width="auto"` — recharts'
+   * `labelRef`.
+   */
+  labelRef?: (el: SVGTextElement) => void;
   /** Per-tick pointer handlers, called props-first `(tickItem, index, event)`. */
   onClick?: CartesianTickEventHandler<MouseEvent>;
   onMouseEnter?: CartesianTickEventHandler<MouseEvent>;
@@ -537,7 +543,7 @@ export const CartesianAxis = (props: CartesianAxisProps): JSX.Element => {
             lowerWidth={merged.width}
             upperWidth={merged.width}
           >
-            <CartesianLabelFromLabelProp label={merged.label} />
+            <CartesianLabelFromLabelProp label={merged.label} labelRef={props.labelRef} />
             {merged.children}
           </CartesianLabelContextProvider>
         </Layer>
