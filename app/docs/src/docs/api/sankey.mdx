@@ -35,16 +35,18 @@ const data = {
 
 ## Props
 
-| Prop              | Type                  | Default          | Description                                           |
-| ----------------- | --------------------- | ---------------- | ----------------------------------------------------- |
-| `data`            | `{ nodes, links }`    | —                | Nodes array + links array (source/target indices)     |
-| `width`, `height` | `number \| "%"`       | —                | Fixed size or percentage inside `ResponsiveContainer` |
-| `margin`          | `{ top, right, ...}`  | `{ 5, 5, 5, 5 }` | Space around the plot area                            |
-| `nodeWidth`       | `number`              | `10`             | Width of each node rectangle (in pixels)              |
-| `nodePadding`     | `number`              | `10`             | Vertical space between nodes at the same depth        |
-| `linkCurvature`   | `number`              | `0.5`            | Bezier curve tension (0 = straight, 1 = max curve)    |
-| `align`           | `"left" \| "justify"` | `"justify"`      | Horizontal alignment of nodes                         |
-| `verticalAlign`   | `"top" \| "justify"`  | `"justify"`      | Vertical alignment within columns                     |
+| Prop                 | Type                  | Default          | Description                                                                                  |
+| -------------------- | --------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
+| `data`               | `{ nodes, links }`    | —                | Nodes array + links array (source/target indices)                                            |
+| `width`, `height`    | `number \| "%"`       | —                | Fixed size or percentage inside `ResponsiveContainer`                                        |
+| `margin`             | `{ top, right, ...}`  | `{ 5, 5, 5, 5 }` | Space around the plot area                                                                   |
+| `nodeWidth`          | `number`              | `10`             | Width of each node rectangle (in pixels)                                                     |
+| `nodePadding`        | `number`              | `10`             | Vertical space between nodes at the same depth                                               |
+| `linkCurvature`      | `number`              | `0.5`            | Bezier curve tension (0 = straight, 1 = max curve)                                           |
+| `align`              | `"left" \| "justify"` | `"justify"`      | Horizontal alignment of nodes                                                                |
+| `verticalAlign`      | `"top" \| "justify"`  | `"justify"`      | Vertical alignment within columns                                                            |
+| `accessibilityLayer` | `boolean`             | `true`           | Adds `role="application"` and `tabIndex={0}` to the SVG for keyboard and screen reader users |
+| `title`, `desc`      | `string`              | —                | Accessible title and description of the SVG                                                  |
 
 All other recharts `Sankey` props are supported; see the
 [recharts Sankey docs](https://recharts.org/en-US/api/Sankey) for the full matrix.

@@ -4,8 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { flush } from "solid-js";
 import { render } from "@solidjs/testing-library";
-import { Area, AreaChart, Bar, BarChart, Legend, Line, LineChart } from "../../src";
-import { numericalData, PageData } from "../_data";
+import { Area, AreaChart, Bar, BarChart, Legend, Line, LineChart } from "../../../src";
+import { numericalData, PageData } from "../../_data";
 
 function legendLabels(container: Element): Array<string | null> {
   return [...container.querySelectorAll(".recharts-legend-item-text")].map((n) => n.textContent);

@@ -1,7 +1,8 @@
 // Ported from recharts 3.8.1 test/component/Legend.itemSorter.spec.tsx (commit
-// 7a23854). The "with default content" sorter cases are covered in
-// Legend.render.spec.tsx; here we port the "when Legend content is a function"
-// cases, which assert the exact props object passed to a function-form `content`.
+// 7a23854); synced to 3.10.1 test/component/Legend/Legend.itemSorter.spec.tsx.
+// The "with default content" sorter cases are covered in Legend.render.spec.tsx;
+// here we port the "when Legend content is a function" cases, which assert the
+// exact props object passed to a function-form `content`.
 //
 // Tier-A adaptation: recharts calls the content as a React component
 // (`React.createElement(content, props)`) so the spy sees `(props, {})` — the
@@ -21,12 +22,12 @@ import {
   Line,
   LineChart,
   LineDrawShape,
-} from "../../src";
-import type { LegendPayload } from "../../src";
-import type { Props as DefaultLegendContentProps } from "../../src/component/DefaultLegendContent";
-import { numericalData } from "../_data";
-import { assertNotNull } from "../helper/assertNotNull";
-import { expectLastCalledWith } from "../helper/expectLastCalledWith";
+} from "../../../src";
+import type { LegendPayload } from "../../../src";
+import type { Props as DefaultLegendContentProps } from "../../../src/component/DefaultLegendContent";
+import { numericalData } from "../../_data";
+import { assertNotNull } from "../../helper/assertNotNull";
+import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
 
 // ---- inlined helper (reference: test/helper/expectLegendLabels.tsx) ----
 function assertHasLegend(container: Element): ReadonlyArray<Element> {
@@ -112,6 +113,7 @@ describe("Legend.itemSorter", () => {
         labelStyle: {},
         layout: "horizontal",
         margin: { bottom: 5, left: 5, right: 5, top: 5 },
+        offset: 0,
         payload: [
           {
             color: "#3182bd",
@@ -202,6 +204,7 @@ describe("Legend.itemSorter", () => {
         labelStyle: {},
         layout: "horizontal",
         margin: { bottom: 5, left: 5, right: 5, top: 5 },
+        offset: 0,
         payload: [
           {
             color: "#3182bd",

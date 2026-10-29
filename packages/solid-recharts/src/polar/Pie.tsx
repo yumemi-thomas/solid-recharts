@@ -31,7 +31,7 @@
 // recharts (the empty/hidden root Layer stays inline, mounting no portal).
 // DEFERRED: `maxRadius`/`cornerRadius` rounding edge cases, float-precise per-frame
 // animation angle matrices.
-import { createEffect, createMemo, For, merge, Show, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, For, merge, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import { useUniqueId } from "../util/useUniqueId";
@@ -50,7 +50,7 @@ import { Sector } from "../shape/Sector";
 import { Text } from "../component/Text";
 import { Shape } from "../util/ActiveShapeUtils";
 import type { ActiveShape, ShapeAnimationProps } from "../util/types";
-import { type CellProps, collectCells } from "../component/Cell";
+import { CellReader, type CellProps } from "../component/Cell";
 import { selectPieSectors, selectPieLegend } from "../state/selectors/pieSelectors";
 import {
   selectActiveTooltipIndex,
@@ -82,6 +82,7 @@ import { getMaxRadius, polarToCartesian } from "../util/PolarUtils";
 import { getPercentValue, interpolate, isNumber, isNumOrStr, mathSign } from "../util/DataUtils";
 import { getValueByDataKey } from "../util/ChartUtils";
 import { registerInStore } from "../state/registerInStore";
+import { PolarLabelContextProvider } from "../component/Label";
 
 export type PieCoordinate = {
   cx: number;
@@ -576,6 +577,36 @@ export const pieDefaultProps = {
   zIndex: DefaultZIndexes.area,
 } as const satisfies Partial<PieProps>;
 
+// The Pie's children, rendered under the polar label context of the first sector, with
+// their <Cell>s collected while they are created (CellReader). Port of the children mount
+// in recharts' SectorsWithAnimation (src/polar/Pie.tsx:1016-1026).
+//
+// A component, so it runs once and holds no tracking scope: the label context is fed from
+// prop getters, which the provider reads reactively. A data or geometry update therefore
+// moves the label viewBox without re-creating the children — what a reactive insert such as
+// `{renderChildren()}` reading `sectors()` in its body would do on every update.
+function PieChildren(props: {
+  firstSector: PieSectorDataItem | undefined;
+  startAngle: number;
+  endAngle: number;
+  onCells: (cells: ReadonlyArray<CellProps>) => void;
+  children: JSX.Element;
+}): JSX.Element {
+  return (
+    <PolarLabelContextProvider
+      cx={props.firstSector?.cx ?? 0}
+      cy={props.firstSector?.cy ?? 0}
+      innerRadius={props.firstSector?.innerRadius ?? 0}
+      outerRadius={props.firstSector?.outerRadius ?? 0}
+      startAngle={props.startAngle}
+      endAngle={props.endAngle}
+      clockWise={false}
+    >
+      <CellReader onCells={props.onCells}>{props.children}</CellReader>
+    </PolarLabelContextProvider>
+  );
+}
+
 export function Pie<DataPointType = Record<string, unknown>, DataValueType = unknown>(
   props: PieProps<DataPointType, DataValueType>,
 ): JSX.Element {
@@ -619,8 +650,34 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
     );
   }
 
-  // Per-slice <Cell> overrides (collected from children, in data order).
-  const cells = collectCells(() => props.children);
+  // Per-slice <Cell> overrides are registered while children render under the
+  // Pie's own polar label context. `ownedWrite` is narrowly scoped to this
+  // internal child-registration channel.
+  const [cells, setCells] = createSignal<ReadonlyArray<CellProps>>([], { ownedWrite: true });
+  let lastCells: ReadonlyArray<CellProps> = [];
+  const cellPropsAreEqual = (left: CellProps, right: CellProps): boolean => {
+    const leftEntries = Object.entries(left);
+    const rightEntries = Object.entries(right);
+    return (
+      leftEntries.length === rightEntries.length &&
+      leftEntries.every(
+        ([key, value]) => Object.hasOwn(right, key) && Object.is(value, Reflect.get(right, key)),
+      )
+    );
+  };
+  const updateCells = (next: ReadonlyArray<CellProps>): void => {
+    if (
+      next.length === lastCells.length &&
+      next.every((cell, index) => {
+        const previous = lastCells[index];
+        return previous != null && cellPropsAreEqual(cell, previous);
+      })
+    ) {
+      return;
+    }
+    lastCells = next;
+    setCells(next);
+  };
   const sectors = useAppSelector((state) => selectPieSectors(state, id, cells()));
 
   // Layer takes a single class string (user-class forwarding parity with clsx).
@@ -780,11 +837,17 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
   };
 
   // recharts always renders the root <Layer class="recharts-pie"> (with rootTabIndex)
-  // even when hidden / empty; only the sectors live behind the data gate. When there
-  // ARE sectors, recharts wraps that root Layer in <ZIndexLayer> (default 100) so a
-  // `zIndex` prop relayers the whole pie into its portal. Following Bar's template,
+  // even when hidden / empty; only the sectors and the children live behind the data
+  // gate (`if (hide || sectors == null) return <Layer … />`, src/polar/Pie.tsx:1071-1074).
+  // When there ARE sectors, recharts wraps that root Layer in <ZIndexLayer> (default 100)
+  // so a `zIndex` prop relayers the whole pie into its portal. Following Bar's template,
   // the ZIndexLayer lives INSIDE the gate <Show> (never wrapping it) so an empty/
   // hidden pie mounts NO portal — the `fallback` renders the inline empty root Layer.
+  //
+  // One deviation: without a `data` prop the <Cell> rows ARE the data (recharts finds
+  // them statically with `findAllByType`; Solid can only find them by creating the
+  // children), so the fallback creates the children — to collect the cells, which then
+  // produce the sectors — while the Pie is shown and has no data of its own.
   return (
     <>
       <SetTooltipEntrySettings tooltipEntrySettings={tooltipConfig()} />
@@ -793,7 +856,16 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
         when={!merged.hide && polarLayout() ? sectors() : undefined}
         fallback={
           <Layer tabIndex={rootTabIndex()} class={layerClass()}>
-            {props.children}
+            <Show when={!merged.hide && merged.data == null}>
+              <PieChildren
+                firstSector={undefined}
+                startAngle={merged.startAngle}
+                endAngle={merged.endAngle}
+                onCells={updateCells}
+              >
+                {props.children}
+              </PieChildren>
+            </Show>
           </Layer>
         }
       >
@@ -890,7 +962,14 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
                 )}
               </AnimatedItems>
               <Show when={showLabels()}>{renderLabels(untrack(secs))}</Show>
-              {props.children}
+              <PieChildren
+                firstSector={secs()[0]}
+                startAngle={merged.startAngle}
+                endAngle={merged.endAngle}
+                onCells={updateCells}
+              >
+                {props.children}
+              </PieChildren>
             </Layer>
           </ZIndexLayer>
         )}

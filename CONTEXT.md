@@ -1,6 +1,6 @@
 # solid-recharts
 
-A SolidJS 2.0 port of recharts: same public API and rendering behaviour as upstream recharts 3.9, re-implemented on Solid's fine-grained reactivity instead of React + Redux.
+A SolidJS 2.0 port of recharts: same public API and rendering behaviour as upstream recharts 3.10, re-implemented on Solid's fine-grained reactivity instead of React + Redux.
 
 ## Language
 

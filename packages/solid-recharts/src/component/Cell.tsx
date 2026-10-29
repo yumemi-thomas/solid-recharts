@@ -9,7 +9,7 @@
 // parent (Bar/Pie/RadialBar) synchronously resolves its children inside
 // `collectCells`. Cells render no DOM (the standalone <Cell /> spec asserts this).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { children, createMemo, type Accessor } from "solid-js";
+import { children, createMemo, untrack, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
 export interface CellProps extends CamelSvgProps<JSX.SVGAttributes<SVGElement>> {
@@ -48,6 +48,40 @@ export const Cell = (props: CellProps): JSX.Element => {
   currentCellRegistrar?.(props);
   return undefined;
 };
+
+/**
+ * Evaluates children with Cell registration active and returns the non-Cell
+ * output unchanged. This lets a graphical item establish contexts (e.g. the
+ * polar label context) around its children — evaluated exactly once, under that
+ * provider — while still collecting the <Cell>s among them.
+ *
+ * As in {@link collectCells}, the children are fully resolved inside the
+ * registration window so <Cell>s produced lazily by a `<For>` register too.
+ */
+export function CellReader(props: {
+  children: JSX.Element;
+  onCells: (cells: ReadonlyArray<CellProps>) => void;
+}): JSX.Element {
+  return (
+    <>
+      {(() => {
+        const collected: CellProps[] = [];
+        const prev = currentCellRegistrar;
+        currentCellRegistrar = (cell) => collected.push(cell);
+        let result: JSX.Element;
+        try {
+          result = children(() => props.children)();
+        } finally {
+          currentCellRegistrar = prev;
+        }
+        // The consumer compares the new list against the last one by reading each
+        // cell's props; that comparison must not subscribe this render to them.
+        untrack(() => props.onCells(collected));
+        return result;
+      })()}
+    </>
+  );
+}
 
 /**
  * Resolves `childrenAccessor` synchronously with the cell registrar active, so

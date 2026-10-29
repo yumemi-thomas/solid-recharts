@@ -144,6 +144,7 @@ export const DefaultLegendContent = (props: Props): JSX.Element => {
   const itemStyle = (): JSX.CSSProperties => ({
     display: merged.layout === "horizontal" ? "inline-block" : "block",
     "margin-right": "10px",
+    "white-space": "nowrap",
   });
   const svgStyle: JSX.CSSProperties = {
     display: "inline-block",
@@ -162,6 +163,8 @@ export const DefaultLegendContent = (props: Props): JSX.Element => {
   };
 
   const labelStyleOf = (entry: LegendPayload): JSX.CSSProperties => ({
+    "white-space": "normal",
+    "overflow-wrap": "break-word",
     ...merged.labelStyle,
     // recharts parity: an explicit labelStyle.color wins over the entry color.
     color: entry.inactive ? merged.inactiveColor : (merged.labelStyle?.color ?? entry.color),

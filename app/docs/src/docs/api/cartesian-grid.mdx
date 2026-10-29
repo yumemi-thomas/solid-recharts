@@ -25,20 +25,23 @@ import { LineChart, CartesianGrid, XAxis, YAxis } from "solid-recharts";
 
 ## Props
 
-| Prop               | Type               | Default  | Description                                                |
-| ------------------ | ------------------ | -------- | ---------------------------------------------------------- |
-| `strokeDasharray`  | `string \| number` | `"none"` | Dash pattern, e.g. `"3 3"` for dashed lines                |
-| `stroke`           | `string`           | `"#ccc"` | Grid line color                                            |
-| `horizontal`       | `boolean`          | `true`   | Show or hide horizontal grid lines                         |
-| `vertical`         | `boolean`          | `true`   | Show or hide vertical grid lines                           |
-| `syncWithTicks`    | `boolean`          | `false`  | Align grid lines to axis tick positions (not just min/max) |
-| `fill`             | `string`           | `"none"` | Background fill color of the chart area                    |
-| `horizontalFill`   | `string[]`         | `[]`     | Colors for alternating horizontal stripes                  |
-| `verticalFill`     | `string[]`         | `[]`     | Colors for alternating vertical stripes                    |
-| `horizontalPoints` | `number[]`         | auto     | Custom y-coordinates for horizontal grid lines             |
-| `verticalPoints`   | `number[]`         | auto     | Custom x-coordinates for vertical grid lines               |
-| `xAxisId`          | `string \| number` | `0`      | XAxis to sync grid lines with                              |
-| `yAxisId`          | `string \| number` | `0`      | YAxis to sync grid lines with                              |
+| Prop               | Type                           | Default          | Description                                                |
+| ------------------ | ------------------------------ | ---------------- | ---------------------------------------------------------- |
+| `strokeDasharray`  | `string \| number \| number[]` | theme            | Dash pattern, e.g. `"3 3"` or `[3, 3]` for dashed lines    |
+| `stroke`           | `string`                       | theme (`"#ccc"`) | Grid line color                                            |
+| `strokeWidth`      | `number`                       | theme            | Grid line width                                            |
+| `strokeOpacity`    | `number`                       | theme            | Grid line opacity                                          |
+| `horizontal`       | `boolean`                      | `true`           | Show or hide horizontal grid lines                         |
+| `vertical`         | `boolean`                      | `true`           | Show or hide vertical grid lines                           |
+| `syncWithTicks`    | `boolean`                      | `false`          | Align grid lines to axis tick positions (not just min/max) |
+| `fill`             | `string`                       | theme (`"none"`) | Background fill color of the chart area                    |
+| `fillOpacity`      | `number`                       | theme            | Opacity of the background fill                             |
+| `horizontalFill`   | `string[]`                     | `[]`             | Colors for alternating horizontal stripes                  |
+| `verticalFill`     | `string[]`                     | `[]`             | Colors for alternating vertical stripes                    |
+| `horizontalPoints` | `number[]`                     | auto             | Custom y-coordinates for horizontal grid lines             |
+| `verticalPoints`   | `number[]`                     | auto             | Custom x-coordinates for vertical grid lines               |
+| `xAxisId`          | `string \| number`             | `0`              | XAxis to sync grid lines with                              |
+| `yAxisId`          | `string \| number`             | `0`              | YAxis to sync grid lines with                              |
 
 All other recharts `CartesianGrid` props are supported; see the [recharts CartesianGrid
 docs](https://recharts.org/en-US/api/CartesianGrid) for the complete reference.
@@ -54,6 +57,10 @@ docs](https://recharts.org/en-US/api/CartesianGrid) for the complete reference.
   A two-color array creates alternating stripes.
 - The grid layer is rendered behind the chart data; use the `zIndex` prop to adjust
   if needed.
+- Props that are not set fall back to the active theme. Wrap charts in
+  `<RechartsThemeProvider value={lightTheme}>` (or `darkTheme`) to restyle every grid at
+  once; without a provider the grid keeps the `legacyTheme` look (`#ccc` lines, no fill).
+  Explicit props always win over the theme. The theme API is experimental.
 
 ## See also
 

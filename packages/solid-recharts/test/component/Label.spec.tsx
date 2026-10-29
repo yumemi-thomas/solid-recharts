@@ -3,7 +3,7 @@
 // deferrals because Solid has no cloneElement equivalent.
 import { flush } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
-import { Label, Line, LineChart, PieChart, ReferenceLine, Surface } from "../../src";
+import { Label, Line, LineChart, PieChart, ReferenceLine, Surface, YAxis } from "../../src";
 import type { Props as LabelProps } from "../../src/component/Label";
 import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
 import { assertNotNull } from "../helper/assertNotNull";
@@ -328,6 +328,8 @@ describe("<Label />", () => {
             angle: 0,
             offset: 5,
             position: "center",
+            x: 150,
+            y: 150,
             textBreakAll: false,
             zIndex: DefaultZIndexes.label,
             viewBox: {
@@ -437,6 +439,8 @@ describe("<Label />", () => {
           offset: 5,
           textBreakAll: false,
           position: "center",
+          x: 150,
+          y: 150,
           zIndex: DefaultZIndexes.label,
           viewBox: {
             height: 200,
@@ -475,6 +479,8 @@ describe("<Label />", () => {
           offset: 5,
           textBreakAll: false,
           position: "center",
+          x: 150,
+          y: 150,
           zIndex: DefaultZIndexes.label,
           viewBox: {
             height: 200,
@@ -516,6 +522,8 @@ describe("<Label />", () => {
           textBreakAll: false,
           offset: 5,
           position: "center",
+          x: 150,
+          y: 150,
           zIndex: DefaultZIndexes.label,
           viewBox: {
             height: 200,
@@ -594,6 +602,30 @@ describe("<Label />", () => {
     });
   });
 
+  describe("custom label on an axis", () => {
+    it("should provide computed x and y coordinates to a custom label element", () => {
+      // Element-form `label={<CustomLabel />}` is N/A in Solid (no cloneElement): the same
+      // custom component is passed as function `content`.
+      const received: LabelProps[] = [];
+      const CustomLabel = (props: LabelProps) => {
+        received.push(props);
+        return null;
+      };
+      render(() => (
+        <LineChart width={400} height={400} data={data}>
+          <YAxis label={{ content: CustomLabel }} />
+          <Line dataKey="uv" isAnimationActive={false} />
+        </LineChart>
+      ));
+      flush();
+
+      expect(received.length).toBeGreaterThan(0);
+      const lastProps = received.at(-1);
+      expect(typeof lastProps?.x).toBe("number");
+      expect(typeof lastProps?.y).toBe("number");
+    });
+  });
+
   describe("in PieChart", () => {
     describe("with custom content function", () => {
       it("should pass the correct props to the content function when position=center", () => {
@@ -618,6 +650,8 @@ describe("<Label />", () => {
           value: "text",
           textBreakAll: false,
           position: "center",
+          x: 100,
+          y: 50,
           offset: 5,
           zIndex: DefaultZIndexes.label,
         });
@@ -677,6 +711,8 @@ describe("<Label />", () => {
           value: "text",
           textBreakAll: false,
           position: "center",
+          x: 200,
+          y: 200,
           offset: 5,
           zIndex: DefaultZIndexes.label,
         });
