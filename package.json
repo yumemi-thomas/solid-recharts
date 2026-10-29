@@ -6,6 +6,7 @@
   "scripts": {
     "ref:setup": "bash scripts/setup-reference.sh",
     "ref:verify": "node scripts/verify-reference.mjs",
+    "docs:isolated": "bash scripts/verify-docs-isolated.sh",
     "test": "pnpm --filter solid-recharts test",
     "test:watch": "pnpm --filter solid-recharts test:watch",
     "typecheck": "pnpm -r typecheck",

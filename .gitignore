@@ -7,6 +7,7 @@ test-results/
 app/docs/.tanstack/
 app/docs/.nitro/
 app/docs/.output/
+app/docs/.vercel/
 app/docs/dist/
 
 .DS_Store

@@ -15,16 +15,18 @@
     "@solidjs/web": "2.0.0-rc.19",
     "@tanstack/solid-router": "2.0.0-rc.9",
     "@tanstack/solid-start": "2.0.0-rc.9",
+    "d3-scale": "^4.0.2",
+    "d3-shape": "^3.2.0",
     "shiki": "^4.5.0",
     "solid-js": "2.0.0-rc.19",
     "tailwind-merge": "^3.7.0",
-    "tiny-invariant": "^1.3.3",
-    "valibot": "^1.5.0",
-    "victory-vendor": "^37.4.1"
+    "valibot": "^1.5.0"
   },
   "devDependencies": {
     "@solidjs/vite-plugin": "3.0.0-next.52",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.2.0",
     "@types/mdx": "^2.0.13",
     "@types/node": "^24.19.2",
     "nitro": "3.0.260903-beta",
