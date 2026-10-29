@@ -23,7 +23,7 @@
 // (drag overrides win mid-interaction, the Solid equivalent of recharts'
 // getDerivedStateFromProps "don't sync while interacting" guards). Covered by the
 // "with controlled startIndex/endIndex" Brush.spec block.
-import { createEffect, createMemo, createSignal, merge, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, merge, onCleanup, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { scalePoint } from "d3-scale";
 import { useAppSelector, useAppStore } from "../state/hooks";
@@ -243,9 +243,16 @@ export const Brush = (props: BrushProps): JSX.Element => {
   // Sync controlled start/end index props into the store (recharts BrushInternal
   // useEffect — always dispatch; the reducer ignores undefined fields).
   createEffect(
-    () => ({ startIndex: merged.startIndex, endIndex: merged.endIndex }),
+    () => ({
+      startIndex: merged.startIndex,
+      endIndex: merged.endIndex,
+      chartData: dataState()?.chartData,
+    }),
     (idx) => {
-      store?.actions.chartData.setDataStartEndIndexes(idx);
+      store?.actions.chartData.setDataStartEndIndexes({
+        startIndex: idx.startIndex,
+        endIndex: idx.endIndex,
+      });
     },
   );
 
@@ -282,6 +289,73 @@ export const Brush = (props: BrushProps): JSX.Element => {
   // is cleared on release so the handle snaps to the (now-updated) index position.
   const [overrideStartX, setOverrideStartX] = createSignal<number | null>(null);
   const [overrideEndX, setOverrideEndX] = createSignal<number | null>(null);
+
+  // Recharts keeps the exact pixel positions reached during a drag, even if the
+  // movement did not cross an index boundary (v3.10: the controlled-index trackers are
+  // initialised up front, so releasing the mouse no longer snaps the slide back). Its
+  // `getDerivedStateFromProps` re-syncs startX/endX from the indices only when
+  //  1. the data array identity changes,
+  //  2. the brush's x / width / travellerWidth change, or
+  //  3. a controlled startIndex / endIndex prop changed since the last sync — and then
+  //     only while the user is NOT interacting, so a controlled `onChange` round-trip
+  //     does not fight an active drag (the pending change applies once it ends).
+  // The effect below is that function, with the previous values held in plain variables.
+  let prevChartData: ChartData | undefined = untrack(data);
+  let prevX = untrack(x);
+  let prevWidth = untrack(width);
+  let prevTravellerWidth = untrack(() => merged.travellerWidth);
+  let prevStartIndexControlled = untrack(() => merged.startIndex);
+  let prevEndIndexControlled = untrack(() => merged.endIndex);
+  createEffect(
+    () => ({
+      chartData: data(),
+      x: x(),
+      width: width(),
+      travellerWidth: merged.travellerWidth,
+      startIndexControlled: merged.startIndex,
+      endIndexControlled: merged.endIndex,
+      interacting: isSlideMoving() || isTravellerMoving() || isTravellerFocused() || isTextActive(),
+    }),
+    (next) => {
+      if (next.chartData !== prevChartData) {
+        prevChartData = next.chartData;
+        prevX = next.x;
+        prevWidth = next.width;
+        prevTravellerWidth = next.travellerWidth;
+        prevStartIndexControlled = next.startIndexControlled;
+        prevEndIndexControlled = next.endIndexControlled;
+        setOverrideStartX(null);
+        setOverrideEndX(null);
+        return;
+      }
+      if (
+        next.width !== prevWidth ||
+        next.x !== prevX ||
+        next.travellerWidth !== prevTravellerWidth
+      ) {
+        prevX = next.x;
+        prevWidth = next.width;
+        prevTravellerWidth = next.travellerWidth;
+        setOverrideStartX(null);
+        setOverrideEndX(null);
+        return;
+      }
+      if (next.interacting) {
+        return;
+      }
+      if (
+        next.startIndexControlled != null &&
+        next.startIndexControlled !== prevStartIndexControlled
+      ) {
+        prevStartIndexControlled = next.startIndexControlled;
+        setOverrideStartX(null);
+      }
+      if (next.endIndexControlled != null && next.endIndexControlled !== prevEndIndexControlled) {
+        prevEndIndexControlled = next.endIndexControlled;
+        setOverrideEndX(null);
+      }
+    },
+  );
   const startX = createMemo<number>(() => {
     const o = overrideStartX();
     if (o != null) {
@@ -409,9 +483,6 @@ export const Brush = (props: BrushProps): JSX.Element => {
     const wasDragging = isTravellerMoving() || isSlideMoving();
     setIsTravellerMoving(false);
     setIsSlideMoving(false);
-    // Drop the pixel overrides so the travellers snap to the final index positions.
-    setOverrideStartX(null);
-    setOverrideEndX(null);
     detachListeners();
     if (leaveTimer != null) {
       clearTimeout(leaveTimer);

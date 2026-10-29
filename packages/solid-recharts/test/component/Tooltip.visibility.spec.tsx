@@ -847,6 +847,8 @@ describe("Tooltip visibility", () => {
         align: "center",
         itemSorter: "value",
         layout: "horizontal",
+        offset: 0,
+        position: undefined,
         verticalAlign: "bottom",
       };
       expectLastCalledWith(spy, expected);

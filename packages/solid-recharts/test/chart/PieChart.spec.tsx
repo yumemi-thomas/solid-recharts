@@ -9,9 +9,10 @@
 // React's render model); the `recharts-active-shape` default-class probe combined
 // with `.recharts-active-shape` click bubbling (chart-level onClick payload depends
 // on the unported PieChart-level mouse-state forwarding); reselect reference checks.
-import { describe, expect, it, test } from "vitest";
+import { describe, expect, it, test, vi } from "vitest";
 import { flush, For } from "solid-js";
-import { Cell, Legend, Pie, PieChart, Sector, Tooltip } from "../../src";
+import { Cell, Label, Legend, Pie, PieChart, Sector, Tooltip } from "../../src";
+import type { Props as LabelProps } from "../../src/component/Label";
 import type { PieSectorShapeProps } from "../../src/polar/Pie";
 import { useChartWidth, useChartHeight, useViewBox } from "../../src/context/chartLayoutContext";
 import { useClipPathId } from "../../src/container/ClipPathProvider";
@@ -790,6 +791,82 @@ describe("<PieChart />", () => {
       const { container } = renderTestCase();
       flush();
       expect(selectPieSectors(container)).toHaveLength(2);
+    });
+  });
+
+  describe("Label children viewBox - issue #7445", () => {
+    test("should pass correct innerRadius to custom Label content when Pie has innerRadius set", () => {
+      const labelSpy = vi.fn((_props: LabelProps) => null);
+      render(() => (
+        <PieChart width={400} height={400}>
+          <Pie
+            dataKey="value"
+            isAnimationActive={false}
+            data={[
+              { name: "Group A", value: 400 },
+              { name: "Group B", value: 300 },
+            ]}
+            cx={200}
+            cy={200}
+            innerRadius={80}
+            outerRadius={120}
+          >
+            <Label content={labelSpy} />
+          </Pie>
+        </PieChart>
+      ));
+      flush();
+
+      expect(labelSpy).toHaveBeenCalled();
+      const labelProps = labelSpy.mock.calls[0]?.[0];
+      expect(labelProps?.viewBox).toMatchObject({ innerRadius: 80, outerRadius: 120 });
+    });
+
+    test("should pass correct innerRadius of 0 when Pie has no innerRadius set", () => {
+      const labelSpy = vi.fn((_props: LabelProps) => null);
+      render(() => (
+        <PieChart width={400} height={400}>
+          <Pie
+            dataKey="value"
+            isAnimationActive={false}
+            data={[
+              { name: "Group A", value: 400 },
+              { name: "Group B", value: 300 },
+            ]}
+            cx={200}
+            cy={200}
+            outerRadius={120}
+          >
+            <Label content={labelSpy} />
+          </Pie>
+        </PieChart>
+      ));
+      flush();
+
+      expect(labelSpy).toHaveBeenCalled();
+      const labelProps = labelSpy.mock.calls[0]?.[0];
+      expect(labelProps?.viewBox).toMatchObject({ innerRadius: 0 });
+    });
+
+    test("should render children directly when Pie has no sectors", () => {
+      const labelSpy = vi.fn((_props: LabelProps) => null);
+      render(() => (
+        <PieChart width={400} height={400}>
+          <Pie
+            dataKey="value"
+            isAnimationActive={false}
+            data={[]}
+            cx={200}
+            cy={200}
+            outerRadius={120}
+          >
+            <Label content={labelSpy} />
+          </Pie>
+        </PieChart>
+      ));
+      flush();
+
+      expect(labelSpy).not.toHaveBeenCalled();
     });
   });
 });

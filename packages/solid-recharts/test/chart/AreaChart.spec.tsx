@@ -25,6 +25,7 @@ import { expectAreaCurve } from "../helper/expectAreaCurve";
 import { useChartHeight, useChartWidth, useViewBox } from "../../src/context/chartLayoutContext";
 import { useClipPathId } from "../../src/container/ClipPathProvider";
 import { PageData } from "../_data";
+import { assertNotNull } from "../helper/assertNotNull";
 
 const data = [
   { name: "Page A", uv: 400, pv: 2400, amt: 2400 },
@@ -245,6 +246,97 @@ describe("<AreaChart />", () => {
       { d: "M5,26.333C20,34.667,35,43,50,43C65,43,80,38.34,95,33.68" },
       { d: "M5,10.333C20,18.667,35,27,50,27C65,27,80,22.34,95,17.68" },
     ]);
+  });
+
+  test("connects across points where every stacked series is null if connectNulls is true", () => {
+    const dataWithAllNullPageB = [
+      { name: "Page A", uv: 400, pv: 2400, amt: 2400 },
+      { name: "Page B" },
+      { name: "Page C", uv: 300, pv: 1398, amt: 2400 },
+    ];
+    const { container } = render(() => (
+      <AreaChart width={100} height={50} data={dataWithAllNullPageB}>
+        <Area
+          stackId="1"
+          connectNulls
+          type="monotone"
+          dataKey="uv"
+          stroke="#ff7300"
+          fill="#ff7300"
+          isAnimationActive={false}
+        />
+        <Area
+          stackId="1"
+          connectNulls
+          type="monotone"
+          dataKey="pv"
+          stroke="#ff7300"
+          fill="#ff7300"
+          isAnimationActive={false}
+        />
+        <Area
+          stackId="1"
+          connectNulls
+          type="monotone"
+          dataKey="amt"
+          stroke="#ff7300"
+          fill="#ff7300"
+          isAnimationActive={false}
+        />
+      </AreaChart>
+    ));
+    flush();
+
+    container.querySelectorAll(".recharts-area-curve").forEach((path) => {
+      const d = path.getAttribute("d");
+      assertNotNull(d);
+      const commands = [...d.matchAll(/[a-zA-Z][\d ,.-]+/g)];
+      expect(commands).toHaveLength(2);
+      expect(d.startsWith("M5,")).toBe(true);
+    });
+  });
+
+  test("breaks at points where every stacked series is null if connectNulls is false", () => {
+    const dataWithAllNullPageB = [
+      { name: "Page A", uv: 400, pv: 2400, amt: 2400 },
+      { name: "Page B" },
+      { name: "Page C", uv: 300, pv: 1398, amt: 2400 },
+    ];
+    const { container } = render(() => (
+      <AreaChart width={100} height={50} data={dataWithAllNullPageB}>
+        <Area
+          stackId="1"
+          type="monotone"
+          dataKey="uv"
+          stroke="#ff7300"
+          fill="#ff7300"
+          isAnimationActive={false}
+        />
+        <Area
+          stackId="1"
+          type="monotone"
+          dataKey="pv"
+          stroke="#ff7300"
+          fill="#ff7300"
+          isAnimationActive={false}
+        />
+        <Area
+          stackId="1"
+          type="monotone"
+          dataKey="amt"
+          stroke="#ff7300"
+          fill="#ff7300"
+          isAnimationActive={false}
+        />
+      </AreaChart>
+    ));
+    flush();
+
+    container.querySelectorAll(".recharts-area-curve").forEach((path) => {
+      const d = path.getAttribute("d");
+      assertNotNull(d);
+      expect([...d.matchAll(/M/g)].length).toBeGreaterThan(1);
+    });
   });
 
   describe("AreaChart layout context", () => {

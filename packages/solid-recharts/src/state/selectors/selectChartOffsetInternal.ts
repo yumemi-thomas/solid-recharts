@@ -14,7 +14,7 @@ import { selectChartWidth, selectChartHeight, selectMargin } from "./containerSe
 import { selectAllXAxes, selectAllYAxes } from "./selectAllAxes";
 import { selectLegendSettings, selectLegendSize } from "./legendSelectors";
 import { appendOffsetOfLegend } from "../../util/ChartUtils";
-import { DEFAULT_Y_AXIS_WIDTH } from "../../util/Constants";
+import { DEFAULT_X_AXIS_HEIGHT, DEFAULT_Y_AXIS_WIDTH } from "../../util/Constants";
 
 function selectLeftAxesOffset(state: RechartsRootState): number {
   return selectAllYAxes(state).reduce((result: number, entry: YAxisSettings): number => {
@@ -39,7 +39,7 @@ function selectRightAxesOffset(state: RechartsRootState): number {
 function selectTopAxesOffset(state: RechartsRootState): number {
   return selectAllXAxes(state).reduce((result: number, entry: XAxisSettings): number => {
     if (entry.orientation === "top" && !entry.mirror && !entry.hide) {
-      return result + entry.height;
+      return result + (typeof entry.height === "number" ? entry.height : DEFAULT_X_AXIS_HEIGHT);
     }
     return result;
   }, 0);
@@ -48,7 +48,7 @@ function selectTopAxesOffset(state: RechartsRootState): number {
 function selectBottomAxesOffset(state: RechartsRootState): number {
   return selectAllXAxes(state).reduce((result: number, entry: XAxisSettings): number => {
     if (entry.orientation === "bottom" && !entry.mirror && !entry.hide) {
-      return result + entry.height;
+      return result + (typeof entry.height === "number" ? entry.height : DEFAULT_X_AXIS_HEIGHT);
     }
     return result;
   }, 0);

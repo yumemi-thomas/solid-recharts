@@ -336,9 +336,9 @@ export const scatterDefaultProps = {
   xAxisId: 0,
   yAxisId: 0,
   zAxisId: 0,
+  label: false,
   legendType: "circle",
   shape: "circle",
-  fill: "#808080",
   line: false,
   lineType: "joint",
   lineJointType: "linear",
@@ -479,8 +479,6 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     dataDefinedOnItem: points()?.map((p) => p.tooltipPayload),
     getPosition: (index) => points()?.[Number(index)]?.tooltipPosition,
     settings: {
-      // recharts reads the RAW prop fill/stroke (no defaults applied) for the
-      // tooltip entry — the #808080 default fill is render-only. Mirror that.
       stroke: props.stroke,
       strokeWidth: props.strokeWidth,
       fill: props.fill,
@@ -496,6 +494,9 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
     },
   }));
 
+  // recharts passes the resolved props object as the entry's `payload`; the port
+  // enumerates the Scatter's own props (no `...merged` spread — it would leak the
+  // merge() proxy's source symbol into the object), as <Line> does.
   const legendPayload = createMemo<ReadonlyArray<LegendPayload>>(() => [
     {
       inactive: merged.hide,
@@ -503,6 +504,33 @@ export const Scatter = (props: ScatterProps): JSX.Element => {
       type: merged.legendType,
       color: merged.fill,
       value: nameOf(),
+      payload: {
+        activeShape: merged.activeShape,
+        animationBegin: merged.animationBegin,
+        animationDuration: merged.animationDuration,
+        animationEasing: merged.animationEasing,
+        animationInterpolateFn: merged.animationInterpolateFn,
+        animationMatchBy: merged.animationMatchBy,
+        data: merged.data,
+        dataKey: merged.dataKey,
+        fill: merged.fill,
+        hide: merged.hide,
+        isAnimationActive: merged.isAnimationActive,
+        label: merged.label,
+        legendType: merged.legendType,
+        line: merged.line,
+        lineJointType: merged.lineJointType,
+        lineType: merged.lineType,
+        name: merged.name,
+        shape: merged.shape,
+        stroke: merged.stroke,
+        strokeWidth: merged.strokeWidth,
+        tooltipType: merged.tooltipType,
+        xAxisId: merged.xAxisId,
+        yAxisId: merged.yAxisId,
+        zAxisId: merged.zAxisId,
+        zIndex: merged.zIndex,
+      },
     },
   ]);
 

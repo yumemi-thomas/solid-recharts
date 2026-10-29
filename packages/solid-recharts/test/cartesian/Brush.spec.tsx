@@ -519,4 +519,90 @@ describe("<Brush />", () => {
       expect(chartReferenceLineY2).not.toEqual(panoReferenceLineY2);
     });
   });
+
+  describe("dragging the slide when start/endIndex are controlled from props", () => {
+    test("should not snap the slide back to its original position on mouseup", () => {
+      const { container } = render(() => (
+        <BarChart width={400} height={100} data={data}>
+          <Brush
+            dataKey="value"
+            x={100}
+            y={50}
+            width={400}
+            height={40}
+            startIndex={3}
+            endIndex={6}
+          />
+        </BarChart>
+      ));
+      flush();
+
+      const slide = container.querySelector(".recharts-brush-slide");
+      assertNotNull(slide);
+      const positionsOf = (): Array<string | null> =>
+        Array.from(container.querySelectorAll(".recharts-brush-traveller")).map((element) =>
+          element.getAttribute("aria-valuenow"),
+        );
+
+      slide.dispatchEvent(mouseEventWithPageX("mousedown", 200));
+      flush();
+      window.dispatchEvent(mouseEventWithPageX("mousemove", 220));
+      flush();
+      const positionsWhileDragging = positionsOf();
+
+      window.dispatchEvent(mouseEventWithPageX("mouseup", 220));
+      flush();
+      const positionsAfterMouseUp = positionsOf();
+
+      expect(positionsAfterMouseUp).toEqual(positionsWhileDragging);
+    });
+  });
+
+  describe("controlled startIndex and endIndex across data updates", () => {
+    const ControlledBrushWithChangingData = (props: { children?: JSX.Element }): JSX.Element => {
+      const [chartData, setChartData] = createSignal(data);
+      return (
+        <>
+          <BarChart width={400} height={100} data={chartData()}>
+            {props.children}
+            <Brush
+              dataKey="value"
+              startIndex={2}
+              endIndex={5}
+              x={100}
+              y={50}
+              width={400}
+              height={40}
+            />
+          </BarChart>
+          <button type="button" onClick={() => setChartData(data.map((entry) => ({ ...entry })))}>
+            change data
+          </button>
+        </>
+      );
+    };
+
+    it("should preserve the controlled startIndex and endIndex when the data array identity changes but the length stays the same", () => {
+      const renderTestCase = createSelectorTestCase(ControlledBrushWithChangingData);
+      const { spy, container } = renderTestCase(selectChartDataWithIndexes);
+      flush();
+
+      expectLastCalledWith(spy, {
+        chartData: data,
+        dataStartIndex: 2,
+        dataEndIndex: 5,
+        computedData: undefined,
+      });
+
+      const button = container.querySelector("button");
+      assertNotNull(button);
+      fireEvent.click(button);
+      flush();
+
+      const lastCall = spy.mock.lastCall?.[0];
+      expect(lastCall?.chartData).not.toBe(data);
+      expect(lastCall?.dataStartIndex).toBe(2);
+      expect(lastCall?.dataEndIndex).toBe(5);
+    });
+  });
 });

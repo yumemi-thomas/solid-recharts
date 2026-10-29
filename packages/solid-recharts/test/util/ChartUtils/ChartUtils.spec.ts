@@ -154,6 +154,34 @@ describe("getBandSizeOfAxis", () => {
     ];
     expect(getBandSizeOfAxis(axis, ticks)).toBe(2);
   });
+
+  it("should not collapse band size when high-precision values place two ticks at nearly the same pixel (#4043)", () => {
+    const axis: BaseAxisWithScale = {
+      allowDataOverflow: false,
+      allowDuplicatedCategory: false,
+      dataKey: undefined,
+      domain: undefined,
+      id: defaultAxisId,
+      includeHidden: false,
+      name: undefined,
+      reversed: false,
+      unit: undefined,
+      type: "number",
+      scale: rechartsScaleFactory<number>(scaleLinear()),
+    };
+    // Categories are evenly spaced 10px apart, but a high-precision float value
+    // produces an extra tick that is a sub-pixel distance from an existing one.
+    // That spurious tiny gap must not become the band size (it used to collapse
+    // every bar to ~0.00008px wide).
+    const ticks: ReadonlyArray<TickItem> = [
+      { coordinate: 0, index: 0, value: "a" },
+      { coordinate: 10, index: 1, value: "b" },
+      { coordinate: 20, index: 2, value: "c" },
+      { coordinate: 30, index: 3, value: "d" },
+      { coordinate: 30.00008318614652580436, index: 4, value: "e" },
+    ];
+    expect(getBandSizeOfAxis(axis, ticks)).toBe(10);
+  });
 });
 
 describe("getValueByDataKey", () => {
@@ -258,6 +286,44 @@ describe("calculateActiveTickIndex", () => {
 
   it("calculateActiveTickIndex(16, ticks) should return 3", () => {
     expect(calculateActiveTickIndex(16, ticks, [], "radiusAxis", [0, 100])).toBe(3);
+  });
+
+  describe("on a full-circle angle axis with offset-shifted ticks", () => {
+    /*
+     * The tick coordinates the tooltip selector produces for a 4-sector PieChart:
+     * band starts (0, 90, 180, 270) shifted by the band offset of -4.
+     * https://github.com/recharts/recharts/issues/5099
+     */
+    const angleTicks: ReadonlyArray<TickItem> = [
+      { coordinate: -4, index: 0, value: "a", offset: -4 },
+      { coordinate: 86, index: 1, value: "b", offset: -4 },
+      { coordinate: 176, index: 2, value: "c", offset: -4 },
+      { coordinate: 266, index: 3, value: "d", offset: -4 },
+    ];
+
+    it.each([{ coordinate: 357 }, { coordinate: 358 }, { coordinate: 359.9 }])(
+      "should return the first sector for pointer angle $coordinate inside the wrap-around gap",
+      ({ coordinate }) => {
+        expect(
+          calculateActiveTickIndex(coordinate, angleTicks, angleTicks, "angleAxis", [0, 360]),
+        ).toBe(0);
+      },
+    );
+
+    it.each([
+      { coordinate: 20, expected: 0 },
+      { coordinate: 100, expected: 1 },
+      { coordinate: 200, expected: 2 },
+      { coordinate: 300, expected: 3 },
+      { coordinate: 330, expected: 0 },
+    ])(
+      "should return sector $expected for pointer angle $coordinate",
+      ({ coordinate, expected }) => {
+        expect(
+          calculateActiveTickIndex(coordinate, angleTicks, angleTicks, "angleAxis", [0, 360]),
+        ).toBe(expected);
+      },
+    );
   });
 });
 

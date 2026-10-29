@@ -1,4 +1,10 @@
 export type { EasingInput } from "./animation/easing";
+export type { CartesianPosition } from "./cartesian/getCartesianPosition";
+export type { RechartsTheme } from "./theme/RechartsTheme";
+export { RechartsThemeProvider } from "./theme/RechartsThemeContext";
+export { darkTheme } from "./theme/darkTheme";
+export { lightTheme } from "./theme/lightTheme";
+export { legacyTheme } from "./theme/legacyTheme";
 export { LineChart } from "./chart/LineChart";
 export type { LineChartProps } from "./chart/LineChart";
 export { AreaChart } from "./chart/AreaChart";

@@ -1,4 +1,5 @@
-// Port of recharts 3.8.1 test/cartesian/CartesianGrid.spec.tsx (commit 7a23854).
+// Port of recharts test/cartesian/CartesianGrid.spec.tsx (3.8.1, commit 7a23854), synced to
+// 3.10.1 test/cartesian/CartesianGrid/CartesianGrid.spec.tsx (moved into a directory in 3.10).
 // Tier A (byte-identical DOM assertions): the grid-line count + coordinate cases.
 // Harness adaptation only: React render -> Solid `render(() => <.../>)` + flush();
 // dropped `import React`; @testing-library/react -> the repo's local testing-library.
@@ -29,20 +30,20 @@ import {
   Legend,
   Line,
   Tooltip,
-} from "../../src";
-import type { ChartOffsetInternal, Margin } from "../../src/util/types";
+} from "../../../src";
+import type { ChartOffsetInternal, Margin } from "../../../src/util/types";
 import type {
   AxisPropsForCartesianGridTicksGeneration,
   GridLineTypeFunctionProps,
   HorizontalCoordinatesGenerator,
   VerticalCoordinatesGenerator,
-} from "../../src/cartesian/CartesianGrid";
-import { assertNotNull } from "../helper/assertNotNull";
-import { pageData } from "../_data";
-import { selectAxisScale } from "../../src/state/selectors/axisSelectors";
-import { useAppSelector } from "../../src/state/hooks";
-import { expectLastCalledWith } from "../helper/expectLastCalledWith";
-import { DefaultZIndexes } from "../../src/zIndex/DefaultZIndexes";
+} from "../../../src/cartesian/CartesianGrid";
+import { assertNotNull } from "../../helper/assertNotNull";
+import { pageData } from "../../_data";
+import { selectAxisScale } from "../../../src/state/selectors/axisSelectors";
+import { useAppSelector } from "../../../src/state/hooks";
+import { expectLastCalledWith } from "../../helper/expectLastCalledWith";
+import { DefaultZIndexes } from "../../../src/zIndex/DefaultZIndexes";
 
 const allChartsThatSupportCartesianGrid = [
   { ChartElement: AreaChart, testName: "AreaElement" },
@@ -1371,7 +1372,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
             const expectedProps: GridLineTypeFunctionProps = {
               stroke: "#ccc",
               syncWithTicks: false,
-              fill: "none",
               height: 200,
               width: 300,
               vertical: true,
@@ -1439,7 +1439,8 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 unit: undefined,
               },
             };
-            expect(horizontal).toHaveBeenCalledWith(expectedProps);
+            expect(horizontal).toHaveBeenCalledTimes(5);
+            expectLastCalledWith(horizontal, expectedProps);
 
             expect(container.querySelectorAll("[data-testid=my_mock_line]")).toHaveLength(
               horizontalPoints.length,
@@ -1469,7 +1470,6 @@ describe.each(allChartsThatSupportCartesianGrid)(
             const expectedProps: GridLineTypeFunctionProps = {
               stroke: "#ccc",
               syncWithTicks: false,
-              fill: "none",
               height: 200,
               width: 300,
               horizontal: true,
@@ -1537,7 +1537,7 @@ describe.each(allChartsThatSupportCartesianGrid)(
                 unit: undefined,
               },
             };
-            expect(vertical).toHaveBeenCalledWith(expectedProps);
+            expectLastCalledWith(vertical, expectedProps);
 
             expect(container.querySelectorAll("[data-testid=my_mock_line]")).toHaveLength(
               verticalPoints.length,

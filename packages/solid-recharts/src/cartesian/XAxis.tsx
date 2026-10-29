@@ -10,10 +10,11 @@
 // plus `onCleanup` for removal. Defaults are resolved field-by-field to match
 // recharts' `resolveDefaultProps`: explicit `undefined` falls back to defaults.
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, Show } from "solid-js";
+import { createEffect, createMemo, Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { useAppSelector, useAppStore } from "../state/hooks";
 import {
+  type AxisId,
   NiceTicksAlgorithm,
   XAxisOrientation,
   XAxisPadding,
@@ -26,7 +27,7 @@ import {
   selectXAxisSize,
 } from "../state/selectors/axisSelectors";
 import { CartesianAxis, type CartesianTickEventHandler } from "./CartesianAxis";
-import type { ImplicitLabelType } from "../component/Label";
+import { isLabelContentAFunction, type ImplicitLabelType } from "../component/Label";
 import { RenderedTicksReporter } from "./RenderedTicksReporter";
 import { useIsPanorama } from "../context/PanoramaContext";
 import { useCartesianChartLayout } from "../context/chartLayoutContext";
@@ -39,11 +40,14 @@ import {
   DataKey,
   ScaleType,
   type CartesianTickContentProps,
+  type CartesianTickItem,
+  type Size,
   TickFormatter,
   TickProp,
 } from "../util/types";
 import { CustomScaleDefinition } from "../util/scale/CustomScaleDefinition";
 import { registerInStore } from "../state/registerInStore";
+import { getCalculatedXAxisHeight } from "../util/XAxisUtils";
 
 export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   xAxisId?: string | number;
@@ -61,7 +65,7 @@ export interface XAxisProps<DataPointType = unknown, DataValueType = unknown> {
   tickCount?: number;
   tickFormatter?: TickFormatter;
   padding?: XAxisPadding;
-  height?: number;
+  height?: number | "auto";
   orientation?: XAxisOrientation;
   mirror?: boolean;
   minTickGap?: number;
@@ -138,6 +142,57 @@ export const xAxisDefaultProps = {
 
 function withDefault<T>(value: T | undefined, defaultValue: T): T {
   return value === undefined ? defaultValue : value;
+}
+
+/**
+ * Feeds the measured height of a `height="auto"` axis back into the store
+ * (recharts: the `useLayoutEffect` in `XAxisImpl`, which early-returns for every other
+ * height). It is a component of its own, mounted only for `height="auto"`, so the
+ * common fixed-height axis carries no extra reactive node.
+ *
+ * Deviation (shared with `YAxis` `width="auto"`): the axis `label` is not measured,
+ * because `Label`'s `labelRef` is not ported — only the tick labels, tick size and
+ * tick margin contribute to the height.
+ */
+function XAxisAutoHeight(props: {
+  axisId: AxisId;
+  ticks: ReadonlyArray<CartesianTickItem>;
+  size: Size;
+  layer: () => SVGGElement | null;
+  tickSize: number;
+  tickMargin: number;
+}): JSX.Element {
+  const store = useAppStore();
+  createEffect(
+    () => ({
+      ticks: props.ticks,
+      size: props.size,
+      id: props.axisId,
+      tickSize: props.tickSize,
+      tickMargin: props.tickMargin,
+    }),
+    (inputs) => {
+      const layer = props.layer();
+      if (layer == null || store == null) {
+        return;
+      }
+      const tickNodes = layer.getElementsByClassName("recharts-cartesian-axis-tick-value");
+      if (tickNodes.length === 0) {
+        return;
+      }
+      const updatedHeight = getCalculatedXAxisHeight({
+        ticks: tickNodes,
+        label: undefined,
+        labelGapWithTick: 5,
+        tickSize: inputs.tickSize,
+        tickMargin: inputs.tickMargin,
+      });
+      if (Math.round(inputs.size.height) !== Math.round(updatedHeight)) {
+        store.actions.cartesianAxis.updateXAxisHeight({ id: inputs.id, height: updatedHeight });
+      }
+    },
+  );
+  return null;
 }
 
 export function XAxis<DataPointType = unknown, DataValueType = unknown>(
@@ -226,6 +281,8 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
     return { position: p, size: s, ticks: ticks() ?? [] };
   });
 
+  let layerEl: SVGGElement | null = null;
+
   return (
     <Show when={!isPanorama && !hide() && axisRender()}>
       {(ar) => (
@@ -233,6 +290,9 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
           <RenderedTicksReporter axisType="xAxis" axisId={xAxisId()} ticks={ar().ticks} />
           <CartesianAxis
             axisType="xAxis"
+            layerRef={(el) => {
+              layerEl = el;
+            }}
             x={ar().position.x}
             y={ar().position.y}
             width={ar().size.width}
@@ -273,6 +333,16 @@ export function XAxis<DataPointType = unknown, DataValueType = unknown>(
           >
             {props.children}
           </CartesianAxis>
+          <Show when={props.height === "auto" && !isLabelContentAFunction(props.label)}>
+            <XAxisAutoHeight
+              axisId={xAxisId()}
+              ticks={ar().ticks}
+              size={ar().size}
+              layer={() => layerEl}
+              tickSize={props.tickSize ?? 6}
+              tickMargin={props.tickMargin ?? 2}
+            />
+          </Show>
         </>
       )}
     </Show>

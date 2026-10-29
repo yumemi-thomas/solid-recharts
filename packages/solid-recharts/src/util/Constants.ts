@@ -3,6 +3,7 @@
 
 /** Default width of a Y axis, in pixels, when `width` is not specified. */
 export const DEFAULT_Y_AXIS_WIDTH = 60;
+export const DEFAULT_X_AXIS_HEIGHT = 30;
 
 /** Default categorical color palette (used by Treemap, Sankey). */
 export const COLOR_PANEL = [

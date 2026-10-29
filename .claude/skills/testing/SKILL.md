@@ -5,7 +5,7 @@ description: Use this skill whenever you write, run, or debug tests in the solid
 
 # Testing in solid-recharts
 
-This repo ports **recharts** (reference pinned at v3.9.2) to **SolidJS 2.0** (release candidate,
+This repo ports **recharts** (reference pinned at v3.10.1) to **SolidJS 2.0** (release candidate,
 verified at `2.0.0-rc.19`). Three things make its test setup non-obvious; read this before writing
 or debugging a test.
 
