@@ -64,8 +64,10 @@ belongs in `vite.config.ts`, not in a comment. One-time reads of props are writt
 ## Toolchain — Vite+
 
 This project uses **Vite+** (`vp`, 1.x), VoidZero's unified toolchain (it wraps Vite, Vitest 5, Oxlint,
-Oxfmt), with **pnpm 12**. Commands: `vp test run`, `vp check`, `vp lint`, `vp build`. `vite`/`vitest` are
-remapped to the Vite+ engines via `overrides` in pnpm-workspace.yaml. Config lives in the single root
+Oxfmt), with **pnpm 12**. Commands: `vp test run`, `vp check`, `vp lint`, `vp build`. Via `overrides` in
+pnpm-workspace.yaml, `vite` is remapped to `@voidzero-dev/vite-plus-core` (the Vite+ engine) and `vitest` is
+pinned to the stock release `vite-plus` bundles (`vp toolchain vitest`; vite-plus 1.x ships no separate test
+engine, so `vitest` is plain Vitest). Config lives in the single root
 `vite.config.ts`; `vp` resolves it from the working directory, so run from the repo root (the library's
 `pnpm test` script passes `--config ../../vite.config.ts`). The Solid compiler plugin is
 `@solidjs/vite-plugin` (renamed from `vite-plugin-solid`). Treat toolchain breakage as a bug to report,
