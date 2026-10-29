@@ -527,7 +527,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                     width={stripe.width}
                     stroke="none"
                     fill={stripe.fill}
-                    fill-opacity={fillOpacity()}
+                    fill-opacity={props.fillOpacity}
                     class="recharts-cartesian-grid-bg"
                   />
                 )}
@@ -545,7 +545,7 @@ export const CartesianGrid = (props: CartesianGridProps): JSX.Element => {
                     height={stripe.height}
                     stroke="none"
                     fill={stripe.fill}
-                    fill-opacity={fillOpacity()}
+                    fill-opacity={props.fillOpacity}
                     class="recharts-cartesian-grid-bg"
                   />
                 )}
