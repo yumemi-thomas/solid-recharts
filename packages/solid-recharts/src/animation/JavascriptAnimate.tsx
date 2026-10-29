@@ -53,7 +53,8 @@ export function JavascriptAnimate(props: JavascriptAnimateProps): JSX.Element {
     return active === "auto" ? !Global.isSsr && !prefersReducedMotion() : active;
   };
 
-  const animationController = useAnimationController(props.animationController);
+  // A custom controller is resolved once, when the animation component is created.
+  const animationController = useAnimationController(untrack(() => props.animationController));
 
   const [style, setStyle] = createSignal<number | string>(untrack(() => (isActive() ? from : to)));
 

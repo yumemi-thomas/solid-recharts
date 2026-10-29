@@ -302,19 +302,18 @@ export const Curve = (props: CurveProps): JSX.Element => {
 
   // `strokeDasharray` (camelCase) is forwarded by the spread — svgPropertiesNoEvents
   // renames it to the kebab `stroke-dasharray` DOM attribute (see svg-attribute-rename).
-  const others = (): Record<string, unknown> => ({
-    ...omit(
-      props,
-      "class",
-      "type",
-      "layout",
-      "baseLine",
-      "points",
-      "connectNulls",
-      "path",
-      "pathRef",
-    ),
-  });
+  const rest = omit(
+    props,
+    "class",
+    "type",
+    "layout",
+    "baseLine",
+    "points",
+    "connectNulls",
+    "path",
+    "pathRef",
+  );
+  const others = (): Record<string, unknown> => ({ ...rest });
 
   // recharts Curve spreads `svgPropertiesNoEvents(props)` for attributes and
   // `adaptEventHandlers(props)` for events — the latter rewraps each handler to be

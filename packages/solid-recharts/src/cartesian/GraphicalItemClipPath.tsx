@@ -31,9 +31,14 @@ export interface NeedsClip {
   needClipY: Accessor<boolean>;
 }
 
-export function useNeedsClip(xAxisId: AxisId, yAxisId: AxisId): NeedsClip {
-  const xAxis = useAppSelector((state) => selectXAxisSettings(state, xAxisId));
-  const yAxis = useAppSelector((state) => selectYAxisSettings(state, yAxisId));
+/** An axis id, or a getter for one (read reactively, so a changing id re-derives the clip). */
+type AxisIdSource = AxisId | Accessor<AxisId>;
+
+const resolveAxisId = (id: AxisIdSource): AxisId => (typeof id === "function" ? id() : id);
+
+export function useNeedsClip(xAxisId: AxisIdSource, yAxisId: AxisIdSource): NeedsClip {
+  const xAxis = useAppSelector((state) => selectXAxisSettings(state, resolveAxisId(xAxisId)));
+  const yAxis = useAppSelector((state) => selectYAxisSettings(state, resolveAxisId(yAxisId)));
 
   const needClipX = createMemo(() => xAxis()?.allowDataOverflow ?? implicitXAxis.allowDataOverflow);
   const needClipY = createMemo(() => yAxis()?.allowDataOverflow ?? implicitYAxis.allowDataOverflow);
@@ -44,7 +49,10 @@ export function useNeedsClip(xAxisId: AxisId, yAxisId: AxisId): NeedsClip {
 
 export function GraphicalItemClipPath(props: GraphicalItemClipPathProps): JSX.Element {
   const plotArea = usePlotArea();
-  const { needClip, needClipX, needClipY } = useNeedsClip(props.xAxisId, props.yAxisId);
+  const { needClip, needClipX, needClipY } = useNeedsClip(
+    () => props.xAxisId,
+    () => props.yAxisId,
+  );
   const xAxisRange = useAppSelector((state) => selectXAxisRange(state, props.xAxisId, false));
   const yAxisRange = useAppSelector((state) => selectYAxisRange(state, props.yAxisId, false));
 

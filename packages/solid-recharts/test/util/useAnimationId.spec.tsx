@@ -13,7 +13,8 @@ import { useAnimationId } from "../../src/util/useAnimationId";
 
 describe("useAnimationId", () => {
   it("should return a unique animation id", () => {
-    const [input] = createSignal<unknown>({ foo: "bar" });
+    const stableInput = { foo: "bar" };
+    const input = (): unknown => stableInput;
     const prefix = "test-";
     const { id, dispose } = createRoot((d) => ({ id: useAnimationId(input, prefix), dispose: d }));
 

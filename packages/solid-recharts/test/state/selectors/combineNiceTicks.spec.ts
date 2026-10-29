@@ -5,16 +5,10 @@ import {
   RenderableAxisSettings,
 } from "../../../src/state/selectors/axisSelectors";
 
-// Deviation from the reference: our `RenderableAxisSettings` is the narrower
-// `XAxisSettings | YAxisSettings` (polar axes deferred), and the two differ in
-// `orientation`, so spreading `Partial<RenderableAxisSettings>` over the X-axis
-// defaults widens `orientation` past either member. Assert back to the union —
-// the helper always builds an X-axis-shaped object (test file; `as` permitted).
-const createAxisSettings = (partial: Partial<RenderableAxisSettings>): RenderableAxisSettings =>
-  ({
-    ...implicitXAxis,
-    ...partial,
-  }) as RenderableAxisSettings;
+const createAxisSettings = (partial: Partial<RenderableAxisSettings>): RenderableAxisSettings => ({
+  ...implicitXAxis,
+  ...partial,
+});
 
 describe("combineNiceTicks", () => {
   it('returns undefined when niceTicks="none"', () => {

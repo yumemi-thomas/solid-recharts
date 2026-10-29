@@ -33,7 +33,10 @@ import {
   createOptimisticStore,
   isPending,
   latest,
+  createDeferred,
+  from,
   refresh,
+  affects,
   untrack,
   flush,
   onSettled,
@@ -109,6 +112,17 @@ createEffect(() => fetchData(id()), {
   effect: (data) => render(data),
   error: (err, cleanup) => console.error(err),
 });
+
+// Effects never compare: apply (and the previous cleanup) runs every time
+// compute re-runs, even if it returned an equal value. To skip unchanged
+// values, read a memo in compute; its `equals` (default ===) stops the re-run.
+const active = createMemo(() => status() === "active");
+createEffect(
+  () => active(),
+  (isActive) => {
+    /* runs only when `active` flips */
+  },
+);
 
 // Run on next change only (skip initial)
 createEffect(
@@ -214,17 +228,38 @@ const rest = omit(props, "class", "style"); // replaces splitProps
 ```ts
 // Async is just "any computation that returns a Promise / AsyncIterable"
 const user = createMemo(() => fetchUser(id()));
-// Reading user() suspends until ready; wrap in <Loading>.
+// Reading user() is not ready at first; wrap in <Loading>.
 
-// Pending indicator for this read; participates in Loading like the read itself.
-isPending(() => user());
+// True while a value CHANGE is in flight for this read (e.g. id() changed and
+// the refetch hasn't landed). Place under the Loading boundary that owns it.
+<Loading fallback={<Spinner />}>{isPending(() => user()) ? "Updating..." : user()}</Loading>;
+// isPending can live outside Loading when it only reads upstream state that cannot be not ready.
 
 // Peek at the in-flight value during a transition
 latest(id);
 
-// Force recompute of a derived read after a server write
+// A memo that may lag but never leads (React's useDeferredValue): after its
+// first answer, a refetch keeps the last value on screen instead of holding
+// the change; isPending(() => rows()) reports the refetch.
+const rows = createDeferred(() => fetchRows(period()));
+
+// External push source -> memo: from() takes a subscribe fn
+// ((next, error, complete) => unsubscribe), an Observable (RxJS, Symbol.observable)
+// or an AsyncIterable (streamed as is). A subscription keeps the latest value;
+// a re-run or disposal closes the source at once. Transform in a downstream
+// memo, not in a for-await body; if you must for-await a stream inside an
+// async compute, wrap it in from() so a re-run stops it. SSR: a subscription
+// renders its first value, then the client resubscribes after hydration.
+const price = createMemo(() => from(ticker(symbol())));
+const label = createMemo(() => format(price()));
+
+// Force recompute of a derived read after a server write.
+// Action: call from handlers/effects/actions, not pure reads.
+// A bare refresh() re-asks the SAME question — it is quiet (isPending stays
+// false; the fresh value reveals silently). To make a reload read as pending,
+// declare it:
+affects(user);
 refresh(user);
-refresh(() => query.user(id()));
 ```
 
 ---
@@ -237,16 +272,26 @@ const [todos, setOptimisticTodos] = createOptimisticStore(() => api.list(), []);
 const addTodo = action(function* (todo) {
   setOptimisticTodos((s) => {
     s.push(todo);
-  }); // optimistic write
+  }); // optimistic write — shows the expected value; never reads as pending itself
   yield api.add(todo); // async work
-  refresh(todos); // re-derive
+  refresh(todos); // reconcile with source of truth (quiet — same question)
+});
+
+// Declare data the in-flight work WILL change (reads as pending until settle):
+const rename = action(function* (todo, text) {
+  setOptimisticTodos(() => {
+    todo.text = text;
+  });
+  affects(todo, "updatedAt"); // server changes this slot too — pend it
+  yield api.rename(todo.id, text);
+  refresh(todos);
 });
 
 // Optimistic signal
 const [name, setName] = createOptimistic("Alice");
 ```
 
-Optimistic writes revert when the transition completes.
+Optimistic writes revert when the transition completes. Division of labor: optimistic writes _show_ the expected value, `affects` _pends_ data you know is changing but can't show yet, and process affordances ("saving…") are a co-written `createOptimistic(false)` flag — not `isPending`.
 
 ---
 
@@ -259,6 +304,8 @@ Optimistic writes revert when the transition completes.
 </For>
 
 // List, non-keyed (replaces <Index>)
+// item is an accessor: read it in JSX / a memo, not at the top of the
+// callback — the callback body is an owner, not a tracking scope.
 <For each={items()} keyed={false}>
   {(item, i) => <Row item={item()} index={i} />}
 </For>
@@ -290,6 +337,7 @@ Optimistic writes revert when the transition completes.
 </Loading>
 
 // Error boundary (replaces <ErrorBoundary>)
+// reset is an action for retrying the errored branch.
 <Errored fallback={(err, reset) => <button onClick={reset}>retry {String(err())}</button>}>
   <Page />
 </Errored>
@@ -320,13 +368,24 @@ import { Dynamic } from "@solidjs/web";
 `<For>` default/keyed-by-identity: `item` is a **plain value** and `i` is an accessor.
 `<Repeat>`: `i` is a **plain number**.
 
+Whichever argument is the accessor, read it **in JSX, a memo, or an effect** —
+the callback body itself is an owner, **not a tracking scope**. `let x = item().x`
+at the top of the callback freezes at the initial value (dev warns
+`STRICT_READ_UNTRACKED`). The same holds for `<Show>` / `<Match>` function children.
+
 ---
 
 ## Context, components, lazy
 
-Context is for state scoped to a subtree of the component tree. **If you
-want truly app-wide state, don't use Context — a module-scope signal/store
-_is_ a global.** That's why the default-less form requires a Provider.
+Context is for state that belongs to a subtree, which includes app-wide
+state in an app that renders on the server: a value created inside a
+component is created once per request, and the Provider owns and disposes
+it. **Module scope is shared by every request in the same process, so
+reserve it for constants** (and the `createContext` call itself). A
+client-only app can get away with a module-scope store, but it becomes
+shared server state the day SSR is turned on, so creating state in a
+Provider is the portable choice. That's why the default-less form requires
+a Provider.
 
 ```tsx
 // Default-less — the canonical form. No Provider → ContextNotFoundError.
@@ -359,6 +418,11 @@ function Page() {
   return <div class={theme}>...</div>;
 }
 ```
+
+`undefined` means "not provided": `createContext<T | undefined>(undefined)`
+is still default-less, and `<Ctx value={undefined}>` counts as no Provider —
+both throw `ContextNotFoundError`. For an optional context use `null`:
+`createContext<T | null>(null)` (and a Provider may pass `null`).
 
 Don't write a `useTodos`-style wrapper that re-throws on missing Provider —
 the default-less form already throws, and `useContext` is typed `T` (no
@@ -410,6 +474,8 @@ hydrate(() => <App />, document.getElementById("root")!);
 <button ref={[autofocus, tooltip({ content: "Save" })]} />
 ```
 
+A ref runs before the element is attached: `el.isConnected` is `false`, and unless its template contains a custom element, `el.ownerDocument.defaultView` is `null`. Use the global `window`/`document`, or do layout-dependent work in `onSettled`.
+
 Two-phase directive (recommended):
 
 ```ts
@@ -435,7 +501,7 @@ function titleDirective(source) {
 <some-element enabled="true" />     // when platform requires the string
 ```
 
-Lowercase HTML attribute names. No `attr:` / `bool:` / `on:` / `oncapture:` namespaces. Event handlers stay camelCase (`onClick`).
+Lowercase HTML attribute names. No `attr:` / `bool:` / `on:` / `oncapture:` namespaces (or `use:` / `classList`): on native elements they are compile errors. Event handlers stay camelCase (`onClick`).
 
 For native listener options, use a ref callback:
 
@@ -444,6 +510,35 @@ const on = (type, handler, options) => (el) => el.addEventListener(type, handler
 
 <button ref={on("click", handleClick, { capture: true })} />;
 ```
+
+### Form inputs
+
+`value={x()}` / `checked={x()}` write the DOM property each time the binding re-runs, not by comparing with the DOM. Typing is not reverted when the signal doesn't change, and a re-run overwrites uncommitted text.
+
+```jsx
+// Editable field: draft signal from onInput, commit on change/submit
+const [draft, setDraft] = createSignal(props.name);
+<input
+  value={draft()}
+  onInput={(e) => setDraft(e.currentTarget.value)}
+  onChange={() => props.onCommit(draft())}
+/>;
+
+// Rejecting/transforming input: write the result back yourself
+<input
+  value={digits()}
+  onInput={(e) => {
+    const next = e.currentTarget.value.replace(/\D/g, "");
+    e.currentTarget.value = next; // setDigits(next) alone won't revert an equal value
+    setDigits(next);
+  }}
+/>;
+
+// Uncontrolled: no reactive value; initial state + read on submit
+<input name="title" defaultValue={initialTitle} />;
+```
+
+Don't bind `value` to a committed value while the typed text lives only in the DOM: a change to any other dynamic attribute in the same template re-runs the binding (stateful props share the template's grouped effect), and so does a spread re-evaluating any prop. Dev warns `UNCOMMITTED_INPUT_OVERWRITTEN` when that write erases uncommitted input.
 
 ### Conditional classes — always use the array/object form
 
@@ -475,10 +570,10 @@ return <li class={cls} />;
 ## SSR (server entry)
 
 ```ts
-import { renderToString, renderToStringAsync, renderToStream, isServer, isDev } from "@solidjs/web";
+import { renderToString, renderToStream, isServer, isDev } from "@solidjs/web";
 ```
 
-`Portal` throws on the server. `Reveal` `order="together"` and `collapsed` require streaming (`renderToStream` / `renderToStringAsync`).
+`Portal` throws on the server. `Reveal` `order="together"` and `collapsed` require streaming (`renderToStream` — awaiting it yields the fully settled HTML string).
 
 ---
 
@@ -487,7 +582,7 @@ import { renderToString, renderToStringAsync, renderToStream, isServer, isDev } 
 Common dev-mode warnings/errors you may hit:
 
 - **Top-level reactive read in component body** — read inside JSX or wrap in `untrack`/`createMemo`.
-- **Write under owned scope** — move setters into event handlers / `onSettled` / `untrack`, or opt in with `{ ownedWrite: true }`.
+- **Write under owned scope** — move setters into event handlers / `onSettled` (`untrack` does NOT exempt writes: the guard is owner-based, and untrack only stops tracking), or opt in with `{ ownedWrite: true }`.
 - **Strict read untracked** — extract values in the compute phase; don't read store proxies inside the effect callback.
 - **Multiple Solid instances** — single `solid-js` install required.
 
@@ -504,6 +599,10 @@ Reach for these only when the named situation applies. **If you're not sure, you
 // on disposal. For component-level setup-and-teardown, use onSettled and
 // return a cleanup; onCleanup is for library/primitive internals where the
 // cleanup is tied to a reactive run, not a component lifecycle.
+// Timing: a run that never committed cleans up when superseded (so an
+// AbortController aborted here, registered before the first await, cancels an
+// unfinished fetch); the run on screen stays live until its replacement lands.
+// Never await that cleanup inside the transition that replaces it (deadlock).
 onCleanup(() => disposeReactiveResource());
 
 // Deep tracking — only when an effect needs to react to *any* nested store change.
@@ -559,14 +658,13 @@ runWithOwner(owner, () => {
 // Wait for a reactive expression to settle (imperative code / tests).
 const v = await resolve(() => user());
 
-// Are we inside a refresh() cycle? Almost never needed in app code.
-isRefreshing();
-
 // Throw to signal "not ready" through the reactive graph (library authors).
 throw new NotReadyError();
 
-// 1.x-style path setter compat. Use only when migrating; draft-first is canonical.
-setStore(storePath("user", "address", "city", "Paris"));
+// 1.x path setters (setStore("user", "address", "city", "Paris")) become draft writes.
+setStore((s) => {
+  s.user.address.city = "Paris";
+});
 ```
 
 ---
@@ -611,7 +709,7 @@ If your training data is 1.x, these are the corrections. **Read this before gene
 | `onError` / `catchError`           | `<Errored>` or effect `error` option                                |
 | `produce`                          | Default — store setters are draft-first                             |
 | `createMutable` / `modifyMutable`  | `createStore` with draft setters                                    |
-| `from` / `observable`              | Async iterables in computations / `createEffect` to push out        |
+| `observable`                       | `createEffect` to push out; `from`: `createMemo(() => from(src))`   |
 | `Index`                            | `<For keyed={false}>`                                               |
 | `indexArray`                       | `mapArray` (handles non-keyed too)                                  |
 | `use:foo={x}` directives           | `ref={foo(x)}` (or array `ref={[a, b(x)]}`)                         |
@@ -623,21 +721,24 @@ If your training data is 1.x, these are the corrections. **Read this before gene
 
 - **`createEffect` takes two arguments now**: `(compute, apply)`. The single-arg form is gone — using it is an error.
 - **Setters don't update reads immediately** — values become visible after the microtask flushes (or via `flush()`).
-- **No writes inside owned scope** — writing a signal/store from inside a memo, effect compute, or component body throws in dev. Move writes to event handlers, `onSettled`, or untracked blocks. Opt in narrowly with `{ ownedWrite: true }` for internal state.
+- **No writes inside owned scope** — writing a signal/store from inside a memo, effect compute, or component body throws in dev. Move writes to event handlers or `onSettled`. (`untrack` does not help: the guard fires on the ambient OWNER, which untrack never touches — component bodies already run untracked and are exactly where the guard fires.) Opt in narrowly with `{ ownedWrite: true }` for internal state.
 - **No top-level reactive reads in component body** — reading signals/props directly at the top of a component warns. Read inside JSX, a memo, or `untrack`.
 - **Props are values, not accessors** — at the call site call accessors (`<X v={count()} />`, not `<X v={count} />`). The single most common AI-generated bug.
 - **Don't destructure props** — `function Comp({ name })` warns; use `props.name` to keep reactivity. (Same root cause as above; see the Props section.)
 - **`<For>` callback shape follows keying** — default/keyed-by-identity receives a raw item and index accessor; `keyed={false}` receives an item accessor and stable numeric index; custom keys receive accessors.
 - **`<Show>` / `<Match>` function children narrow values** — non-keyed children receive accessors; keyed children receive raw values.
+- **Flow-component callback bodies are not tracking scopes** — they are owners. Reading an item/index accessor at the top of a `<For>` / `<Show>` / `<Match>` callback freezes it at the initial value; read it in JSX, a memo, or an effect.
 - **Stores: setters take a draft callback** — mutate the draft in place by default. Returning a new value is shallow (array index-replace, object top-level diff); reach for it for filter/remove. Keyed reconcile is a _projection-fn_ feature, not a setter feature.
 - **`undefined` is a real value in `merge`** — it overrides rather than "skip this key".
 - **Async lives in computations** — return a Promise/AsyncIterable from `createMemo`/`createStore(fn)`/`createProjection`. Pending reads participate in `<Loading>`.
-- **`Loading` covers unresolved branches** — once content has rendered, revalidation keeps it visible. Use `isPending(() => x())` for pending indicators or render guards; it reads `x` and participates in Loading like that read. Use `<Loading on={key}>` to re-show fallback on key changes.
+- **`Loading` covers unresolved branches** — once content has rendered, revalidation keeps it visible. Use `isPending(() => x())` for in-flight-change indicators or render guards; it reads `x` and participates in Loading like that read. `<Loading on={id()}>` is a dependency list, not a key: its value is never compared; a change to anything it reads makes the boundary stop waiting on its current content and show the fallback if something under it is pending (nothing otherwise). The fallback _follows the frame_: it lands with the change that caused it — immediately when nothing else holds that frame, together with the rest of the new page during a held navigation (never a spinner beside a page the change has not reached). `on={[a(), b()]}` for several. If the same data is also read outside the boundary, the frame waits on it and the fallback can never be seen — DEV warns `LOADING_ON_OUTSIDE_HOLD`; fix the structure (move the outside read under the boundary so one hold owns the data). A frame held past the content's landing by something else (the write's action, other pending data) shows no fallback either — a race, not reported; show the wait with `isPending()`. A display-ahead read in `on` (`on={latest(id)}`) shows the fallback _now_, beside the still-held frame — a capability, not the recommended shape. A fallback that names what is loading should read `latest(id)`, since `id()` is still the committed value while the new one loads. (2026-10-06: how a re-armed boundary treats data an earlier change still holds is deferred to a separate change; the above stands until then.)
+- **`isPending` ≠ 1.x `.loading`** — it fires while a value _change_ is in flight (an input changed, or `affects()` declared one), not for every fetch. A bare `refresh()`/poll re-asks the same question and is silent. For a reload that should read as pending: `affects(x); refresh(x)`. For a "saving…" affordance: a co-written optimistic flag.
 - **No `Suspense.Provider` or single error path** — async errors flow to `<Errored>` (or effect `error`); no inline `resource.error` branching.
 - **`createRoot` is owned by parent by default** — disposed when parent disposes. To detach: `runWithOwner(null, fn)`.
-- **Refs are functions** — `ref={el => ...}`. No `useRef`-style ref objects. Compose with arrays: `ref={[a, b]}`.
+- **Refs are functions** — `ref={el => ...}`. No `useRef`-style ref objects. Compose with arrays: `ref={[a, b]}` — entries are callbacks; a bare `let el` inside an array is never assigned (that rewrite is single-`ref` only).
 - **Boolean attributes are presence/absence** — `<video muted={false} />` removes the attribute.
 - **Built-in attributes are lowercase** — `tabindex` not `tabIndex`. Event handlers stay camelCase (`onClick`).
+- **Event handlers bind once — the binding expression is not reactive** — `onClick={cond() ? a : b}` picks a handler at mount and never re-evaluates. Put the decision inside a stable handler: `onClick={e => (cond() ? a : b)(e)}`. (Spread is the one exception: it must re-apply changed props, handlers included — that's forced, not a pattern.)
 - **In tests, `flush()` before asserting on signals** — `setCount(1); flush(); expect(count()).toBe(1)`.
 - **Reactive primitives need an owner** — wrap test code in `createRoot(dispose => { ... })` or you'll leak.
 
@@ -645,5 +746,5 @@ If your training data is 1.x, these are the corrections. **Read this before gene
 
 ## See also
 
-- `migration.md` — full beta-tester migration guide (local).
-- The other sibling reference files (`reactivity.md`, `signals-context.md`, `control-flow.md`, `stores.md`, `async.md`, `actions.md`, `dom.md`, `diagnostics.md`, `typescript-jsx.md`) — deep-dive design docs by subsystem.
+- [`MIGRATION.md`](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/MIGRATION.md) — full migration guide.
+- [Solid 2.0 RFCs](https://github.com/solidjs/solid/tree/next/documentation/solid-2.0) — deep-dive design docs by subsystem.

@@ -536,7 +536,7 @@ describe("<ReferenceLine />", () => {
           // `id` is a documented Solid deviation: recharts matches reference
           // elements by object identity, but Solid store proxies break that, so
           // the port mints a stable id for proxy-safe removal.
-          id: expect.stringMatching(/^recharts-reference-line-/) as unknown as string,
+          id: expect.stringMatching(/^recharts-reference-line-/),
           ifOverflow: "extendDomain",
           x: undefined,
           xAxisId: 0,
@@ -580,7 +580,7 @@ describe("<ReferenceLine />", () => {
 
       expect(lineSpy).toHaveBeenLastCalledWith([
         {
-          id: expect.stringMatching(/^recharts-reference-line-/) as unknown as string,
+          id: expect.stringMatching(/^recharts-reference-line-/),
           ifOverflow: "extendDomain",
           segment: [
             { x: "Page A", y: 200 },

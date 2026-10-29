@@ -16,22 +16,20 @@ export interface CategoricalChartProps extends CartesianChartProps {
 }
 
 export const CategoricalChart = (props: CategoricalChartProps): JSX.Element => {
-  const attrs = (): Record<string, unknown> =>
-    svgPropertiesNoEventsKeepCase({
-      ...omit(
-        props,
-        "width",
-        "height",
-        "responsive",
-        "children",
-        "class",
-        "style",
-        "compact",
-        "title",
-        "desc",
-        "ref",
-      ),
-    });
+  const rest = omit(
+    props,
+    "width",
+    "height",
+    "responsive",
+    "children",
+    "class",
+    "style",
+    "compact",
+    "title",
+    "desc",
+    "ref",
+  );
+  const attrs = (): Record<string, unknown> => svgPropertiesNoEventsKeepCase({ ...rest });
 
   return (
     <RechartsWrapper

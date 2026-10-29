@@ -400,13 +400,13 @@ function BarBackground(props: {
   const onMouseEnter = useMouseEnterItemDispatch(
     () => props.onMouseEnter,
     () => props.dataKey,
-    props.graphicalItemId,
+    () => props.graphicalItemId,
   );
   const onMouseLeave = useMouseLeaveItemDispatch(() => props.onMouseLeave);
   const onClick = useMouseClickItemDispatch(
     () => props.onClick,
     () => props.dataKey,
-    props.graphicalItemId,
+    () => props.graphicalItemId,
   );
 
   // Per-background-rectangle BarRectangle props (DATA, not JSX). Recomputes on data /
@@ -851,12 +851,10 @@ export const Bar = (props: BarProps): JSX.Element => {
   const store = useAppStore();
   const merged = merge(barDefaultProps, props);
   const isPanorama = useIsPanorama();
-  const id = useUniqueId("recharts-bar", props.id);
-  const stackId = useStackId(props.stackId);
-  // Custom shape render prop (function form), captured once.
-  const shape = merged.shape ?? defaultBarShape;
-  const activeBar = merged.activeBar;
-  const hasCustomShape = shape !== defaultBarShape;
+  const id = useUniqueId("recharts-bar", () => props.id);
+  const stackId = useStackId(() => props.stackId);
+  // Custom shape render prop (function form).
+  const shape = (): ActiveShape<BarShapeProps, SVGPathElement> => merged.shape ?? defaultBarShape;
 
   if (store != null) {
     registerInStore<BarSettings>(
@@ -874,7 +872,7 @@ export const Bar = (props: BarProps): JSX.Element => {
         barSize: merged.barSize,
         maxBarSize: merged.maxBarSize,
         minPointSize: merged.minPointSize,
-        hasCustomShape,
+        hasCustomShape: shape() !== defaultBarShape,
       }),
       {
         add: (next) => store.actions.graphicalItems.addCartesianGraphicalItem(next),
@@ -927,15 +925,6 @@ export const Bar = (props: BarProps): JSX.Element => {
     () => merged.dataKey,
     id,
   );
-  // Capture optional handlers once (not `props.*` reads inside <For>/<Layer>).
-  const onMouseOverHandler = props.onMouseOver;
-  const onMouseOutHandler = props.onMouseOut;
-  const onMouseMoveHandler = props.onMouseMove;
-  const onMouseDownHandler = props.onMouseDown;
-  const onMouseUpHandler = props.onMouseUp;
-  const onTouchMoveHandler = props.onTouchMove;
-  const onTouchEndHandler = props.onTouchEnd;
-
   // Legend payload entry for this bar.
   const legendPayload = createMemo<ReadonlyArray<LegendPayload>>(() => [
     {
@@ -1003,7 +992,10 @@ export const Bar = (props: BarProps): JSX.Element => {
     }
     return layout() === "vertical" ? r0.height / 2 : r0.width / 2;
   };
-  const { needClip } = useNeedsClip(merged.xAxisId, merged.yAxisId);
+  const { needClip } = useNeedsClip(
+    () => merged.xAxisId,
+    () => merged.yAxisId,
+  );
   const barClipPath = createMemo(() => (needClip() ? `url(#clipPath-${id})` : undefined));
   // Holds the latest visible rectangles frame so a re-animation (data change)
   // tweens from where the bars currently are. Managed by AnimatedItems via
@@ -1131,11 +1123,11 @@ export const Bar = (props: BarProps): JSX.Element => {
                               entry={r()}
                               displayIndex={i}
                               dataKey={merged.dataKey}
-                              activeBar={activeBar}
+                              activeBar={merged.activeBar}
                               fill={r().fill ?? r().cell?.fill ?? merged.fill}
                               stroke={r().stroke ?? r().cell?.stroke ?? merged.stroke}
                               radius={merged.radius}
-                              shape={shape}
+                              shape={shape()}
                               animationElapsedTime={animationElapsedTime}
                               // Mirror upstream's `isAnimating || animationElapsedTime < 1`.
                               isAnimating={isAnimating() || animationElapsedTime < 1}
@@ -1150,38 +1142,41 @@ export const Bar = (props: BarProps): JSX.Element => {
                               }
                               onClick={(event) => onItemClick(r(), r().originalDataIndex)(event)}
                               onMouseOver={
-                                onMouseOverHandler != null
-                                  ? (event) => onMouseOverHandler(r(), r().originalDataIndex, event)
+                                props.onMouseOver != null
+                                  ? (event) =>
+                                      props.onMouseOver?.(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseOut={
-                                onMouseOutHandler != null
-                                  ? (event) => onMouseOutHandler(r(), r().originalDataIndex, event)
+                                props.onMouseOut != null
+                                  ? (event) => props.onMouseOut?.(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseMove={
-                                onMouseMoveHandler != null
-                                  ? (event) => onMouseMoveHandler(r(), r().originalDataIndex, event)
+                                props.onMouseMove != null
+                                  ? (event) =>
+                                      props.onMouseMove?.(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseDown={
-                                onMouseDownHandler != null
-                                  ? (event) => onMouseDownHandler(r(), r().originalDataIndex, event)
+                                props.onMouseDown != null
+                                  ? (event) =>
+                                      props.onMouseDown?.(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onMouseUp={
-                                onMouseUpHandler != null
-                                  ? (event) => onMouseUpHandler(r(), r().originalDataIndex, event)
+                                props.onMouseUp != null
+                                  ? (event) => props.onMouseUp?.(r(), r().originalDataIndex, event)
                                   : undefined
                               }
                               onTouchMove={
-                                onTouchMoveHandler != null
-                                  ? (event) => onTouchMoveHandler(r(), i, event)
+                                props.onTouchMove != null
+                                  ? (event) => props.onTouchMove?.(r(), i, event)
                                   : undefined
                               }
                               onTouchEnd={
-                                onTouchEndHandler != null
-                                  ? (event) => onTouchEndHandler(r(), i, event)
+                                props.onTouchEnd != null
+                                  ? (event) => props.onTouchEnd?.(r(), i, event)
                                   : undefined
                               }
                             />

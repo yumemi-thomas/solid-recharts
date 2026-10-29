@@ -11,7 +11,7 @@
 // Per-trapezoid `name` attribute is deferred in the minimal port (see Funnel.tsx),
 // so that reference assertion is intentionally omitted.
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "solid-js";
+import { flush, For } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { FunnelChart, Funnel, Tooltip, Cell } from "../../src";
 import { createSelectorTestCase } from "../helper/createSelectorTestCase";
@@ -92,9 +92,7 @@ describe("<FunnelChart />", () => {
     const { container } = render(() => (
       <FunnelChart width={500} height={300}>
         <Funnel dataKey="value" data={data} fill="#888" isAnimationActive={false}>
-          {data.map((_d, i) => (
-            <Cell fill={colors[i]} />
-          ))}
+          <For each={data}>{(_d, i) => <Cell fill={colors[i()]} />}</For>
         </Funnel>
       </FunnelChart>
     ));

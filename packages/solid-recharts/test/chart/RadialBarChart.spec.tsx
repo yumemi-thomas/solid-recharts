@@ -21,7 +21,7 @@
 // (`mockGetBoundingClientRect` gives the wrapper a non-zero rect) and asserts the
 // `.recharts-active-shape` WRAPPER class emitted by <Shape>. The element-form
 // activeShape case (`activeShape={<Sector/>}`) is PERMANENT-N/A (no cloneElement).
-import { createEffect, flush } from "solid-js";
+import { createEffect, flush, For } from "solid-js";
 import { describe, expect, it, test, vi } from "vitest";
 import { Cell, Legend, RadialBar, RadialBarChart, Sector, Tooltip } from "../../src";
 import type { SectorProps } from "../../src/shape/Sector";
@@ -456,9 +456,7 @@ describe("<RadialBarChart />", () => {
         data={data}
       >
         <RadialBar background dataKey="uv" isAnimationActive={false}>
-          {data.map(() => (
-            <Cell class="unit-test-class" />
-          ))}
+          <For each={data}>{() => <Cell class="unit-test-class" />}</For>
         </RadialBar>
       </RadialBarChart>
     ));

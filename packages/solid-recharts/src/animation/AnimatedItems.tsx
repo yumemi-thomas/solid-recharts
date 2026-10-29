@@ -111,10 +111,14 @@ export type AnimatedItemsProps<ItemType, LayoutType extends CartesianLayout | Po
 export function AnimatedItems<ItemType, LayoutType extends CartesianLayout | PolarLayout>(
   props: AnimatedItemsProps<ItemType, LayoutType>,
 ): JSX.Element {
-  const animationId = useAnimationId(() => props.animationInput, props.animationIdPrefix);
+  const animationId = useAnimationId(
+    () => props.animationInput,
+    () => props.animationIdPrefix,
+  );
   const snapshot = useAnimationStartSnapshot<ReadonlyArray<ItemType> | null | undefined>(
     animationId,
-    props.previousItemsRef,
+    // The ref holder is created once by the owning item and never swapped.
+    untrack(() => props.previousItemsRef),
   );
 
   const rawPrevItems = createMemo<ReadonlyArray<ItemType> | null>(

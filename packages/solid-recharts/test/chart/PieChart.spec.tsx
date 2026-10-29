@@ -10,7 +10,7 @@
 // with `.recharts-active-shape` click bubbling (chart-level onClick payload depends
 // on the unported PieChart-level mouse-state forwarding); reselect reference checks.
 import { describe, expect, it, test } from "vitest";
-import { flush } from "solid-js";
+import { flush, For } from "solid-js";
 import { Cell, Legend, Pie, PieChart, Sector, Tooltip } from "../../src";
 import type { PieSectorShapeProps } from "../../src/polar/Pie";
 import { useChartWidth, useChartHeight, useViewBox } from "../../src/context/chartLayoutContext";
@@ -350,10 +350,12 @@ describe("<PieChart />", () => {
           fill="#ff7300"
           label
         >
-          {data.map((entry, index) => {
-            const cellProps: Record<string, unknown> = { ...entry, strokeWidth: index + 1 };
-            return <Cell {...cellProps} />;
-          })}
+          <For each={data}>
+            {(entry, index) => {
+              const cellProps: Record<string, unknown> = { ...entry };
+              return <Cell {...cellProps} strokeWidth={index() + 1} />;
+            }}
+          </For>
         </Pie>
       </PieChart>
     ));

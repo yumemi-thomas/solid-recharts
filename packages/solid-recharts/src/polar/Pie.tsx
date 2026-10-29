@@ -581,7 +581,7 @@ export function Pie<DataPointType = Record<string, unknown>, DataValueType = unk
 ): JSX.Element {
   const store = useAppStore();
   const merged = merge(pieDefaultProps, props);
-  const id = useUniqueId("recharts-pie", props.id);
+  const id = useUniqueId("recharts-pie", () => props.id);
 
   if (store != null) {
     registerInStore<PieSettings>(

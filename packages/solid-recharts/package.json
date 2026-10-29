@@ -1,6 +1,6 @@
 {
   "name": "solid-recharts",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-rc.0",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -9,23 +9,24 @@
   },
   "scripts": {
     "pretest": "node ../../scripts/verify-reference.mjs",
-    "test": "vp test run",
-    "test:watch": "vp test",
+    "test": "vp test run --config ../../vite.config.ts",
+    "test:watch": "vp test watch --config ../../vite.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "d3-scale": "^4.0.2",
-    "d3-shape": "^3.1.0"
+    "d3-shape": "^3.2.0"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "^1.0.0-beta.2",
-    "@types/d3-scale": "^4.0.2",
-    "@types/d3-shape": "^3.1.0",
-    "axe-core": "^4.12.0",
+    "@solidjs/diagnostics": "2.0.0-rc.19",
+    "@solidjs/testing-library": "^1.0.0-rc.2",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.2.0",
+    "axe-core": "^4.14.0",
     "vitest-axe": "^0.1.0"
   },
   "peerDependencies": {
-    "@solidjs/web": "^2.0.0-beta.17",
-    "solid-js": "^2.0.0-beta.17"
+    "@solidjs/web": "^2.0.0-rc.19",
+    "solid-js": "^2.0.0-rc.19"
   }
 }

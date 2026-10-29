@@ -9,7 +9,7 @@
 // parent (Bar/Pie/RadialBar) synchronously resolves its children inside
 // `collectCells`. Cells render no DOM (the standalone <Cell /> spec asserts this).
 import { type CamelSvgProps } from "../util/svgPropertiesNoEvents";
-import { createMemo, type Accessor } from "solid-js";
+import { children, createMemo, type Accessor } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
 export interface CellProps extends CamelSvgProps<JSX.SVGAttributes<SVGElement>> {
@@ -54,6 +54,12 @@ export const Cell = (props: CellProps): JSX.Element => {
  * every nested <Cell> reports its (reactive) props in document order. Returns the
  * collected cells as an accessor — recomputes if the children change, mirroring
  * recharts' `useMemo(() => findAllByType(children, Cell), [children])`.
+ *
+ * The children are fully resolved (`children()`), not just read: a `<For>` returns
+ * its rows lazily (they are created when the returned accessor is first called),
+ * so without resolving it the rows' <Cell>s would evaluate after this window has
+ * closed and never register. A row added later re-runs this memo (it tracks the
+ * resolved children), which re-creates the list inside a fresh window.
  */
 export const collectCells = (
   childrenAccessor: () => JSX.Element,
@@ -63,8 +69,8 @@ export const collectCells = (
     const prev = currentCellRegistrar;
     currentCellRegistrar = (cell) => collected.push(cell);
     try {
-      // Accessing children evaluates each <Cell>, triggering its registration.
-      void childrenAccessor();
+      // Resolving the children evaluates each <Cell>, triggering its registration.
+      void children(childrenAccessor)();
     } finally {
       currentCellRegistrar = prev;
     }

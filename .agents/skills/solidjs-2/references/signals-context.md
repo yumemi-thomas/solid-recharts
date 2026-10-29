@@ -1,6 +1,6 @@
 # RFC: Signals, derived primitives, ownership, and context
 
-**Start here:** If you’re migrating an app, read the beta tester guide first: [MIGRATION.md](migration.md)
+**Start here:** If you’re migrating an app, read the migration guide first: [MIGRATION.md](migration.md)
 
 ## Summary
 
@@ -29,6 +29,10 @@ function Widget() {
 }
 // When Widget is disposed, the nested root is disposed too.
 ```
+
+#### Disposal order is unwind
+
+Cleanups run in unwind order: an owner's children are disposed before its own cleanups, and within one owner later registrations run before earlier ones (the same LIFO rule 1.x had). In production a component body shares its enclosing owner rather than getting one of its own, so a parent that registers `onCleanup` before rendering its children tears down after them — the same order the dev build's per-component owner gives. Register cleanup before creating children when the order between them matters; a parent that registers `onCleanup` _after_ creating its children runs before them in production (and after them in dev).
 
 #### Detaching is explicit: `runWithOwner(null, ...)`
 
@@ -86,9 +90,16 @@ const [todos, { addTodo }] = useContext(TodosContext);
 
 The default form `createContext<T>(defaultValue)` is unchanged: `useContext` falls back to `defaultValue` outside any Provider. Reserved for primitive fallbacks (theme, locale, frozen config). For any context carrying reactive state, prefer the default-less form.
 
-> If you want truly app-wide state, **don't use Context** — a module-scope signal/store _is_ a global. Context is for scoping state to a subtree, which is why a Provider is mandatory in the default-less form.
+> Context is for state that belongs to a subtree, which includes app-wide state in an app that renders on the server: a value created inside a component is created once per request, and the Provider owns and disposes it. **Module scope is shared by every request in the same process, so reserve it for constants** (and the `createContext` call itself). That's why a Provider is mandatory in the default-less form.
 
-**Migration:** drop `useX`-with-throw wrappers and call `useContext` directly. If you actively relied on `useContext(ctx)` returning `undefined` for a default-less context, either pass an explicit default to `createContext` or wrap the call in a try/catch.
+`undefined` is never a context value: it means "not provided", on either side. `createContext<T | undefined>(undefined)` is still default-less, and a Provider passing `value={undefined}` counts as no Provider, so both throw `ContextNotFoundError`. The dev message names the context and which case it hit. For an optional context, use `null` as the explicit empty value:
+
+```ts
+const Session = createContext<Session | null>(null);
+useContext(Session); // null outside a Provider; a Provider may pass null too
+```
+
+**Migration:** drop `useX`-with-throw wrappers and call `useContext` directly. If you actively relied on `useContext(ctx)` returning `undefined` for a default-less context, either pass an explicit default to `createContext` (`null` for "empty", not `undefined`) or wrap the call in a try/catch.
 
 ### Derived primitives: function-form `createSignal` and `createStore`
 
@@ -105,6 +116,31 @@ const [value, setValue] = createSignal(() => props.something);
 const [cached, setCached] = createSignal((prev = props.something) => prev);
 // setValue(...) writes like a normal signal; the compute receives prev on recompute.
 ```
+
+A write to a writable derived value (`createSignal(fn)`, `createStore(fn)`) lands immediately. When one of its sources changes, in the same update or later, the function runs again and receives your write as `prev` (or as the draft for `createStore(fn)`), and it decides what to keep. A write on its own never re-runs the function.
+
+To keep a local value across source changes, keep it in the data, as a flag the function honors:
+
+```ts
+const [cards, setCards] = createStore<Card[]>((draft) => {
+  const previous = new Map(draft.map((card) => [card.id, card]));
+  return serverCards().map((remote) => {
+    const old = previous.get(remote.id);
+    return old?.moveFailed ? { ...remote, column: old.column, moveFailed: true } : remote;
+  });
+}, []);
+
+const [card, setCard] = createSignal<Card>((prev) => {
+  const next = source(); // read unconditionally so the dependency survives while pinned
+  return prev?.pinned ? prev : next;
+});
+```
+
+Setting `moveFailed` (or `pinned`) keeps the local value through later updates. Clearing it lets the next source change take over, even when both happen in the same update.
+
+This is the same inside an action and across async holds: a hold changes when the result is shown, not what it is.
+
+A held derivation is not a write: while a transaction holds a value the compute derived (an async dependent of the source is still in flight), a write from outside that transaction joins it and becomes the `prev` of the transaction's re-derivation instead of replacing it — the frame that reveals is `fn(inputs)`, never a value the writer computed against the old frame. A second write to the same value still replaces the first. The same holds for the derived `createStore` below.
 
 #### Function-form `createStore` (derived/projection store)
 

@@ -8,6 +8,7 @@ import { expectXAxisTicks } from "../../helper/expectAxisTicks";
 import { ExpectAxisDomain } from "../../helper/ExpectAxisDomain";
 import { expectLastCalledWith, expectNthCalledWith } from "../../helper/expectLastCalledWith";
 import { dateWithValueData } from "../../_data";
+import { untrack } from "solid-js";
 
 type XAxisTickContentProps = CartesianTickContentProps;
 
@@ -135,7 +136,7 @@ describe("XAxis tick", () => {
       expect.assertions(6);
 
       const CustomXAxisTick = (props: { padding?: unknown }): JSX.Element => {
-        expect(props.padding).toEqual(expectedPadding);
+        expect(untrack(() => props.padding)).toEqual(expectedPadding);
         return <text>Custom Tick</text>;
       };
 
@@ -153,7 +154,7 @@ describe("XAxis tick", () => {
       expect.assertions(6);
 
       const CustomXAxisTick = (props: { padding?: unknown }): JSX.Element => {
-        expect(props.padding).toBe(expectedPadding);
+        expect(untrack(() => props.padding)).toBe(expectedPadding);
         return <text>Custom Tick</text>;
       };
 
@@ -175,7 +176,7 @@ describe("XAxis tick", () => {
       const seenPaddings: unknown[] = [];
 
       const customTickFunction = (props: XAxisTickContentProps): JSX.Element => {
-        seenPaddings.push(props.padding);
+        seenPaddings.push(untrack(() => props.padding));
         return <text>Function Tick</text>;
       };
 
@@ -195,7 +196,7 @@ describe("XAxis tick", () => {
       expect.assertions(6);
 
       const CustomXAxisTick = (props: { padding?: unknown }): JSX.Element => {
-        expect(props.padding).toEqual({ left: 0, right: 0 });
+        expect(untrack(() => props.padding)).toEqual({ left: 0, right: 0 });
         return <text>Custom Tick</text>;
       };
 

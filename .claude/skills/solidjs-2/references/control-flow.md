@@ -1,6 +1,6 @@
 # RFC: Control flow
 
-**Start here:** If you’re migrating an app, read the beta tester guide first: [MIGRATION.md](migration.md)
+**Start here:** If you’re migrating an app, read the migration guide first: [MIGRATION.md](migration.md)
 
 ## Summary
 
@@ -11,7 +11,7 @@ Solid 2.0 simplifies and unifies control-flow APIs by consolidating list renderi
 - **One list primitive:** Having both `For` and `Index` encourages bikeshedding and accidental misuse. A single `For` that can be keyed or index-based is easier to teach and document.
 - **Ranges without diffing:** Rendering “count-based” lists (skeletons, ranges, windowing) shouldn’t require list diffing; `Repeat` expresses this directly.
 - **Async and error UX:** Names like Suspense and ErrorBoundary are long and carry baggage. `Loading` and `Errored` are concise and align better with their actual role in the 2.0 async model.
-- **Dynamic components as values:** A factory that returns a stable `Component<P>` composes cleanly with JSX (reactive props, children, refs) and with the async-computation model — async sources suspend through `Loading` via the same `NotReadyError` flow as any other reactive read.
+- **Dynamic components as values:** A factory that returns a stable `Component<P>` composes cleanly with JSX (reactive props, children, refs) and with the async-computation model — async sources flow through `Loading` via the same `NotReadyError` path as any other not-ready reactive read.
 
 ## Detailed design
 
@@ -119,13 +119,15 @@ This is primarily intended for use with **stores**, where the data at each index
 </Loading>
 ```
 
-In 2.0’s async model, async values are part of computations (not a separate `createResource`), so `Loading` is the user-facing “this subtree may suspend” boundary.
+In 2.0’s async model, async values are part of computations (not a separate `createResource`), so `Loading` is the user-facing “this subtree may be not ready yet” boundary.
 
-`Loading` also accepts an `on` prop to control when the boundary re-shows its fallback during revalidation. See [RFC 05](async.md) for details.
+`Loading` also accepts an `on` prop — a dependency list: a tracked expression whose value is irrelevant; whenever anything it reads changes, the boundary stops waiting on its current content and shows its fallback again (if something under it is still pending) instead of keeping stale content. The fallback lands with the same frame as the change that caused it — immediately when nothing else holds that frame, together with the rest of the new page during a held navigation. See [RFC 05](async.md#loading-on-prop-dependencies-that-show-the-fallback-again) for the product-page walkthrough and the `LOADING_ON_OUTSIDE_HOLD` diagnostic.
 
 ### Error boundary: `Errored`
 
 `Errored` is the error boundary. It supports a static fallback or a callback form that receives an error accessor and a reset function.
+
+The reset function is an action: pass it to event handlers or other imperative code to retry the errored branch.
 
 ```jsx
 <Errored
@@ -141,7 +143,32 @@ In 2.0’s async model, async values are part of computations (not a separate `c
 </Errored>
 ```
 
-### Dynamic components: `dynamic` factory and `<Dynamic>`
+#### Reporting what a boundary caught: the client error hook
+
+A fallback rendered is a failure handled — and, until now, one nothing outside the app could see in production: the browser's global handlers hear what reaches `window.onerror`, and a caught error never does. The client error hook is the prod-tier seam for it — any app that wants to log its errors, not only an APM — and the twin of the server's `configureServerErrors` ([RFC 12](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/12-ssr-http.md#the-server-error-hook-configureservererrors--onerror)):
+
+```ts
+import { configureClientErrors } from "solid-js";
+
+configureClientErrors({
+  onError(error, { ownerPath, boundaryPath }) {
+    Sentry.captureException(error, { mechanism: { type: "solid.error_boundary", handled: true } });
+  }
+});
+
+// or per root, ahead of the ambient hook:
+render(() => <App />, root, undefined, { onError });
+```
+
+- Fires when an `Errored` collected a failure and renders its fallback. An **uncaught** error is not this hook's: nothing contained it, the reactive system halts (`REACTIVITY_HALTED`), and the cause goes to the platform's `reportError` — `window.onerror`, the channel every monitor and every `addEventListener("error")` already listens on. One event, one channel.
+- **Once per error object**: a `reset()` that recomputes the same failing node re-collects the same error and says nothing new; a primitive thrown has no identity and is reported per sight.
+- `ownerPath` is where the error was **thrown** — labels root-first up the owner chain of the computation that threw (component labels and named primitives; the compiler's inner memos ride along by their default name) — and `boundaryPath` where it was **met**, the same labels up the `<Errored>`'s own chain: what broke, and what the user saw. Both where the runtime keeps owner names (the observe and dev artifacts; production owners carry none). When the throw crossed no computation the engine could name, `ownerPath` is the boundary's.
+- No return: the client has no wire to map for. A throwing hook is reported on the console and ignored — a monitor never takes the app down.
+- Pay-for-use: the hook machinery rides with `Errored` or the app's own `configureClientErrors` import; a root's hook is parked on the root owner, so `render` retains nothing for an app that passes none.
+
+An effect's own error arm (`createEffect(compute, { effect, error })`) is the author handling the failure and is not reported here.
+
+### Dynamic components: the `dynamic` factory
 
 Solid 2.0 reshapes `createDynamic` into a `lazy`-style factory named `dynamic`. Given a source that produces a component (or native tag name), `dynamic` returns a **stable `Component<P>`** whose identity is driven reactively. The returned value is usable anywhere a component is — children, refs, and reactive props flow through the normal JSX path.
 
@@ -157,19 +184,71 @@ const Tag = dynamic(() => (multiline() ? "textarea" : "input"));
 return <Tag value={value()} />;
 ```
 
-The `<Dynamic component={...}>` JSX wrapper from 1.x still exists and is unchanged at the call site; it is now a thin delegate over `dynamic`:
+The `<Dynamic component={...}>` JSX wrapper from 1.x is **deprecated** in favor of the factory. It remains available in 2.0 (no runtime warning), but new code should not use it. It is the same primitive, but its shape puts the tag in the same props bag as the element's own props: every instance merges `component` in at the call site (`merge({ component }, rest)`), `omit`s it back out inside, and builds a fresh `dynamic()` factory — with its memo — because a JSX wrapper has nowhere to hoist one. Libraries most sensitive to props plumbing (polymorphic `as` components) end up omitting `as`, handing the tag to `<Dynamic>`, which merges it back in under `component` so it can omit it again. `dynamic()` has none of that for one extra line:
 
 ```jsx
-<Dynamic component={isEditing() ? Editor : Viewer} value={value()} />
+// before
+<Dynamic component={isEditing() ? Editor : Viewer} value={value()} />;
+
+// after — hoist per component instance, or per module for a constant tag
+const Active = dynamic(() => (isEditing() ? Editor : Viewer));
+return <Active value={value()} />;
 ```
+
+Inside a `<For>` callback or other render function, the callback body is the place to hoist. The factory form also makes the lifetime explicit — where the memo lives, and that `source` is a function — which is what `<Dynamic component={comp}>` with an uncalled signal accessor silently gets wrong.
 
 #### Async sources and `Loading`
 
-`source` may return a `Promise<Component | string | undefined>`. The factory composes with `Loading` / `Errored` through the normal `NotReadyError` flow — no separate suspense primitive or user-side `await`.
+`source` may return a promise. The factory composes with `Loading` / `Errored` through the normal `NotReadyError` flow — no separate suspense primitive or user-side `await`. Each mounted instance is an ordinary async memo: under SSR its settled value is **serialized and the client adopts it during hydration** — the source is not re-run, the boundary is not re-entered, and the server-rendered nodes stand. That puts a contract on what an async source may resolve to, because the value has to cross the wire:
+
+- **A server component** (`"use server"` function returning JSX, called directly or through a wrapper such as a router `query()`): crosses as a reference; the client adopts the frame the server rendered. This is the primary case.
+- **A tag name** (`"article"`): a serializable value; adopted as-is.
+- **A client component function**: cannot be serialized. In dev this is an error on the server, `DYNAMIC_ASYNC_COMPONENT` ([RFC 08](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/08-dev-diagnostics.md#dynamic_async_component)), and the memo rejects into the nearest `Errored`. The async does not belong in the source: resolve it upstream — a `createAsync` / `createMemo` the source reads synchronously — or use `lazy()` when what is being awaited is the component's code.
+
+```jsx
+// A client component chosen by async data: the DATA is async, the source is sync.
+const page = createAsync(() => fetchPage(params.id));
+const Page = dynamic(() => (page().editable ? Editor : Viewer));
+
+// Code-split client component: lazy(), not an async dynamic() source.
+const Editor = lazy(() => import("./Editor.jsx"));
+
+// A server component answering an async call: the source may stay async.
+const Article = dynamic(() => loadArticle(params.id));
+```
+
+A synchronous source (whatever it returns) never serializes anything; only a source that introduced async writes a hydration record.
+
+Under SSR a pending source streams in behind its boundary by default — a source is data of unknown cost (a server component call, say). Pass `{ deferStream: true }` to hold the document's first flush until it settles, the same option `createMemo` takes ([RFC 05](async.md)); the client ignores it. This is the one place `dynamic` and `lazy` differ: a `lazy()` module load is code, not data, and always holds the shell — the shell cannot decide it has discovered all async until the segment's code has run — while the boundary still owns whatever async that code then discovers.
+
+```jsx
+const Article = dynamic(() => loadArticle(params.id), { deferStream: true });
+```
 
 #### Notes
 
 - The source evaluation is shared across all mounted instances of the returned component, so using one `dynamic(...)` in many places doesn't duplicate work.
+- Because a source may answer with a tag name, one `dynamic` on a page retains the element runtime (`spread`, the attribute helpers, the namespace tables) for everyone; `dynamicComponent(source)` from `solid-js` is the same primitive for a source that only ever answers with a component — a server component mount ([RFC 11](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/11-server-components.md#using-one)) — and never does. `@solidjs/web` re-exports it.
+
+### Client-only components: `clientOnly`
+
+`clientOnly` (from `@solidjs/web`, hoisted from SolidStart) wraps a dynamically imported component so it renders only in the browser — the same factory shape as `lazy`/`dynamic`, with an SSR contract: the server renders `props.fallback` (and nothing else) and never starts the import.
+
+```jsx
+import { clientOnly } from "@solidjs/web";
+
+const Chart = clientOnly(() => import("./Chart.jsx"));
+
+<Chart fallback={<div>Loading chart…</div>} data={data()} />;
+```
+
+Unlike `lazy()`, it avoids Suspense entirely — it composes with no `Loading` boundary — and never server-renders the wrapped component, so the component participates in no hydration asset manifest and its code is guaranteed never to run on the server. This is the tool for browser-only libraries: anything that touches `window`, measures the DOM, or simply can't be loaded in a server build.
+
+Hydration is mismatch-free by construction: during hydration the client renders the fallback exactly as the server did — the server-rendered fallback DOM is claimed, not re-created — and the swap to the real component happens only after the tree has settled. In pure client rendering (no hydration), the fallback shows until the import resolves.
+
+By default the import starts as soon as `clientOnly(...)` is called (module load); pass `{ lazy: true }` to defer it to the component's first render. Either way the importer is invoked at most once, no matter how many instances render — all instances share the loaded module.
+
+Bundler integrations sharpen the load path further: the compiler's module-URL pass (the same one that annotates `lazy()` calls, shipped through @solidjs/vite-plugin) recognizes `clientOnly(() => import("..."))` and injects the wrapped module's resolved URL into the call, which the server half uses to emit an early `modulepreload` hint — the browser starts fetching the component's chunk with the page instead of discovering it when the import first runs after hydration.
 
 ### Reveal timing: `Reveal`
 
@@ -209,13 +288,15 @@ A nested `<Reveal>` acts as a single composite slot to its parent: the parent's 
 
 This rule is absolute. There is no opt-out: wrapping children in an extra `<Loading>` does not let them escape an outer hold, because the `<Loading>` is itself just another slot that the parent holds. If you need a subtree to reveal independently of an outer group, do not nest it under that group.
 
+Group _membership_ is direct-children-only: every boundary (`<Loading>` or `<Errored>`) severs reveal coordination for its subtree. A `<Loading>` nested inside another slot's content — or wrapped in an `<Errored>` — does not join the group and never delays its release; it is covered by its own fallback inside the (possibly held) slot and settles on its own schedule. While the enclosing slot is still held, any content the severed boundary streams is queued and applied the moment the slot goes live.
+
 ##### Minimally ready
 
 Each order defines when it has "first visible content" under its own policy. This is the threshold that upward notifications use to report readiness to an enclosing `Reveal`:
 
 - `sequential` — frontier-0 (the first registered slot) has reached its own minimally-ready state.
 - `together` — every direct slot has reached its own minimally-ready state.
-- `natural` — any direct slot has produced visible content (leaves on resolve; nested composites when their whole subtree is ready, since natural treats a composite as one atomic slot).
+- `natural` — any direct slot has reached its own minimally-ready state (leaves on resolve; nested composites according to their own order).
 
 For a leaf `<Loading>`, "minimally ready" and "fully ready" are the same thing: its data resolved. For a nested `<Reveal>`, the two differ — e.g. a nested `sequential` is minimally ready once its first child resolves, even though later children are still pending.
 
@@ -227,13 +308,13 @@ For a leaf `<Loading>`, "minimally ready" and "fully ready" are the same thing: 
 | ------------- | ------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `sequential`  | `sequential`  | Outer frontier reaches the inner slot.                                                                              | Inner reveals in registration order; outer frontier waits for the inner group to finish before advancing past it.         |
 | `sequential`  | `together`    | Outer frontier reaches the inner slot.                                                                              | Inner reveals atomically once every inner child is ready.                                                                 |
-| `sequential`  | `natural`     | Outer frontier reaches the inner slot.                                                                              | Inner reveals per-slot: each leaf on resolve, each grandchild composite when fully ready.                                 |
+| `sequential`  | `natural`     | Outer frontier reaches the inner slot.                                                                              | Inner reveals per-slot: each leaf on resolve, while each grandchild composite runs its own order locally.                 |
 | `together`    | `sequential`  | Every direct child of the outer `together` is minimally ready; that means the inner's frontier-0 has resolved.      | Inner reveals its frontier-0 immediately with the group release, then continues its own sequential order for the tail.    |
 | `together`    | `together`    | Every direct child of the outer is minimally ready; that means the inner `together` has all its own children ready. | Inner reveals atomically as part of the same group release.                                                               |
 | `together`    | `natural`     | Every direct child of the outer is minimally ready; that means at least one inner child is ready.                   | Already-resolved inner children flush with the group release; later inner resolutions stream independently under natural. |
-| `natural`     | `sequential`  | The inner composite is fully ready (i.e. every inner child has resolved).                                           | Inner group is fully ready at release; all inner children flush together.                                                 |
-| `natural`     | `together`    | The inner composite is fully ready.                                                                                 | Same as above.                                                                                                            |
-| `natural`     | `natural`     | The inner composite is fully ready.                                                                                 | Same as above.                                                                                                            |
+| `natural`     | `sequential`  | Immediately; outer `natural` does not hold the inner composite.                                                     | Inner reveals in registration order.                                                                                      |
+| `natural`     | `together`    | Immediately; outer `natural` does not hold the inner composite.                                                     | Inner reveals atomically once every direct child is minimally ready.                                                      |
+| `natural`     | `natural`     | Immediately; outer `natural` does not hold the inner composite.                                                     | Inner children reveal independently.                                                                                      |
 
 `order="natural"` is primarily useful when you have a group whose children don't need to coordinate with each other. Nesting a natural group under an outer ordering lets the natural group participate as one unit in the outer order while each child reveals on its own data once the outer releases the slot.
 
@@ -264,7 +345,7 @@ Here the outer sequential order ensures `Header` reveals first; until it does, t
 #### SSR behavior
 
 - `renderToString` fully supports `order="sequential"` without `collapsed`, and `order="natural"`.
-- `order="together"` and `collapsed` rely on streamed activation and therefore require `renderToStream` / `renderToStringAsync` to behave correctly. Using them with `renderToString` inside a nested `Reveal` logs a warning.
+- `order="together"` and `collapsed` rely on streamed activation and therefore require `renderToStream` to behave correctly. Using them with `renderToString` inside a nested `Reveal` logs a warning.
 - Under streaming, the rules above apply identically: held fragments stream their resolved HTML into templates as data arrives, but the swap from fallback to content is deferred until the enclosing `Reveal` releases the slot. Swaps then happen in resolution order within the released group.
 
 ## Migration / replacement
@@ -346,17 +427,23 @@ createComponent(
 );
 ```
 
-The `<Dynamic component={...}>` JSX wrapper is unchanged at the call site; most users don't need to touch anything.
+The `<Dynamic component={...}>` JSX wrapper is deprecated (see above); replace it with a hoisted `dynamic()` factory.
 
 ## Removals
 
-| Removed                        | Replacement                                       |
-| ------------------------------ | ------------------------------------------------- |
-| `Index`                        | `For keyed={false}`                               |
-| `Suspense`                     | `Loading`                                         |
-| `SuspenseList`                 | `Reveal`                                          |
-| `ErrorBoundary`                | `Errored`                                         |
-| `createDynamic(source, props)` | `dynamic(source)` factory (`<Dynamic>` unchanged) |
+| Removed                        | Replacement               |
+| ------------------------------ | ------------------------- |
+| `Index`                        | `For keyed={false}`       |
+| `Suspense`                     | `Loading`                 |
+| `SuspenseList`                 | `Reveal`                  |
+| `ErrorBoundary`                | `Errored`                 |
+| `createDynamic(source, props)` | `dynamic(source)` factory |
+
+## Deprecated (kept in 2.0)
+
+| Deprecated            | Replacement               |
+| --------------------- | ------------------------- |
+| `<Dynamic component>` | `dynamic(source)` factory |
 
 ## Alternatives considered
 

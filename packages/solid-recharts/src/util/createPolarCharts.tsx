@@ -49,12 +49,11 @@ export function createCentricChart<TData, TCategorical = string, TNumerical = nu
     const RadarChart: ChartComponent<TData> = (props) => (
       <OriginalRadarChart {...props} layout="centric" />
     );
-    // eslint-disable-next-line typescript/consistent-type-assertions -- runtime identity preserved; type is a remap
     return {
       RadarChart,
       // eslint-disable-next-line typescript/consistent-type-assertions -- NoRadial<T> narrows to T at runtime
       ...(components as TComponents),
-    } as unknown as TypedCentricChartContext<TData, TCategorical, TNumerical, TComponents>;
+    };
   };
 }
 
@@ -75,12 +74,11 @@ export function createRadialChart<TData, TCategorical = string, TNumerical = num
     const PieChart: ChartComponent<TData> = (props) => (
       <OriginalPieChart {...props} layout="radial" />
     );
-    // eslint-disable-next-line typescript/consistent-type-assertions -- runtime identity preserved; type is a remap
     return {
       RadialBarChart,
       PieChart,
       // eslint-disable-next-line typescript/consistent-type-assertions -- NoCentric<T> narrows to T at runtime
       ...(components as TComponents),
-    } as unknown as TypedRadialChartContext<TData, TCategorical, TNumerical, TComponents>;
+    };
   };
 }

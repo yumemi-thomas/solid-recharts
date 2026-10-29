@@ -434,14 +434,11 @@ describe("<LineChart />", () => {
   });
 
   test("Renders 6 labels when label is a function", () => {
-    const renderLabel: LabelContentType = (props) => {
-      const { x, y } = props;
-      return (
-        <text class="customized-label" x={x} y={y}>
-          test
-        </text>
-      );
-    };
+    const renderLabel: LabelContentType = (props) => (
+      <text class="customized-label" x={props.x} y={props.y}>
+        test
+      </text>
+    );
     const { container } = render(() => (
       <LineChart
         width={400}
@@ -496,10 +493,9 @@ describe("<LineChart />", () => {
   });
 
   test("Renders 6 dots when dot is a function", () => {
-    const renderDot = (props: { cx?: number; cy?: number }) => {
-      const { cx, cy } = props;
-      return <circle class="customized-dot" cx={cx} cy={cy} r={10} />;
-    };
+    const renderDot = (props: { cx?: number; cy?: number }) => (
+      <circle class="customized-dot" cx={props.cx} cy={props.cy} r={10} />
+    );
     const { container } = render(() => (
       <LineChart
         width={400}

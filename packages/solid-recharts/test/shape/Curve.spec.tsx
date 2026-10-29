@@ -3,7 +3,6 @@
 // no React import; `className` → `class`; React.createRef → signal ref;
 // render takes a thunk. All assertions are byte-identical.
 import { describe, expect, it, test } from "vitest";
-import { createSignal } from "solid-js";
 import { render, fireEvent } from "@solidjs/testing-library";
 import { curveLinear } from "d3-shape";
 import { Surface, Curve } from "../../src";
@@ -288,14 +287,19 @@ describe("event handlers and refs", () => {
   });
 
   test("sets the pathRef to the path element", () => {
-    const [ref, setRef] = createSignal<SVGPathElement | null>(null);
+    let ref: SVGPathElement | null = null;
     const { container } = render(() => (
       <Surface width={400} height={400}>
-        <Curve points={points} pathRef={setRef} />
+        <Curve
+          points={points}
+          pathRef={(el) => {
+            ref = el;
+          }}
+        />
       </Surface>
     ));
-    expect(ref()).not.toBeNull();
-    expect(ref()).toBe(container.querySelector(".recharts-curve"));
+    expect(ref).not.toBeNull();
+    expect(ref).toBe(container.querySelector(".recharts-curve"));
   });
 });
 

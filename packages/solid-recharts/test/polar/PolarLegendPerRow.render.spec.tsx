@@ -3,7 +3,7 @@
 // aware (its sectors already resolve fill); RadialBar reads name/fill off each row.
 // `flush()` because legend payload registers via effects/selectors.
 import { describe, expect, it } from "vitest";
-import { flush } from "solid-js";
+import { flush, For } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { PieChart, Pie, RadialBarChart, RadialBar, Legend, Cell } from "../../src";
 
@@ -35,9 +35,7 @@ describe("per-row legend payloads", () => {
     const { container } = render(() => (
       <PieChart width={400} height={400}>
         <Pie data={pieData} dataKey="value" nameKey="name" isAnimationActive={false}>
-          {pieData.map((_entry, i) => (
-            <Cell fill={colors[i]} />
-          ))}
+          <For each={pieData}>{(_entry, i) => <Cell fill={colors[i()]} />}</For>
         </Pie>
         <Legend />
       </PieChart>

@@ -102,9 +102,8 @@ export type PolygonProps = Omit<
   PolygonOwnProps;
 
 export const Polygon = (props: PolygonProps): JSX.Element => {
-  const others = (): Record<string, unknown> => ({
-    ...omit(props, "class", "points", "baseLinePoints", "connectNulls"),
-  });
+  const rest = omit(props, "class", "points", "baseLinePoints", "connectNulls");
+  const others = (): Record<string, unknown> => ({ ...rest });
   const layerClass = (): Array<string | undefined> => ["recharts-polygon", props.class];
 
   // Narrow `points` to a non-empty array via keyed Show (no non-null assertion).

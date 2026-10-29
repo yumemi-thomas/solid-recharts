@@ -70,7 +70,8 @@ export function CSSTransitionAnimate(props: CSSTransitionAnimateProps): JSX.Elem
     return active === "auto" ? !Global.isSsr && !prefersReducedMotion() : active;
   };
 
-  const animationController = useAnimationController(props.animationController);
+  // A custom controller is resolved once, when the animation component is created.
+  const animationController = useAnimationController(untrack(() => props.animationController));
 
   const [style, setStyle] = createSignal<string>(
     untrack(() => (isActive() ? props.from : props.to)),

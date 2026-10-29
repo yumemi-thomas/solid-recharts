@@ -27,7 +27,7 @@ import { assertNotNull } from "../helper/assertNotNull";
 function payloadName(p: LinePointItem): string | undefined {
   const payload = p.payload;
   if (payload != null && typeof payload === "object" && "name" in payload) {
-    const name = (payload as { name: unknown }).name;
+    const name = payload.name;
     return typeof name === "string" ? name : undefined;
   }
   return undefined;
@@ -36,7 +36,7 @@ function payloadName(p: LinePointItem): string | undefined {
 function payloadX(p: LinePointItem): number | undefined {
   const payload = p.payload;
   if (payload != null && typeof payload === "object" && "x" in payload) {
-    const x = (payload as { x: unknown }).x;
+    const x = payload.x;
     return typeof x === "number" ? x : undefined;
   }
   return undefined;

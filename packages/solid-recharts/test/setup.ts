@@ -27,58 +27,39 @@ globalThis.jest = {
 };
 
 import "@testing-library/jest-dom/vitest";
+// Registers the `expect(artifact).toHaveNoDiagnostics()` family of matchers.
+import "@solidjs/diagnostics/vitest";
 import "./helper/expectFunctionReturning";
-import { afterEach, beforeEach, vi } from "vitest";
-import { DEV } from "solid-js";
+import { afterEach, aroundEach, expect, vi } from "vitest";
+import { captureArtifact } from "@solidjs/diagnostics";
 import { cleanup } from "@solidjs/testing-library";
-import {
-  type DiagnosticEvent,
-  describeDiagnosticEvents,
-  isAllowedDiagnostic,
-} from "./utils/diagnostics";
+import { acceptedDiagnosticsFor } from "./utils/diagnostics-allowlist";
 
 // GLOBAL DIAGNOSTICS GUARD — always on, every test, no opt-out.
 //
-// The diagnostics discipline (see test/utils/diagnostics.ts) is zero-tolerance:
-// any non-allowlisted Solid 2.0 diagnostic is a bug — a STRICT_READ_UNTRACKED
-// warning means a future state change silently won't propagate. Error-severity
-// diagnostics already throw; warning-severity ones (STRICT_READ_UNTRACKED,
-// NO_OWNER_EFFECT, …) only LOG, so without this guard they slip through every
-// test silently.
+// The diagnostics discipline is zero-tolerance: any non-allowlisted Solid 2.0
+// diagnostic is a bug — a STRICT_READ_UNTRACKED warning means a future state
+// change silently won't propagate. Error-severity diagnostics already throw;
+// warn-severity ones (STRICT_READ_UNTRACKED, NO_OWNER_EFFECT, …) only LOG, so
+// without this guard they slip through every test silently.
 //
-// This subscribes for the duration of EACH test and fails the test in afterEach
-// if any non-allowlisted diagnostic fired. The only escape hatch is the
-// allowlist in test/utils/diagnostics-allowlist.ts.
-let collected: DiagnosticEvent[] = [];
-let unsubscribe: (() => void) | undefined;
-
-beforeEach(() => {
-  collected = [];
-  if (DEV === undefined) {
-    return;
-  }
-  unsubscribe = DEV.diagnostics.subscribe((event: DiagnosticEvent) => {
-    if (!isAllowedDiagnostic(event.code)) {
-      collected.push(event);
-    }
+// `aroundEach` wraps the test AND its `afterEach` hooks, so everything the test
+// does — including the unmount in the `afterEach` below — happens inside one
+// `captureArtifact` window. `attribution: false` keeps this to the diagnostics
+// channel (no per-run bookkeeping across ~5400 tests) and `autoFlush: false`
+// leaves the reactive queue exactly as the test left it. The only escape hatch
+// is the allowlist in test/utils/diagnostics-allowlist.ts.
+aroundEach(async (runTest, { task }) => {
+  const { artifact } = await captureArtifact(() => runTest(), {
+    scenario: task.name,
+    attribution: false,
+    autoFlush: false,
   });
+  expect(artifact).toHaveNoDiagnostics({ allow: acceptedDiagnosticsFor(task.file.name) });
 });
 
 afterEach(() => {
   // Unmount first so cleanup-time diagnostics (e.g. onCleanup misuse) are caught.
   cleanup();
   vi.clearAllTimers();
-  unsubscribe?.();
-  unsubscribe = undefined;
-
-  const events = collected;
-  collected = [];
-
-  if (events.length > 0) {
-    throw new Error(
-      `Test emitted ${events.length} unexpected Solid diagnostic(s). ` +
-        `Fix the reactive-graph misuse (move untracked reads into a memo/JSX), ` +
-        `or add the code to the allowlist with justification:\n${describeDiagnosticEvents(events)}`,
-    );
-  }
 });

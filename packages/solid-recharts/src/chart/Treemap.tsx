@@ -672,11 +672,6 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
   const layerClass = (): string =>
     ["recharts-treemap", merged.class].filter((c): c is string => Boolean(c)).join(" ");
 
-  // Captured once (a render prop rarely changes); reading it in the <For> callback
-  // would be an untracked prop read.
-  const content = merged.content;
-  const nestIndexContent = merged.nestIndexContent;
-
   const handleTouchMove = (event: TouchEvent): void => {
     const touch = event.touches[0];
     if (touch == null || document.elementFromPoint == null) {
@@ -742,8 +737,8 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
                       onMouseLeave={(e) => onUserMouseLeave(item.node, item.isLeaf, e)}
                       onClick={() => onUserClick(item.node, item.isLeaf)}
                     >
-                      {content ? (
-                        content(item.node)
+                      {merged.content ? (
+                        merged.content(item.node)
                       ) : (
                         <>
                           <Rectangle
@@ -834,7 +829,9 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
                     }}
                     onClick={() => onNestIndexClick(i())}
                   >
-                    {nestIndexContent ? nestIndexContent(item, i()) : item.name || "root"}
+                    {merged.nestIndexContent
+                      ? merged.nestIndexContent(item, i())
+                      : item.name || "root"}
                   </div>
                 )}
               </For>
@@ -851,7 +848,7 @@ const TreemapImpl = (props: TreemapProps & { id: string }): JSX.Element => {
  * rectangles (a squarified treemap).
  */
 export const Treemap = (props: TreemapProps): JSX.Element => {
-  const id = useUniqueId("recharts-treemap", props.id);
+  const id = useUniqueId("recharts-treemap", () => props.id);
   return (
     <RechartsStoreProvider
       preloadedState={{ options: treemapOptions } satisfies Partial<RechartsRootState>}

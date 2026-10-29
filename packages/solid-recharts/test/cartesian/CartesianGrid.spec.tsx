@@ -14,7 +14,6 @@
 //   - "uses offset.width and offset.height when width and height are NaN".
 import { describe, expect, it, type Mock, test, vi } from "vitest";
 import { createEffect, flush } from "solid-js";
-import type { JSX } from "@solidjs/web";
 import { render } from "@solidjs/testing-library";
 import {
   CartesianGrid,
@@ -1353,10 +1352,9 @@ describe.each(allChartsThatSupportCartesianGrid)(
             // Solid JSX in value position is a LIVE DOM node, so mockReturnValue would
             // return the same node every call (DOM inserts it once). mockImplementation
             // builds a fresh node per call — the Solid equivalent of React's element-as-data.
-            const horizontal = vi.fn(
-              (_p: GridLineTypeFunctionProps) =>
-                (<g data-testid="my_mock_line" />) as unknown as JSX.Element,
-            );
+            const horizontal = vi.fn((_p: GridLineTypeFunctionProps) => (
+              <g data-testid="my_mock_line" />
+            ));
             const { container } = render(() => (
               <ChartElement width={500} height={500}>
                 <CartesianGrid
@@ -1452,10 +1450,9 @@ describe.each(allChartsThatSupportCartesianGrid)(
         describe("vertical as a function", () => {
           it("should pass props, add default stroke, and then render result of the function", () => {
             // See note above: fresh node per call (Solid JSX is a live DOM node).
-            const vertical = vi.fn(
-              (_p: GridLineTypeFunctionProps) =>
-                (<g data-testid="my_mock_line" />) as unknown as JSX.Element,
-            );
+            const vertical = vi.fn((_p: GridLineTypeFunctionProps) => (
+              <g data-testid="my_mock_line" />
+            ));
             const { container } = render(() => (
               <ChartElement width={500} height={500}>
                 <CartesianGrid

@@ -16,10 +16,13 @@
 //    are therefore not tracked, and we never write a *local* signal there — emits
 //    only call OTHER charts' batched store setters via the registry, which is the
 //    sanctioned cross-store write path (no SIGNAL_WRITE_IN_OWNED_SCOPE).
-//  - The listener calls `store.actions.tooltip.setSyncInteraction(...)` +
-//    `flush()` on the RECEIVING chart's store; that store is a different owner, so
-//    the write is not "in an owned computation" of the emitting effect.
-import { createEffect, flush, untrack } from "solid-js";
+//  - The listener calls `store.actions.tooltip.setSyncInteraction(...)` on the
+//    RECEIVING chart's store. It runs synchronously INSIDE the emitting chart's
+//    effect apply phase (`syncEventCenter.emit`), where store writes are allowed
+//    and are processed in that same flush's continuation — so it must NOT call
+//    `flush()`: inside an effect callback that is a no-op and trips
+//    FLUSH_IN_EFFECT_CALLBACK.
+import { createEffect, untrack } from "solid-js";
 import { useAppStore } from "../state/hooks";
 import {
   selectEventEmitter,
@@ -92,7 +95,6 @@ function useTooltipSyncEventsListener(store: RechartsStore): void {
         // including sourceViewBox so emission can resume.
         if (payload.active === false) {
           store.actions.tooltip.setSyncInteraction(inactiveSyncState);
-          flush();
           return;
         }
 
@@ -118,7 +120,6 @@ function useTooltipSyncEventsListener(store: RechartsStore): void {
           } else {
             store.actions.tooltip.setSyncInteraction(payload);
           }
-          flush();
           return;
         }
 
@@ -146,7 +147,6 @@ function useTooltipSyncEventsListener(store: RechartsStore): void {
         const { coordinate } = payload;
         if (coordinate == null || box == null) {
           store.actions.tooltip.setSyncInteraction(inactiveSyncState);
-          flush();
           return;
         }
 
@@ -157,7 +157,6 @@ function useTooltipSyncEventsListener(store: RechartsStore): void {
             ...inactiveSyncState,
             sourceViewBox: payload.sourceViewBox,
           });
-          flush();
           return;
         }
 
@@ -177,7 +176,6 @@ function useTooltipSyncEventsListener(store: RechartsStore): void {
           sourceViewBox: payload.sourceViewBox,
           graphicalItemId: payload.graphicalItemId,
         });
-        flush();
       };
 
       syncEventCenter.on(TOOLTIP_SYNC_EVENT, listener);
@@ -215,7 +213,6 @@ function useBrushSyncEventsListener(store: RechartsStore): void {
         }
         if (mySyncId === incomingSyncId) {
           store.actions.chartData.setDataStartEndIndexes(payload);
-          flush();
         }
       };
       syncEventCenter.on(BRUSH_SYNC_EVENT, listener);

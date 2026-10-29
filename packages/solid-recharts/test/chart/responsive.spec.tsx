@@ -58,11 +58,7 @@ describe("responsive prop", () => {
         const { container } = renderTestCase();
         const wrapperElement = container.querySelector(".recharts-wrapper");
         expect(wrapperElement).toBeInTheDocument();
-        expect(wrapperElement).toHaveStyle({
-          position: "relative",
-          width: undefined,
-          height: undefined,
-        });
+        expect(wrapperElement).toHaveStyle({ position: "relative" });
       });
 
       it("should not interact with ResizeObserver", () => {
@@ -164,6 +160,7 @@ describe("responsive prop", () => {
 
     describe("when width and height are passed in style prop as numbers", () => {
       const renderTestCase = createSelectorTestCase((props) => (
+        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
         <ComposedChart style={{ width: 600, height: 200 }} responsive={responsive} data={PageData}>
           <Line dataKey="uv" />
           {props.children}
@@ -254,6 +251,7 @@ describe("responsive prop", () => {
 
     describe("when width is a prop and height is from style", () => {
       const renderTestCase = createSelectorTestCase((props) => (
+        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
         <ComposedChart width={600} style={{ height: 200 }} responsive={responsive} data={PageData}>
           <Line dataKey="uv" />
           {props.children}
@@ -291,11 +289,7 @@ describe("responsive prop", () => {
         const { container } = renderTestCase();
         const wrapperElement = container.querySelector(".recharts-wrapper");
         expect(wrapperElement).toBeInTheDocument();
-        expect(wrapperElement).toHaveStyle({
-          position: "relative",
-          width: undefined,
-          height: undefined,
-        });
+        expect(wrapperElement).toHaveStyle({ position: "relative" });
       });
 
       it("should subscribe to ResizeObserver", () => {
@@ -441,6 +435,7 @@ describe("responsive prop", () => {
         mockGetBoundingClientRect({ width: 700, height: 100 });
       });
       const renderTestCase = createSelectorTestCase((props) => (
+        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
         <ComposedChart style={{ width: 700, height: 100 }} responsive data={PageData}>
           <Line dataKey="uv" />
           {props.children}
@@ -557,6 +552,7 @@ describe("responsive prop", () => {
         mockGetBoundingClientRect({ width: 600, height: 200 });
       });
       const renderTestCase = createSelectorTestCase((props) => (
+        // eslint-disable-next-line solid/style-prop -- numeric `style` dimensions are part of the recharts API: the chart wrapper resolves them to px itself
         <ComposedChart width={600} style={{ height: 200 }} responsive data={PageData}>
           <Line dataKey="uv" />
           {props.children}

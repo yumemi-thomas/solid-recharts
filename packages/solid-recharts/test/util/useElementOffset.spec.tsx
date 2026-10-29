@@ -82,7 +82,7 @@ describe("useElementOffset", () => {
     expect(result[0]().height).toBe(50);
 
     act(() => {
-      resizeObserverCallback?.([] as unknown as ResizeObserverEntry[]);
+      resizeObserverCallback?.([]);
     });
     expect(result[0]().height).toBe(120);
   });
@@ -100,7 +100,7 @@ describe("useElementOffset", () => {
     expect(result[0]().height).toBe(50);
 
     act(() => {
-      resizeObserverCallback?.([] as unknown as ResizeObserverEntry[]);
+      resizeObserverCallback?.([]);
     });
     // Height change of 0.5 is below EPS=1, should not update
     expect(result[0]().height).toBe(50);
