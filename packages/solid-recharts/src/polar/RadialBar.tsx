@@ -102,7 +102,12 @@ import { interpolate, isNumber, mathSign } from "../util/DataUtils";
 import type { StackSeries } from "../util/stacks/stackTypes";
 import { registerInStore } from "../state/registerInStore";
 
-export type RadialBarDataItem = SectorProps &
+// Sector props with a string `class` instead of Sector's structured `JSX.ClassValue`: the
+// sector props reach a user `shape`/`activeShape` function and the item event handlers, and
+// recharts hands those a string `className`.
+type StringClassSectorProps = Omit<SectorProps, "class"> & { class?: string };
+
+export type RadialBarDataItem = StringClassSectorProps &
   PolarViewBoxRequired &
   TooltipTriggerInfo &
   // v3.9: while animating, each sector carries the animation state so a custom-shape
@@ -110,7 +115,7 @@ export type RadialBarDataItem = SectorProps &
   ShapeAnimationProps & {
     value?: unknown;
     payload?: unknown;
-    background?: SectorProps;
+    background?: StringClassSectorProps;
   };
 
 /** Shape/activeShape are what RadialBarUtils consumes; the rest is the component surface. */
@@ -129,7 +134,7 @@ export interface RadialBarProps<DataPointType = Record<string, unknown>, DataVal
   stackId?: string | number;
   /** A background sector drawn behind each bar (recharts `background` prop):
    * boolean / props-object (optionally carrying a `zIndex`) / function shape. */
-  background?: boolean | (SectorProps & ZIndexable);
+  background?: boolean | (StringClassSectorProps & ZIndexable);
   /** Per-sector labels (via the polar LabelList). @defaultValue false */
   label?: ImplicitLabelListType;
   barSize?: number;
@@ -222,10 +227,10 @@ const defaultRadialBarAnimateItems: AnimationInterpolateFn<RadialBarDataItem, Po
 // `background` is honored via the sector's `option`.
 function RadialBarBackground(props: {
   sectors: ReadonlyArray<RadialBarDataItem>;
-  background: boolean | (SectorProps & ZIndexable);
+  background: boolean | (StringClassSectorProps & ZIndexable);
   cornerRadius: string | number | undefined;
 }): JSX.Element {
-  const backgroundFromProps = (): SectorProps | undefined =>
+  const backgroundFromProps = (): StringClassSectorProps | undefined =>
     typeof props.background === "object" && props.background != null ? props.background : undefined;
   // SVG presentation props from the background prop, minus `class` (composed below).
   const backgroundProps = (): Record<string, unknown> => {
@@ -241,7 +246,7 @@ function RadialBarBackground(props: {
   // Plain objects of DATA (not JSX) per row that carries a background geometry; the
   // <For> below renders them so the ZIndexLayer Portal subtree stays stable.
   const rows = createMemo<
-    ReadonlyArray<RadialBarSectorProps & { option: SectorProps | undefined }>
+    ReadonlyArray<RadialBarSectorProps & { option: StringClassSectorProps | undefined }>
   >(() =>
     props.sectors.flatMap((entry, i) => {
       const bg = entry.background;
@@ -372,7 +377,7 @@ export function computeRadialBarDataItems({
     let outerRadius: number | undefined;
     let startAngle: number | undefined;
     let endAngle: number | undefined;
-    let background: SectorProps | undefined;
+    let background: StringClassSectorProps | undefined;
 
     if (layout === "radial") {
       startAngle = angleAxis.scale.map(value[0]) ?? rootStartAngle;
@@ -526,6 +531,14 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
   // recharts uses "recharts-area" as the radial-bar layer class (a quirk).
   const layerClass = (): string =>
     ["recharts-area", merged.class].filter((c): c is string => Boolean(c)).join(" ");
+
+  // The sector's class travels in the props handed to a user `shape`/`activeShape` function
+  // (recharts: `className: \`recharts-radial-bar-sector ${entry.className}\``,
+  // src/polar/RadialBar.tsx:172), so it is a string rather than a structured value.
+  const sectorClass = (entryClass: string | undefined): string =>
+    entryClass == null || entryClass === ""
+      ? "recharts-radial-bar-sector"
+      : `recharts-radial-bar-sector ${entryClass}`;
 
   // Tooltip entry: the sectors themselves are the per-item data (the searcher
   // resolves the value via dataKey). NOTE: the minimal port drops the raw-data
@@ -713,7 +726,7 @@ export function RadialBar<DataPointType = Record<string, unknown>, DataValueType
                             animationElapsedTime={animationElapsedTime}
                             isAnimating={isAnimating() || animationElapsedTime < 1}
                             isEntrance={isEntrance}
-                            class={["recharts-radial-bar-sector", entry.class]}
+                            class={sectorClass(entry.class)}
                             fill={entry.fill ?? merged.fill}
                             stroke={entry.stroke ?? merged.stroke}
                             strokeWidth={entry.strokeWidth ?? merged.strokeWidth}
