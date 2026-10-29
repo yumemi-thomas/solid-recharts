@@ -38,6 +38,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "solid-recharts";
 | `tickCount`     | `number`                                                        | `5`            | Suggested number of ticks (for numeric axes)                        |
 | `interval`      | `number \| "preserveStartEnd" \| "equidistantPreserveStartEnd"` | `0`            | Tick sampling strategy                                              |
 | `angle`         | `number`                                                        | `0`            | Rotation angle in degrees for tick labels                           |
+| `height`        | `number \| "auto"`                                              | `30`           | Axis height in pixels; `"auto"` sizes the axis to its tick labels   |
 | `hide`          | `boolean`                                                       | `false`        | Hides the axis, ticks, and labels                                   |
 | `xAxisId`       | `string \| number`                                              | `0`            | Unique identifier to bind series to this axis (via xAxisId)         |
 | `label`         | `string \| object`                                              | —              | Axis title, or a `<Label>` child element                            |
@@ -56,6 +57,8 @@ docs](https://recharts.org/en-US/api/XAxis) for the complete reference.
 - `allowDataOverflow` allows the axis to extend beyond the data min/max.
 - Use `angle` with `textAnchor="end"` and an increased `height` to avoid label overlap
   on rotated ticks.
+- `height="auto"` measures the rendered tick labels and sizes the axis to fit them, which
+  suits rotated or multi-line ticks. The axis `label` is not part of the measurement.
 
 ## See also
 

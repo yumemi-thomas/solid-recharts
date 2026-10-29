@@ -26,26 +26,31 @@ import { LineChart, Line, XAxis, YAxis, Legend } from "solid-recharts";
 
 ## Props
 
-| Prop            | Type                            | Default        | Description                                                                |
-| --------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------- |
-| `layout`        | `"horizontal" \| "vertical"`    | `"horizontal"` | Legend flow direction                                                      |
-| `align`         | `"left" \| "center" \| "right"` | `"center"`     | Horizontal alignment (vertical layout) or left/center/right for horizontal |
-| `verticalAlign` | `"top" \| "middle" \| "bottom"` | `"bottom"`     | Vertical alignment                                                         |
-| `iconType`      | `string`                        | `"line"`       | Shape of the color indicator: `"line"`, `"square"`, `"diamond"`, etc.      |
-| `iconSize`      | `number`                        | `14`           | Size of the color indicator in pixels                                      |
-| `formatter`     | `(value, entry) => string`      | —              | Format the series name displayed in the legend                             |
-| `content`       | `(props) => JSX.Element`        | —              | Custom legend rendering function                                           |
-| `onClick`       | `(entry) => void`               | —              | Called when a legend entry is clicked                                      |
-| `onMouseEnter`  | `(entry) => void`               | —              | Called when the mouse enters a legend entry                                |
-| `onMouseLeave`  | `(entry) => void`               | —              | Called when the mouse leaves a legend entry                                |
-| `wrapperStyle`  | `JSX.CSSProperties`             | `{}`           | Styles for the legend wrapper                                              |
-| `width`         | `number \| string`              | —              | Explicit legend width (vertical layout only)                               |
-| `height`        | `number \| string`              | —              | Explicit legend height (vertical layout only)                              |
+| Prop            | Type                                   | Default    | Description                                                                                                                        |
+| --------------- | -------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `layout`        | `"horizontal" \| "vertical" \| "auto"` | `"auto"`   | Legend flow direction. `"auto"` is vertical for `left`/`right` positions, horizontal otherwise                                     |
+| `position`      | `CartesianPosition`                    | —          | Where the legend sits relative to the chart (`"top"`, `"insideBottomRight"`, `{ x, y }`, …). Overrides `align` and `verticalAlign` |
+| `offset`        | `number`                               | `0`        | Distance to the specified `position` (direction depends on the position)                                                           |
+| `align`         | `"left" \| "center" \| "right"`        | `"center"` | Horizontal alignment (vertical layout) or left/center/right for horizontal                                                         |
+| `verticalAlign` | `"top" \| "middle" \| "bottom"`        | `"bottom"` | Vertical alignment. Superseded by `position`                                                                                       |
+| `iconType`      | `string`                               | `"line"`   | Shape of the color indicator: `"line"`, `"square"`, `"diamond"`, etc.                                                              |
+| `iconSize`      | `number`                               | `14`       | Size of the color indicator in pixels                                                                                              |
+| `formatter`     | `(value, entry) => string`             | —          | Format the series name displayed in the legend                                                                                     |
+| `content`       | `(props) => JSX.Element`               | —          | Custom legend rendering function                                                                                                   |
+| `onClick`       | `(entry) => void`                      | —          | Called when a legend entry is clicked                                                                                              |
+| `onMouseEnter`  | `(entry) => void`                      | —          | Called when the mouse enters a legend entry                                                                                        |
+| `onMouseLeave`  | `(entry) => void`                      | —          | Called when the mouse leaves a legend entry                                                                                        |
+| `wrapperStyle`  | `JSX.CSSProperties`                    | `{}`       | Styles for the legend wrapper                                                                                                      |
+| `width`         | `number \| string`                     | —          | Explicit legend width (vertical layout only)                                                                                       |
+| `height`        | `number \| string`                     | —          | Explicit legend height (vertical layout only)                                                                                      |
 
 ## Notes
 
 - Legend entries are auto-populated from series components (`Line`, `Bar`, `Area`, etc.) that have a `name` prop or `dataKey`.
 - The legend is positioned inside the chart's bounds by default; use `wrapperStyle` to override positioning.
+- `position` takes the outside positions (`"top"`, `"bottom"`, `"left"`, `"right"`), which reserve space
+  next to the plot area, the inside positions (`"insideTopLeft"`, `"center"`, …), and an `{ x, y }`
+  coordinate. When it is set, `align` and `verticalAlign` are ignored.
 - `verticalAlign` stacks entries vertically when `layout="vertical"`.
 - `content` is called with `{ payload, chartWidth, chartHeight, margin, ... }` for full custom rendering.
 - `iconType` values: `"line"`, `"square"`, `"cross"`, `"diamond"`, `"star"`, `"triangle"`, `"wye"`.
