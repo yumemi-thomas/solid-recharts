@@ -9,6 +9,7 @@ import { flush } from "solid-js";
 import type { MockAnimationManager } from "../animation/mockControllerAnimationManager";
 import { assertNotNull } from "./assertNotNull";
 import { getPieSectorAngles, selectPieSectors } from "./expectPieSectors";
+import { inSequence, progressSteps } from "./inSequence";
 
 export async function expectAnimatedPieAngles(
   container: Element,
@@ -20,7 +21,7 @@ export async function expectAnimatedPieAngles(
    * Pie sectors at 0% progress do not render at all, so we
    * start from 0.1 so that the sectors have rendered a little bit.
    */
-  let animationProgress = 0.1;
+  const animationProgress = 0.1;
   await animationManager.setAnimationProgress(animationProgress);
   flush();
   const stepSize = (1 - animationProgress) / steps;
@@ -32,9 +33,8 @@ export async function expectAnimatedPieAngles(
   }));
 
   const anglesDuringAnimation: ReadonlyArray<{ startAngle: number; endAngle: number }>[] = [];
-  for (animationProgress += stepSize; animationProgress < 1; animationProgress += stepSize) {
-    // eslint-disable-next-line no-await-in-loop
-    await animationManager.setAnimationProgress(animationProgress);
+  await inSequence(progressSteps(animationProgress + stepSize, stepSize, 1), async (progress) => {
+    await animationManager.setAnimationProgress(progress);
     flush();
     const currentPieSectors = selectPieSectors(container);
     const currentAngles = getPieSectorAngles(currentPieSectors);
@@ -64,7 +64,7 @@ export async function expectAnimatedPieAngles(
         expect(current.endAngle).not.toBe(initial.endAngle);
       }
     });
-  }
+  });
 
   await animationManager.completeAnimation();
   flush();

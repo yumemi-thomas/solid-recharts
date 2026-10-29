@@ -46,13 +46,10 @@ expect.extend({
   functionReturning: expectFunctionReturning,
 });
 
-interface CustomMatchers {
-  functionReturning: <TArgs extends ReadonlyArray<unknown>, TReturn>(
-    cases: ReadonlyArray<readonly [...TArgs, TReturn]>,
-  ) => (...args: TArgs) => TReturn;
-}
-
 declare module "vitest" {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  interface AsymmetricMatchersContaining extends CustomMatchers {}
+  interface AsymmetricMatchersContaining {
+    functionReturning: <TArgs extends ReadonlyArray<unknown>, TReturn>(
+      cases: ReadonlyArray<readonly [...TArgs, TReturn]>,
+    ) => (...args: TArgs) => TReturn;
+  }
 }

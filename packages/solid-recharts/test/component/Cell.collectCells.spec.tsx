@@ -7,6 +7,7 @@
 // recommend) never register and every slice keeps the default fill.
 import { describe, expect, it } from "vitest";
 import { createSignal, flush, For } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { render } from "@solidjs/testing-library";
 import { Cell, Pie, PieChart } from "../../src";
 
@@ -37,13 +38,13 @@ describe("collectCells", () => {
 
   it("collects <Cell>s from an array of elements", () => {
     const data = rows(3);
+    // The plain-array form recharts uses must keep working: a function that returns the
+    // cells as an array (it runs while the Pie reads its children, like the JSX would).
+    const cellElements = (): JSX.Element => data.map((_row, i) => <Cell fill={colors[i]} />);
     const { container } = render(() => (
       <PieChart width={400} height={400}>
         <Pie data={data} dataKey="value" isAnimationActive={false} fill="#808080">
-          {/* eslint-disable-next-line solid/prefer-for -- the plain-array form is the one recharts uses and must keep working */}
-          {data.map((_row, i) => (
-            <Cell fill={colors[i]} />
-          ))}
+          {cellElements()}
         </Pie>
       </PieChart>
     ));

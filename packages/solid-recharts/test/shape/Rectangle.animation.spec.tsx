@@ -40,6 +40,7 @@ import { createSignal, flush } from "solid-js";
 import { render } from "@solidjs/testing-library";
 import { trim } from "../helper/trim";
 import { assertNotNull } from "../helper/assertNotNull";
+import { inSequence, progressSteps } from "../helper/inSequence";
 import { Rectangle, Surface } from "../../src";
 import { AnimationControllerProvider } from "../../src/animation/useAnimationController";
 import {
@@ -111,14 +112,13 @@ async function expectAnimatedPath(
   const allPaths: Array<string | null | undefined> = [];
   allPaths.push(initialPath);
 
-  for (let i = 0.1; i <= 1; i += 0.3) {
-    // eslint-disable-next-line no-await-in-loop
-    await animationManager.setAnimationProgress(i);
+  await inSequence(progressSteps(0.1, 0.3, 1 + Number.EPSILON), async (progress) => {
+    await animationManager.setAnimationProgress(progress);
     flush();
     const currentPath = getRectPath(container);
     assertNotNull(currentPath);
     allPaths.push(currentPath);
-  }
+  });
 
   await animationManager.completeAnimation();
   flush();

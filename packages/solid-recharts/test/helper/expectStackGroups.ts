@@ -123,15 +123,14 @@ expect.extend({
   toBeRechartsStackedSeriesPoint: rechartsStackedSeriesPointMatcher,
 });
 
-interface CustomMatchers {
-  toBeRechartsStackedData: (expectedStackedData: ExpectedStackedData) => ReadonlyArray<StackSeries>;
-  toBeRechartsStackedSeries: (expectedStackedSeries: ExpectedStackedDataSeries) => StackSeries;
-  toBeRechartsStackedSeriesPoint: (expectedStackedSeriesPoint: StackDataPoint) => StackDataPoint;
-}
-
 declare module "vitest" {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  interface AsymmetricMatchersContaining extends CustomMatchers {}
+  interface AsymmetricMatchersContaining {
+    toBeRechartsStackedData: (
+      expectedStackedData: ExpectedStackedData,
+    ) => ReadonlyArray<StackSeries>;
+    toBeRechartsStackedSeries: (expectedStackedSeries: ExpectedStackedDataSeries) => StackSeries;
+    toBeRechartsStackedSeriesPoint: (expectedStackedSeriesPoint: StackDataPoint) => StackDataPoint;
+  }
 }
 
 /**

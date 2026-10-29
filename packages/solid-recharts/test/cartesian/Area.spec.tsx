@@ -87,12 +87,18 @@ describe.each(chartsThatSupportArea)("<Area /> as a child of $testName", ({ Char
 
   describe("dot", () => {
     test("Render customized dot when dot is set to be a function", () => {
-      let areaDotProps: DotItemDotProps | undefined;
-      const renderDot = (props: DotItemDotProps) => {
-        // eslint-disable-next-line solid/reactivity -- keeps the props object the chart hands to the custom dot, to assert on it afterwards
-        areaDotProps = props;
-        return <circle role="cell" cx={props.cx} cy={props.cy} r={5} class="customized-dot" />;
-      };
+      // The props object a custom dot receives is reactive, so what it carries is rendered
+      // into the DOM (where it is read in a tracked scope) and asserted from there.
+      const renderDot = (props: DotItemDotProps) => (
+        <circle
+          role="cell"
+          cx={props.cx}
+          cy={props.cy}
+          r={5}
+          class="customized-dot"
+          data-points={props.points?.length}
+        />
+      );
 
       render(() => (
         <ChartElement data={data}>
@@ -101,7 +107,8 @@ describe.each(chartsThatSupportArea)("<Area /> as a child of $testName", ({ Char
       ));
 
       expect(screen.getAllByRole("cell")).toHaveLength(data.length);
-      expect(areaDotProps).toHaveProperty("points");
+      // The chart hands the whole list of points to a custom dot.
+      expect(screen.getAllByRole("cell")[0]).toHaveAttribute("data-points", String(data.length));
     });
 
     test("Render customized dot when dot is set via a function returning a component", () => {
